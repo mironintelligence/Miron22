@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Varsayılan Tema ---------- */
+:root { color-scheme: light dark; }
+
+/* ---------- Genel Gövde ---------- */
+body {
+  @apply font-sans antialiased transition-colors duration-300;
+  background: radial-gradient(circle at top left, #0f172a, #000);
+  color: #f8fafc;
+}
+
+/* ---------- Markdown Okunabilirliği ---------- */
+.prose-invert { color: #e5e7eb; line-height: 1.7; word-wrap: break-word; overflow-wrap: break-word; }
+.prose-invert h2, .prose-invert h3 { color: #38bdf8; font-weight: 600; }
+.prose-invert ul { list-style-type: disc; margin-left: 1.5rem; }
+.prose-invert strong { color: #fef08a; }
+
+/* ---------- Cam / Blur Efekti ---------- */
+.glass {
+  @apply bg-white/5 dark:bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl shadow-2xl;
+  backdrop-filter: blur(20px) saturate(180%);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-radius: 18px;
+  transition: all 0.3s ease;
+}
+
+/* ---------- Fade Animasyonları ---------- */
+@keyframes fade-in { from { opacity: 0; transform: translateY(-10px);} to { opacity: 1; transform: translateY(0);} }
+.animate-fade-in { animation: fade-in 0.3s ease-in-out; }
+
+@keyframes fadeOutSmooth { 0% { opacity: 1; transform: scale(1);} 100% { opacity: 0; transform: scale(0.9);} }
+body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.4); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.6); }
+
+.input {
+  padding: 12px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  color: white;
+  outline: none;
+}
+.input::placeholder { color: #bbb; }

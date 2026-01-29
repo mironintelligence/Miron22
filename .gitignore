@@ -1,0 +1,16 @@
+
+node_modules/
+dist/
+build/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+debug/
+uploads/
+yargitay_db/
+*.pdf
+*.docx
+*.png
+*.log
+venv/
