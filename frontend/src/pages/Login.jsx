@@ -1,55 +1,87 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import { setLibraUser } from "../utils/auth"; 
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export default function Login() {
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Vercel'de çalışması için otomatik URL
-  const API_URL = import.meta.env.VITE_API_URL || "https://miron-api.onrender.com"; // Burayı sonra güncelleyeceğiz
-
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
+    setError(''); // Önceki hataları temizle
+
     try {
-      const res = await axios.post(`${API_URL}/auth/token`, form, {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      // Backend adresine istek atıyoruz (Port 8000 varsayıldı)
+      const response = await fetch('http://localhost:8000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
-      if (res.data) {
-        setLibraUser({ email: form.email, token: res.data.access_token });
-        navigate("/dashboard", { replace: true });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Giriş başarısız oldu.');
       }
+
+      // Başarılı! Token'ı kaydet.
+      console.log("Giriş Başarılı:", data);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Ana sayfaya yönlendir
+      navigate('/'); 
+
     } catch (err) {
-      setError("Giriş başarısız.");
-    } finally {
-      setLoading(false);
+      setError(err.message);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white font-['Outfit']">
-      <div className="w-full max-w-md p-8 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
-        <h1 className="text-2xl font-bold text-center mb-6">Giriş Yap</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input 
-            className="w-full p-3 rounded bg-slate-800 border border-slate-700 focus:border-blue-500 outline-none"
-            name="email" placeholder="E-posta" onChange={e => setForm({...form, email: e.target.value})} 
-          />
-          <input 
-            className="w-full p-3 rounded bg-slate-800 border border-slate-700 focus:border-blue-500 outline-none"
-            type="password" name="password" placeholder="Şifre" onChange={e => setForm({...form, password: e.target.value})} 
-          />
-          <button disabled={loading} className="w-full p-3 bg-blue-600 rounded hover:bg-blue-700 font-bold">
-            {loading ? "..." : "Giriş Yap"}
+    <div className="flex items-center justify-center min-h-screen bg-black text-white">
+      <div className="w-full max-w-md p-8 bg-gray-900 rounded-xl border border-gray-800 shadow-2xl">
+        <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+          Miron AI Giriş
+        </h2>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded text-red-200 text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-blue-500 focus:outline-none"
+              placeholder="cdtmiron@gmail.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Şifre</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-blue-500 focus:outline-none"
+              placeholder="2003"
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded font-semibold transition-colors"
+          >
+            Giriş Yap
           </button>
         </form>
-        {error && <p className="text-red-400 text-center mt-4">{error}</p>}
       </div>
     </div>
   );
-}
+};
+
+export default Login;

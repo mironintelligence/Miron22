@@ -54,19 +54,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-
-# CORS: prod'da whitelist ver
-allowed = os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:5173,http://localhost:5174")
-origins = [x.strip() for x in allowed.split(",") if x.strip()]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # DİKKAT: Şimdilik herkese açtık. Sonra buraya sadece frontend URL'ini yazacağız.
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.get("/health")
 def health():
@@ -381,3 +375,11 @@ app.include_router(admin_router)
 from admin_router import router as admin_router
 app.include_router(admin_router)
 
+
+# ... diğer importların arasına ekle:
+from backend.auth_router import router as auth_router
+
+# ... app tanımlandıktan sonra (app = FastAPI(...)) şuraya ekle:
+app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
+
+# CORS ayarlarının (allow_origins) frontend adresini (http://localhost:5173) kapsadığından emin ol.
