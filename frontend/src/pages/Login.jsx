@@ -5,14 +5,14 @@ import { setLibraUser } from "../utils/auth"; // Artık hata vermeyecek
 
 export default function Login() {
   const [form, setForm] = useState({
-    email: "", // Backend email bekliyor olabilir, firstName yerine
+    email: "", 
     password: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // API Adresini Otomatik Belirle (Vercel'de Environment, Lokalde 8001)
+  // API Adresini Otomatik Belirle (Vercel'de ayar yoksa localhost'a döner)
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001";
 
   const handleChange = (e) =>
@@ -24,15 +24,14 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Dinamik URL kullanımı
+      console.log("Login isteği atılıyor:", `${API_URL}/auth/token`);
+      
       const res = await axios.post(`${API_URL}/auth/token`, form, {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" }, // OAuth2 standardı
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
 
-      // Başarılı Giriş
       if (res.data) {
         // Token ve User bilgisini kaydet
-        // Backend yapına göre burayı özelleştirebiliriz, şimdilik standart varsayıyoruz
         const userData = { 
             email: form.email, 
             token: res.data.access_token 
@@ -44,7 +43,7 @@ export default function Login() {
 
     } catch (err) {
       console.error("Login Error:", err);
-      setError("Giriş başarısız. Kullanıcı adı veya şifre hatalı.");
+      setError("Giriş başarısız. Bilgilerinizi kontrol edin.");
     } finally {
       setLoading(false);
     }
@@ -62,7 +61,7 @@ export default function Login() {
           <div>
             <input
               name="email"
-              type="text" // Username veya Email
+              type="text"
               placeholder="E-posta Adresi"
               value={form.email}
               onChange={handleChange}

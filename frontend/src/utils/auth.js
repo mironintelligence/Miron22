@@ -33,7 +33,6 @@ export const login = (token, user) => {
 export const logout = () => {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(TOKEN_KEY);
-  // Opsiyonel: Temiz bir yönlendirme
   window.location.href = "/login";
 };
 
@@ -42,10 +41,10 @@ export const getToken = () => {
   return localStorage.getItem(TOKEN_KEY);
 };
 
-// --- UYUMLULUK MODU (Eski Kodlar İçin) ---
-// Login.jsx 'setLibraUser' arıyor, onu 'login'e yönlendiriyoruz
+// --- UYUMLULUK (Hata veren yer burasıydı) ---
+// Login.jsx 'setLibraUser' arıyor, onu bizim 'login' fonksiyonuna bağlıyoruz
 export const setLibraUser = (userData) => {
-  // Eğer backend token'ı user objesi içinde gönderiyorsa onu ayıralım
+  // Eğer user objesi içinde token varsa onu ayıralım
   const token = userData?.token || userData?.access_token || "dummy-token"; 
   login(token, userData);
 };
