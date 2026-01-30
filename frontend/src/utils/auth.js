@@ -1,40 +1,56 @@
 // frontend/src/utils/auth.js
-const STORAGE_KEY = "mironUser";
-const TOKEN_KEY = "token";
+
+const USERS_DB_KEY = "miron_users_json"; // Kullanıcıları burada JSON olarak tutacağız
+const CURR_USER_KEY = "miron_current_user";
+
+// --- SAHTE JSON VERİTABANI İŞLEMLERİ ---
+
+// Yeni Kullanıcı Kaydet (JSON'a ekle)
+export const registerUserLocal = (userData) => {
+  const users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || "[]");
+  
+  // Email kontrolü
+  const exists = users.find(u => u.email === userData.email);
+  if (exists) return { success: false, message: "Bu e-posta zaten kayıtlı." };
+
+  users.push(userData);
+  localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+  return { success: true };
+};
+
+// Kullanıcı Girişi (JSON'dan kontrol et)
+export const loginUserLocal = (email, password) => {
+  const users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || "[]");
+  const user = users.find(u => u.email === email && u.password === password);
+  
+  if (user) {
+    const { password, ...safeUser } = user; // Şifreyi session'a kaydetme
+    localStorage.setItem(CURR_USER_KEY, JSON.stringify(safeUser));
+    return { success: true, user: safeUser };
+  }
+  return { success: false, message: "Hatalı e-posta veya şifre." };
+};
+
+// --- OTURUM YÖNETİMİ ---
 
 export const isAuthenticated = () => {
-  const user = localStorage.getItem(STORAGE_KEY);
-  const token = localStorage.getItem(TOKEN_KEY);
-  return !!(user && token);
+  return !!localStorage.getItem(CURR_USER_KEY);
 };
 
 export const getUserData = () => {
   try {
-    const userStr = localStorage.getItem(STORAGE_KEY);
-    return userStr ? JSON.parse(userStr) : null;
-  } catch (error) {
+    return JSON.parse(localStorage.getItem(CURR_USER_KEY));
+  } catch {
     return null;
   }
 };
 
-export const login = (token, user) => {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-};
-
 export const logout = () => {
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(TOKEN_KEY);
-  window.location.href = "/login";
+  localStorage.removeItem(CURR_USER_KEY);
+  window.location.reload();
 };
 
-export const getToken = () => localStorage.getItem(TOKEN_KEY);
-
-// ESKİ KODLAR İÇİN UYUMLULUK (Hata buradaydı)
-export const setLibraUser = (userData) => {
-  const token = userData?.token || userData?.access_token || "dummy-token"; 
-  login(token, userData);
+// ESKİ KODLARIN ÇALIŞMASI İÇİN (Hata buradaydı, düzelttik)
+export const setLibraUser = (user) => {
+  localStorage.setItem(CURR_USER_KEY, JSON.stringify(user));
 };
-
-export const getLibraUser = getUserData;
-export const clearLibraUser = logout;
