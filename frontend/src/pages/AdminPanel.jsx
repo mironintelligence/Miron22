@@ -4,6 +4,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
 export default function AdminPanel() {
   const [token, setToken] = useState(localStorage.getItem("adminToken") || "");
+  const [cred, setCred] = useState({ firstName: "", lastName: "", password: "" });
   const [authed, setAuthed] = useState(false);
   const [activeTab, setActiveTab] = useState("pricing");
   const [msg, setMsg] = useState("");
@@ -84,9 +85,34 @@ export default function AdminPanel() {
     } catch (e) { console.error(e); }
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    checkAuth();
+    setMsg("");
+    try {
+      const res = await fetch(`${API_BASE}/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cred),
+      });
+      if (!res.ok) {
+        setMsg("❌ Giriş başarısız.");
+        return;
+      }
+      const data = await res.json();
+      const t = data?.token;
+      if (!t) {
+        setMsg("❌ Token alınamadı.");
+        return;
+      }
+      setToken(t);
+      localStorage.setItem("adminToken", t);
+      setAuthed(true);
+      setMsg("✅ Giriş başarılı.");
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      setMsg("❌ Hata oluştu.");
+    }
   };
 
   const updatePricing = async () => {
@@ -174,17 +200,35 @@ export default function AdminPanel() {
   if (!authed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
-        <div className="p-8 bg-gray-900 rounded-xl border border-gray-800 w-full max-w-md">
-          <h2 className="text-xl font-bold mb-4 text-center">Admin Girişi</h2>
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <input 
-              type="password" 
-              value={token} 
-              onChange={e => setToken(e.target.value)}
-              placeholder="Admin Token"
-              className="p-3 bg-gray-800 rounded border border-gray-700 text-white focus:border-blue-500 focus:outline-none"
+        <div className="p-8 bg-white/5 rounded-xl border border-white/10 w-full max-w-md">
+          <h2 className="text-xl font-bold mb-4 text-center text-yellow-400">Admin Girişi</h2>
+          {msg && <div className="mb-3 text-sm text-white/80">{msg}</div>}
+          <form onSubmit={handleLogin} className="flex flex-col gap-3">
+            <input
+              type="text"
+              value={cred.firstName}
+              onChange={e => setCred(s => ({ ...s, firstName: e.target.value }))}
+              placeholder="Ad"
+              className="p-3 bg-black/40 rounded border border-white/10 text-white focus:border-yellow-500 focus:outline-none"
+              required
             />
-            <button type="submit" className="bg-blue-600 hover:bg-blue-500 p-3 rounded font-bold transition">Giriş</button>
+            <input
+              type="text"
+              value={cred.lastName}
+              onChange={e => setCred(s => ({ ...s, lastName: e.target.value }))}
+              placeholder="Soyad"
+              className="p-3 bg-black/40 rounded border border-white/10 text-white focus:border-yellow-500 focus:outline-none"
+              required
+            />
+            <input
+              type="password"
+              value={cred.password}
+              onChange={e => setCred(s => ({ ...s, password: e.target.value }))}
+              placeholder="Şifre"
+              className="p-3 bg-black/40 rounded border border-white/10 text-white focus:border-yellow-500 focus:outline-none"
+              required
+            />
+            <button type="submit" className="bg-yellow-400 hover:bg-yellow-500 text-black p-3 rounded font-bold transition">Giriş</button>
           </form>
         </div>
       </div>

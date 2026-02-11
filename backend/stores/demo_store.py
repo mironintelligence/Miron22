@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # .../backend
-DATA_DIR = BASE_DIR / "data" / "admin"
+DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DEMO_USERS_FILE = DATA_DIR / "demo_users.json"

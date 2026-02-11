@@ -350,7 +350,7 @@ if uyap_udf_router: app.include_router(uyap_udf_router)
 if billing_router:  app.include_router(billing_router)
 if feedback_router: app.include_router(feedback_router)
 if analyze_router:  app.include_router(analyze_router)
-if admin_api_router: app.include_router(admin_api_router)                   
+                    
 
 # New Auth Router (Supabase)
 from backend.auth_router import router as auth_router_new

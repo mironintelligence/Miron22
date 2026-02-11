@@ -2,27 +2,19 @@ from __future__ import annotations
 
 import json
 import os
-import secrets
-import smtplib
 from datetime import datetime, timezone
-from email.message import EmailMessage
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 
-try:
-    from backend.auth import get_supabase_client
-except Exception:
-    from auth import get_supabase_client
+from stores.users_store import hash_password, verify_password
 
 router = APIRouter()
 
 DATA_DIR = Path(os.getenv("DATA_DIR") or "data")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-VERIFICATION_FILE = DATA_DIR / "email_verification.json"
 
 
 def _now_utc() -> datetime:
@@ -32,29 +24,27 @@ def _now_utc() -> datetime:
 def _iso(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).isoformat()
 
+USERS_FILE = DATA_DIR / "users.json"
+DEMO_USERS_FILE = DATA_DIR / "demo_users.json"
 
-def _load_verification() -> Dict[str, Any]:
-    if not VERIFICATION_FILE.exists():
-        return {}
+def _load_json(path: Path, default):
+    if not path.exists():
+        return default
     try:
-        with VERIFICATION_FILE.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-            if isinstance(data, dict):
-                return data
-            return {}
+        with path.open("r", encoding="utf-8") as f:
+            return json.load(f)
     except Exception:
-        return {}
+        return default
 
-
-def _save_verification(data: Dict[str, Any]) -> None:
-    VERIFICATION_FILE.parent.mkdir(parents=True, exist_ok=True)
-    tmp = VERIFICATION_FILE.with_suffix(".tmp")
+def _atomic_write_json(path: Path, data) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
     try:
         with tmp.open("w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp, VERIFICATION_FILE)
+        os.replace(tmp, path)
     finally:
         if tmp.exists():
             try:
@@ -62,45 +52,29 @@ def _save_verification(data: Dict[str, Any]) -> None:
             except Exception:
                 pass
 
+def _read_users() -> list[dict]:
+    arr = _load_json(USERS_FILE, [])
+    return arr if isinstance(arr, list) else []
 
-def _send_verification_email(to_email: str, token: str) -> None:
-    backend_base = os.getenv("BACKEND_BASE_URL") or "https://miron22.onrender.com"
-    verify_url = f"{backend_base.rstrip('/')}/api/auth/verify-email?token={token}"
-    subject = "Miron AI e-posta doğrulama"
-    body = (
-        "Merhaba,\n\n"
-        "Miron AI hesabınızı aktifleştirmek için aşağıdaki bağlantıya tıklayın:\n\n"
-        f"{verify_url}\n\n"
-        "Eğer bu işlemi siz başlatmadıysanız, bu e-postayı yok sayabilirsiniz.\n\n"
-        "Miron AI"
-    )
+def _write_users(arr: list[dict]) -> None:
+    _atomic_write_json(USERS_FILE, arr)
 
-    host = os.getenv("SMTP_HOST")
-    port = int(os.getenv("SMTP_PORT") or "587")
-    username = os.getenv("SMTP_USERNAME")
-    password = os.getenv("SMTP_PASSWORD")
-    use_tls = (os.getenv("SMTP_USE_TLS") or "true").strip().lower() == "true"
-    sender = os.getenv("EMAIL_FROM") or username
+def _read_demo_users() -> list[dict]:
+    arr = _load_json(DEMO_USERS_FILE, [])
+    return arr if isinstance(arr, list) else []
 
-    if not host or not username or not password or not sender:
-        return
-
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = sender
-    msg["To"] = to_email
-    msg.set_content(body)
-
-    if use_tls:
-        with smtplib.SMTP(host, port) as s:
-            s.starttls()
-            s.login(username, password)
-            s.send_message(msg)
-    else:
-        with smtplib.SMTP(host, port) as s:
-            s.login(username, password)
-            s.send_message(msg)
-
+def _purge_expired_demo(demo_users: list[dict]) -> list[dict]:
+    now = _now_utc()
+    kept: list[dict] = []
+    for u in demo_users:
+        try:
+            exp = datetime.fromisoformat(str(u.get("expires_at"))).astimezone(timezone.utc)
+            if exp > now:
+                kept.append(u)
+        except Exception:
+            pass
+    _atomic_write_json(DEMO_USERS_FILE, kept)
+    return kept
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -115,161 +89,58 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
-def _to_dict(value: Any) -> Any:
-    if value is None:
-        return None
-    if isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, dict):
-        return {k: _to_dict(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_to_dict(v) for v in value]
-    dump = getattr(value, "model_dump", None)
-    if callable(dump):
-        try:
-            return _to_dict(dump())
-        except Exception:
-            pass
-    as_dict = getattr(value, "dict", None)
-    if callable(as_dict):
-        try:
-            return _to_dict(as_dict())
-        except Exception:
-            pass
-    d = getattr(value, "__dict__", None)
-    if isinstance(d, dict):
-        return _to_dict({k: v for k, v in d.items() if not k.startswith("_")})
-    return str(value)
 
 
 @router.post("/register")
 def register(payload: RegisterRequest) -> Dict[str, Any]:
-    client = get_supabase_client()
-    mode = (payload.mode or "single").strip().lower()
-    meta: Dict[str, Any] = {}
-    if payload.firstName:
-        meta["first_name"] = payload.firstName
-    if payload.lastName:
-        meta["last_name"] = payload.lastName
-
-    try:
-        resp = client.auth.sign_up(
-            {
-                "email": str(payload.email),
-                "password": payload.password,
-                "options": {"data": meta} if meta else {},
-            }
-        )
-    except Exception as e:
-        msg = str(e) or "Kayıt başarısız."
-        code = status.HTTP_400_BAD_REQUEST
-        if "already" in msg.lower() or "registered" in msg.lower():
-            code = status.HTTP_409_CONFLICT
-        raise HTTPException(status_code=code, detail=msg)
-
-    data = _to_dict(resp) or {}
-    user = data.get("user") or (data.get("data") or {}).get("user") or {}
-    user = _to_dict(user) or {}
     email_norm = str(payload.email).strip().lower()
-
-    if mode == "single":
-        store = _load_verification()
-        token = secrets.token_urlsafe(32)
-        store[email_norm] = {
-            "email": email_norm,
-            "token": token,
-            "mode": mode,
-            "verified": False,
-            "created_at": _iso(_now_utc()),
-            "verified_at": None,
-        }
-        _save_verification(store)
-        _send_verification_email(str(payload.email), token)
-        requires_verification = True
-    else:
-        store = _load_verification()
-        if email_norm in store:
-            store.pop(email_norm, None)
-            _save_verification(store)
-        requires_verification = False
-
-    return {"status": "ok", "user": user, "requires_verification": requires_verification}
+    users = _read_users()
+    if any(str(u.get("email","")).strip().lower() == email_norm for u in users):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email zaten kayıtlı.")
+    users.append({
+        "email": email_norm,
+        "firstName": payload.firstName.strip(),
+        "lastName": payload.lastName.strip(),
+        "hashed_password": hash_password(payload.password),
+        "is_demo": False,
+        "created_at": _iso(_now_utc()),
+    })
+    _write_users(users)
+    return {"status": "ok", "requires_verification": False}
 
 
 @router.post("/login")
 def login(payload: LoginRequest) -> Dict[str, Any]:
-    client = get_supabase_client()
-    try:
-        resp = client.auth.sign_in_with_password(
-            {"email": str(payload.email), "password": payload.password}
-        )
-    except Exception as e:
-        msg = str(e) or "Giriş başarısız."
-        code = status.HTTP_401_UNAUTHORIZED
-        if "invalid" in msg.lower() or "credentials" in msg.lower():
-            code = status.HTTP_401_UNAUTHORIZED
-        elif "rate" in msg.lower():
-            code = status.HTTP_429_TOO_MANY_REQUESTS
-        raise HTTPException(status_code=code, detail=msg)
-
-    data = _to_dict(resp) or {}
-    session = data.get("session") or (data.get("data") or {}).get("session") or {}
-    user = data.get("user") or (data.get("data") or {}).get("user") or {}
-
-    session = _to_dict(session) or {}
-    user = _to_dict(user) or {}
-    token = session.get("access_token") or data.get("access_token") or None
-
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="JWT token alınamadı.",
-        )
-
-    email_norm = str(user.get("email") or payload.email).strip().lower()
-    store = _load_verification()
-    info = store.get(email_norm)
-    if info and not info.get("verified"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Please verify your email first.",
-        )
-
-    return {
-        "status": "ok",
-        "message": "Giriş başarılı",
-        "token": token,
-        "user": user,
-        "expires_in": session.get("expires_in"),
-        "token_type": session.get("token_type"),
-        "refresh_token": session.get("refresh_token"),
-    }
+    email_norm = str(payload.email).strip().lower()
+    users = _read_users()
+    user = next((u for u in users if str(u.get("email","")).strip().lower() == email_norm), None)
+    if user and verify_password(payload.password, user.get("hashed_password","")):
+        return {
+            "status": "ok",
+            "message": "Giriş başarılı",
+            "token": os.urandom(16).hex(),
+            "user": {
+                "email": email_norm,
+                "first_name": user.get("firstName",""),
+                "last_name": user.get("lastName",""),
+            },
+        }
+    demo_users = _purge_expired_demo(_read_demo_users())
+    du = next((d for d in demo_users if str(d.get("email","")).strip().lower() == email_norm), None)
+    if du and verify_password(payload.password, du.get("hashed_password","")):
+        return {
+            "status": "ok",
+            "message": "Giriş başarılı",
+            "token": os.urandom(16).hex(),
+            "user": {
+                "email": email_norm,
+                "first_name": du.get("firstName",""),
+                "last_name": du.get("lastName",""),
+                "is_demo": True,
+                "expires_at": du.get("expires_at"),
+            },
+        }
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı veya şifre hatalı.")
 
 
-@router.get("/verify-email")
-def verify_email(token: str) -> RedirectResponse:
-    token = (token or "").strip()
-    if not token:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing token")
-
-    store = _load_verification()
-    email_match = None
-    info_match: Optional[Dict[str, Any]] = None
-    for email, info in store.items():
-        if info.get("token") == token:
-            email_match = email
-            info_match = dict(info)
-            break
-
-    if not email_match or not info_match:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
-
-    info_match["verified"] = True
-    info_match["verified_at"] = _iso(_now_utc())
-    info_match["token"] = None
-    store[email_match] = info_match
-    _save_verification(store)
-
-    frontend_base = os.getenv("FRONTEND_BASE_URL") or "https://miron22.vercel.app"
-    redirect_url = f"{frontend_base.rstrip('/')}/login?verified=1"
-    return RedirectResponse(url=redirect_url)
+    

@@ -13,11 +13,10 @@ export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
     if (authed) {
       return [
         { to: "/home", label: "Ana Menü" },
-        { to: "/dashboard", label: "Dashboard" },
-        { to: "/analyze", label: "Analiz" },
+        { to: "/yargitay", label: "Yargıtay Kararları" },
+        { to: "/pleadings", label: "Dilekçe Oluşturucu" },
         { to: "/assistant", label: "Asistan" },
-        { to: "/pleadings", label: "Dilekçeler" },
-        { to: "/risk", label: "Risk" },
+        { to: "/calculators", label: "Hesaplama Araçları" },
       ];
     }
     return [
@@ -49,12 +48,14 @@ export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
             </button>
 
             <Link to={authed ? "/home" : "/"} className="flex flex-col leading-tight">
-              <span className="text-2xl font-bold tracking-tighter bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
-                miron ai
+              <span className="text-2xl font-bold tracking-tighter bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">
+                {authed ? "Ana Menü" : "Miron AI"}
               </span>
-              <span className="text-[10px] text-gray-400 uppercase tracking-widest -mt-1">
-                by Miron Intelligence
-              </span>
+              {!authed && (
+                <span className="text-[10px] text-white/60 uppercase tracking-widest -mt-1">
+                  by Miron Intelligence
+                </span>
+              )}
             </Link>
           </div>
 
@@ -67,7 +68,7 @@ export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
                   className={({ isActive }) =>
                     [
                       "text-sm font-medium transition-colors",
-                      isActive ? "text-white" : "text-gray-300 hover:text-white",
+                      isActive ? "text-white" : "text-white/80 hover:text-white",
                     ].join(" ")
                   }
                 >
@@ -90,17 +91,17 @@ export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
             {loading ? null : authed ? (
               <>
                 <div className="hidden sm:flex flex-col items-end leading-tight">
-                  <div className="text-xs text-gray-300">
+                  <div className="text-xs text-white/80">
                     {(user?.firstName || user?.lastName)
                       ? `${user?.firstName || ""} ${user?.lastName || ""}`.trim()
                       : user?.email || ""}
                   </div>
-                  <div className="text-[10px] text-gray-500">Oturum açık</div>
+                  <div className="text-[10px] text-white/60">Oturum açık</div>
                 </div>
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="px-4 py-2 text-sm font-semibold rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 transition"
+                  className="px-4 py-2 text-sm font-semibold rounded-xl bg-yellow-500/20 border border-yellow-500/40 hover:bg-yellow-500/30 text-yellow-300 transition"
                 >
                   Çıkış
                 </button>
@@ -110,13 +111,13 @@ export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
                 <button
                   type="button"
                   onClick={onOpenLogin}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                  className="text-sm font-medium text-white/80 hover:text-white transition-colors"
                 >
                   Giriş Yap
                 </button>
                 <Link
                   to="/register"
-                  className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl hover:opacity-95 transition"
+                  className="px-4 py-2 text-sm font-semibold text-black bg-yellow-400 rounded-xl hover:bg-yellow-500 transition"
                 >
                   Kaydol
                 </Link>
@@ -138,8 +139,8 @@ export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
                   [
                     "block px-4 py-3 rounded-xl border transition",
                     isActive
-                      ? "bg-white/10 border-white/15 text-white"
-                      : "bg-white/5 border-white/10 text-gray-200 hover:bg-white/10",
+                      ? "bg-yellow-500/20 border-yellow-500/40 text-white"
+                      : "bg-white/5 border-white/10 text-white/80 hover:bg-white/10",
                   ].join(" ")
                 }
               >
@@ -151,7 +152,7 @@ export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
               <button
                 type="button"
                 onClick={onLogout}
-                className="w-full text-left px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition text-gray-200"
+                className="w-full text-left px-4 py-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 hover:bg-yellow-500/20 transition text-white"
               >
                 Çıkış
               </button>
@@ -163,14 +164,14 @@ export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
                     setMenuOpen(false);
                     onOpenLogin?.();
                   }}
-                  className="w-full text-left px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition text-gray-200"
+                  className="w-full text-left px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition text-white/80"
                 >
                   Giriş Yap
                 </button>
                 <Link
                   to="/register"
                   onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition text-gray-200"
+                  className="block px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition text-white/80"
                 >
                   Kaydol
                 </Link>

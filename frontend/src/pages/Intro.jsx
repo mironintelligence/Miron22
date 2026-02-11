@@ -48,13 +48,13 @@ export default function Intro() {
       <div className="max-w-4xl w-full glass p-10">
         <div className="flex flex-col md:flex-row gap-8 items-center">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-3 text-cyan-300">Libra AI — Hukuk İçin Yapay Zekâ</h1>
-            <p className="text-sm text-gray-300 mb-6">
+            <h1 className="text-3xl font-bold mb-3 text-yellow-400">Libra AI — Hukuk İçin Yapay Zekâ</h1>
+            <p className="text-sm text-white/80 mb-6">
               Evrak analizi, otomatik dilekçe, dava risk değerlendirmesi ve Libra Assistant ile işlerinizi hızlandırın.
               Giriş yapmadığınız sürece ana menüye erişim engellenir. Demo isteği gönderin, 24 saatte geri döneriz.
             </p>
 
-            <ul className="space-y-2 text-gray-300 mb-6">
+            <ul className="space-y-2 text-white/80 mb-6">
               <li>• Evrak Analizi (PDF, DOCX, TXT)</li>
               <li>• Otomatik Dilekçe Oluşturucu</li>
               <li>• Risk & Kazanma Olasılığı Analizi</li>
@@ -62,7 +62,7 @@ export default function Intro() {
             </ul>
 
             <div className="flex gap-3">
-              <Link to="/login" className="px-4 py-2 rounded bg-cyan-500 text-white">Giriş Yap</Link>
+              <Link to="/login" className="px-4 py-2 rounded bg-yellow-400 text-black hover:bg-yellow-500 transition">Giriş Yap</Link>
               <Link to="/register" className="px-4 py-2 rounded border border-white/20 text-white">Kaydol</Link>
             </div>
           </div>
@@ -103,24 +103,9 @@ export default function Intro() {
                   <button
                     type="submit"
                     disabled={sending}
-                    className="px-4 py-2 rounded bg-gradient-to-r from-cyan-500 to-blue-500 text-white"
+                    className="px-4 py-2 rounded bg-yellow-400 text-black hover:bg-yellow-500 transition"
                   >
                     {sending ? "Gönderiliyor..." : "Demo İsteği Gönder"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // demo amaçlı: kayıtlı örnek kullanıcıyla giriş - geliştirirken faydalı
-                      localStorage.setItem(
-                        "libraUser",
-                        JSON.stringify({ first_name: "Demo", last_name: "User" })
-                      );
-                      nav("/dashboard");
-                    }}
-                    className="text-xs text-gray-300 underline"
-                  >
-                    
                   </button>
                 </div>
               </form>

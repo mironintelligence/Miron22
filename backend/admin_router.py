@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 
-from admin_auth import require_admin
+from admin_auth import require_admin, issue_admin_token
 
 # ------------------------
 # Storage (JSON files)
@@ -20,6 +20,7 @@ DEMO_REQUESTS_FILE = DATA_DIR / "demo_requests.json"
 DEMO_USERS_FILE    = DATA_DIR / "demo_users.json"
 USERS_FILE         = DATA_DIR / "users.json"
 ACTIVITY_FILE      = DATA_DIR / "activity.json"
+ADMINS_FILE        = DATA_DIR / "admins.json"
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -110,6 +111,16 @@ def _sanitize_user(u: dict) -> dict:
 class SetPasswordIn(BaseModel):
     password: str = Field(min_length=4, max_length=128)
 
+class AdminLoginIn(BaseModel):
+    firstName: str = Field(min_length=1, max_length=64)
+    lastName: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=4, max_length=128)
+
+class AdminCreateIn(BaseModel):
+    firstName: str = Field(min_length=1, max_length=64)
+    lastName: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=4, max_length=128)
+
 class CreateUserIn(BaseModel):
     firstName: str = Field(default="", max_length=64)
     lastName: str = Field(default="", max_length=64)
@@ -119,7 +130,94 @@ class CreateUserIn(BaseModel):
 # ------------------------
 # Router
 # ------------------------
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(tags=["admin"])
+
+# ------------------------
+# Admin Accounts & Login
+# ------------------------
+def _read_admins() -> List[Dict[str, Any]]:
+    arr = _load_json(ADMINS_FILE, [])
+    return arr if isinstance(arr, list) else []
+
+def _write_admins(arr: List[Dict[str, Any]]) -> None:
+    _atomic_write_json(ADMINS_FILE, arr)
+
+def _find_admin(firstName: str, lastName: str) -> Optional[Dict[str, Any]]:
+    fn = (firstName or "").strip().lower()
+    ln = (lastName or "").strip().lower()
+    for a in _read_admins():
+        if (a.get("firstName","").strip().lower() == fn and a.get("lastName","").strip().lower() == ln):
+            return a
+    return None
+
+def _bootstrap_default_admin() -> None:
+    arr = _read_admins()
+    if arr:
+        return
+    # Seed default admin securely (hashed only)
+    default_first = os.getenv("DEFAULT_ADMIN_FIRST") or "Kerim"
+    default_last = os.getenv("DEFAULT_ADMIN_LAST") or "Aydemir"
+    default_pw = os.getenv("DEFAULT_ADMIN_PASSWORD")
+    if not default_pw:
+        raise HTTPException(status_code=500, detail="DEFAULT_ADMIN_PASSWORD env ayarlı değil.")
+    admin_id = secrets.token_hex(8)
+    arr.append({
+        "id": admin_id,
+        "firstName": default_first,
+        "lastName": default_last,
+        "hashed_password": hash_password(default_pw),
+        "created_at": _iso(_now())
+    })
+    _write_admins(arr)
+    _log_activity("admin_bootstrap", "Varsayılan admin oluşturuldu", {"id": admin_id})
+
+@router.post("/login")
+def admin_login(body: AdminLoginIn):
+    _bootstrap_default_admin()
+    admin = _find_admin(body.firstName, body.lastName)
+    if not admin or not verify_password(body.password, admin.get("hashed_password","")):
+        raise HTTPException(status_code=401, detail="Geçersiz admin bilgileri.")
+    token = issue_admin_token(admin_id=admin["id"])
+    return {
+        "ok": True,
+        "token": token,
+        "admin": {"id": admin["id"], "firstName": admin["firstName"], "lastName": admin["lastName"]},
+    }
+
+@router.get("/admins", dependencies=[Depends(require_admin)])
+def list_admins():
+    _bootstrap_default_admin()
+    arr = _read_admins()
+    safe = [{"id": a.get("id"), "firstName": a.get("firstName"), "lastName": a.get("lastName"), "created_at": a.get("created_at")} for a in arr]
+    return safe
+
+@router.post("/admins", dependencies=[Depends(require_admin)])
+def create_admin(body: AdminCreateIn):
+    arr = _read_admins()
+    if _find_admin(body.firstName, body.lastName):
+        raise HTTPException(status_code=409, detail="Admin zaten mevcut.")
+    admin_id = secrets.token_hex(8)
+    arr.append({
+        "id": admin_id,
+        "firstName": body.firstName.strip(),
+        "lastName": body.lastName.strip(),
+        "hashed_password": hash_password(body.password),
+        "created_at": _iso(_now())
+    })
+    _write_admins(arr)
+    _log_activity("admin_create", f"Admin oluşturuldu: {body.firstName} {body.lastName}", {"id": admin_id})
+    return {"ok": True, "id": admin_id}
+
+@router.delete("/admins/{admin_id}", dependencies=[Depends(require_admin)])
+def delete_admin(admin_id: str):
+    arr = _read_admins()
+    before = len(arr)
+    arr = [a for a in arr if str(a.get("id")) != str(admin_id)]
+    if len(arr) == before:
+        raise HTTPException(status_code=404, detail="Admin bulunamadı.")
+    _write_admins(arr)
+    _log_activity("admin_delete", f"Admin silindi: {admin_id}", {"id": admin_id})
+    return {"ok": True}
 
 @router.get("/health", dependencies=[Depends(require_admin)])
 def admin_health():

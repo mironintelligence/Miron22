@@ -63,8 +63,8 @@ export default function App() {
     <div
       className={`min-h-screen transition-colors duration-300 ${
         darkMode
-          ? "bg-gradient-to-br from-[#0b0b0c] to-[#17181b] text-gray-100"
-          : "bg-gradient-to-br from-white to-gray-100 text-gray-900"
+          ? "bg-black text-white"
+          : "bg-white text-black"
       }`}
     >
       <Header

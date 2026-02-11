@@ -7,14 +7,14 @@ export default function IntroLanding() {
   const navigate = useNavigate();
 
   return (
-    <div className="text-gray-100 bg-gradient-to-br from-[#0b0b0c] to-[#17181b] min-h-screen">
+    <div className="text-white bg-black min-h-screen">
       {/* 🔹 Hero Section */}
       <section className="relative flex flex-col items-center justify-center text-center py-32 px-6">
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent"
+          className="text-5xl md:text-6xl font-extrabold text-yellow-400"
         >
           Türkiye’nin İlk Hukuk Odaklı Yapay Zekâ Asistanı
         </motion.h1>
@@ -23,7 +23,7 @@ export default function IntroLanding() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 1 }}
-          className="text-gray-400 max-w-2xl mt-6 text-lg"
+          className="text-white/80 max-w-2xl mt-6 text-lg"
         >
           MIRON AI, avukatlar için özel olarak geliştirilen, KVKK uyumlu ve
           tamamen güvenli bir yapay zekâ çözümüdür.
@@ -32,7 +32,7 @@ export default function IntroLanding() {
         <div className="flex gap-4 mt-10">
           <Link
             to="/register"
-            className="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90 transition shadow-lg"
+            className="px-6 py-3 rounded-xl font-semibold bg-yellow-400 text-black hover:bg-yellow-500 transition shadow-lg"
           >
             🚀 Hemen Başla
           </Link>
@@ -40,7 +40,7 @@ export default function IntroLanding() {
           {/* ✅ Demo Talebi Butonu */}
           <button
             onClick={() => navigate("/demo-request")}
-            className="px-6 py-3 rounded-xl border border-cyan-400/30 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 transition shadow-lg font-semibold"
+            className="px-6 py-3 rounded-xl border border-yellow-500/40 text-yellow-300 bg-yellow-500/10 hover:bg-yellow-500/20 transition shadow-lg font-semibold"
           >
             🧠 Demo Talebi Oluştur
           </button>
@@ -52,7 +52,7 @@ export default function IntroLanding() {
         id="features"
         className="py-24 px-10 bg-white/5 backdrop-blur-sm rounded-t-3xl"
       >
-        <h2 className="text-center text-3xl font-bold mb-12 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+        <h2 className="text-center text-3xl font-bold mb-12 text-yellow-400">
           MIRON AI’nin Temel Özellikleri
         </h2>
 
@@ -112,7 +112,7 @@ export default function IntroLanding() {
             >
               <div className="text-4xl mb-3">{f.icon}</div>
               <h3 className="text-xl font-semibold mb-2">{f.title}</h3>
-              <p className="text-gray-400 text-sm">{f.desc}</p>
+              <p className="text-white/70 text-sm">{f.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -120,7 +120,7 @@ export default function IntroLanding() {
 
       {/* 🔹 Avantajlar */}
       <section className="py-20 px-10">
-        <h2 className="text-center text-3xl font-bold mb-12 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+        <h2 className="text-center text-3xl font-bold mb-12 text-yellow-400">
           MIRON AI ile Farkı Hissedin
         </h2>
 
@@ -138,39 +138,35 @@ export default function IntroLanding() {
               whileHover={{ y: -5 }}
               className="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md text-center"
             >
-              <p className="text-lg font-medium text-gray-300">{adv}</p>
+              <p className="text-lg font-medium text-white/80">{adv}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
-      <section className="py-24 px-10 flex flex-col md:flex-row items-center justify-center gap-16 bg-white/5 backdrop-blur-md">
-        <motion.img
-          src="/libra-logo.png"
-          alt="Libra Logo"
-          className="w-40 h-40"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          style={{ filter: "drop-shadow(0 10px 30px rgba(0,180,200,0.15))" }}
-        />
-
-        <div className="max-w-xl">
-          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-            Neden MIRON AI?
-          </h2>
-          <p className="text-gray-400 leading-relaxed">
-            MIRON AI, Türk hukuk sistemi ve yerel veri setleriyle eğitilmiş özel
-            bir yapay zekâ modelidir. Avukatların günlük iş yükünü azaltmak,
-            dava süreçlerini hızlandırmak ve belge doğruluğunu artırmak için
-            geliştirilmiştir.
-          </p>
+      <section className="py-24 px-10 flex flex-col items-center justify-center gap-8 bg-white/5 backdrop-blur-md text-center">
+        <h2 className="text-3xl font-bold text-yellow-400">Neden MIRON AI?</h2>
+        <p className="text-white/80 leading-relaxed max-w-2xl">
+          MIRON AI, Türk hukuk sistemi ve yerel veri setleriyle eğitilmiş özel bir yapay zekâ
+          modelidir. Avukatların günlük iş yükünü azaltmak, dava süreçlerini hızlandırmak ve
+          belge doğruluğunu artırmak için geliştirilmiştir.
+        </p>
+        <div className="flex flex-wrap justify-center gap-4">
+          <div className="px-5 py-3 rounded-full border border-yellow-500/40 text-yellow-200 bg-yellow-500/10">
+            Kurumsal güvenlik
+          </div>
+          <div className="px-5 py-3 rounded-full border border-white/20 text-white/80 bg-white/5">
+            Hızlı analiz
+          </div>
+          <div className="px-5 py-3 rounded-full border border-white/20 text-white/80 bg-white/5">
+            Stratejik içgörü
+          </div>
         </div>
       </section>
 
       {/* 🔹 SSS */}
       <section className="py-20 px-10 max-w-5xl mx-auto">
-        <h2 className="text-center text-3xl font-bold mb-10 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+        <h2 className="text-center text-3xl font-bold mb-10 text-yellow-400">
           Sıkça Sorulan Sorular
         </h2>
 
@@ -196,25 +192,25 @@ export default function IntroLanding() {
             key={i}
             className="mb-4 bg-white/5 border border-white/10 rounded-xl p-4 cursor-pointer"
           >
-            <summary className="font-semibold text-lg text-cyan-400">
+            <summary className="font-semibold text-lg text-yellow-300">
               {faq.q}
             </summary>
-            <p className="mt-2 text-gray-300">{faq.a}</p>
+            <p className="mt-2 text-white/80">{faq.a}</p>
           </details>
         ))}
       </section>
 
       {/* 🔹 Footer */}
-      <footer className="py-10 border-t border-white/10 bg-black/30 backdrop-blur-xl text-center text-sm text-gray-400">
+      <footer className="py-10 border-t border-white/10 bg-black/40 backdrop-blur-xl text-center text-sm text-white/70">
         <p className="mb-2">©️ 2025 Miron Intelligence. Tüm hakları saklıdır.</p>
-        <div className="flex justify-center gap-6 text-gray-400 text-sm">
-          <Link to="/privacy" className="hover:text-cyan-400 transition">
+        <div className="flex justify-center gap-6 text-white/70 text-sm">
+          <Link to="/privacy" className="hover:text-yellow-300 transition">
             Gizlilik Politikası
           </Link>
-          <Link to="/terms" className="hover:text-cyan-400 transition">
+          <Link to="/terms" className="hover:text-yellow-300 transition">
             Kullanım Şartları
           </Link>
-          <Link to="/user-agreement" className="hover:text-cyan-400 transition">
+          <Link to="/user-agreement" className="hover:text-yellow-300 transition">
             Kullanıcı Sözleşmesi
           </Link>
         </div>

@@ -5,31 +5,42 @@
 /* ---------- Varsayılan Tema ---------- */
 :root { color-scheme: light dark; }
 :root {
-  --miron-bg: #0f172a;
-  --miron-accent: #3b82f6;
-  --miron-accent-2: #6366f1;
+  --miron-bg: #000000;
+  --miron-text: #ffffff;
+  --miron-gold: #ffd700;
 }
 
 /* ---------- Genel Gövde ---------- */
 body {
-  @apply font-sans antialiased transition-colors duration-300;
-  background: radial-gradient(circle at top left, var(--miron-bg), #000);
-  color: #f8fafc;
+  @apply antialiased transition-colors duration-300;
+  background: var(--miron-bg);
+  color: var(--miron-text);
+  font-family: "Akzidenz-Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+h1, h2, h3, h4 {
+  font-family: "Abril Fatface", serif;
+  letter-spacing: -0.02em;
+}
+
+.subtitle, .section-title {
+  font-family: "Libre Baskerville", serif;
+  font-weight: 700;
 }
 
 /* ---------- Markdown Okunabilirliği ---------- */
-.prose-invert { color: #e5e7eb; line-height: 1.7; word-wrap: break-word; overflow-wrap: break-word; }
-.prose-invert h2, .prose-invert h3 { color: var(--miron-accent); font-weight: 600; }
+.prose-invert { color: #ffffff; line-height: 1.7; word-wrap: break-word; overflow-wrap: break-word; }
+.prose-invert h2, .prose-invert h3 { color: var(--miron-gold); font-weight: 700; }
 .prose-invert ul { list-style-type: disc; margin-left: 1.5rem; }
-.prose-invert strong { color: #fef08a; }
+.prose-invert strong { color: var(--miron-gold); }
 
 /* ---------- Cam / Blur Efekti ---------- */
 .glass {
   @apply bg-white/5 dark:bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl shadow-2xl;
   backdrop-filter: blur(20px) saturate(180%);
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
   border-radius: 18px;
   transition: all 0.3s ease;
 }
@@ -43,15 +54,15 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
 
 /* ---------- Scrollbar ---------- */
 ::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.35); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.55); }
+::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.35); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 215, 0, 0.55); }
 
 .input {
   padding: 12px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.6);
   border: 1px solid rgba(255,255,255,0.2);
   border-radius: 10px;
-  color: white;
+  color: var(--miron-text);
   outline: none;
 }
-.input::placeholder { color: #bbb; }
+.input::placeholder { color: #ddd; }

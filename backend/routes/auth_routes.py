@@ -4,8 +4,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel, EmailStr
 from typing import Any, Dict, Optional
 
-from stores.users_store import read_users  # normal havuz: users_pool.json
-from stores.demo_store import purge_expired_demo_users  # demo havuz: demo_users.json
+from stores.users_store import read_users, verify_password
+from stores.demo_store import purge_expired_demo_users
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
@@ -46,7 +46,7 @@ def login(payload: LoginPayload) -> Dict[str, Any]:
     # 1) NORMAL HAVUZ (users_pool.json)
     users = read_users()
     for u in users:
-        if _norm_email(str(u.get("email") or "")) == email and str(u.get("password") or "") == pw:
+        if _norm_email(str(u.get("email") or "")) == email and verify_password(pw, str(u.get("hashed_password") or u.get("password") or "")):
             # OK (normal user)
             return {
                 "status": "ok",
@@ -64,7 +64,7 @@ def login(payload: LoginPayload) -> Dict[str, Any]:
     for du in demo_users:
         if _norm_email(str(du.get("email") or "")) != email:
             continue
-        if str(du.get("password") or "") != pw:
+        if not verify_password(pw, str(du.get("hashed_password") or du.get("password") or "")):
             continue
 
         # demo kaydı full_name ile tutuluyor olabilir
