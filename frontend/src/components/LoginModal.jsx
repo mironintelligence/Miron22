@@ -4,6 +4,8 @@ import { useAuth } from "../auth/AuthProvider";
 
 export default function LoginModal({ open, onClose, onSuccess }) {
   const { login } = useAuth();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -12,8 +14,16 @@ export default function LoginModal({ open, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
-    if (!email.trim() || !password.trim()) {
-      setError("E-posta ve şifre zorunludur.");
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
+      setError("Tüm alanlar zorunludur.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Lütfen geçerli bir e-posta adresi girin.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Şifre en az 8 karakter olmalıdır.");
       return;
     }
     setError("");
@@ -32,8 +42,8 @@ export default function LoginModal({ open, onClose, onSuccess }) {
 
   return (
     <Modal open={open} onClose={onClose}>
-      <h2 className="text-2xl font-bold text-center mb-6 bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-        Miron AI Giriş
+      <h2 className="text-2xl font-bold text-center mb-6 text-accent">
+        Giriş
       </h2>
 
       {error && (
@@ -43,32 +53,56 @@ export default function LoginModal({ open, onClose, onSuccess }) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm text-subtle mb-1">Ad</label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              disabled={loading}
+              className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
+              placeholder="Ad"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-subtle mb-1">Soyad</label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              disabled={loading}
+              className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
+              placeholder="Soyad"
+            />
+          </div>
+        </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">Email</label>
+          <label className="block text-sm text-subtle mb-1">E-posta</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
-            className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-blue-500 focus:outline-none"
+            className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
             placeholder="ornek@firma.com"
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">Şifre</label>
+          <label className="block text-sm text-subtle mb-1">Şifre</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
-            className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white focus:border-blue-500 focus:outline-none"
+            className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
             placeholder="••••••••"
           />
         </div>
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-95 transition disabled:opacity-60"
+          className="w-full btn-primary disabled:opacity-60"
         >
           {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
         </button>

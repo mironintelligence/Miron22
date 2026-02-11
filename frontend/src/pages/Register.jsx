@@ -413,10 +413,10 @@ export default function Register() {
     <div className="min-h-screen mt-12 px-6 sm:px-10 md:px-16 pb-12">
       <div className="glass p-6 sm:p-8 rounded-2xl">
         <div className="text-center mb-6">
-          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+          <h2 className="text-2xl sm:text-3xl font-bold text-accent">
             Miron AI – Legal Intelligence Suite
           </h2>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-subtle mt-1">
             Türkiye’nin en akıllı hukuk otomasyon platformuna erişim için bilgilerinizi girin.
           </p>
         </div>
@@ -439,7 +439,7 @@ export default function Register() {
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="İstanbul"
-                className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20"
+                className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white"
               />
             </div>
 
@@ -449,7 +449,7 @@ export default function Register() {
                 value={firm}
                 onChange={(e) => setFirm(e.target.value)}
                 placeholder="Miron Hukuk"
-                className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20"
+                className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white"
               />
             </div>
           </div>
@@ -464,7 +464,7 @@ export default function Register() {
                   <input
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20"
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white"
                   />
                 </div>
 
@@ -501,9 +501,9 @@ export default function Register() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
         placeholder="En az 8 karakter"
-                    className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20"
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white"
                   />
-                  <div className="text-[12px] mt-2 text-gray-400">
+                  <div className="text-[12px] mt-2 text-subtle">
                     Güvenlik için güçlü bir şifre seçin. Aynı şifreyi başka kullanıcılarla paylaşmayın.
                   </div>
                 </div>
@@ -516,17 +516,14 @@ export default function Register() {
                     <select
                       value={personCount}
                       onChange={(e) => onCountChange(Number(e.target.value))}
-                      className="w-full px-3 py-2 pr-10 rounded-xl border border-white/10 text-white font-medium
-                                bg-gradient-to-br from-[#0b0b0c]/80 to-[#17181b]/80 backdrop-blur-md shadow-inner
-                                focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none transition-all
-                                 hover:scale-[1.01]"
+                      className="w-full px-3 py-2 pr-10 rounded-xl border border-white/15 text-white font-medium bg-black/60 backdrop-blur-md shadow-inner focus:ring-2 focus:ring-[var(--miron-gold)] outline-none transition-all hover:scale-[1.01]"
                       style={{
                         appearance: "none",
                         WebkitAppearance: "none",
                         MozAppearance: "none",
                         color: "#e3e3e3",
                         backgroundImage:
-                          "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%2322d3ee' d='M7 10l5 5 5-5z'/></svg>\")",
+                          "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23FFD700' d='M7 10l5 5 5-5z'/></svg>\")",
                         backgroundRepeat: "no-repeat",
                         backgroundPosition: "right 10px center",
                         backgroundSize: "16px 16px",
@@ -559,14 +556,14 @@ export default function Register() {
                         value={p.firstName}
                         onChange={(e) => updatePerson(idx, "firstName", e.target.value)}
                         placeholder="Ad *"
-                        className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 mb-2"
+                        className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 mb-2 text-white"
                       />
 
                       <input
                         value={p.lastName}
                         onChange={(e) => updatePerson(idx, "lastName", e.target.value)}
                         placeholder="Soyad *"
-                        className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 mb-2"
+                        className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 mb-2 text-white"
                       />
 
                       {/* ✅ E-POSTA EKLENDİ (görünüş aynı) */}
@@ -574,7 +571,7 @@ export default function Register() {
                         value={p.email}
                         onChange={(e) => updatePerson(idx, "email", e.target.value)}
                         placeholder="E-posta *"
-                        className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 mb-2"
+                        className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 mb-2 text-white"
                       />
 
                       <input
@@ -582,7 +579,7 @@ export default function Register() {
                         value={p.password}
                         onChange={(e) => updatePerson(idx, "password", e.target.value)}
                         placeholder="Şifre * (en az 8 karakter)"
-                        className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20"
+                        className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white"
                       />
                     </div>
                   ))}
@@ -592,9 +589,9 @@ export default function Register() {
 
             {/* Pricing Summary */}
             {pricingData && (
-              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-900/20 to-cyan-900/20 border border-blue-500/30">
+              <div className="mt-6 p-4 rounded-xl bg-black/50 border border-accent/40">
                  <div className="flex justify-between items-center text-sm mb-1">
-                    <span className="text-gray-300">Kişi Sayısı:</span>
+                    <span className="text-subtle">Kişi Sayısı:</span>
                     <span className="text-white font-medium">{pricingData.count}</span>
                  </div>
                  {pricingData.is_discounted && (
@@ -603,15 +600,15 @@ export default function Register() {
                       <span>-{pricingData.discount_amount.toLocaleString("tr-TR")} TL</span>
                    </div>
                  )}
-                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/10">
-                    <span className="text-gray-200 font-semibold">Toplam Tutar:</span>
+                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/15">
+                    <span className="text-white font-semibold">Toplam Tutar:</span>
                     <div className="text-right">
                        {pricingData.is_discounted && (
-                          <span className="text-xs text-gray-500 line-through mr-2">
+                          <span className="text-xs text-subtle line-through mr-2">
                             {pricingData.raw_total.toLocaleString("tr-TR")} TL
                           </span>
                        )}
-                       <span className="text-xl font-bold text-cyan-400">
+                       <span className="text-xl font-bold text-accent">
                           {pricingData.final_total.toLocaleString("tr-TR")} TL
                        </span>
                     </div>
@@ -629,7 +626,7 @@ export default function Register() {
                 />
                 <div className="text-sm">
                   <span
-                    className="font-medium cursor-pointer text-cyan-400 underline"
+                    className="font-medium cursor-pointer text-accent underline"
                     onClick={() => openDoc("agreement")}
                     role="button"
                     tabIndex={0}
@@ -649,7 +646,7 @@ export default function Register() {
                 />
                 <div className="text-sm">
                   <span
-                    className="font-medium cursor-pointer text-cyan-400 underline"
+                    className="font-medium cursor-pointer text-accent underline"
                     onClick={() => openDoc("privacy")}
                     role="button"
                     tabIndex={0}
@@ -669,7 +666,7 @@ export default function Register() {
                 />
                 <div className="text-sm">
                   <span
-                    className="font-medium cursor-pointer text-cyan-400 underline"
+                    className="font-medium cursor-pointer text-accent underline"
                     onClick={() => openDoc("terms")}
                     role="button"
                     tabIndex={0}
@@ -702,9 +699,7 @@ export default function Register() {
                 <button
                   onClick={handleSubmit}
                   disabled={disabled || submitting}
-                  className="px-6 py-3 rounded-xl font-semibold text-white shadow
-                           bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-95 transition
-                           disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? "Kayıt gönderiliyor..." : "Kaydı Tamamla"}
                 </button>
@@ -727,10 +722,10 @@ export default function Register() {
               initial={{ y: 12 }}
               animate={{ y: 0 }}
               exit={{ y: 12 }}
-              className="w-full max-w-3xl bg-white/95 dark:bg-gray-900/95 rounded-2xl shadow-2xl overflow-auto max-h-[85vh]"
+              className="w-full max-w-3xl bg-black rounded-2xl shadow-2xl overflow-auto max-h-[85vh]"
             >
               <div className="p-4 border-b border-white/10">
-                <div className="text-sm font-semibold text-white bg-cyan-500 px-3 py-2 rounded-md inline-block">
+                <div className="text-sm font-semibold text-black bg-[var(--miron-gold)] px-3 py-2 rounded-md inline-block">
                   {docTitle}
                 </div>
                 <button onClick={() => setTermsOpen(false)} className="float-right text-sm px-3 py-1">
@@ -746,7 +741,7 @@ export default function Register() {
         )}
       </AnimatePresence>
 
-      <footer className="mt-8 mb-6 text-center text-xs text-gray-500">
+      <footer className="mt-8 mb-6 text-center text-xs text-subtle">
         ©️ 2025 Miron Intelligence — All Rights Reserved
       </footer>
     </div>

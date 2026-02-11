@@ -51,13 +51,13 @@ export default function Pricing() {
   const crossed = showCrossed ? rawTotal : null;
 
   return (
-    <div className="min-h-screen mt-12 px-6 sm:px-10 md:px-16 pb-12">
+    <div className="min-h-screen mt-12 px-6 sm:px-10 md:px-16 pb-12 bg-black text-white">
       <div className="glass p-6 sm:px-8 rounded-2xl">
         <div className="text-center mb-6">
-          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+          <h2 className="text-2xl sm:text-3xl font-bold text-accent">
             Libra AI – Legal Intelligence Suite
           </h2>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-subtle mt-1">
             Lisansınızı etkinleştirin ve tüm modüllere erişin.
           </p>
 
@@ -74,8 +74,8 @@ export default function Pricing() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Özellikler */}
           <div className="lg:col-span-7 glass p-5 rounded-2xl">
-            <h3 className="font-semibold text-cyan-300 mb-3">Paket Özellikleri</h3>
-            <ul className="text-sm space-y-2 text-gray-200">
+            <h3 className="font-semibold text-accent mb-3">Paket Özellikleri</h3>
+            <ul className="text-sm space-y-2 text-muted">
               <li>📂 Evrak Analizi</li>
               <li>🧾 Dilekçe Oluşturucu</li>
               <li>💬 Miron Assistant</li>
@@ -89,14 +89,14 @@ export default function Pricing() {
 
           {/* Fiyat kutusu */}
           <div className="lg:col-span-5 glass p-5 rounded-2xl border border-white/10">
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-subtle">
               {isMulti
                 ? "Çok kişili lisans • " + count + " kullanıcı"
                 : "Şahıs lisansı • 1 kullanıcı"}
             </div>
 
             {/* Ödeme uyarısı */}
-            <div className="mt-3 p-3 rounded-xl border border-red-400/30 bg-red-500/5 text-sm text-red-600">
+            <div className="mt-3 p-3 rounded-xl border border-red-400/40 bg-red-500/10 text-sm text-red-200">
               ⚠ Her hesap <strong>1 kişiliktir</strong>. Lütfen aynı hesabı birden
               fazla kişiyle paylaşmayın. Aksi halde aboneliğiniz iptal edilebilir.
             </div>
@@ -104,7 +104,7 @@ export default function Pricing() {
             {/* Eski fiyat ve indirimli fiyat */}
             <div className="mt-4">
               {showCrossed && crossed != null && (
-                <div className="text-lg text-gray-400 line-through">
+                <div className="text-lg text-subtle line-through">
                   {tl(crossed)}
                 </div>
               )}
@@ -114,7 +114,7 @@ export default function Pricing() {
               </div>
 
               {/* İndirim alanı - OTOMATİK UYGULANIYOR */}
-              <div className="mt-4 text-sm text-gray-400">
+              <div className="mt-4 text-sm text-subtle">
                 * Toplu alımlarda indirim otomatik uygulanır.
               </div>
             </div>
@@ -123,19 +123,19 @@ export default function Pricing() {
               onClick={() =>
                 alert("Ödeme entegrasyonu daha sonra bağlanacak.")
               }
-              className="mt-5 w-full py-3 rounded-xl font-semibold text-white shadow bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-95 transition"
+              className="mt-5 w-full btn-primary"
             >
               Satın Al
             </button>
 
-            <div className="text-[11px] text-gray-400 mt-3">
+            <div className="text-[11px] text-subtle mt-3">
               * Çoklu satın alımlarda 3+ kişide özel indirim uygulanır.
             </div>
           </div>
         </div>
       </div>
 
-      <footer className="mt-8 mb-6 text-center text-xs text-gray-500">
+      <footer className="mt-8 mb-6 text-center text-xs text-subtle">
         © 2025 Miron Intelligence — All Rights Reserved
       </footer>
     </div>

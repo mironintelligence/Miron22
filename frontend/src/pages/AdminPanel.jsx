@@ -251,22 +251,34 @@ export default function AdminPanel() {
         </button>
       </div>
       
-      <div className="flex gap-4 mb-8 border-b border-gray-700 pb-2">
+      <div className="flex gap-4 mb-8 border-b border-white/15 pb-2">
         <button 
             onClick={() => setActiveTab("pricing")}
-            className={`px-4 py-2 rounded ${activeTab === "pricing" ? "bg-blue-600" : "hover:bg-gray-800"}`}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+              activeTab === "pricing"
+                ? "bg-[var(--miron-gold)] text-black"
+                : "bg-black/40 text-white hover:bg-black/60 border border-white/10"
+            }`}
         >
             Fiyatlandırma
         </button>
         <button 
             onClick={() => setActiveTab("demos")}
-            className={`px-4 py-2 rounded ${activeTab === "demos" ? "bg-blue-600" : "hover:bg-gray-800"}`}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+              activeTab === "demos"
+                ? "bg-[var(--miron-gold)] text-black"
+                : "bg-black/40 text-white hover:bg-black/60 border border-white/10"
+            }`}
         >
             Demo Talepleri
         </button>
         <button 
             onClick={() => setActiveTab("users")}
-            className={`px-4 py-2 rounded ${activeTab === "users" ? "bg-blue-600" : "hover:bg-gray-800"}`}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+              activeTab === "users"
+                ? "bg-[var(--miron-gold)] text-black"
+                : "bg-black/40 text-white hover:bg-black/60 border border-white/10"
+            }`}
         >
             Kullanıcılar
         </button>
@@ -276,33 +288,33 @@ export default function AdminPanel() {
 
       {activeTab === "pricing" && (
         <div className="max-w-xl glass p-6 rounded-xl border border-white/10">
-            <h2 className="text-xl font-semibold mb-6 text-cyan-400">Fiyatlandırma Ayarları</h2>
+            <h2 className="text-xl font-semibold mb-6 text-accent">Fiyatlandırma Ayarları</h2>
             <div className="space-y-4">
                 <div>
-                    <label className="block text-sm text-gray-400 mb-1">Birim Fiyat (TL)</label>
+                    <label className="block text-sm text-subtle mb-1">Birim Fiyat (TL)</label>
                     <input 
                         type="number" 
                         value={pricing.base_price}
                         onChange={e => setPricing({...pricing, base_price: Number(e.target.value)})}
-                        className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                        className="w-full p-3 bg-black/40 border border-white/15 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                     />
                 </div>
                 <div>
-                    <label className="block text-sm text-gray-400 mb-1">Toplu İndirim Oranı (%)</label>
+                    <label className="block text-sm text-subtle mb-1">Toplu İndirim Oranı (%)</label>
                     <input 
                         type="number" 
                         value={pricing.discount_rate}
                         onChange={e => setPricing({...pricing, discount_rate: Number(e.target.value)})}
-                        className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                        className="w-full p-3 bg-black/40 border border-white/15 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                     />
                 </div>
                 <div>
-                    <label className="block text-sm text-gray-400 mb-1">İndirim İçin Min. Kişi Sayısı</label>
+                    <label className="block text-sm text-subtle mb-1">İndirim İçin Min. Kişi Sayısı</label>
                     <input 
                         type="number" 
                         value={pricing.bulk_threshold}
                         onChange={e => setPricing({...pricing, bulk_threshold: Number(e.target.value)})}
-                        className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                        className="w-full p-3 bg-black/40 border border-white/15 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                     />
                 </div>
                 <button 
@@ -317,14 +329,14 @@ export default function AdminPanel() {
 
       {activeTab === "demos" && (
         <div className="glass p-6 rounded-xl border border-white/10">
-            <h2 className="text-xl font-semibold mb-6 text-cyan-400">Demo Talepleri</h2>
+            <h2 className="text-xl font-semibold mb-6 text-accent">Demo Talepleri</h2>
             {demos.length === 0 ? (
-                <p className="text-gray-400">Henüz talep yok.</p>
+                <p className="text-subtle">Henüz talep yok.</p>
             ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="border-b border-gray-700 text-gray-400">
+                            <tr className="border-b border-white/10 text-subtle">
                                 <th className="p-3">Tarih</th>
                                 <th className="p-3">İsim</th>
                                 <th className="p-3">Email</th>
@@ -335,12 +347,12 @@ export default function AdminPanel() {
                         </thead>
                         <tbody>
                             {demos.map((d, i) => (
-                                <tr key={i} className="border-b border-gray-800 hover:bg-white/5">
+                                <tr key={i} className="border-b border-white/10 hover:bg-white/5">
                                     <td className="p-3 text-sm">{d.date || "-"}</td>
                                     <td className="p-3">{d.name}</td>
                                     <td className="p-3">{d.email}</td>
                                     <td className="p-3">{d.lawFirm || d.office || "-"}</td>
-                                    <td className="p-3 text-sm text-gray-400">{d.message || d.note || "-"}</td>
+                                    <td className="p-3 text-sm text-subtle">{d.message || d.note || "-"}</td>
                                     <td className="p-3 flex gap-2">
                                         <button 
                                             onClick={() => handleApproveDemo(d.id, d.email)}
@@ -366,14 +378,14 @@ export default function AdminPanel() {
 
       {activeTab === "users" && (
         <div className="glass p-6 rounded-xl border border-white/10">
-            <h2 className="text-xl font-semibold mb-6 text-cyan-400">Kayıtlı Kullanıcılar</h2>
+            <h2 className="text-xl font-semibold mb-6 text-accent">Kayıtlı Kullanıcılar</h2>
             {users.length === 0 ? (
-                <p className="text-gray-400">Kayıtlı kullanıcı yok.</p>
+                <p className="text-subtle">Kayıtlı kullanıcı yok.</p>
             ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="border-b border-gray-700 text-gray-400">
+                            <tr className="border-b border-white/10 text-subtle">
                                 <th className="p-3">Email</th>
                                 <th className="p-3">İsim</th>
                                 <th className="p-3">Soyisim</th>
@@ -383,7 +395,7 @@ export default function AdminPanel() {
                         </thead>
                         <tbody>
                             {users.map((u, i) => (
-                                <tr key={i} className="border-b border-gray-800 hover:bg-white/5">
+                                <tr key={i} className="border-b border-white/10 hover:bg-white/5">
                                     <td className="p-3">{u.email}</td>
                                     <td className="p-3">{u.firstName}</td>
                                     <td className="p-3">{u.lastName}</td>

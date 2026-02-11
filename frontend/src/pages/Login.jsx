@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { setLibraUser } from '../utils/auth';
 
 const Login = () => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,6 +25,20 @@ const Login = () => {
     if (loading) return;
     setError('');
     setSuccess('');
+
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
+      setError('Tüm alanlar zorunludur.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Lütfen geçerli bir e-posta adresi girin.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Şifre en az 8 karakter olmalıdır.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -59,10 +75,10 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-black text-white">
-      <div className="w-full max-w-md p-8 bg-gray-900 rounded-xl border border-gray-800 shadow-2xl">
-        <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-          Miron AI Giriş
+    <div className="flex items-center justify-center min-h-screen bg-black text-white px-4">
+      <div className="w-full max-w-md p-8 glass">
+        <h2 className="text-3xl font-bold text-center mb-8 text-accent">
+          Giriş
         </h2>
 
         {success && (
@@ -77,33 +93,57 @@ const Login = () => {
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-subtle mb-1">Ad</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                disabled={loading}
+                className="w-full bg-black/40 border border-white/15 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
+                placeholder="Ad"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-subtle mb-1">Soyad</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                disabled={loading}
+                className="w-full bg-black/40 border border-white/15 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
+                placeholder="Soyad"
+              />
+            </div>
+          </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Email</label>
+            <label className="block text-sm text-subtle mb-1">E-posta</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
-              className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-blue-500 focus:outline-none"
+              className="w-full bg-black/40 border border-white/15 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
               placeholder="cdtmiron@gmail.com"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Şifre</label>
+            <label className="block text-sm text-subtle mb-1">Şifre</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
-              className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-blue-500 focus:outline-none"
-              placeholder="2003"
+              className="w-full bg-black/40 border border-white/15 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
+              placeholder="••••••••"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded font-semibold transition-colors"
+            className="w-full btn-primary"
           >
             {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
           </button>

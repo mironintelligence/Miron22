@@ -162,61 +162,61 @@ export default function Payments() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0b0b0c] to-[#17181b] text-gray-100">
+    <div className="min-h-screen bg-black text-white">
       <div className="max-w-5xl mx-auto px-6 py-16">
         <motion.h1
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent"
+          className="text-3xl md:text-4xl font-extrabold text-accent"
         >
           Ödemeler & Abonelik
         </motion.h1>
 
-        <p className="text-gray-400 mt-3">
+        <p className="text-muted mt-3">
           Aylık aboneliğini burada görürsün. Bir sonraki ödeme tarihi, sistemin para çekeceği tarihtir.
         </p>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
-            <div className="text-sm text-gray-400">Plan</div>
+          <div className="card p-6">
+            <div className="text-sm text-subtle">Plan</div>
             <div className="text-xl font-semibold mt-1">{sub.plan_name}</div>
 
-            <div className="mt-4 text-sm text-gray-400">Durum</div>
+            <div className="mt-4 text-sm text-subtle">Durum</div>
             <div className="text-base font-semibold mt-1">{sub.status}</div>
 
-            <div className="mt-4 text-sm text-gray-400">Aylık Ücret</div>
+            <div className="mt-4 text-sm text-subtle">Aylık Ücret</div>
             <div className="text-base font-semibold mt-1">{monthlyLabel}</div>
 
-            <div className="mt-4 text-sm text-gray-400">Bir Sonraki Ödeme Tarihi</div>
+            <div className="mt-4 text-sm text-subtle">Bir Sonraki Ödeme Tarihi</div>
             <div className="text-base font-semibold mt-1">{formatDateTR(sub.next_billing_at)}</div>
 
             <div className="mt-6 flex gap-2">
               <button
                 onClick={() => setConfirmOpen(true)}
-                className="px-4 py-2 rounded-xl bg-red-500/15 border border-red-500/25 text-red-200 hover:bg-red-500/25 transition"
+                className="btn-danger"
               >
                 Aboneliği İptal Et
               </button>
             </div>
 
             {cancelMsg ? (
-              <div className="mt-4 text-sm text-cyan-200 bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-3">
+              <div className="mt-4 text-sm text-muted border border-accent/40 rounded-xl p-3 bg-black/40">
                 {cancelMsg}
               </div>
             ) : null}
           </div>
 
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
-            <div className="text-sm text-gray-400">Bilgi</div>
+          <div className="card p-6">
+            <div className="text-sm text-subtle">Bilgi</div>
 
             {subLoading ? (
-              <div className="mt-3 text-gray-300">Yükleniyor...</div>
+              <div className="mt-3 text-muted">Yükleniyor...</div>
             ) : subError ? (
-              <div className="mt-3 text-yellow-200 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 text-sm">
+              <div className="mt-3 text-sm text-muted border border-accent/40 rounded-xl p-3 bg-black/40">
                 {subError}
               </div>
             ) : (
-              <div className="mt-3 text-gray-300 text-sm leading-relaxed">
+              <div className="mt-3 text-sm text-muted leading-relaxed">
                 Abonelik sistemi ödeme altyapısına bağlıdır. Webhook yoksa iptal “talep” olarak işlenir,
                 webhook bağlanınca otomatik iptal akışı tamamlanır.
               </div>
@@ -243,7 +243,7 @@ export default function Payments() {
               transition={{ duration: 0.18 }}
             >
               <div className="text-lg font-semibold">Emin misiniz?</div>
-              <div className="text-sm text-gray-400 mt-2">
+              <div className="text-sm text-subtle mt-2">
                 Aboneliği iptal etmek istiyor musunuz? (Webhook bağlanınca sistem otomatik iptal edecek.)
               </div>
 

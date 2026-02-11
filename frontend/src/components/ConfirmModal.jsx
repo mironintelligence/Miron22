@@ -28,15 +28,15 @@ export default function ConfirmModal({
     >
       <div
         className="card"
-        style={{ width: "100%", maxWidth: 520, padding: 16 }}
+        style={{ width: "100%", maxWidth: 520, padding: 20 }}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>{title}</div>
-        <div className="muted" style={{ marginBottom: 14 }}>{message}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>{title}</div>
+        <div className="text-subtle" style={{ marginBottom: 18 }}>{message}</div>
 
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
-          <button className="btn" onClick={onCancel}>{cancelText}</button>
-          <button className={`btn ${danger ? "danger" : "primary"}`} onClick={onConfirm}>
+          <button className="btn-secondary" onClick={onCancel}>{cancelText}</button>
+          <button className={danger ? "btn-danger" : "btn-primary"} onClick={onConfirm}>
             {confirmText}
           </button>
         </div>

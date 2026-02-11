@@ -115,7 +115,7 @@ export default function Intro() {
           </div>
         </div>
 
-        <div className="mt-8 text-xs text-gray-400">
+        <div className="mt-8 text-xs text-subtle">
           <strong>İletişim:</strong> mironintelligence@gmail.com — 24 saat içinde dönüş yapılır.
         </div>
       </div>

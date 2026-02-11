@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 
-export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
+export default function Header({ onOpenLogin }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { status, user, logout } = useAuth();
@@ -78,16 +78,6 @@ export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
           </nav>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setDarkMode(!darkMode)}
-              className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-center"
-              aria-label="Tema"
-              title="Tema"
-            >
-              {darkMode ? "🌙" : "☀️"}
-            </button>
-
             {loading ? null : authed ? (
               <>
                 <div className="hidden sm:flex flex-col items-end leading-tight">
@@ -101,7 +91,7 @@ export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="px-4 py-2 text-sm font-semibold rounded-xl bg-yellow-500/20 border border-yellow-500/40 hover:bg-yellow-500/30 text-yellow-300 transition"
+                  className="px-4 py-2 text-sm font-semibold rounded-xl bg-[var(--miron-panel)] border border-accent hover:bg-[var(--miron-panel-2)] text-white transition"
                 >
                   Çıkış
                 </button>
@@ -111,13 +101,13 @@ export default function Header({ darkMode, setDarkMode, onOpenLogin }) {
                 <button
                   type="button"
                   onClick={onOpenLogin}
-                  className="text-sm font-medium text-white/80 hover:text-white transition-colors"
+                  className="px-4 py-2 text-sm font-semibold rounded-xl bg-[var(--miron-gold)] text-black hover:brightness-105 transition"
                 >
                   Giriş Yap
                 </button>
                 <Link
                   to="/register"
-                  className="px-4 py-2 text-sm font-semibold text-black bg-yellow-400 rounded-xl hover:bg-yellow-500 transition"
+                  className="px-4 py-2 text-sm font-semibold rounded-xl border border-accent text-[var(--miron-gold)] hover:bg-[rgba(255,215,0,0.12)] transition"
                 >
                   Kaydol
                 </Link>

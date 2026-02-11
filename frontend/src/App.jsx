@@ -33,21 +33,6 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const [loginOpen, setLoginOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem("theme");
-    return saved ? saved === "dark" : true;
-  });
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) {
-      root.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [darkMode]);
 
   useEffect(() => {
     if (location.pathname === "/login") {
@@ -60,16 +45,8 @@ export default function App() {
   }, [location.pathname, status, navigate]);
 
   return (
-    <div
-      className={`min-h-screen transition-colors duration-300 ${
-        darkMode
-          ? "bg-black text-white"
-          : "bg-white text-black"
-      }`}
-    >
+    <div className="min-h-screen bg-black text-white">
       <Header
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
         onOpenLogin={() => setLoginOpen(true)}
       />
       <LoginModal
@@ -233,7 +210,7 @@ export default function App() {
         </Routes>
       </div>
 
-      <footer className="fixed bottom-0 left-0 w-full text-center text-xs py-3 bg-white/10 dark:bg-black/30 backdrop-blur-xl border-t border-white/10 text-gray-300">
+      <footer className="fixed bottom-0 left-0 w-full text-center text-xs py-3 bg-black/40 backdrop-blur-xl border-t border-white/10 text-white/70">
         ⚠ Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
       </footer>
     </div>

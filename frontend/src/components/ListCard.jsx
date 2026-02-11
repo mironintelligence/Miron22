@@ -9,14 +9,14 @@ export default function ListCard({ title, subtitle, right, children }) {
       transition={{ duration: 0.45 }}
       whileHover={{
         scale: 1.015,
-        boxShadow: "0 0 0 1px rgba(59,130,246,0.30), 0 18px 45px rgba(0,0,0,0.45)",
+        boxShadow: "0 0 0 1px rgba(255,215,0,0.35), 0 18px 45px rgba(0,0,0,0.55)",
       }}
       className="glass p-4"
     >
       <div className="flex justify-between gap-3 items-start">
         <div>
           <div className="font-extrabold text-sm">{title}</div>
-          {subtitle ? <div className="text-xs text-gray-400 mt-1">{subtitle}</div> : null}
+          {subtitle ? <div className="text-xs text-subtle mt-1">{subtitle}</div> : null}
         </div>
         {right ? <div>{right}</div> : null}
       </div>

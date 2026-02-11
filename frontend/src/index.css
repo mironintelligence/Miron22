@@ -3,11 +3,17 @@
 @tailwind utilities;
 
 /* ---------- Varsayılan Tema ---------- */
-:root { color-scheme: light dark; }
 :root {
   --miron-bg: #000000;
-  --miron-text: #ffffff;
-  --miron-gold: #ffd700;
+  --miron-text: #FFFFFF;
+  --miron-gold: #FFD700;
+  --miron-text-muted: rgba(255,255,255,0.78);
+  --miron-text-subtle: rgba(255,255,255,0.62);
+  --miron-panel: rgba(255,255,255,0.05);
+  --miron-panel-2: rgba(255,255,255,0.08);
+  --miron-border: rgba(255,255,255,0.12);
+  --miron-border-strong: rgba(255,255,255,0.2);
+  --miron-glow: 0 0 0 1px rgba(255,215,0,0.25), 0 0 24px rgba(255,215,0,0.18);
 }
 
 /* ---------- Genel Gövde ---------- */
@@ -28,6 +34,45 @@ h1, h2, h3, h4 {
   font-weight: 700;
 }
 
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold transition;
+    background: var(--miron-gold);
+    color: #000000;
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+  }
+  .btn-primary:hover { filter: brightness(1.06); box-shadow: var(--miron-glow); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold transition;
+    background: transparent;
+    color: var(--miron-gold);
+    border: 1px solid rgba(255,215,0,0.45);
+  }
+  .btn-secondary:hover { background: rgba(255,215,0,0.12); box-shadow: var(--miron-glow); }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold transition;
+    background: rgba(255,255,255,0.04);
+    color: #FFFFFF;
+    border: 1px solid rgba(255,215,0,0.25);
+  }
+  .btn-danger:hover { border-color: rgba(255,215,0,0.5); background: rgba(255,255,255,0.06); }
+
+  .card {
+    @apply rounded-2xl;
+    background: var(--miron-panel);
+    border: 1px solid var(--miron-border);
+    box-shadow: 0 16px 60px rgba(0,0,0,0.55);
+  }
+
+  .text-muted { color: var(--miron-text-muted); }
+  .text-subtle { color: var(--miron-text-subtle); }
+  .text-accent { color: var(--miron-gold); }
+  .border-accent { border-color: rgba(255,215,0,0.45); }
+}
+
 /* ---------- Markdown Okunabilirliği ---------- */
 .prose-invert { color: #ffffff; line-height: 1.7; word-wrap: break-word; overflow-wrap: break-word; }
 .prose-invert h2, .prose-invert h3 { color: var(--miron-gold); font-weight: 700; }
@@ -36,10 +81,10 @@ h1, h2, h3, h4 {
 
 /* ---------- Cam / Blur Efekti ---------- */
 .glass {
-  @apply bg-white/5 dark:bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl shadow-2xl;
+  @apply bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl shadow-2xl;
   backdrop-filter: blur(20px) saturate(180%);
-  background-color: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: rgba(0, 0, 0, 0.65);
+  border: 1px solid var(--miron-border);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
   border-radius: 18px;
   transition: all 0.3s ease;
