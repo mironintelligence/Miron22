@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Header from "./components/Header.jsx";
+import LoginModal from "./components/LoginModal.jsx";
 import Home from "./pages/Home.jsx";
 import Analyze from "./pages/Analyze.jsx";
 import LibraAssistant from "./components/LibraAssistant.jsx";
@@ -9,7 +10,6 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Settings from "./pages/Settings.jsx";
 import Register from "./pages/Register.jsx";
 import Pricing from "./pages/Pricing.jsx";
-import Login from "./pages/Login.jsx";
 import RiskStrategy from "./pages/RiskStrategy";
 import Intro from "./pages/Intro.jsx";
 import IntroLanding from "./pages/IntroLanding.jsx";
@@ -24,10 +24,15 @@ import Feedback from "./pages/Feedback";
 import UserAgreement from "./pages/UserAgreement";
 import GuestRoute from "./components/GuestRoute.jsx";
 import Calculators from "./pages/Calculators";
+import AdminPanel from "./pages/AdminPanel.jsx";
 
-import { isAuthenticated } from "./utils/auth";
+import { useAuth } from "./auth/AuthProvider";
 
 export default function App() {
+  const { status } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [loginOpen, setLoginOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("theme");
     return saved ? saved === "dark" : true;
@@ -44,6 +49,16 @@ export default function App() {
     }
   }, [darkMode]);
 
+  useEffect(() => {
+    if (location.pathname === "/login") {
+      if (status === "authed") {
+        navigate("/home", { replace: true });
+        return;
+      }
+      setLoginOpen(true);
+    }
+  }, [location.pathname, status, navigate]);
+
   return (
     <div
       className={`min-h-screen transition-colors duration-300 ${
@@ -52,7 +67,24 @@ export default function App() {
           : "bg-gradient-to-br from-white to-gray-100 text-gray-900"
       }`}
     >
-      <Header darkMode={darkMode} setDarkMode={setDarkMode} />
+      <Header
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        onOpenLogin={() => setLoginOpen(true)}
+      />
+      <LoginModal
+        open={loginOpen}
+        onClose={() => {
+          setLoginOpen(false);
+          if (location.pathname === "/login") {
+            navigate("/", { replace: true });
+          }
+        }}
+        onSuccess={() => {
+          setLoginOpen(false);
+          navigate("/home");
+        }}
+      />
 
       <div className="px-6 sm:px-10 md:px-12 lg:px-16">
         <Routes>
@@ -178,25 +210,8 @@ export default function App() {
             }
           />
           <Route path="/pricing" element={<Pricing />} />
-          <Route
-            path="/login"
-            element={
-              <GuestRoute>
-                <Login />
-              </GuestRoute>
-            }
-          />
-
-
-                 <Route path="/feedback" element={<Feedback />} />
-          <Route
-            path="/feedback"
-            element={
-              <GuestRoute>
-                <Login />
-              </GuestRoute>
-            }
-          />
+          <Route path="/login" element={<IntroLanding />} />
+          <Route path="/admin" element={<AdminPanel />} />
 
 
          
@@ -208,7 +223,7 @@ export default function App() {
           <Route
             path="*"
             element={
-              isAuthenticated() ? (
+              status === "authed" ? (
                 <Navigate to="/home" replace />
               ) : (
                 <Navigate to="/" replace />

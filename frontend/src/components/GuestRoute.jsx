@@ -1,7 +1,9 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { isAuthenticated } from "../utils/auth";
+import { useAuth } from "../auth/AuthProvider";
 
 export default function GuestRoute({ children }) {
-  return isAuthenticated() ? <Navigate to="/home" replace /> : children;
+  const { status } = useAuth();
+  if (status === "loading") return null;
+  return status === "authed" ? <Navigate to="/home" replace /> : children;
 }

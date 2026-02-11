@@ -31,7 +31,8 @@ export default function DemoRequest() {
 
     setStatus("loading");
     try {
-      const res = await axios.post("http://localhost:8000/api/demo-request", form);
+      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+      const res = await axios.post(`${base}/api/demo-request`, form);
       if (res.data.status === "success") {
         setStatus("success");
         setForm({

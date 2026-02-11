@@ -7,7 +7,9 @@ export default function Settings() {
 
   const testConnection = async () => {
     try {
-      const r = await fetch("http://127.0.0.1:8000/");
+      const r = await fetch(
+        `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/`
+      );
       if (r.ok) setConnection("Bağlantı başarılı ✅");
       else setConnection("Sunucuya erişilemiyor ❌");
     } catch {

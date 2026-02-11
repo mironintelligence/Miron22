@@ -1,28 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 function tl(n) {
   return n.toLocaleString("tr-TR") + " TL";
 }
 
-function calcRealPrice(count) {
-  if (count <= 1) return 6000;
-  if (count === 2) return 6000 + 4000;
-  return 6000 + 4000 + 2000 * (count - 2);
-}
-
-function calcCrossedPrice(count) {
-  return 6000 + 4000 * (count - 1);
-}
-
 export default function Pricing() {
   const { state } = useLocation();
   const navigate = useNavigate();
 
-  // 🔹 İndirim kodu state'leri
-  const [discountCode, setDiscountCode] = useState("");
-  const [discountPercent, setDiscountPercent] = useState(0);
-  const [discountMsg, setDiscountMsg] = useState("");
+  const [pricingData, setPricingData] = useState(null);
+  const [loadingPrice, setLoadingPrice] = useState(false);
 
   useEffect(() => {
     if (!state) navigate("/register");
@@ -31,58 +19,36 @@ export default function Pricing() {
 
   const count = state?.count || 1;
   const isMulti = state?.mode === "multi";
-  const showCrossed = isMulti && count >= 3;
+  const verificationNeeded = state?.verificationNeeded;
 
-  const real = useMemo(() => calcRealPrice(count), [count]);
-  const crossed = useMemo(
-    () => (showCrossed ? calcCrossedPrice(count) : null),
-    [showCrossed, count]
-  );
-
-  // 🔹 İndirim kodu kontrolü
-  const applyDiscount = async () => {
-    const code = discountCode.trim();
-    if (!code) {
-      setDiscountPercent(0);
-      setDiscountMsg("Lütfen bir indirim kodu girin.");
-      return;
-    }
-
-    try {
-      const res = await fetch(
-        "http://127.0.0.1:8000/admin/validate-discount?code=" +
-          encodeURIComponent(code)
-      );
-
-      if (!res.ok) {
-        setDiscountPercent(0);
-        setDiscountMsg("❌ Kod geçersiz veya süresi dolmuş.");
-        return;
+  useEffect(() => {
+    async function fetchPrice() {
+      setLoadingPrice(true);
+      try {
+        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+        const res = await fetch(`${base}/api/pricing/calculate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ count }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPricingData(data);
+        }
+      } catch (e) {
+        console.error("Fiyat hesaplama hatası:", e);
+      } finally {
+        setLoadingPrice(false);
       }
-
-      const data = await res.json();
-
-      if (!data.percent || data.percent <= 0) {
-        setDiscountPercent(0);
-        setDiscountMsg("❌ Bu kod için indirim tanımlı değil.");
-        return;
-      }
-
-      setDiscountPercent(data.percent);
-      setDiscountMsg("✅ %" + data.percent + " indirim uygulandı!");
-    } catch (e) {
-      console.error(e);
-      setDiscountPercent(0);
-      setDiscountMsg("❌ Kod doğrulanırken bir hata oluştu.");
     }
-  };
+    fetchPrice();
+  }, [count]);
 
-  // 🔹 İndirimli fiyat hesaplama
-  const finalPrice = useMemo(() => {
-    if (!discountPercent) return real;
-    const discounted = real - real * (discountPercent / 100);
-    return Math.round(discounted);
-  }, [real, discountPercent]);
+  const showCrossed = pricingData?.is_discounted;
+  const rawTotal = pricingData?.raw_total || 0;
+  const finalPrice = pricingData?.final_total || 0;
+  
+  const crossed = showCrossed ? rawTotal : null;
 
   return (
     <div className="min-h-screen mt-12 px-6 sm:px-10 md:px-16 pb-12">
@@ -94,6 +60,15 @@ export default function Pricing() {
           <p className="text-sm text-gray-400 mt-1">
             Lisansınızı etkinleştirin ve tüm modüllere erişin.
           </p>
+
+          {verificationNeeded && (
+            <div className="mt-4 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-200 text-sm font-semibold max-w-2xl mx-auto">
+              ✉️ Lütfen e-posta adresinizi doğrulayın! <br />
+              <span className="font-normal opacity-80">
+                Hesabınızı aktifleştirmek için size bir doğrulama bağlantısı gönderdik. Doğrulama yapmadan giriş yapamazsınız.
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -138,24 +113,9 @@ export default function Pricing() {
                 {tl(finalPrice)}
               </div>
 
-              {/* İndirim alanı */}
-              <div className="mt-4">
-                <input
-                  value={discountCode}
-                  onChange={(e) => setDiscountCode(e.target.value)}
-                  placeholder="İndirim kodu"
-                  className="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white"
-                />
-                <button
-                  onClick={applyDiscount}
-                  className="mt-2 w-full py-2 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold"
-                >
-                  Kodu Uygula
-                </button>
-
-                {discountMsg && (
-                  <div className="text-sm text-red-400 mt-2">{discountMsg}</div>
-                )}
+              {/* İndirim alanı - OTOMATİK UYGULANIYOR */}
+              <div className="mt-4 text-sm text-gray-400">
+                * Toplu alımlarda indirim otomatik uygulanır.
               </div>
             </div>
 

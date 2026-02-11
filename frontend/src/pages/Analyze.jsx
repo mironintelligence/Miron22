@@ -1,7 +1,7 @@
 // src/pages/Analyze.jsx
 import React, { useMemo, useState } from "react";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
 /* ------------------------ helpers ------------------------ */
 function pickFirstLine(val) {
@@ -67,11 +67,11 @@ function grabBetweenLabels(headerText, label) {
   const stop =
     "(?=\\s*(?:VEKİLİ|DAVACI|DAVALI|KONUSU|DAVA\\s*KONUSU|AÇIKLAMALAR|AÇIKLAMA|OLAYLAR|DELİLLER|SONUÇ|İSTEM)\\s*[:\\-])";
 
-  const re = new RegExp(`${label}\\s*[:\\-]\\s*(.*?)${stop}`, "is");
+  const re = new RegExp(`${label}\\s*[:-]\\s*(.*?)${stop}`, "is");
   const m = t.match(re);
   if (m) return (m[1] || "").trim();
 
-  const re2 = new RegExp(`${label}\\s*[:\\-]\\s*([^\\n\\r]+)`, "i");
+  const re2 = new RegExp(`${label}\\s*[:-]\\s*([^\\n\\r]+)`, "i");
   const m2 = t.match(re2);
   return m2 ? (m2[1] || "").trim() : "";
 }
@@ -88,8 +88,8 @@ function extractEsasKarar(headerText) {
   const esas1 = t.match(/\b(\d{4}\/\d+)\s*E\.?\b/i);
   const karar1 = t.match(/\b(\d{4}\/\d+)\s*K\.?\b/i);
 
-  const esas2 = t.match(/(?:Esas\s*No|E\.?\s*No)\s*[:\-]\s*([^\n\r]+)/i);
-  const karar2 = t.match(/(?:Karar\s*No|K\.?\s*No)\s*[:\-]\s*([^\n\r]+)/i);
+  const esas2 = t.match(/(?:Esas\s*No|E\.?\s*No)\s*[:-]\s*([^\n\r]+)/i);
+  const karar2 = t.match(/(?:Karar\s*No|K\.?\s*No)\s*[:-]\s*([^\n\r]+)/i);
 
   return {
     esas: pickFirstLine(esas1?.[1] || esas2?.[1] || ""),
@@ -100,11 +100,11 @@ function extractEsasKarar(headerText) {
 function extractKonu(headerText) {
   const t = headerText || "";
   const m = t.match(
-    /(?:KONUSU|DAVA\s*KONUSU)\s*[:\-]\s*(.*?)(?=\s*(?:AÇIKLAMALAR|AÇIKLAMA|OLAYLAR|DELİLLER|SONUÇ|İSTEM)\b)/is
+    /(?:KONUSU|DAVA\s*KONUSU)\s*[:-]\s*(.*?)(?=\s*(?:AÇIKLAMALAR|AÇIKLAMA|OLAYLAR|DELİLLER|SONUÇ|İSTEM)\b)/is
   );
   if (m) return pickFirstLine(m[1]);
 
-  const m2 = t.match(/(?:KONUSU|DAVA\s*KONUSU)\s*[:\-]\s*([^\n\r]+)/i);
+  const m2 = t.match(/(?:KONUSU|DAVA\s*KONUSU)\s*[:-]\s*([^\n\r]+)/i);
   return m2 ? pickFirstLine(m2[1]) : "";
 }
 

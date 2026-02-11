@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../auth/AuthProvider";
 
 /**
  * Register.jsx
@@ -19,6 +20,7 @@ function duplicatePasswordsExist(persons) {
 
 export default function Register() {
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const [mode, setMode] = useState("single"); // single | multi
   const [city, setCity] = useState("");
@@ -46,6 +48,34 @@ export default function Register() {
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState("");
+  
+  // Pricing state
+  const [pricingData, setPricingData] = useState(null);
+
+  useEffect(() => {
+    async function fetchPrice() {
+      try {
+        const count = mode === "single" ? 1 : personCount;
+        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+        const res = await fetch(`${base}/api/pricing/calculate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ count }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPricingData(data);
+        }
+      } catch (e) {
+        console.error("Price fetch error", e);
+      }
+    }
+    fetchPrice();
+  }, [mode, personCount]);
+
   const openDoc = (type) => {
     setActiveDoc(type);
     setTermsOpen(true);
@@ -67,29 +97,30 @@ export default function Register() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [personCount]);
 
+  const isValidEmail = (value) => {
+    const v = String(value || "").trim();
+    if (!v) return false;
+    return /\S+@\S+\.\S+/.test(v);
+  };
+
   const validSingle = useMemo(() => {
     return (
       firstName.trim().length > 0 &&
       lastName.trim().length > 0 &&
-      email.trim().length > 0 && // ✅
-      password.trim().length >= 6
+      isValidEmail(email) &&
+      password.trim().length >= 8
     );
   }, [firstName, lastName, email, password]);
 
   const validMulti = useMemo(() => {
-    if (personCount < 2) return false;
-    if (persons.length !== personCount) return false;
-    const allFilled = persons.every(
-      (p) =>
-        p.firstName?.trim().length > 0 &&
-        p.lastName?.trim().length > 0 &&
-        p.email?.trim().length > 0 && // ✅
-        p.password?.trim().length >= 6
+    return (
+      firstName.trim().length > 0 &&
+      lastName.trim().length > 0 &&
+      email.trim().length > 0 &&
+      password.trim().length >= 8 &&
+      personCount >= 3
     );
-    if (!allFilled) return false;
-    if (duplicatePasswordsExist(persons)) return false; // duplicate passwords not allowed
-    return true;
-  }, [personCount, persons]);
+  }, [firstName, lastName, email, password, personCount]);
 
   const acceptedAll = acceptedAgreement && acceptedPrivacy && acceptedTerms;
   const disabled = mode === "single" ? !validSingle || !acceptedAll : !validMulti || !acceptedAll;
@@ -107,7 +138,12 @@ export default function Register() {
     setPersonCount(count);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (submitting || disabled) return;
+    setSubmitError("");
+    setSubmitSuccess("");
+    setSubmitting(true);
+
     const payload =
       mode === "single"
         ? {
@@ -137,8 +173,29 @@ export default function Register() {
             })),
           };
 
-    // Gönder / yönlendir
-    navigate("/pricing", { state: payload });
+    try {
+      const list = payload.persons || [];
+      let verificationNeeded = false;
+      
+      for (const p of list) {
+        const res = await register({
+          email: p.email,
+          password: p.password,
+          firstName: p.firstName,
+          lastName: p.lastName,
+          mode,
+        });
+        if (res && res.requires_verification) {
+          verificationNeeded = true;
+        }
+      }
+      setSubmitSuccess("Kayıt başarılı.");
+      navigate("/pricing", { state: { ...payload, verificationNeeded } });
+    } catch (e) {
+      setSubmitError(e?.message || "Kayıt başarısız.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const duplicatePw = mode === "multi" && duplicatePasswordsExist(persons);
@@ -443,7 +500,7 @@ export default function Register() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="En az 6 karakter"
+        placeholder="En az 8 karakter"
                     className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20"
                   />
                   <div className="text-[12px] mt-2 text-gray-400">
@@ -524,13 +581,42 @@ export default function Register() {
                         type="password"
                         value={p.password}
                         onChange={(e) => updatePerson(idx, "password", e.target.value)}
-                        placeholder="Şifre * (en az 6 karakter)"
+                        placeholder="Şifre * (en az 8 karakter)"
                         className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20"
                       />
                     </div>
                   ))}
                 </div>
               </>
+            )}
+
+            {/* Pricing Summary */}
+            {pricingData && (
+              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-900/20 to-cyan-900/20 border border-blue-500/30">
+                 <div className="flex justify-between items-center text-sm mb-1">
+                    <span className="text-gray-300">Kişi Sayısı:</span>
+                    <span className="text-white font-medium">{pricingData.count}</span>
+                 </div>
+                 {pricingData.is_discounted && (
+                   <div className="flex justify-between items-center text-sm mb-1 text-green-400">
+                      <span>Toplu İndirim (%{pricingData.applied_discount_rate}):</span>
+                      <span>-{pricingData.discount_amount.toLocaleString("tr-TR")} TL</span>
+                   </div>
+                 )}
+                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/10">
+                    <span className="text-gray-200 font-semibold">Toplam Tutar:</span>
+                    <div className="text-right">
+                       {pricingData.is_discounted && (
+                          <span className="text-xs text-gray-500 line-through mr-2">
+                            {pricingData.raw_total.toLocaleString("tr-TR")} TL
+                          </span>
+                       )}
+                       <span className="text-xl font-bold text-cyan-400">
+                          {pricingData.final_total.toLocaleString("tr-TR")} TL
+                       </span>
+                    </div>
+                 </div>
+              </div>
             )}
 
             {/* Sözleşme onayı ve uyarılar */}
@@ -602,15 +688,25 @@ export default function Register() {
                 </div>
               )}
 
-              <div className="flex justify-end">
+              <div className="flex flex-col gap-3 items-end">
+                {submitError && (
+                  <div className="w-full p-3 rounded-xl border border-red-400/30 bg-red-500/10 text-sm text-red-200">
+                    {submitError}
+                  </div>
+                )}
+                {submitSuccess && (
+                  <div className="w-full p-3 rounded-xl border border-green-400/30 bg-green-500/10 text-sm text-green-200">
+                    {submitSuccess}
+                  </div>
+                )}
                 <button
                   onClick={handleSubmit}
-                  disabled={disabled}
+                  disabled={disabled || submitting}
                   className="px-6 py-3 rounded-xl font-semibold text-white shadow
                            bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-95 transition
                            disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Kaydı Tamamla
+                  {submitting ? "Kayıt gönderiliyor..." : "Kaydı Tamamla"}
                 </button>
               </div>
             </div>

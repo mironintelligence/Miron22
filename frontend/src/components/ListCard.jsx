@@ -1,16 +1,26 @@
 import React from "react";
+import { motion } from "framer-motion";
 
 export default function ListCard({ title, subtitle, right, children }) {
   return (
-    <div className="card" style={{ padding: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45 }}
+      whileHover={{
+        scale: 1.015,
+        boxShadow: "0 0 0 1px rgba(59,130,246,0.30), 0 18px 45px rgba(0,0,0,0.45)",
+      }}
+      className="glass p-4"
+    >
+      <div className="flex justify-between gap-3 items-start">
         <div>
-          <div style={{ fontWeight: 900, fontSize: 14 }}>{title}</div>
-          {subtitle ? <div className="muted" style={{ marginTop: 2 }}>{subtitle}</div> : null}
+          <div className="font-extrabold text-sm">{title}</div>
+          {subtitle ? <div className="text-xs text-gray-400 mt-1">{subtitle}</div> : null}
         </div>
         {right ? <div>{right}</div> : null}
       </div>
-      {children ? <div style={{ marginTop: 10 }}>{children}</div> : null}
-    </div>
+      {children ? <div className="mt-3">{children}</div> : null}
+    </motion.div>
   );
 }

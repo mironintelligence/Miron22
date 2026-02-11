@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API = "http://127.0.0.1:8000/risk";
+const API = `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/risk`;
 
 export default function Risk() {
   const [file, setFile] = useState(null);

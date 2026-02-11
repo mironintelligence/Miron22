@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 
-const API = "http://127.0.0.1:8000";
+const API = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
 // 🔹 Çoklu satın alan kullanıcı örnek listesi (backend’e entegre edilebilir)
 const MULTI_USERS = ["kerim.aydemir", "tolga.erdogan", "zekican.boz", "ahmet.kaya"];

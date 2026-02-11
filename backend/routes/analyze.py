@@ -1,14 +1,55 @@
-from fastapi import APIRouter, UploadFile, Depends
-from auth import get_current_user
-import os, shutil
+from __future__ import annotations
 
-router = APIRouter(prefix="/analyze", tags=["Analyze"])
+from typing import Any, Dict
 
-@router.post("/upload")
-async def upload_doc(file: UploadFile, user_id: str = Depends(get_current_user)):
-    user_dir = f"user_data/{user_id}/uploads"
-    os.makedirs(user_dir, exist_ok=True)
-    path = os.path.join(user_dir, file.filename)
-    with open(path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    return {"status": "success", "filename": file.filename}
+from fastapi import APIRouter, Depends, Header, HTTPException, status
+from pydantic import BaseModel, Field
+
+try:
+    from backend.auth import get_supabase_client
+except Exception:
+    from auth import get_supabase_client
+
+from rag_engine import analyze_case_risk
+
+router = APIRouter(prefix="/api", tags=["analyze"])
+
+
+def get_current_user(authorization: str = Header(default="")) -> Dict[str, Any]:
+    auth = (authorization or "").strip()
+    if not auth.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token gerekli.")
+
+    token = auth.split(" ", 1)[1].strip()
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token gerekli.")
+
+    client = get_supabase_client()
+    try:
+        resp = client.auth.get_user(token)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e) or "Token doğrulanamadı.")
+
+    data = getattr(resp, "user", None) or getattr(resp, "data", None) or resp
+    if isinstance(data, dict):
+        user = data.get("user") or data
+        if isinstance(user, dict) and user.get("id"):
+            return user
+    d = getattr(data, "__dict__", None)
+    if isinstance(d, dict) and d.get("id"):
+        return d
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token doğrulanamadı.")
+
+
+class AnalyzeCasePayload(BaseModel):
+    case_description: str = Field(min_length=10, max_length=20_000)
+
+
+@router.post("/analyze-case-risk")
+def analyze_case(payload: AnalyzeCasePayload, _user: Dict[str, Any] = Depends(get_current_user)):
+    try:
+        return analyze_case_risk(payload.case_description)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e) or "Analiz başarısız.")

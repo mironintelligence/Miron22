@@ -4,7 +4,8 @@ export default function Demos() {
   const [demos, setDemos] = useState([]);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/demo-requests")
+    const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+    fetch(`${base}/api/demo-requests`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {

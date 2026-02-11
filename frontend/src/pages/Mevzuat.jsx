@@ -32,11 +32,14 @@ export default function Mevzuat() {
         article_text: articleText.trim() || null,
       };
 
-      const res = await fetch("http://127.0.0.1:8000/mevzuat/ai-explain", {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/mevzuat/ai-explain`,
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      });
+        }
+      );
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

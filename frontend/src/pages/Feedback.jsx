@@ -5,8 +5,8 @@ import { Link } from "react-router-dom";
 export default function Feedback() {
   const API_BASE = useMemo(() => {
     return (
-      (import.meta?.env?.VITE_API_BASE && String(import.meta.env.VITE_API_BASE)) ||
-      "http://127.0.0.1:8000"
+      (import.meta?.env?.VITE_API_URL && String(import.meta.env.VITE_API_URL)) ||
+      "https://miron22.onrender.com"
     );
   }, []);
 

@@ -212,9 +212,10 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
   // Backend call: try routes (404 fallback)
   // -----------------------------
   const postAssistant = async (payload) => {
+    const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
     const urls = [
-      "http://127.0.0.1:8000/assistant-chat",
-      "http://127.0.0.1:8000/assistant/assistant-chat",
+      `${base}/assistant-chat`,
+      `${base}/assistant/assistant-chat`,
     ];
 
     let lastErr = null;

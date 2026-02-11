@@ -1,13 +1,366 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
 export default function AdminPanel() {
-  const navigate = useNavigate();
+  const [token, setToken] = useState(localStorage.getItem("adminToken") || "");
+  const [authed, setAuthed] = useState(false);
+  const [activeTab, setActiveTab] = useState("pricing");
+  const [msg, setMsg] = useState("");
+
+  // Pricing State
+  const [pricing, setPricing] = useState({
+    base_price: 8000,
+    discount_rate: 20,
+    bulk_threshold: 3,
+  });
+
+  // Demo Requests State
+  const [demos, setDemos] = useState([]);
+  
+  // Users State
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("authUser"));
-    if (!user) navigate("/login");
-  }, [navigate]);
+    if (token) {
+      checkAuth();
+    }
+  }, []);
 
-  return <div>Admin Panel - {JSON.parse(localStorage.getItem("authUser"))?.firstName}</div>;
+  const checkAuth = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/health`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setAuthed(true);
+        localStorage.setItem("adminToken", token);
+        fetchData();
+      } else {
+        // Don't auto-fail on load, just stay unauthed
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchData = async () => {
+    fetchPricing();
+    fetchDemos();
+    fetchUsers();
+  };
+
+  const fetchPricing = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/pricing/config`);
+      if (res.ok) {
+        const data = await res.json();
+        setPricing(data);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchDemos = async () => {
+    try {
+        const res = await fetch(`${API_BASE}/admin/demo-requests`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            setDemos(data);
+        }
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchUsers = async () => {
+    try {
+        const res = await fetch(`${API_BASE}/admin/users`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            setUsers(data);
+        }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    checkAuth();
+  };
+
+  const updatePricing = async () => {
+    try {
+        const res = await fetch(`${API_BASE}/api/pricing/config`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(pricing)
+        });
+        if (res.ok) {
+            setMsg("✅ Fiyatlandırma güncellendi.");
+            setTimeout(() => setMsg(""), 3000);
+            fetchPricing();
+        } else {
+            setMsg("❌ Güncelleme başarısız.");
+        }
+    } catch (e) {
+        setMsg("❌ Hata oluştu.");
+    }
+  };
+
+  const handleApproveDemo = async (id, email) => {
+      if(!window.confirm(`${email} için demo onaylansın mı?`)) return;
+      try {
+          const res = await fetch(`${API_BASE}/admin/demo-requests/${id || email}/approve`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+              setMsg("✅ Demo onaylandı.");
+              fetchDemos();
+              setTimeout(() => setMsg(""), 3000);
+          } else {
+              setMsg("❌ Onay başarısız.");
+          }
+      } catch (e) {
+          console.error(e);
+          setMsg("❌ Hata oluştu.");
+      }
+  };
+
+  const handleRejectDemo = async (id, email) => {
+      if(!window.confirm(`${email} için demo reddedilsin mi?`)) return;
+      try {
+          const res = await fetch(`${API_BASE}/admin/demo-requests/${id || email}/reject`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+              setMsg("✅ Demo reddedildi.");
+              fetchDemos();
+              setTimeout(() => setMsg(""), 3000);
+          } else {
+              setMsg("❌ Red başarısız.");
+          }
+      } catch (e) {
+          console.error(e);
+          setMsg("❌ Hata oluştu.");
+      }
+  };
+
+  const handleDeleteUser = async (email) => {
+      if(!window.confirm(`${email} kullanıcısı silinsin mi?`)) return;
+      try {
+          const res = await fetch(`${API_BASE}/admin/users/${email}`, {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+              setMsg("✅ Kullanıcı silindi.");
+              fetchUsers();
+              setTimeout(() => setMsg(""), 3000);
+          } else {
+              setMsg("❌ Silme başarısız.");
+          }
+      } catch (e) {
+          console.error(e);
+          setMsg("❌ Hata oluştu.");
+      }
+  };
+
+  if (!authed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div className="p-8 bg-gray-900 rounded-xl border border-gray-800 w-full max-w-md">
+          <h2 className="text-xl font-bold mb-4 text-center">Admin Girişi</h2>
+          <form onSubmit={handleLogin} className="flex flex-col gap-4">
+            <input 
+              type="password" 
+              value={token} 
+              onChange={e => setToken(e.target.value)}
+              placeholder="Admin Token"
+              className="p-3 bg-gray-800 rounded border border-gray-700 text-white focus:border-blue-500 focus:outline-none"
+            />
+            <button type="submit" className="bg-blue-600 hover:bg-blue-500 p-3 rounded font-bold transition">Giriş</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen pt-24 px-6 pb-12 text-white">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Admin Paneli</h1>
+        <button 
+            onClick={() => {
+                setAuthed(false);
+                localStorage.removeItem("adminToken");
+                setToken("");
+            }}
+            className="text-sm text-gray-400 hover:text-white"
+        >
+            Çıkış Yap
+        </button>
+      </div>
+      
+      <div className="flex gap-4 mb-8 border-b border-gray-700 pb-2">
+        <button 
+            onClick={() => setActiveTab("pricing")}
+            className={`px-4 py-2 rounded ${activeTab === "pricing" ? "bg-blue-600" : "hover:bg-gray-800"}`}
+        >
+            Fiyatlandırma
+        </button>
+        <button 
+            onClick={() => setActiveTab("demos")}
+            className={`px-4 py-2 rounded ${activeTab === "demos" ? "bg-blue-600" : "hover:bg-gray-800"}`}
+        >
+            Demo Talepleri
+        </button>
+        <button 
+            onClick={() => setActiveTab("users")}
+            className={`px-4 py-2 rounded ${activeTab === "users" ? "bg-blue-600" : "hover:bg-gray-800"}`}
+        >
+            Kullanıcılar
+        </button>
+      </div>
+
+      {msg && <div className="mb-4 p-3 bg-green-900/50 text-green-200 rounded border border-green-500/30">{msg}</div>}
+
+      {activeTab === "pricing" && (
+        <div className="max-w-xl glass p-6 rounded-xl border border-white/10">
+            <h2 className="text-xl font-semibold mb-6 text-cyan-400">Fiyatlandırma Ayarları</h2>
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-sm text-gray-400 mb-1">Birim Fiyat (TL)</label>
+                    <input 
+                        type="number" 
+                        value={pricing.base_price}
+                        onChange={e => setPricing({...pricing, base_price: Number(e.target.value)})}
+                        className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm text-gray-400 mb-1">Toplu İndirim Oranı (%)</label>
+                    <input 
+                        type="number" 
+                        value={pricing.discount_rate}
+                        onChange={e => setPricing({...pricing, discount_rate: Number(e.target.value)})}
+                        className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm text-gray-400 mb-1">İndirim İçin Min. Kişi Sayısı</label>
+                    <input 
+                        type="number" 
+                        value={pricing.bulk_threshold}
+                        onChange={e => setPricing({...pricing, bulk_threshold: Number(e.target.value)})}
+                        className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                </div>
+                <button 
+                    onClick={updatePricing}
+                    className="w-full py-3 bg-gradient-to-r from-green-600 to-green-500 hover:opacity-90 rounded-lg font-bold transition shadow-lg"
+                >
+                    Ayarları Kaydet
+                </button>
+            </div>
+        </div>
+      )}
+
+      {activeTab === "demos" && (
+        <div className="glass p-6 rounded-xl border border-white/10">
+            <h2 className="text-xl font-semibold mb-6 text-cyan-400">Demo Talepleri</h2>
+            {demos.length === 0 ? (
+                <p className="text-gray-400">Henüz talep yok.</p>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="border-b border-gray-700 text-gray-400">
+                                <th className="p-3">Tarih</th>
+                                <th className="p-3">İsim</th>
+                                <th className="p-3">Email</th>
+                                <th className="p-3">Kurum</th>
+                                <th className="p-3">Mesaj</th>
+                                <th className="p-3">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {demos.map((d, i) => (
+                                <tr key={i} className="border-b border-gray-800 hover:bg-white/5">
+                                    <td className="p-3 text-sm">{d.date || "-"}</td>
+                                    <td className="p-3">{d.name}</td>
+                                    <td className="p-3">{d.email}</td>
+                                    <td className="p-3">{d.lawFirm || d.office || "-"}</td>
+                                    <td className="p-3 text-sm text-gray-400">{d.message || d.note || "-"}</td>
+                                    <td className="p-3 flex gap-2">
+                                        <button 
+                                            onClick={() => handleApproveDemo(d.id, d.email)}
+                                            className="px-2 py-1 bg-green-600/20 text-green-300 rounded hover:bg-green-600/40 text-xs"
+                                        >
+                                            Onayla
+                                        </button>
+                                        <button 
+                                            onClick={() => handleRejectDemo(d.id, d.email)}
+                                            className="px-2 py-1 bg-red-600/20 text-red-300 rounded hover:bg-red-600/40 text-xs"
+                                        >
+                                            Red
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+      )}
+
+      {activeTab === "users" && (
+        <div className="glass p-6 rounded-xl border border-white/10">
+            <h2 className="text-xl font-semibold mb-6 text-cyan-400">Kayıtlı Kullanıcılar</h2>
+            {users.length === 0 ? (
+                <p className="text-gray-400">Kayıtlı kullanıcı yok.</p>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="border-b border-gray-700 text-gray-400">
+                                <th className="p-3">Email</th>
+                                <th className="p-3">İsim</th>
+                                <th className="p-3">Soyisim</th>
+                                <th className="p-3">Kayıt Tarihi</th>
+                                <th className="p-3">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {users.map((u, i) => (
+                                <tr key={i} className="border-b border-gray-800 hover:bg-white/5">
+                                    <td className="p-3">{u.email}</td>
+                                    <td className="p-3">{u.firstName}</td>
+                                    <td className="p-3">{u.lastName}</td>
+                                    <td className="p-3 text-sm">{u.created_at || "-"}</td>
+                                    <td className="p-3">
+                                        <button 
+                                            onClick={() => handleDeleteUser(u.email)}
+                                            className="px-2 py-1 bg-red-600/20 text-red-300 rounded hover:bg-red-600/40 text-xs"
+                                        >
+                                            Sil
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+      )}
+
+    </div>
+  );
 }

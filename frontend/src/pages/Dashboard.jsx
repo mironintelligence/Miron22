@@ -15,7 +15,7 @@ import {
   Legend
 } from "recharts";
 
-const API = "http://127.0.0.1:8000/stats";
+const API = `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/stats`;
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -54,16 +54,39 @@ export default function Dashboard() {
     { name: "Ceza", value: 1 }
   ];
 
-  const COLORS = ["#00FFFF", "#00BFFF", "#007FFF", "#1E90FF"];
+  const COLORS = ["#3b82f6", "#6366f1", "#60a5fa", "#818cf8"];
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.08, delayChildren: 0.05 },
+    },
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 14 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.45 } },
+  };
 
   return (
     <div className="min-h-screen px-6 sm:px-10 md:px-16 py-20 overflow-y-auto">
-      <h1 className="text-3xl font-bold mb-6 text-cyan-400">
-        📊 Miron AI Raporlama Paneli
-      </h1>
+      <motion.h1
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-3xl font-bold mb-6 text-blue-400"
+      >
+        Miron AI Raporlama Paneli
+      </motion.h1>
 
       {/* ÜST KARTLAR */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+      >
         {[
           { title: "Toplam Analiz Edilen Dosya", value: stats.total_files },
           { title: "Toplam Sohbet (Session)", value: stats.total_sessions },
@@ -74,9 +97,11 @@ export default function Dashboard() {
         ].map((card, i) => (
           <motion.div
             key={i}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
+            variants={item}
+            whileHover={{
+              scale: 1.02,
+              boxShadow: "0 0 0 1px rgba(59,130,246,0.35), 0 18px 45px rgba(0,0,0,0.45)",
+            }}
             className="glass p-6 rounded-2xl text-center shadow-xl"
           >
             <div className="text-sm text-gray-400 mb-1">{card.title}</div>
@@ -85,20 +110,23 @@ export default function Dashboard() {
             </div>
           </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {/* 🔽 GRAFİKLER */}
       <div className="mt-20 space-y-16">
         {/* 📈 Dosya Yükleme Trendi */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.55 }}
           viewport={{ once: true }}
+          whileHover={{
+            boxShadow: "0 0 0 1px rgba(99,102,241,0.30), 0 18px 45px rgba(0,0,0,0.45)",
+          }}
           className="glass p-6 rounded-2xl shadow-xl"
         >
-          <h2 className="text-xl font-semibold mb-4 text-cyan-400">
-            📈 Son 7 Günlük Dosya Yükleme Trendi
+          <h2 className="text-xl font-semibold mb-4 text-indigo-400">
+            Son 7 Günlük Dosya Yükleme Trendi
           </h2>
           <div style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer>
@@ -110,7 +138,7 @@ export default function Dashboard() {
                 <Line
                   type="monotone"
                   dataKey="uploads"
-                  stroke="#00FFFF"
+                  stroke="#3b82f6"
                   strokeWidth={3}
                   dot={{ r: 4 }}
                 />
@@ -121,14 +149,17 @@ export default function Dashboard() {
 
         {/* 🧾 Dilekçe Türü Dağılımı */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 14 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.55 }}
           viewport={{ once: true }}
+          whileHover={{
+            boxShadow: "0 0 0 1px rgba(59,130,246,0.30), 0 18px 45px rgba(0,0,0,0.45)",
+          }}
           className="glass p-6 rounded-2xl shadow-xl"
         >
-          <h2 className="text-xl font-semibold mb-4 text-cyan-400">
-            🧾 Dilekçe Türü Dağılımı
+          <h2 className="text-xl font-semibold mb-4 text-indigo-400">
+            Dilekçe Türü Dağılımı
           </h2>
           <div style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer>
@@ -139,7 +170,7 @@ export default function Dashboard() {
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
-                  fill="#00FFFF"
+                  fill="#3b82f6"
                   label
                 >
                   {dilekcePieData.map((entry, index) => (

@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-const API = "http://127.0.0.1:8000"; // backend adresi (istediğin gibi değiştir)
+const API = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
 export default function Intro() {
   const [demo, setDemo] = useState({ name: "", email: "", city: "", office: "" });
@@ -16,7 +16,7 @@ export default function Intro() {
     setSending(true);
     try {
       // backend demo endpoint'in varsa POST eder; yoksa catch'e düşer ama kullanıcı bilgilendirilir
-      const res = await fetch(`${API}/demo/request`, {
+      const res = await fetch(`${API}/api/demo-request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

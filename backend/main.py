@@ -93,6 +93,7 @@ mevzuat_router   = _safe_import("mevzuat_search", "router")
 uyap_udf_router  = _safe_import("uyap_udf", "router")
 billing_router   = _safe_import("routes.billing_routes", "router")
 feedback_router  = _safe_import("routes.feedback_routes", "router")
+analyze_router   = _safe_import("routes.analyze", "router")
 admin_api_router = _safe_import("admin_router", "api_router")
 admin_router     = _safe_import("admin_router", "router")
 
@@ -334,7 +335,6 @@ def __routes():
 # =============================
 # ROUTER REGISTRATION
 # =============================
-if auth_router:     app.include_router(auth_router)
 if writer_router:   app.include_router(writer_router)
 if assistant_router: app.include_router(assistant_router)
 if stats_router:    app.include_router(stats_router)
@@ -349,37 +349,19 @@ if mevzuat_router:  app.include_router(mevzuat_router)
 if uyap_udf_router: app.include_router(uyap_udf_router)
 if billing_router:  app.include_router(billing_router)
 if feedback_router: app.include_router(feedback_router)
+if analyze_router:  app.include_router(analyze_router)
 if admin_api_router: app.include_router(admin_api_router)                   
 
+# New Auth Router (Supabase)
+from backend.auth_router import router as auth_router_new
+app.include_router(auth_router_new, prefix="/api/auth", tags=["Authentication"])
 
+# Pricing Router
+from backend.pricing_router import router as pricing_router
+app.include_router(pricing_router, prefix="/api/pricing", tags=["Pricing"])
 
-
-
-
-from routers.users_pool import router as userpool_router
-import demo_router
-
-app.include_router(userpool_router)
-app.include_router(demo_router.router)
-
-
-from routes.auth_routes import router as auth_router
-app.include_router(auth_router)
-
-
-from admin_router import router as admin_router
-
-app.include_router(admin_router)
-
-
-from admin_router import router as admin_router
-app.include_router(admin_router)
-
-
-# ... diğer importların arasına ekle:
-from backend.auth_router import router as auth_router
-
-# ... app tanımlandıktan sonra (app = FastAPI(...)) şuraya ekle:
-app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
+# Admin Router (ensure it is included)
+# Note: admin_router is already imported via _safe_import and included above with prefix="/admin"
+# We don't need to re-import it unless _safe_import failed.
 
 # CORS ayarlarının (allow_origins) frontend adresini (http://localhost:5173) kapsadığından emin ol.
