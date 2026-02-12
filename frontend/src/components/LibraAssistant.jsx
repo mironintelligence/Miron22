@@ -336,11 +336,11 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Ara..."
-                className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <button
                 onClick={createChat}
-                className="px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold hover:scale-105 transition"
+                className="px-3 py-2 rounded-xl bg-accent text-black font-semibold hover:scale-105 transition"
                 title="Yeni sohbet"
               >
                 +
@@ -354,7 +354,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
                   onClick={() => setCurrentChatId(c.id)}
                   className={`p-3 rounded-xl cursor-pointer transition border ${
                     c.id === currentChatId
-                      ? "bg-cyan-500/20 border-cyan-400/30"
+                      ? "bg-accent/20 border-accent/30"
                       : "bg-white/5 border-white/10 hover:bg-white/10"
                   }`}
                 >
@@ -375,7 +375,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
             {/* Header */}
             <div className="relative flex items-center justify-between px-5 py-4 border-b border-white/10">
               <div className="min-w-0">
-                <div className="text-cyan-300 font-semibold text-lg truncate">
+                <div className="text-accent font-semibold text-lg truncate">
                   ⚖️ Miron Assistant
                 </div>
                 <div className="text-xs text-white/50">
@@ -453,7 +453,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
                       "rounded-2xl px-4 py-3 text-sm",
                       "whitespace-pre-wrap break-words",
                       m.sender === "user"
-                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white"
+                        ? "bg-accent text-black"
                         : "bg-white/10 text-white border border-white/10",
                     ].join(" ")}
                     style={{ overflowWrap: "anywhere" }}
@@ -505,7 +505,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
                 <button
                   onClick={sendMessage}
                   disabled={loading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold hover:scale-[1.02] transition disabled:opacity-60"
+                  className="px-5 py-2 rounded-xl bg-accent text-black font-semibold hover:scale-[1.02] transition disabled:opacity-60"
                 >
                   Gönder
                 </button>
@@ -539,7 +539,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
                 <input
                   value={nameDraft}
                   onChange={(e) => setNameDraft(e.target.value)}
-                  className="mt-4 w-full px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-white placeholder-white/40 outline-none focus:ring-2 focus:ring-cyan-400"
+                  className="mt-4 w-full px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-white placeholder-white/40 outline-none focus:ring-2 focus:ring-accent"
                 />
 
                 <div className="flex justify-end gap-2 mt-5">
@@ -551,7 +551,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
                   </button>
                   <button
                     onClick={doRename}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold"
+                    className="px-4 py-2 rounded-xl bg-accent text-black font-semibold"
                   >
                     Kaydet
                   </button>

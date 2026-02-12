@@ -229,7 +229,7 @@ export default function CaseDetail() {
   if (loading && !caseData) {
     return (
       <div className="mt-24 max-w-4xl mx-auto px-4">
-        <div className="glass px-5 py-4 text-xs text-gray-400">
+        <div className="glass px-5 py-4 text-xs text-subtle">
           Dosya yükleniyor...
         </div>
       </div>
@@ -245,7 +245,7 @@ export default function CaseDetail() {
         <div className="mt-3">
           <Link
             to="/cases"
-            className="text-xs text-primary underline underline-offset-4"
+            className="text-xs text-accent underline underline-offset-4"
           >
             Dosya listesine dön
           </Link>
@@ -261,20 +261,20 @@ export default function CaseDetail() {
     caseData.status;
 
   return (
-    <div className="mt-24 max-w-6xl mx-auto px-4">
+        <div className="mt-24 max-w-6xl mx-auto px-4">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-[11px] text-gray-500 mb-1">
+          <p className="text-[11px] text-subtle mb-1">
             <Link
               to="/cases"
-              className="text-primary underline underline-offset-4 mr-1"
+              className="text-accent underline underline-offset-4 mr-1"
             >
               Dosyalar
             </Link>
             / Detay
           </p>
           <h2 className="text-2xl font-semibold">{caseData.title}</h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-subtle">
             {caseData.file_number || "Dosya no yok"} ·{" "}
             {caseData.court || "Mahkeme belirtilmemiş"} ·{" "}
             {caseData.city || "Şehir yok"}
@@ -282,7 +282,7 @@ export default function CaseDetail() {
         </div>
         <button
           onClick={() => navigate(-1)}
-          className="px-3 py-1.5 rounded-full bg-white/10 text-[11px] text-gray-200 hover:bg-white/15"
+          className="px-3 py-1.5 rounded-full bg-black/60 border border-white/20 text-[11px] text-white hover:bg-black"
         >
           Geri
         </button>
@@ -297,7 +297,7 @@ export default function CaseDetail() {
               <h3 className="text-sm font-semibold">Dosya Özeti</h3>
               <button
                 onClick={() => setEditMode((m) => !m)}
-                className="text-[11px] text-primary underline underline-offset-4"
+                className="text-[11px] text-accent underline underline-offset-4"
               >
                 {editMode ? "Düzenlemeyi iptal et" : "Düzenle"}
               </button>
@@ -306,8 +306,8 @@ export default function CaseDetail() {
             {!editMode && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <div className="text-gray-400">Tür</div>
-                  <div className="text-gray-100">
+                  <div className="text-subtle">Tür</div>
+                  <div className="text-white">
                     {caseData.type === "icra"
                       ? "İcra Takibi"
                       : caseData.type === "dava"
@@ -318,36 +318,36 @@ export default function CaseDetail() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-400">Statü</div>
-                  <div className="text-gray-100">{statusLabel}</div>
+                  <div className="text-subtle">Statü</div>
+                  <div className="text-white">{statusLabel}</div>
                 </div>
                 <div>
-                  <div className="text-gray-400">Müvekkil</div>
-                  <div className="text-gray-100">
+                  <div className="text-subtle">Müvekkil</div>
+                  <div className="text-white">
                     {caseData.client_name || "-"}
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-400">Karşı Taraf</div>
-                  <div className="text-gray-100">
+                  <div className="text-subtle">Karşı Taraf</div>
+                  <div className="text-white">
                     {caseData.opponent_name || "-"}
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-400">Değer</div>
-                  <div className="text-gray-100">
+                  <div className="text-subtle">Değer</div>
+                  <div className="text-white">
                     {formatTL(caseData.principal_amount)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-400">Oluşturulma</div>
-                  <div className="text-gray-100">
+                  <div className="text-subtle">Oluşturulma</div>
+                  <div className="text-white">
                     {formatDate(caseData.created_at)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-400">Son Güncelleme</div>
-                  <div className="text-gray-100">
+                  <div className="text-subtle">Son Güncelleme</div>
+                  <div className="text-white">
                     {formatDate(caseData.updated_at)}
                   </div>
                 </div>
@@ -360,25 +360,25 @@ export default function CaseDetail() {
                 className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs"
               >
                 <div>
-                  <label className="block text-gray-400 mb-1">
+                  <label className="block text-subtle mb-1">
                     Başlık
                   </label>
                   <input
                     name="title"
                     value={editForm.title}
                     onChange={handleEditChange}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1">
+                  <label className="block text-subtle mb-1">
                     Statü
                   </label>
                   <select
                     name="status"
                     value={editForm.status}
                     onChange={handleEditChange}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   >
                     {STATUS_OPTIONS.map((s) => (
                       <option key={s.value} value={s.value}>
@@ -388,69 +388,69 @@ export default function CaseDetail() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1">
+                  <label className="block text-subtle mb-1">
                     Mahkeme
                   </label>
                   <input
                     name="court"
                     value={editForm.court}
                     onChange={handleEditChange}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1">
+                  <label className="block text-subtle mb-1">
                     Şehir
                   </label>
                   <input
                     name="city"
                     value={editForm.city}
                     onChange={handleEditChange}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1">
+                  <label className="block text-subtle mb-1">
                     Esas / Dosya No
                   </label>
                   <input
                     name="file_number"
                     value={editForm.file_number}
                     onChange={handleEditChange}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1">
+                  <label className="block text-subtle mb-1">
                     Değer (₺)
                   </label>
                   <input
                     name="principal_amount"
                     value={editForm.principal_amount}
                     onChange={handleEditChange}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1">
+                  <label className="block text-subtle mb-1">
                     Müvekkil
                   </label>
                   <input
                     name="client_name"
                     value={editForm.client_name}
                     onChange={handleEditChange}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1">
+                  <label className="block text-subtle mb-1">
                     Karşı Taraf
                   </label>
                   <input
                     name="opponent_name"
                     value={editForm.opponent_name}
                     onChange={handleEditChange}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   />
                 </div>
 
@@ -464,7 +464,7 @@ export default function CaseDetail() {
                   <button
                     type="submit"
                     disabled={savingEdit}
-                    className="px-4 py-1.5 rounded-full bg-primary text-[11px] font-semibold text-black disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="px-4 py-1.5 rounded-full bg-[var(--miron-gold)] text-[11px] font-semibold text-black hover:brightness-[1.05] disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {savingEdit ? "Kaydediliyor..." : "Değişiklikleri kaydet"}
                   </button>
@@ -474,13 +474,13 @@ export default function CaseDetail() {
           </div>
 
           {/* OLAYLAR / TIMELINE */}
-          <div className="glass px-5 py-4">
+              <div className="glass px-5 py-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold">Zaman Çizelgesi</h3>
             </div>
 
             {evLoading && (
-              <div className="text-xs text-gray-400">Olaylar yükleniyor...</div>
+              <div className="text-xs text-subtle">Olaylar yükleniyor...</div>
             )}
 
             {!evLoading && evError && (
@@ -488,7 +488,7 @@ export default function CaseDetail() {
             )}
 
             {!evLoading && events.length === 0 && !evError && (
-              <div className="text-xs text-gray-500 mb-2">
+              <div className="text-xs text-subtle mb-2">
                 Henüz kayıtlı olay yok. Aşağıdan ekleyebilirsin.
               </div>
             )}
@@ -498,28 +498,28 @@ export default function CaseDetail() {
                 {events.map((ev) => (
                   <div
                     key={ev.id}
-                    className="flex gap-3 text-xs border-l border-primary/40 pl-3"
+                    className="flex gap-3 text-xs border-l border-[rgba(255,215,0,0.4)] pl-3"
                   >
                     <div className="flex flex-col items-center">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-1" />
+                      <div className="w-2 h-2 rounded-full bg-[var(--miron-gold)] mt-1" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <div className="font-semibold text-gray-100">
+                        <div className="font-semibold text-white">
                           {
                             EVENT_TYPES.find((t) => t.value === ev.event_type)
                               ?.label || ev.event_type
                           }
                         </div>
-                        <div className="text-[11px] text-gray-400">
+                        <div className="text-[11px] text-subtle">
                           {formatDate(ev.date)}
                         </div>
                       </div>
-                      <div className="text-gray-200 mt-0.5">
+                      <div className="text-muted mt-0.5">
                         {ev.description}
                       </div>
                       {ev.amount !== null && (
-                        <div className="text-[11px] text-primary mt-0.5">
+                        <div className="text-[11px] text-accent mt-0.5">
                           Tutar: {formatTL(ev.amount)}
                         </div>
                       )}
@@ -533,14 +533,14 @@ export default function CaseDetail() {
             <form onSubmit={handleCreateEvent} className="mt-4 space-y-2 text-xs">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-gray-400 mb-1">
+                  <label className="block text-subtle mb-1">
                     Tür
                   </label>
                   <select
                     name="event_type"
                     value={eventForm.event_type}
                     onChange={handleEventChange}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   >
                     {EVENT_TYPES.map((t) => (
                       <option key={t.value} value={t.value}>
@@ -550,7 +550,7 @@ export default function CaseDetail() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1">
+                  <label className="block text-subtle mb-1">
                     Tarih (boş bırakılırsa bugün)
                   </label>
                   <input
@@ -558,31 +558,31 @@ export default function CaseDetail() {
                     name="date"
                     value={eventForm.date}
                     onChange={handleEventChange}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1">
+                  <label className="block text-subtle mb-1">
                     Tutar (sadece tahsilat/haciz/satış)
                   </label>
                   <input
                     name="amount"
                     value={eventForm.amount}
                     onChange={handleEventChange}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                     placeholder="Örn: 15000"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-gray-400 mb-1">
+                <label className="block text-subtle mb-1">
                   Açıklama
                 </label>
                 <textarea
                   name="description"
                   value={eventForm.description}
                   onChange={handleEventChange}
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs min-h-[60px] focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-1.5 text-xs min-h-[60px] focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   placeholder="Örn: 15.12.2025 tarihli ödeme emri tebliğ edildi. Borçlu 7 gün içinde itiraz etmezse takip kesinleşecek."
                 />
               </div>
@@ -597,7 +597,7 @@ export default function CaseDetail() {
                 <button
                   type="submit"
                   disabled={savingEvent}
-                  className="px-4 py-1.5 rounded-full bg-primary text-[11px] font-semibold text-black disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-4 py-1.5 rounded-full bg-[var(--miron-gold)] text-[11px] font-semibold text-black hover:brightness-[1.05] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {savingEvent ? "Kaydediliyor..." : "Olay ekle"}
                 </button>
@@ -611,7 +611,7 @@ export default function CaseDetail() {
           <div className="glass px-5 py-4">
             <h3 className="text-sm font-semibold mb-3">Finans Özeti</h3>
             {finLoading && (
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-subtle">
                 Finans bilgisi yükleniyor...
               </div>
             )}
@@ -621,19 +621,19 @@ export default function CaseDetail() {
             {!finLoading && finance && (
               <div className="grid grid-cols-1 gap-2 text-xs">
                 <div>
-                  <div className="text-gray-400">Takip / Dava Değeri</div>
-                  <div className="text-gray-100">
+                  <div className="text-subtle">Takip / Dava Değeri</div>
+                  <div className="text-white">
                     {formatTL(finance.principal_amount)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-400">Toplam Tahsilat</div>
+                  <div className="text-subtle">Toplam Tahsilat</div>
                   <div className="text-emerald-300">
                     {formatTL(finance.total_collected)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-400">Kalan</div>
+                  <div className="text-subtle">Kalan</div>
                   <div className="text-amber-300">
                     {formatTL(finance.remaining)}
                   </div>
@@ -643,10 +643,10 @@ export default function CaseDetail() {
           </div>
 
           <div className="glass px-5 py-4">
-            <h4 className="text-xs font-semibold text-gray-300 mb-2">
+            <h4 className="text-xs font-semibold text-muted mb-2">
               Not
             </h4>
-            <p className="text-[11px] text-gray-400">
+            <p className="text-[11px] text-subtle">
               Bu ekran tam muhasebe modülü değil; sadece dosya bazlı hızlı
               takip için. Tahsilat/haciz/satış olaylarına tutar girersen
               yukarıdaki hesaplar otomatik güncellenir.

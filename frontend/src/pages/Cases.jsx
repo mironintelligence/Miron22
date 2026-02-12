@@ -130,14 +130,14 @@ export default function Cases() {
     <div className="mt-24 max-w-6xl mx-auto px-4">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-2xl font-semibold">Dosya Yönetimi</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-2xl font-semibold text-accent">Dosya Yönetimi</h2>
+          <p className="text-sm text-subtle">
             E-katip / Sinerji hafif versiyonu: icra, dava ve danışmanlık dosyalarını burada tut.
           </p>
         </div>
         <button
           onClick={() => setShowCreate((s) => !s)}
-          className="px-4 py-2 rounded-full bg-primary text-xs font-semibold text-black"
+          className="px-4 py-2 rounded-full bg-[var(--miron-gold)] text-xs font-semibold text-black hover:brightness-[1.05]"
         >
           {showCreate ? "Yeni dosya formunu gizle" : "Yeni dosya aç"}
         </button>
@@ -155,26 +155,26 @@ export default function Cases() {
           <form onSubmit={handleCreate} className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">
+                <label className="block text-xs text-subtle mb-1">
                   Başlık <span className="text-red-400">*</span>
                 </label>
                 <input
                   name="title"
                   value={form.title}
                   onChange={handleChange}
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   placeholder="Örn: X Ltd. - Kira Tahliye"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">
+                  <label className="block text-xs text-subtle mb-1">
                   Tür
                 </label>
                 <select
                   name="type"
                   value={form.type}
                   onChange={handleChange}
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                 >
                   {CASE_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -184,14 +184,14 @@ export default function Cases() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">
+                <label className="block text-xs text-subtle mb-1">
                   Statü
                 </label>
                 <select
                   name="status"
                   value={form.status}
                   onChange={handleChange}
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s.value} value={s.value}>
@@ -204,32 +204,32 @@ export default function Cases() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Mahkeme</label>
+                <label className="block text-xs text-subtle mb-1">Mahkeme</label>
                 <input
                   name="court"
                   value={form.court}
                   onChange={handleChange}
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   placeholder="Örn: İstanbul 3. İcra D."
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">İl</label>
+                <label className="block text-xs text-subtle mb-1">İl</label>
                 <input
                   name="city"
                   value={form.city}
                   onChange={handleChange}
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   placeholder="İstanbul"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Esas / Dosya No</label>
+                <label className="block text-xs text-subtle mb-1">Esas / Dosya No</label>
                 <input
                   name="file_number"
                   value={form.file_number}
                   onChange={handleChange}
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   placeholder="2025/123 E."
                 />
               </div>
@@ -237,34 +237,34 @@ export default function Cases() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Müvekkil</label>
+                <label className="block text-xs text-subtle mb-1">Müvekkil</label>
                 <input
                   name="client_name"
                   value={form.client_name}
                   onChange={handleChange}
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   placeholder="Ad Soyad / Ünvan"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Karşı Taraf</label>
+                <label className="block text-xs text-subtle mb-1">Karşı Taraf</label>
                 <input
                   name="opponent_name"
                   value={form.opponent_name}
                   onChange={handleChange}
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   placeholder="Ad Soyad / Ünvan"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">
+                <label className="block text-xs text-subtle mb-1">
                   Takip / Dava Değeri (₺)
                 </label>
                 <input
                   name="principal_amount"
                   value={form.principal_amount}
                   onChange={handleChange}
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   placeholder="Örn: 15000"
                 />
               </div>
@@ -274,7 +274,7 @@ export default function Cases() {
               <button
                 type="submit"
                 disabled={creating}
-                className="px-4 py-2 rounded-full bg-primary text-xs font-semibold text-black disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-full bg-[var(--miron-gold)] text-xs font-semibold text-black hover:brightness-[1.05] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {creating ? "Kaydediliyor..." : "Dosyayı oluştur"}
               </button>
@@ -287,17 +287,17 @@ export default function Cases() {
       <div className="glass px-5 py-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Tüm Dosyalar</h3>
-          <span className="text-[11px] text-gray-500">
+          <span className="text-[11px] text-subtle">
             Toplam {cases.length} kayıt
           </span>
         </div>
 
         {loading && (
-          <div className="text-xs text-gray-400">Yükleniyor...</div>
+          <div className="text-xs text-subtle">Yükleniyor...</div>
         )}
 
         {!loading && cases.length === 0 && (
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-subtle">
             Henüz hiç dosya yok. Yukarıdan yeni dosya oluştur.
           </div>
         )}
@@ -306,7 +306,7 @@ export default function Cases() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left border-collapse">
               <thead>
-                <tr className="text-gray-400 border-b border-white/5">
+                <tr className="text-subtle border-b border-white/5">
                   <th className="py-2 pr-3 font-medium">Başlık</th>
                   <th className="py-2 pr-3 font-medium">Tür</th>
                   <th className="py-2 pr-3 font-medium">Statü</th>
@@ -326,10 +326,10 @@ export default function Cases() {
                     className="border-b border-white/5 hover:bg-white/[0.03]"
                   >
                     <td className="py-2 pr-3">
-                      <div className="font-medium text-gray-100">
+                      <div className="font-medium text-white">
                         {c.title}
                       </div>
-                      <div className="text-[11px] text-gray-500">
+                      <div className="text-[11px] text-subtle">
                         {c.file_number || "-"}
                       </div>
                     </td>
@@ -356,7 +356,7 @@ export default function Cases() {
                     <td className="py-2 pl-3 text-right">
                       <Link
                         to={`/cases/${c.id}`}
-                        className="inline-flex items-center px-3 py-1 rounded-full bg-primary/90 text-[11px] font-semibold text-black hover:bg-primary"
+                        className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--miron-gold)] text-[11px] font-semibold text-black hover:brightness-[1.05]"
                       >
                         Görüntüle
                       </Link>
@@ -369,7 +369,7 @@ export default function Cases() {
         )}
       </div>
 
-      <footer className="mt-6 mb-6 text-center text-[11px] text-gray-500">
+      <footer className="mt-6 mb-6 text-center text-[11px] text-subtle">
         Bu ekran tam teşekküllü UYAP değil; ofis içi hafif dosya takibi.
       </footer>
     </div>

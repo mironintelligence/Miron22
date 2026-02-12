@@ -8,6 +8,7 @@ export function AuthProvider({ children }) {
   const [status, setStatus] = useState("loading");
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [lastLoginMeta, setLastLoginMeta] = useState(null);
 
   useEffect(() => {
     const stored = getStoredAuth();
@@ -34,6 +35,13 @@ export function AuthProvider({ children }) {
     setToken(data?.token || "");
     setUser(normalized);
     setStatus("authed");
+    setLastLoginMeta({
+      at: Date.now(),
+      name:
+        `${normalized.firstName || ""} ${normalized.lastName || ""}`.trim() ||
+        normalized.email ||
+        email,
+    });
     return normalized;
   };
 
@@ -46,11 +54,19 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUser(null);
     setStatus("guest");
+    setLastLoginMeta(null);
+  };
+
+  const consumeLastLoginMeta = () => {
+    if (!lastLoginMeta) return null;
+    const meta = lastLoginMeta;
+    setLastLoginMeta(null);
+    return meta;
   };
 
   const value = useMemo(
-    () => ({ status, user, token, login, logout, register }),
-    [status, user, token]
+    () => ({ status, user, token, login, logout, register, lastLoginMeta, consumeLastLoginMeta }),
+    [status, user, token, lastLoginMeta]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

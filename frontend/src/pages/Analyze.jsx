@@ -188,17 +188,17 @@ export default function Analyze() {
       <div className="glass p-6 sm:p-8 rounded-2xl">
         <div className="flex items-start justify-between gap-4 flex-col md:flex-row">
           <div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-accent">
               Dava Analizi
             </h2>
-            <p className="text-sm text-gray-400 mt-2">
+            <p className="text-sm text-subtle mt-2">
               Dosyanı yükle, sistem özet çıkarsın ve temel dava bilgilerini kutucuklara ayırsın.
             </p>
 
             {fileName ? (
-              <p className="text-sm text-gray-300 mt-4">
+              <p className="text-sm text-muted mt-4">
                 Seçilen dosya:{" "}
-                <span className="text-cyan-300 font-semibold">{fileName}</span>
+                <span className="text-accent font-semibold">{fileName}</span>
               </p>
             ) : null}
           </div>
@@ -221,7 +221,7 @@ export default function Analyze() {
             <button
               onClick={handleAnalyze}
               disabled={loading}
-              className="px-5 py-2 rounded-xl font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-5 py-2 rounded-xl font-semibold text-black bg-accent hover:opacity-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Analiz..." : "Analiz Et"}
             </button>
@@ -236,43 +236,43 @@ export default function Analyze() {
               <div className="text-sm font-semibold mb-3">Temel Bilgiler</div>
 
               {caseType ? (
-                <div className="inline-flex items-center px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-200 text-sm font-semibold mb-4">
+                <div className="inline-flex items-center px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-sm font-semibold mb-4">
                   {caseType}
                 </div>
               ) : null}
 
               <div className="space-y-4">
                 <div className="glass p-4 rounded-xl">
-                  <div className="text-xs text-gray-400 mb-1">Davacı</div>
-                  <div className="text-sm font-semibold text-gray-100">{fields.davaci}</div>
+                  <div className="text-xs text-subtle mb-1">Davacı</div>
+                  <div className="text-sm font-semibold text-fg">{fields.davaci}</div>
                 </div>
 
                 <div className="glass p-4 rounded-xl">
-                  <div className="text-xs text-gray-400 mb-1">Davalı</div>
-                  <div className="text-sm font-semibold text-gray-100">{fields.davali}</div>
+                  <div className="text-xs text-subtle mb-1">Davalı</div>
+                  <div className="text-sm font-semibold text-fg">{fields.davali}</div>
                 </div>
 
                 <div className="glass p-4 rounded-xl">
-                  <div className="text-xs text-gray-400 mb-1">Mahkeme</div>
-                  <div className="text-sm font-semibold text-gray-100">{fields.mahkeme}</div>
+                  <div className="text-xs text-subtle mb-1">Mahkeme</div>
+                  <div className="text-sm font-semibold text-fg">{fields.mahkeme}</div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="glass p-4 rounded-xl">
-                    <div className="text-xs text-gray-400 mb-1">Esas No</div>
-                    <div className="text-sm font-semibold text-gray-100">{fields.esas}</div>
+                    <div className="text-xs text-subtle mb-1">Esas No</div>
+                    <div className="text-sm font-semibold text-fg">{fields.esas}</div>
                   </div>
 
                   <div className="glass p-4 rounded-xl">
-                    <div className="text-xs text-gray-400 mb-1">Karar No</div>
-                    <div className="text-sm font-semibold text-gray-100">{fields.karar}</div>
+                    <div className="text-xs text-subtle mb-1">Karar No</div>
+                    <div className="text-sm font-semibold text-fg">{fields.karar}</div>
                   </div>
                 </div>
 
                 {fields.konu ? (
                   <div className="glass p-4 rounded-xl">
-                    <div className="text-xs text-gray-400 mb-1">Dava Konusu</div>
-                    <div className="text-sm text-gray-200">{fields.konu}</div>
+                    <div className="text-xs text-subtle mb-1">Dava Konusu</div>
+                    <div className="text-sm text-fg">{fields.konu}</div>
                   </div>
                 ) : null}
               </div>
@@ -282,16 +282,16 @@ export default function Analyze() {
             <div className="lg:col-span-2">
               <div className="glass p-6 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <h3 className="text-xl font-bold text-cyan-300">Dava Özeti</h3>
+                  <h3 className="text-xl font-bold text-accent">Dava Özeti</h3>
 
                   {caseType ? (
-                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-200 text-sm font-semibold">
+                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-sm font-semibold">
                       {caseType}
                     </div>
                   ) : null}
                 </div>
 
-                <div className="mt-4 text-sm text-gray-200 leading-relaxed whitespace-pre-line">
+                <div className="mt-4 text-sm text-fg leading-relaxed whitespace-pre-line">
                   {summary || "Özet üretilemedi."}
                 </div>
               </div>
@@ -300,7 +300,7 @@ export default function Analyze() {
         )}
       </div>
 
-      <footer className="mt-8 mb-6 text-center text-xs text-gray-500">
+      <footer className="mt-8 mb-6 text-center text-xs text-subtle">
         ⚠ Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
       </footer>
     </div>

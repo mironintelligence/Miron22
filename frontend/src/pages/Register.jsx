@@ -218,7 +218,7 @@ export default function Register() {
           </p>
 
           <h3>2) Hizmetin Niteliği</h3>
-          <p className="text-gray-300">
+          <p className="text-muted">
             Miron AI, hukuk profesyonellerine yönelik üretken yapay zekâ fonksiyonları sağlar. Üretilen çıktılar rehber
             niteliktedir; nihai sorumluluk kullanıcıdadır.
           </p>
@@ -227,30 +227,30 @@ export default function Register() {
           <p>
             Kullanıcı, belge yüklediğinde belgenin içerik olarak analiz için işlenmesine izin verdiğini kabul eder. Varsayılan
             prensip:
-            <b className="text-gray-100"> Dosyalar ve dosya içerikleri kalıcı olarak saklanmaz.</b> İşleme tamamlandıktan
+            <b className="text-white"> Dosyalar ve dosya içerikleri kalıcı olarak saklanmaz.</b> İşleme tamamlandıktan
             sonra bellekten temizleme hedeflenir.
           </p>
 
           <h3>4) Kullanıcının Beyan ve Taahhütleri</h3>
-          <ul className="list-disc pl-6 space-y-1 text-gray-300">
+          <ul className="list-disc pl-6 space-y-1 text-muted">
             <li>Yüklediği içerik üzerinde gerekli hak/izinlere sahip olduğunu</li>
             <li>Gizli bilgileri, müvekkil verilerini ve kişisel verileri hukuka uygun işlediğini</li>
             <li>Çıktıları kontrol edip doğrulayacağını</li>
           </ul>
 
           <h3>5) Ücretlendirme / Paketler</h3>
-          <p className="text-gray-300">
+          <p className="text-muted">
             Ücretlendirme, paketler ve deneme süreleri arayüzde veya satış kanallarında ayrıca belirtilebilir. (Ödeme altyapısı
             aktif edildiğinde bu bölüm genişletilir.)
           </p>
 
           <h3>6) Yürürlük ve Fesih</h3>
-          <p className="text-gray-300">
+          <p className="text-muted">
             Kullanıcı bu sözleşmeyi onaylayarak yürürlüğe sokar. Şirket, ağır ihlal durumunda erişimi askıya alabilir/sonlandırabilir.
           </p>
 
           <h3>7) Uyuşmazlık ve Yetki</h3>
-          <p className="text-gray-300">
+          <p className="text-muted">
             Uyuşmazlıklarda Türkiye Cumhuriyeti hukuku uygulanır. Yetkili mahkeme/mercii, Şirket’in merkezinin bulunduğu yer esas
             alınarak belirlenebilir (güncel adres/merkez bilgisi ayrıca duyurulur).
           </p>
@@ -270,11 +270,11 @@ export default function Register() {
           <h3>2) Veri Sorumlusu / İletişim</h3>
           <p>
             Hizmetin sağlayıcısı: <b>Miron Intelligence</b> (“Şirket”). İletişim:
-            <span className="text-gray-300"> mironintelligenceqgmail.com</span> (veya uygulamada belirtilen güncel destek adresi).
+            <span className="text-muted"> mironintelligenceqgmail.com</span> (veya uygulamada belirtilen güncel destek adresi).
           </p>
 
           <h3>3) Hangi Veriler İşlenir?</h3>
-          <ul className="list-disc pl-6 space-y-1 text-gray-300">
+          <ul className="list-disc pl-6 space-y-1 text-muted">
             <li>
               <b>Hesap verileri:</b> Ad, soyad, e-posta, rol ve benzeri temel kullanıcı bilgileri.
             </li>
@@ -292,17 +292,17 @@ export default function Register() {
           <h3>4) “Dosyalar Kaydedilmez” Taahhüdü (Varsayılan Çalışma)</h3>
           <p>
             Miron AI’nin varsayılan çalışma prensibi şudur:
-            <b className="text-gray-100"> Kullanıcının yüklediği dosyalar ve dosya içerikleri sunucularda kalıcı olarak saklanmaz.</b>
+            <b className="text-white"> Kullanıcının yüklediği dosyalar ve dosya içerikleri sunucularda kalıcı olarak saklanmaz.</b>
             Belge içeriği yalnızca analiz/işleme amacıyla <b>geçici</b> olarak işlenir ve işlem tamamlandıktan sonra sistem belleğinden
             temizlenmesi hedeflenir.
           </p>
-          <p className="text-gray-300">
+          <p className="text-muted">
             Not: Hizmetin bazı özellikleri, talebin yerine getirilebilmesi için belge içeriğini üçüncü taraf yapay zekâ altyapısına iletebilir.
             Bu durumda aktarım yalnızca ilgili işlem için yapılır.
           </p>
 
           <h3>5) İşleme Amaçları</h3>
-          <ul className="list-disc pl-6 space-y-1 text-gray-300">
+          <ul className="list-disc pl-6 space-y-1 text-muted">
             <li>Belge analizi, özetleme, sınıflandırma ve raporlama</li>
             <li>KRM Assistant üzerinden soru-cevap ve metin üretimi</li>
             <li>Hizmet güvenliği, hata ayıklama ve performans iyileştirme</li>
@@ -314,13 +314,13 @@ export default function Register() {
             Hizmet, yapay zekâ yanıtı üretebilmek için üçüncü taraf sağlayıcılar kullanabilir (ör. model servisleri). Bu durumda paylaşım yalnızca
             hizmetin çalışması için gereken minimum veriyle sınırlı tutulur.
           </p>
-          <p className="text-gray-300">
+          <p className="text-muted">
             Kullanıcı, hassas veri içeren belgeleri yüklemeden önce gerekli hukuki yetkilendirmelere sahip olduğunu ve gerekli aydınlatma/izin süreçlerini
             yürüttüğünü kabul eder.
           </p>
 
           <h3>7) Güvenlik</h3>
-          <ul className="list-disc pl-6 space-y-1 text-gray-300">
+          <ul className="list-disc pl-6 space-y-1 text-muted">
             <li>İletişim şifrelemesi (TLS/HTTPS)</li>
             <li>Yetkisiz erişime karşı erişim kontrolleri</li>
             <li>Minimum log prensibi (gereksiz içerik loglanmaz)</li>
@@ -330,18 +330,18 @@ export default function Register() {
           <p>
             <b>Belge içerikleri:</b> Varsayılan olarak kalıcı saklanmaz.
           </p>
-          <p className="text-gray-300">
+          <p className="text-muted">
             <b>Hesap verileri:</b> Hesap aktif olduğu sürece; yasal yükümlülükler saklama gerektiriyorsa ilgili süre kadar.
           </p>
 
           <h3>9) KVKK Kapsamında Haklar</h3>
-          <p className="text-gray-300">
+          <p className="text-muted">
             6698 sayılı KVKK kapsamında; veri işlenip işlenmediğini öğrenme, bilgi talep etme, düzeltilmesini/silinmesini isteme ve ilgili diğer haklarınızı
             kullanmak için destek kanalından bize ulaşabilirsiniz.
           </p>
 
           <h3>10) Değişiklikler</h3>
-          <p className="text-gray-300">Bu politika güncellenebilir. Güncel sürüm bu sayfada yayınlanır.</p>
+          <p className="text-muted">Bu politika güncellenebilir. Güncel sürüm bu sayfada yayınlanır.</p>
         </>
       );
     }
@@ -370,7 +370,7 @@ export default function Register() {
         </p>
 
         <h3>5) Kullanıcı Yükümlülükleri</h3>
-        <ul className="list-disc pl-6 space-y-1 text-gray-300">
+        <ul className="list-disc pl-6 space-y-1 text-muted">
           <li>Hizmet’i yürürlükteki mevzuata uygun kullanmak</li>
           <li>Üçüncü kişilere ait gizli/hassas veriler için gerekli izinleri almak</li>
           <li>Hesap güvenliğini sağlamak ve şifreyi korumak</li>
@@ -378,7 +378,7 @@ export default function Register() {
         </ul>
 
         <h3>6) Yasaklı Kullanımlar</h3>
-        <ul className="list-disc pl-6 space-y-1 text-gray-300">
+        <ul className="list-disc pl-6 space-y-1 text-muted">
           <li>Sistemi kötüye kullanma, servis dışı bırakma girişimleri</li>
           <li>Yetkisiz erişim, tersine mühendislik, güvenlik testleri (izinsiz)</li>
           <li>Telif/kişilik haklarını ihlal eden içerik yükleme</li>
@@ -386,23 +386,23 @@ export default function Register() {
         </ul>
 
         <h3>7) Fikri Mülkiyet</h3>
-        <p className="text-gray-300">
+        <p className="text-muted">
           Miron AI arayüzü, markaları, tasarım dili ve yazılım bileşenleri Miron Intelligence’a aittir. İzinsiz kopyalanamaz/çoğaltılamaz.
         </p>
 
         <h3>8) Sorumluluk Sınırı</h3>
-        <p className="text-gray-300">
+        <p className="text-muted">
           Hizmet “olduğu gibi” sunulur. Dolaylı zararlar, veri kaybı, iş kaybı, kar kaybı gibi sonuçlardan Şirket sorumlu tutulamaz. Kullanıcı, çıktıları
           doğrulamakla yükümlüdür.
         </p>
 
         <h3>9) Hesabın Askıya Alınması / Fesih</h3>
-        <p className="text-gray-300">
+        <p className="text-muted">
           Şirket, bu şartların ihlali halinde Hizmet’e erişimi geçici veya kalıcı olarak kısıtlayabilir.
         </p>
 
         <h3>10) Değişiklikler</h3>
-        <p className="text-gray-300">
+        <p className="text-muted">
           Şartlar güncellenebilir. Güncel sürüm bu sayfada yayınlandığı anda yürürlüğe girer.
         </p>
       </>

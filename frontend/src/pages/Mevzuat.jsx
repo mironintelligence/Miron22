@@ -65,7 +65,7 @@ export default function Mevzuat() {
         {/* SOL: FORM */}
         <div className="glass px-6 py-6">
           <h2 className="text-2xl font-semibold mb-1">Mevzuat Analizi (AI)</h2>
-          <p className="text-sm text-gray-500 mb-5">
+          <p className="text-sm text-subtle mb-5">
             Belirli bir kanun ve maddeyi baz alarak veya sadece olayı anlatarak
             AI'dan açıklama, risk analizi ve strateji önerileri al.
           </p>
@@ -74,11 +74,11 @@ export default function Mevzuat() {
             {/* Kanun + Madde */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">
+                <label className="block text-xs font-medium text-subtle mb-1">
                   Kanun (opsiyonel)
                 </label>
                 <input
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary mb-2"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)] mb-2"
                   value={law}
                   onChange={(e) => setLaw(e.target.value)}
                   placeholder="TBK, TCK, İİK..."
@@ -90,7 +90,7 @@ export default function Mevzuat() {
                       type="button"
                       onClick={() => setLawQuick(k)}
                       className={`px-2 py-1 rounded-full text-[11px] border border-white/10 ${
-                        law === k ? "bg-primary text-black" : "bg-black/40"
+                        law === k ? "bg-[var(--miron-gold)] text-black" : "bg-black/40"
                       }`}
                     >
                       {k}
@@ -100,25 +100,25 @@ export default function Mevzuat() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">
+                <label className="block text-xs font-medium text-subtle mb-1">
                   Madde (opsiyonel)
                 </label>
                 <input
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                   value={article}
                   onChange={(e) => setArticle(e.target.value)}
                   placeholder="344, 32, 89/1..."
                 />
-                <p className="text-[11px] text-gray-500 mt-1">
+                <p className="text-[11px] text-subtle mt-1">
                   Sadece kanun adını bile yazsan yeterli.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">
+                <label className="block text-xs font-medium text-subtle mb-1">
                   Not
                 </label>
-                <div className="text-[11px] text-gray-500 bg-black/40 border border-white/5 rounded-xl px-3 py-2">
+                <div className="text-[11px] text-subtle bg-black/40 border border-white/10 rounded-xl px-3 py-2">
                   Kanun / madde girmeden sadece olayı da anlatabilirsin; sistem
                   kendisi ilgili alanı tahmin etmeye çalışır.
                 </div>
@@ -127,11 +127,11 @@ export default function Mevzuat() {
 
             {/* MADDE METNİ */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-subtle mb-1">
                 Madde metni (opsiyonel ama önerilir)
               </label>
               <textarea
-                className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs min-h-[90px] focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs min-h-[90px] focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                 value={articleText}
                 onChange={(e) => setArticleText(e.target.value)}
                 placeholder="İlgili kanun maddesinin tamamını buraya yapıştırırsan, AI yorumunu doğrudan bu metne göre yapar."
@@ -140,11 +140,11 @@ export default function Mevzuat() {
 
             {/* SORU / OLAY */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-subtle mb-1">
                 Soru / Olay Özeti
               </label>
               <textarea
-                className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm min-h-[120px] focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm min-h-[120px] focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="Örn: TBK m.344 kapsamında kira artış oranı nasıl belirlenir? Kiracı 5 yıldır oturuyor, sözleşmede TÜFE + %10 yazıyor..."
@@ -161,11 +161,11 @@ export default function Mevzuat() {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 rounded-full bg-primary text-xs font-semibold text-black disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-full bg-[var(--miron-gold)] text-xs font-semibold text-black hover:brightness-[1.05] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? "Analiz ediliyor..." : "AI ile Mevzuat Analizi Yap"}
               </button>
-              <span className="text-[11px] text-gray-500">
+              <span className="text-[11px] text-subtle">
                 Güncel ve resmi metin için mevzuat.gov.tr’yi mutlaka kontrol et.
               </span>
             </div>
@@ -180,11 +180,11 @@ export default function Mevzuat() {
             </div>
 
             {loading && (
-              <div className="text-xs text-gray-400">Cevap üretiliyor...</div>
+              <div className="text-xs text-subtle">Cevap üretiliyor...</div>
             )}
 
             {!loading && !answer && (
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-subtle">
                 Henüz bir analiz yok. Soldaki alanları doldurup sorgu gönder.
               </div>
             )}
@@ -197,10 +197,10 @@ export default function Mevzuat() {
           </div>
 
           <div className="glass px-5 py-4">
-            <h4 className="text-xs font-semibold text-gray-300 mb-2">
+            <h4 className="text-xs font-semibold text-muted mb-2">
               İpucu: Mevzuatı AI ile kullanırken
             </h4>
-            <ul className="text-[11px] text-gray-400 space-y-1.5">
+            <ul className="text-[11px] text-subtle space-y-1.5">
               <li>
                 • İmkanın varsa ilgili maddeyi mevzuat.gov.tr’den kopyalayıp
                 yukarıdaki kutuya yapıştır; AI yorumu direkt o metne göre yapar.

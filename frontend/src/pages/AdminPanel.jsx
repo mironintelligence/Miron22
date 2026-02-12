@@ -201,7 +201,7 @@ export default function AdminPanel() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
         <div className="p-8 bg-white/5 rounded-xl border border-white/10 w-full max-w-md">
-          <h2 className="text-xl font-bold mb-4 text-center text-yellow-400">Admin Girişi</h2>
+          <h2 className="text-xl font-bold mb-4 text-center text-accent">Admin Girişi</h2>
           {msg && <div className="mb-3 text-sm text-white/80">{msg}</div>}
           <form onSubmit={handleLogin} className="flex flex-col gap-3">
             <input
@@ -209,7 +209,7 @@ export default function AdminPanel() {
               value={cred.firstName}
               onChange={e => setCred(s => ({ ...s, firstName: e.target.value }))}
               placeholder="Ad"
-              className="p-3 bg-black/40 rounded border border-white/10 text-white focus:border-yellow-500 focus:outline-none"
+              className="p-3 bg-black/40 rounded border border-white/15 text-white focus:border-[var(--miron-gold)] focus:outline-none"
               required
             />
             <input
@@ -217,7 +217,7 @@ export default function AdminPanel() {
               value={cred.lastName}
               onChange={e => setCred(s => ({ ...s, lastName: e.target.value }))}
               placeholder="Soyad"
-              className="p-3 bg-black/40 rounded border border-white/10 text-white focus:border-yellow-500 focus:outline-none"
+              className="p-3 bg-black/40 rounded border border-white/15 text-white focus:border-[var(--miron-gold)] focus:outline-none"
               required
             />
             <input
@@ -225,10 +225,10 @@ export default function AdminPanel() {
               value={cred.password}
               onChange={e => setCred(s => ({ ...s, password: e.target.value }))}
               placeholder="Şifre"
-              className="p-3 bg-black/40 rounded border border-white/10 text-white focus:border-yellow-500 focus:outline-none"
+              className="p-3 bg-black/40 rounded border border-white/15 text-white focus:border-[var(--miron-gold)] focus:outline-none"
               required
             />
-            <button type="submit" className="bg-yellow-400 hover:bg-yellow-500 text-black p-3 rounded font-bold transition">Giriş</button>
+            <button type="submit" className="bg-[var(--miron-gold)] hover:brightness-[1.05] text-black p-3 rounded font-bold transition">Giriş</button>
           </form>
         </div>
       </div>
@@ -245,7 +245,7 @@ export default function AdminPanel() {
                 localStorage.removeItem("adminToken");
                 setToken("");
             }}
-            className="text-sm text-gray-400 hover:text-white"
+            className="text-sm text-subtle hover:text-white"
         >
             Çıkış Yap
         </button>

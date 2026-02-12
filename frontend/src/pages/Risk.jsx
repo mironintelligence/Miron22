@@ -34,8 +34,8 @@ export default function Risk() {
 
   return (
     <div className="min-h-screen px-6 sm:px-10 md:px-16 py-20 overflow-y-auto">
-      <h1 className="text-3xl font-bold mb-2 text-cyan-400">🧠 Risk & Strateji Analizi</h1>
-      <p className="text-gray-400 mb-6">
+      <h1 className="text-3xl font-bold mb-2 text-accent">🧠 Risk & Strateji Analizi</h1>
+      <p className="text-subtle mb-6">
         Dosyanızı veya dava özetinizi girin; Libra AI risk puanı, kazanma ihtimali ve strateji önerileri çıkarsın.
       </p>
 
@@ -70,7 +70,7 @@ export default function Risk() {
           <button
             onClick={onAnalyze}
             disabled={loading}
-            className="px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90"
+            className="px-6 py-3 rounded-xl font-semibold text-black bg-accent hover:opacity-90"
           >
             {loading ? "Analiz ediliyor..." : "Analiz Et"}
           </button>
@@ -83,31 +83,31 @@ export default function Risk() {
           className="glass rounded-2xl p-5"
         >
           {!result ? (
-            <div className="text-gray-400">Sonuç burada görünecek.</div>
+            <div className="text-subtle">Sonuç burada görünecek.</div>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl bg-white/10 border border-white/10">
-                  <div className="text-sm text-gray-400">Risk Skoru</div>
-                  <div className="text-3xl font-semibold text-white">
+                  <div className="text-sm text-subtle">Risk Skoru</div>
+                  <div className="text-3xl font-semibold text-fg">
                     {result.risk_score}/100
                   </div>
                 </div>
                 <div className="p-4 rounded-xl bg-white/10 border border-white/10">
-                  <div className="text-sm text-gray-400">Kazanma Olasılığı</div>
-                  <div className="text-3xl font-semibold text-white">
+                  <div className="text-sm text-subtle">Kazanma Olasılığı</div>
+                  <div className="text-3xl font-semibold text-fg">
                     {result.winning_probability}%
                   </div>
                 </div>
               </div>
 
               <div className="mt-5">
-                <div className="text-sm text-gray-400 mb-1">Tahmini Dava Türü</div>
+                <div className="text-sm text-subtle mb-1">Tahmini Dava Türü</div>
                 <div className="font-semibold">{result.case_type_guess}</div>
               </div>
 
               <div className="mt-5">
-                <div className="text-sm text-gray-400 mb-2">🔎 Tespit Edilen Riskler</div>
+                <div className="text-sm text-subtle mb-2">🔎 Tespit Edilen Riskler</div>
                 <ul className="list-disc pl-5 space-y-1">
                   {(result.key_issues || []).map((k, i) => (
                     <li key={i}>{k}</li>
@@ -116,7 +116,7 @@ export default function Risk() {
               </div>
 
               <div className="mt-5">
-                <div className="text-sm text-gray-400 mb-2">✅ Önerilen Aksiyonlar</div>
+                <div className="text-sm text-subtle mb-2">✅ Önerilen Aksiyonlar</div>
                 <ul className="list-disc pl-5 space-y-1">
                   {(result.recommended_actions || []).map((k, i) => (
                     <li key={i}>{k}</li>
@@ -124,7 +124,7 @@ export default function Risk() {
                 </ul>
               </div>
 
-              <div className="mt-5 text-xs text-gray-400">
+              <div className="mt-5 text-xs text-subtle">
                 Kaynak: <span className="font-mono">{result.source}</span> • Kayıt: {result.saved_report}
               </div>
             </>

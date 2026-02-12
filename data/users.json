@@ -1,0 +1,10 @@
+[
+  {
+    "email": "cdtmiron@gmail.com",
+    "firstName": "Kerim",
+    "lastName": "Aydemir",
+    "hashed_password": "pbkdf2_sha256$210000$t3zRpgrX_2VA80ZmyMhqAg$Otk4rBUBqrTMvOS-ySZacu-Sy2KNEepAKr_bUsAvNHo",
+    "is_demo": false,
+    "created_at": "2026-02-12T00:00:00+00:00"
+  }
+]

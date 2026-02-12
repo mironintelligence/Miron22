@@ -45,13 +45,13 @@ export default function RiskStrategy() {
     const pct = Math.max(0, Math.min(100, Number(value) || 0));
     return (
       <div className="mb-3">
-        <div className="flex justify-between text-xs text-gray-400 mb-1">
+        <div className="flex justify-between text-xs text-subtle mb-1">
           <span>{label}</span>
           <span>{pct}%</span>
         </div>
         <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-cyan-500 to-blue-500"
+            className="h-full bg-accent"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -62,7 +62,7 @@ export default function RiskStrategy() {
   return (
     <div className="min-h-screen px-6 sm:px-10 md:px-16 py-20 overflow-y-auto">
       <div className="glass p-6 md:p-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-cyan-400 mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-accent mb-6">
           🛡️ Risk & Strateji Analizi
         </h1>
 
@@ -71,7 +71,7 @@ export default function RiskStrategy() {
           {/* Dosya / Metin */}
           <div className="glass p-4">
             <div className="mb-4">
-              <label className="block text-sm text-gray-300 mb-1">Dosya (PDF/DOCX/TXT…)</label>
+              <label className="block text-sm text-muted mb-1">Dosya (PDF/DOCX/TXT…)</label>
               <input
                 type="file"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
@@ -79,14 +79,14 @@ export default function RiskStrategy() {
                 accept=".pdf,.docx,.txt,.rtf,.odt"
               />
               {file && (
-                <div className="text-xs text-gray-400 mt-1">
-                  Seçilen: <span className="text-gray-200">{file.name}</span>
+                <div className="text-xs text-subtle mt-1">
+                  Seçilen: <span className="text-fg">{file.name}</span>
                 </div>
               )}
             </div>
 
             <div>
-              <label className="block text-sm text-gray-300 mb-1">Veya Metin</label>
+              <label className="block text-sm text-muted mb-1">Veya Metin</label>
               <textarea
                 rows={8}
                 value={caseText}
@@ -100,7 +100,7 @@ export default function RiskStrategy() {
               <button
                 onClick={handleAnalyze}
                 disabled={loading}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold hover:scale-105 transition disabled:opacity-60"
+                className="px-5 py-2 rounded-xl bg-accent text-black font-semibold hover:scale-105 transition disabled:opacity-60"
               >
                 {loading ? "Analiz ediliyor…" : "Analiz Et"}
               </button>
@@ -133,11 +133,11 @@ export default function RiskStrategy() {
 
           {/* Sonuç kartı */}
           <div className="glass p-4">
-            <h3 className="text-lg font-semibold mb-3 text-cyan-300">📊 Sonuç</h3>
+            <h3 className="text-lg font-semibold mb-3 text-accent">📊 Sonuç</h3>
 
             {!res && (
-              <div className="text-sm text-gray-400">
-                Henüz analiz yok. Dosya yükleyin veya metin girip <span className="text-cyan-400">Analiz Et</span>’e basın.
+              <div className="text-sm text-subtle">
+                Henüz analiz yok. Dosya yükleyin veya metin girip <span className="text-accent">Analiz Et</span>’e basın.
               </div>
             )}
 
@@ -146,19 +146,19 @@ export default function RiskStrategy() {
                 {/* üst özet */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="glass p-3">
-                    <div className="text-gray-400">Dosya/Kaynak</div>
+                    <div className="text-subtle">Dosya/Kaynak</div>
                     <div className="font-semibold">{res.source || "-"}</div>
                   </div>
                   <div className="glass p-3">
-                    <div className="text-gray-400">Olası Tür</div>
+                    <div className="text-subtle">Olası Tür</div>
                     <div className="font-semibold">{res.case_type_guess || "-"}</div>
                   </div>
                   <div className="glass p-3">
-                    <div className="text-gray-400">Metin Uzunluğu</div>
+                    <div className="text-subtle">Metin Uzunluğu</div>
                     <div className="font-semibold">{res.length || 0}</div>
                   </div>
                   <div className="glass p-3">
-                    <div className="text-gray-400">Tarih</div>
+                    <div className="text-subtle">Tarih</div>
                     <div className="font-semibold">{res.created_at || "-"}</div>
                   </div>
                 </div>
@@ -169,36 +169,36 @@ export default function RiskStrategy() {
 
                 {/* kritik başlıklar */}
                 <div className="glass p-3">
-                  <div className="text-sm text-cyan-300 font-semibold mb-2">⚠️ Risk/Kritik Başlıklar</div>
+                  <div className="text-sm text-accent font-semibold mb-2">⚠️ Risk/Kritik Başlıklar</div>
                   {(res.key_issues || []).length ? (
-                    <ul className="list-disc ml-5 text-sm text-gray-200 space-y-1">
+                    <ul className="list-disc ml-5 text-sm text-fg space-y-1">
                       {res.key_issues.map((k, i) => (
                         <li key={i}>{k}</li>
                       ))}
                     </ul>
                   ) : (
-                    <div className="text-sm text-gray-400">Kayıt yok.</div>
+                    <div className="text-sm text-subtle">Kayıt yok.</div>
                   )}
                 </div>
 
                 {/* öneriler */}
                 <div className="glass p-3">
-                  <div className="text-sm text-cyan-300 font-semibold mb-2">🧭 Strateji / Öneriler</div>
+                  <div className="text-sm text-accent font-semibold mb-2">🧭 Strateji / Öneriler</div>
                   {(res.recommended_actions || []).length ? (
-                    <ul className="list-disc ml-5 text-sm text-gray-200 space-y-1">
+                    <ul className="list-disc ml-5 text-sm text-fg space-y-1">
                       {res.recommended_actions.map((k, i) => (
                         <li key={i}>{k}</li>
                       ))}
                     </ul>
                   ) : (
-                    <div className="text-sm text-gray-400">Kayıt yok.</div>
+                    <div className="text-sm text-subtle">Kayıt yok.</div>
                   )}
                 </div>
 
                 {/* rapor yolu */}
                 {res.saved_report && (
-                  <div className="text-xs text-gray-400">
-                    Kaydedildi: <span className="text-gray-300">{res.saved_report}</span>
+                  <div className="text-xs text-subtle">
+                    Kaydedildi: <span className="text-muted">{res.saved_report}</span>
                   </div>
                 )}
 
@@ -217,8 +217,8 @@ export default function RiskStrategy() {
         </div>
 
         {/* bilgilendirme */}
-        <p className="text-xs text-gray-500 mt-6">
-          Not: Bu modül <span className="text-cyan-400">/risk/analyze</span> endpoint’inden canlı sonuç çeker.
+        <p className="text-xs text-subtle mt-6">
+          Not: Bu modül <span className="text-accent">/risk/analyze</span> endpoint’inden canlı sonuç çeker.
         </p>
       </div>
     </div>

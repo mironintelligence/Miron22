@@ -13,7 +13,7 @@ from stores.users_store import hash_password, verify_password
 
 router = APIRouter()
 
-DATA_DIR = Path(os.getenv("DATA_DIR") or "data")
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -141,6 +141,3 @@ def login(payload: LoginRequest) -> Dict[str, Any]:
             },
         }
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı veya şifre hatalı.")
-
-
-    

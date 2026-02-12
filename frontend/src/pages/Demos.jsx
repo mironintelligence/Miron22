@@ -18,8 +18,8 @@ export default function Demos() {
   }, []);
 
   return (
-    <div className="text-white p-6">
-      <h1 className="text-2xl font-bold mb-4">Demo Talepleri</h1>
+    <div className="min-h-screen bg-black text-white p-6">
+      <h1 className="text-2xl font-bold mb-4 text-accent">Demo Talepleri</h1>
 
       {demos.length === 0 ? (
         <p className="opacity-50">Henüz demo talebi yok.</p>
@@ -28,7 +28,7 @@ export default function Demos() {
           {demos.map((demo) => (
             <div
               key={demo.id}
-              className="bg-gray-800 p-4 rounded-lg border border-gray-700"
+              className="card p-4"
             >
               <p><strong>Ad:</strong> {demo.name || "-"}</p>
               <p><strong>Email:</strong> {demo.email || "-"}</p>

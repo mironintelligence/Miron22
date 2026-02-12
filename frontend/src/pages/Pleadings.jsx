@@ -140,8 +140,8 @@ export default function Pleadings() {
               onClick={() => setActiveCat(cat.category)}
               className={`w-full text-left px-3 py-2 rounded-xl transition ${
                 activeCat === cat.category
-                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white"
-                  : "bg-white/10 hover:bg-white/20 text-gray-200"
+                  ? "bg-accent text-black"
+                  : "bg-white/10 hover:bg-white/20 text-fg"
               }`}
             >
               {cat.category}
@@ -168,8 +168,8 @@ export default function Pleadings() {
               whileHover={{ scale: 1.02 }}
               className={`text-left p-4 rounded-2xl border border-white/10 backdrop-blur-xl transition ${
                 activeTpl === item.key
-                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white"
-                  : "bg-white/10 hover:bg-white/20 text-gray-200"
+                  ? "bg-accent text-black"
+                  : "bg-white/10 hover:bg-white/20 text-fg"
               }`}
             >
               <div className="text-sm opacity-80">{item.case_type}</div>
@@ -187,7 +187,7 @@ export default function Pleadings() {
                 onClick={() => setLanguage("TR")}
                 className={`px-3 py-1 rounded-lg ${
                   language === "TR"
-                    ? "bg-cyan-500 text-white"
+                    ? "bg-accent text-black"
                     : "bg-white/10"
                 }`}
               >
@@ -197,7 +197,7 @@ export default function Pleadings() {
                 onClick={() => setLanguage("EN")}
                 className={`px-3 py-1 rounded-lg ${
                   language === "EN"
-                    ? "bg-cyan-500 text-white"
+                    ? "bg-accent text-black"
                     : "bg-white/10"
                 }`}
               >
@@ -260,7 +260,7 @@ export default function Pleadings() {
                       value={values[f.key] || ""}
                       onChange={(e) => handleChange(f.key, e.target.value)}
                       placeholder={f.placeholder || ""}
-                      className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                   ) : f.type === "select" ? (
                     <select
@@ -281,7 +281,7 @@ export default function Pleadings() {
                       value={values[f.key] || ""}
                       onChange={(e) => handleChange(f.key, e.target.value)}
                       placeholder={f.placeholder || ""}
-                      className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                   )}
                 </div>
@@ -292,7 +292,7 @@ export default function Pleadings() {
               <button
                 onClick={doPreview}
                 disabled={loading}
-                className="flex-1 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:scale-105 transition disabled:opacity-60"
+              className="flex-1 py-2 rounded-xl bg-accent text-black font-semibold hover:scale-105 transition disabled:opacity-60"
               >
                 {loading ? "Hazırlanıyor..." : "Önizleme"}
               </button>
@@ -326,7 +326,7 @@ export default function Pleadings() {
                   exit={{ opacity: 0, y: 6 }}
                   className="mt-4 p-3 rounded-xl bg-white/10 border border-white/10 text-sm"
                 >
-                  <div className="text-cyan-400 font-semibold mb-2">
+                  <div className="text-accent font-semibold mb-2">
                     📄 Önizleme
                   </div>
                   {["header", "summary", "legal_basis", "result_requests", "attachments"].map(
@@ -348,7 +348,7 @@ export default function Pleadings() {
       </motion.section>
 
       {/* ✅ Alt Telif Satırı */}
-      <footer className="col-span-12 text-center text-xs text-gray-400 mt-10 py-6 glass border-t border-white/10 rounded-t-2xl">
+      <footer className="col-span-12 text-center text-xs text-subtle mt-10 py-6 glass border-t border-white/10 rounded-t-2xl">
         ®2025 Miron Intelligence — Tüm hakları saklıdır.
       </footer>
     </div>

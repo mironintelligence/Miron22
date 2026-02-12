@@ -38,7 +38,6 @@ except Exception:
     AuthenticationError = BadRequestError = RateLimitError = APIConnectionError = APIStatusError = Exception
 
 OPENAI_API_KEY = get_openai_api_key()
-print("OPENAI_API_KEY present:", bool(OPENAI_API_KEY), "tail:", OPENAI_API_KEY[-6:] if OPENAI_API_KEY else "NONE")
 client = get_openai_client()
 
 # ---------------------------
@@ -49,14 +48,19 @@ app = FastAPI(title="Libra AI Backend", version="1.4.0")
 # ---------------------------
 # CORS
 # ---------------------------
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+_origins_env = os.getenv("FRONTEND_ORIGINS")
+if _origins_env:
+    _allowed_origins = [o.strip() for o in _origins_env.split(",") if o.strip()]
+else:
+    _allowed_origins = [
+        "http://localhost:5173",
+        "https://miron22.vercel.app",
+    ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # DİKKAT: Şimdilik herkese açtık. Sonra buraya sadece frontend URL'ini yazacağız.
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

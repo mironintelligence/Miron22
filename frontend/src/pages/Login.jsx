@@ -66,7 +66,7 @@ const Login = () => {
         lastName: user?.user_metadata?.last_name || user?.user_metadata?.lastName || '',
       });
 
-      navigate('/home');
+      navigate('/welcome', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {

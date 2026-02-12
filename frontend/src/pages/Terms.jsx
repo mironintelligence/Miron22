@@ -2,16 +2,16 @@ import React from "react";
 
 export default function Terms() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0b0b0c] to-[#17181b] text-gray-100">
+    <div className="min-h-screen bg-bg text-fg">
       <div className="max-w-4xl mx-auto px-6 py-16">
-        <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-accent">
           Kullanım Şartları
         </h1>
-        <p className="text-sm text-gray-400 mt-2">Son Güncelleme: 22.12.2025</p>
+        <p className="text-sm text-subtle mt-2">Son Güncelleme: 22.12.2025</p>
 
-        <div className="mt-8 space-y-6 text-gray-200 leading-relaxed">
+        <div className="mt-8 space-y-6 text-fg leading-relaxed">
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-cyan-300">
+            <h2 className="text-xl font-semibold text-accent">
               1) Kabul ve Kapsam
             </h2>
             <p>
@@ -21,7 +21,7 @@ export default function Terms() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-cyan-300">
+            <h2 className="text-xl font-semibold text-accent">
               2) Hizmet Tanımı
             </h2>
             <p>
@@ -31,7 +31,7 @@ export default function Terms() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-cyan-300">
+            <h2 className="text-xl font-semibold text-accent">
               3) Hukuki Uyarı (Çok Net)
             </h2>
             <p>
@@ -44,7 +44,7 @@ export default function Terms() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-cyan-300">
+            <h2 className="text-xl font-semibold text-accent">
               4) Gizlilik ve Dosya Saklama
             </h2>
             <p>
@@ -55,10 +55,10 @@ export default function Terms() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-cyan-300">
+            <h2 className="text-xl font-semibold text-accent">
               5) Kullanıcı Yükümlülükleri
             </h2>
-            <ul className="list-disc pl-6 space-y-1 text-gray-300">
+            <ul className="list-disc pl-6 space-y-1 text-muted">
               <li>Hizmet’i yürürlükteki mevzuata uygun kullanmak</li>
               <li>Üçüncü kişilere ait gizli/hassas veriler için gerekli izinleri almak</li>
               <li>Hesap güvenliğini sağlamak ve şifreyi korumak</li>
@@ -67,10 +67,10 @@ export default function Terms() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-cyan-300">
+            <h2 className="text-xl font-semibold text-accent">
               6) Yasaklı Kullanımlar
             </h2>
-            <ul className="list-disc pl-6 space-y-1 text-gray-300">
+            <ul className="list-disc pl-6 space-y-1 text-muted">
               <li>Sistemi kötüye kullanma, servis dışı bırakma girişimleri</li>
               <li>Yetkisiz erişim, tersine mühendislik, güvenlik testleri (izinsiz)</li>
               <li>Telif/kişilik haklarını ihlal eden içerik yükleme</li>
@@ -79,20 +79,20 @@ export default function Terms() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-cyan-300">
+            <h2 className="text-xl font-semibold text-accent">
               7) Fikri Mülkiyet
             </h2>
-            <p className="text-gray-300">
+            <p className="text-muted">
               Miron AI arayüzü, markaları, tasarım dili ve yazılım bileşenleri
               Miron Intelligence’a aittir. İzinsiz kopyalanamaz/çoğaltılamaz.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-cyan-300">
+            <h2 className="text-xl font-semibold text-accent">
               8) Sorumluluk Sınırı
             </h2>
-            <p className="text-gray-300">
+            <p className="text-muted">
               Hizmet “olduğu gibi” sunulur. Dolaylı zararlar, veri kaybı, iş
               kaybı, kar kaybı gibi sonuçlardan Şirket sorumlu tutulamaz. Kullanıcı,
               çıktıları doğrulamakla yükümlüdür.
@@ -100,20 +100,20 @@ export default function Terms() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-cyan-300">
+            <h2 className="text-xl font-semibold text-accent">
               9) Hesabın Askıya Alınması / Fesih
             </h2>
-            <p className="text-gray-300">
+            <p className="text-muted">
               Şirket, bu şartların ihlali halinde Hizmet’e erişimi geçici veya
               kalıcı olarak kısıtlayabilir.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-cyan-300">
+            <h2 className="text-xl font-semibold text-accent">
               10) Değişiklikler
             </h2>
-            <p className="text-gray-300">
+            <p className="text-muted">
               Şartlar güncellenebilir. Güncel sürüm bu sayfada yayınlandığı anda
               yürürlüğe girer.
             </p>

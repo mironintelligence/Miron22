@@ -25,6 +25,7 @@ import UserAgreement from "./pages/UserAgreement";
 import GuestRoute from "./components/GuestRoute.jsx";
 import Calculators from "./pages/Calculators";
 import AdminPanel from "./pages/AdminPanel.jsx";
+import Welcome from "./pages/Welcome.jsx";
 
 import { useAuth } from "./auth/AuthProvider";
 
@@ -59,7 +60,7 @@ export default function App() {
         }}
         onSuccess={() => {
           setLoginOpen(false);
-          navigate("/home");
+          navigate("/welcome", { replace: true });
         }}
       />
 
@@ -85,6 +86,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Home />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/welcome"
+            element={
+              <ProtectedRoute>
+                <Welcome />
               </ProtectedRoute>
             }
           />

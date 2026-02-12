@@ -57,12 +57,12 @@ export default function DemoRequest() {
   const disabled = !form.firstName || !form.lastName || !form.email || !kvkkOk || !termsOk;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-gradient-to-br from-[#050509] to-[#0b0b11] text-gray-200">
-      <div className="w-full max-w-2xl bg-white/5 border border-white/10 backdrop-blur-2xl rounded-2xl p-8 shadow-xl">
-        <h1 className="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-black text-white">
+      <div className="w-full max-w-2xl glass p-8">
+        <h1 className="text-3xl font-bold text-center mb-2 text-accent">
           Miron AI Demo Talep Formu
         </h1>
-        <p className="text-center text-sm text-gray-400 mb-6">
+        <p className="text-center text-sm text-subtle mb-6">
           Demo erişimi başvurunuz alınır. Değerlendirme sonrası demo hesabınız oluşturulur ve e-posta ile bilgilendirilirsiniz.
         </p>
 
@@ -85,49 +85,49 @@ export default function DemoRequest() {
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input name="firstName" value={form.firstName} onChange={handleChange} placeholder="Ad"
-              className="px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-sm outline-none focus:ring-2 focus:ring-cyan-400"
+              className="px-4 py-2 rounded-xl bg-black/40 border border-white/15 text-sm outline-none text-white focus:ring-2 focus:ring-[var(--miron-gold)]"
             />
             <input name="lastName" value={form.lastName} onChange={handleChange} placeholder="Soyad"
-              className="px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-sm outline-none focus:ring-2 focus:ring-cyan-400"
+              className="px-4 py-2 rounded-xl bg-black/40 border border-white/15 text-sm outline-none text-white focus:ring-2 focus:ring-[var(--miron-gold)]"
             />
             <input name="email" value={form.email} onChange={handleChange} placeholder="E-posta adresiniz"
-              className="px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-sm outline-none focus:ring-2 focus:ring-cyan-400"
+              className="px-4 py-2 rounded-xl bg-black/40 border border-white/15 text-sm outline-none text-white focus:ring-2 focus:ring-[var(--miron-gold)]"
             />
             <input name="phone" value={form.phone} onChange={handleChange} placeholder="Telefon (opsiyonel)"
-              className="px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-sm outline-none focus:ring-2 focus:ring-cyan-400"
+              className="px-4 py-2 rounded-xl bg-black/40 border border-white/15 text-sm outline-none text-white focus:ring-2 focus:ring-[var(--miron-gold)]"
             />
             <input name="city" value={form.city} onChange={handleChange} placeholder="Şehir (opsiyonel)"
-              className="px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-sm outline-none focus:ring-2 focus:ring-cyan-400"
+              className="px-4 py-2 rounded-xl bg-black/40 border border-white/15 text-sm outline-none text-white focus:ring-2 focus:ring-[var(--miron-gold)]"
             />
             <input name="lawFirm" value={form.lawFirm} onChange={handleChange} placeholder="Hukuk Bürosu / Çalıştığınız yer (opsiyonel)"
-              className="px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-sm outline-none focus:ring-2 focus:ring-cyan-400"
+              className="px-4 py-2 rounded-xl bg-black/40 border border-white/15 text-sm outline-none text-white focus:ring-2 focus:ring-[var(--miron-gold)]"
             />
           </div>
 
           <input name="password" value={form.password} onChange={handleChange} placeholder="Demo hesabınız için şifre (opsiyonel)"
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/20 text-sm outline-none focus:ring-2 focus:ring-cyan-400"
+            className="px-4 py-2 rounded-xl bg-black/40 border border-white/15 text-sm outline-none text-white focus:ring-2 focus:ring-[var(--miron-gold)]"
           />
 
           <textarea name="message" value={form.message} onChange={handleChange} placeholder="Kısaca ofisinizden ve süreçlerinizden bahsedebilir misiniz? (opsiyonel)"
             rows={4}
-            className="px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-sm outline-none focus:ring-2 focus:ring-cyan-400 resize-none"
+            className="px-4 py-3 rounded-xl bg-black/40 border border-white/15 text-sm outline-none text-white focus:ring-2 focus:ring-[var(--miron-gold)] resize-none"
           />
 
-          <div className="space-y-2 text-xs text-gray-300">
+          <div className="space-y-2 text-xs text-muted">
             <label className="flex items-start gap-2 cursor-pointer">
               <input type="checkbox" checked={kvkkOk} onChange={(e) => setKvkkOk(e.target.checked)} className="mt-1" />
               <span>
-                KVKK ve kişisel verilerimin <span className="text-cyan-400">Miron AI tarafından işlenmesini</span> kabul ediyorum.
+                KVKK ve kişisel verilerimin <span className="text-accent">Miron AI tarafından işlenmesini</span> kabul ediyorum.
               </span>
             </label>
             <label className="flex items-start gap-2 cursor-pointer">
               <input type="checkbox" checked={termsOk} onChange={(e) => setTermsOk(e.target.checked)} className="mt-1" />
               <span>
-                <a className="text-cyan-400 hover:underline" href="/privacy" target="_blank" rel="noreferrer">Gizlilik Politikası</a>{" "}
+                <a className="text-accent hover:underline" href="/privacy" target="_blank" rel="noreferrer">Gizlilik Politikası</a>{" "}
                 ve{" "}
-                <a className="text-cyan-400 hover:underline" href="/terms" target="_blank" rel="noreferrer">Kullanım Şartları</a>{" "}
+                <a className="text-accent hover:underline" href="/terms" target="_blank" rel="noreferrer">Kullanım Şartları</a>{" "}
                 ile{" "}
-                <a className="text-cyan-400 hover:underline" href="/user-agreement" target="_blank" rel="noreferrer">Kullanıcı Sözleşmesi</a>{" "}
+                <a className="text-accent hover:underline" href="/user-agreement" target="_blank" rel="noreferrer">Kullanıcı Sözleşmesi</a>{" "}
                 metinlerini okudum, kabul ediyorum.
               </span>
             </label>
@@ -136,13 +136,14 @@ export default function DemoRequest() {
           <button
             type="submit"
             disabled={disabled || status === "loading"}
-            className={`w-full py-3 mt-4 rounded-xl font-semibold text-sm transition bg-gradient-to-r from-cyan-500 to-blue-500 
-              ${disabled || status === "loading" ? "opacity-60 cursor-not-allowed" : "hover:opacity-90"}`}
+            className={`w-full mt-4 btn-primary ${
+              disabled || status === "loading" ? "opacity-60 cursor-not-allowed" : ""
+            }`}
           >
             {status === "loading" ? "Gönderiliyor..." : "Demo Talebi Gönder"}
           </button>
 
-          <p className="text-[11px] text-gray-500 text-center mt-2">
+          <p className="text-[11px] text-subtle text-center mt-2">
             Formu göndererek Miron AI ekibinin sizinle e-posta üzerinden iletişime geçmesini kabul etmiş olursunuz.
           </p>
         </form>

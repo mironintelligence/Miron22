@@ -34,7 +34,7 @@ export default function Dashboard() {
 
   if (!stats)
     return (
-      <div className="text-center mt-20 text-gray-400">Yükleniyor...</div>
+      <div className="text-center mt-20 text-subtle">Yükleniyor...</div>
     );
 
   const fileTrendData = [
@@ -54,7 +54,7 @@ export default function Dashboard() {
     { name: "Ceza", value: 1 }
   ];
 
-  const COLORS = ["#3b82f6", "#6366f1", "#60a5fa", "#818cf8"];
+  const COLORS = ["#FFD700", "#e6c200", "#ffea70", "#ccaa00"];
 
   const container = {
     hidden: { opacity: 0 },
@@ -75,7 +75,7 @@ export default function Dashboard() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="text-3xl font-bold mb-6 text-blue-400"
+        className="text-3xl font-bold mb-6 text-accent"
       >
         Miron AI Raporlama Paneli
       </motion.h1>
@@ -100,12 +100,12 @@ export default function Dashboard() {
             variants={item}
             whileHover={{
               scale: 1.02,
-              boxShadow: "0 0 0 1px rgba(59,130,246,0.35), 0 18px 45px rgba(0,0,0,0.45)",
+              boxShadow: "0 0 0 1px rgba(255,215,0,0.35), 0 18px 45px rgba(0,0,0,0.45)",
             }}
             className="glass p-6 rounded-2xl text-center shadow-xl"
           >
-            <div className="text-sm text-gray-400 mb-1">{card.title}</div>
-            <div className="text-2xl font-semibold text-white">
+            <div className="text-sm text-subtle mb-1">{card.title}</div>
+            <div className="text-2xl font-semibold text-fg">
               {card.value}
             </div>
           </motion.div>
@@ -121,11 +121,11 @@ export default function Dashboard() {
           transition={{ duration: 0.55 }}
           viewport={{ once: true }}
           whileHover={{
-            boxShadow: "0 0 0 1px rgba(99,102,241,0.30), 0 18px 45px rgba(0,0,0,0.45)",
+            boxShadow: "0 0 0 1px rgba(255,215,0,0.30), 0 18px 45px rgba(0,0,0,0.45)",
           }}
           className="glass p-6 rounded-2xl shadow-xl"
         >
-          <h2 className="text-xl font-semibold mb-4 text-indigo-400">
+          <h2 className="text-xl font-semibold mb-4 text-accent">
             Son 7 Günlük Dosya Yükleme Trendi
           </h2>
           <div style={{ width: "100%", height: 300 }}>
@@ -138,7 +138,7 @@ export default function Dashboard() {
                 <Line
                   type="monotone"
                   dataKey="uploads"
-                  stroke="#3b82f6"
+                  stroke="#FFD700"
                   strokeWidth={3}
                   dot={{ r: 4 }}
                 />
@@ -154,11 +154,11 @@ export default function Dashboard() {
           transition={{ duration: 0.55 }}
           viewport={{ once: true }}
           whileHover={{
-            boxShadow: "0 0 0 1px rgba(59,130,246,0.30), 0 18px 45px rgba(0,0,0,0.45)",
+            boxShadow: "0 0 0 1px rgba(255,215,0,0.30), 0 18px 45px rgba(0,0,0,0.45)",
           }}
           className="glass p-6 rounded-2xl shadow-xl"
         >
-          <h2 className="text-xl font-semibold mb-4 text-indigo-400">
+          <h2 className="text-xl font-semibold mb-4 text-accent">
             Dilekçe Türü Dağılımı
           </h2>
           <div style={{ width: "100%", height: 300 }}>
@@ -170,7 +170,7 @@ export default function Dashboard() {
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
-                  fill="#3b82f6"
+                  fill="#FFD700"
                   label
                 >
                   {dilekcePieData.map((entry, index) => (
@@ -189,7 +189,7 @@ export default function Dashboard() {
       </div>
 
       {/* Footer */}
-      <footer className="text-center text-xs text-gray-400 mt-20 py-8 glass border-t border-white/10 rounded-t-2xl">
+      <footer className="text-center text-xs text-subtle mt-20 py-8 glass border-t border-white/10 rounded-t-2xl">
         ®2025 Miron Intelligence — Tüm hakları saklıdır.
       </footer>
     </div>

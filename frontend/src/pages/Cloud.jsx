@@ -227,13 +227,13 @@ export default function Cloud() {
   // RENDER
   // =====================================================
   if (!user)
-    return <div className="text-center py-20 text-gray-400">🔒 Lütfen önce giriş yapın.</div>;
+    return <div className="text-center py-20 text-subtle">🔒 Lütfen önce giriş yapın.</div>;
 
   return (
     <div className="min-h-screen px-8 py-10">
       {/* Üst Menü */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+        <h2 className="text-2xl font-bold text-accent">
           ☁️ Libra Cloud
         </h2>
 
@@ -247,7 +247,7 @@ export default function Cloud() {
           />
           <button
             onClick={onPickFile}
-            className="cursor-pointer bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 py-2 rounded-lg hover:opacity-90 backdrop-blur-xl border border-white/10"
+            className="cursor-pointer bg-accent text-black px-4 py-2 rounded-lg hover:opacity-90 backdrop-blur-xl border border-white/10"
           >
             + Dosya Ekle
           </button>
@@ -256,11 +256,11 @@ export default function Cloud() {
 
       {/* Dosya Listesi */}
       {loading ? (
-        <p className="text-gray-400 animate-pulse">Dosyalar yükleniyor...</p>
+        <p className="text-subtle animate-pulse">Dosyalar yükleniyor...</p>
       ) : error ? (
         <div className="text-red-400">{error}</div>
       ) : files.length === 0 ? (
-        <p className="text-gray-400">Henüz dosya yok.</p>
+        <p className="text-subtle">Henüz dosya yok.</p>
       ) : (
         <ul className="space-y-3">
           {files.map((f, i) => (
@@ -270,18 +270,18 @@ export default function Cloud() {
             >
               <div>
                 <span>{f.name}</span>
-                <span className="ml-3 text-xs text-gray-400">{f.size_kb} KB</span>
+                <span className="ml-3 text-xs text-subtle">{f.size_kb} KB</span>
               </div>
 
               <div
                 onClick={() => setMenuOpen(menuOpen === i ? null : i)}
-                className="cursor-pointer text-xl px-3 hover:text-cyan-400"
+                className="cursor-pointer text-xl px-3 hover:text-accent"
               >
                 ⋮
               </div>
 
               {menuOpen === i && (
-                <div className="absolute right-10 top-10 z-10 bg-gray-900/80 border border-white/10 rounded-xl p-3 grid grid-cols-2 gap-3 text-sm text-white w-80 shadow-2xl backdrop-blur-2xl">
+                <div className="absolute right-10 top-10 z-10 bg-black/80 border border-white/10 rounded-xl p-3 grid grid-cols-2 gap-3 text-sm text-white w-80 shadow-2xl backdrop-blur-2xl">
                   {/* Sol taraf */}
                   <div className="flex flex-col gap-2">
                     <button
@@ -292,13 +292,13 @@ export default function Cloud() {
                     </button>
                     <button
                       onClick={() => openRename(f.name)}
-                      className="hover:text-yellow-400 text-left"
+                      className="hover:text-accent text-left"
                     >
                       ✏️ Yeniden Adlandır
                     </button>
                     <button
                       onClick={() => handleExport(f.name)}
-                      className="hover:text-blue-400 text-left"
+                      className="hover:text-accent text-left"
                     >
                       💾 Dışa Aktar (İndir)
                     </button>
@@ -307,19 +307,19 @@ export default function Cloud() {
                   <div className="flex flex-col gap-2 border-l border-white/10 pl-3">
                     <button
                       onClick={() => handleAnalyze(f.name)}
-                      className="hover:text-purple-300 text-left"
+                      className="hover:text-accent text-left"
                     >
                       📄 Evrak Analizi
                     </button>
                     <button
                       onClick={() => handleAskAssistant(f.name)}
-                      className="hover:text-cyan-300 text-left"
+                      className="hover:text-accent text-left"
                     >
                       
                     </button>
                     <button
                       onClick={() => handleShare(f.name)}
-                      className="hover:text-green-400 text-left"
+                      className="hover:text-accent text-left"
                     >
                       📤 Libra AI Üzerinden Gönder
                     </button>
@@ -336,9 +336,9 @@ export default function Cloud() {
       {/* Yeniden Adlandır (Cam efektli) */}
       {renameModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-30">
-          <div className="bg-gray-900/85 border border-white/10 rounded-2xl p-6 w-[420px] text-white shadow-2xl">
+          <div className="bg-black/85 border border-white/10 rounded-2xl p-6 w-[420px] text-white shadow-2xl">
             <h3 className="text-lg font-bold mb-4">✏️ Dosyayı Yeniden Adlandır</h3>
-            <div className="text-sm text-gray-300 mb-3">
+            <div className="text-sm text-muted mb-3">
               Eski: <span className="font-semibold">{selectedFile}</span>
             </div>
             <input
@@ -351,13 +351,13 @@ export default function Cloud() {
             <div className="flex justify-end gap-3 mt-5">
               <button
                 onClick={() => setRenameModal(false)}
-                className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600"
+                className="px-4 py-2 rounded bg-white/10 hover:bg-white/20"
               >
                 İptal
               </button>
               <button
                 onClick={applyRename}
-                className="px-4 py-2 rounded bg-gradient-to-r from-yellow-500 to-amber-500 hover:opacity-90"
+                className="px-4 py-2 rounded bg-accent text-black hover:opacity-90"
               >
                 Kaydet
               </button>
@@ -369,15 +369,15 @@ export default function Cloud() {
       {/* Silme Onayı (Cam efektli) */}
       {deleteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-30">
-          <div className="bg-gray-900/85 border border-white/10 rounded-2xl p-6 w-[420px] text-white shadow-2xl">
+          <div className="bg-black/85 border border-white/10 rounded-2xl p-6 w-[420px] text-white shadow-2xl">
             <h3 className="text-lg font-bold mb-3 text-red-400">🗑️ Silinsin mi?</h3>
-            <p className="text-gray-300">
+            <p className="text-muted">
               <span className="font-semibold">{selectedFile}</span> kalıcı olarak silinecek.
             </p>
             <div className="flex justify-end gap-3 mt-5">
               <button
                 onClick={() => setDeleteModal(false)}
-                className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600"
+                className="px-4 py-2 rounded bg-white/10 hover:bg-white/20"
               >
                 İptal
               </button>
@@ -395,9 +395,9 @@ export default function Cloud() {
       {/* Gönderim Modalı */}
       {shareModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-20">
-          <div className="bg-gray-900/85 border border-white/10 rounded-2xl p-6 w-[420px] text-white shadow-2xl">
+          <div className="bg-black/85 border border-white/10 rounded-2xl p-6 w-[420px] text-white shadow-2xl">
             <h3 className="text-lg font-bold mb-4">📤 Libra AI Üzerinden Gönder</h3>
-            <p className="text-gray-300 mb-3">
+            <p className="text-muted mb-3">
               Dosya: <span className="font-semibold">{selectedFile}</span>
             </p>
             <input
@@ -410,13 +410,13 @@ export default function Cloud() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShareModal(false)}
-                className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600"
+                className="px-4 py-2 rounded bg-white/10 hover:bg-white/20"
               >
                 İptal
               </button>
               <button
                 onClick={handleSend}
-                className="px-4 py-2 rounded bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90"
+                className="px-4 py-2 rounded bg-accent text-black hover:opacity-90"
               >
                 Gönder
               </button>
@@ -428,15 +428,15 @@ export default function Cloud() {
       {/* Kullanıcı Bulunamadı Modalı */}
       {notFoundModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-30">
-          <div className="bg-gray-900/90 border border-white/10 rounded-xl p-6 w-[420px] text-center text-white shadow-2xl">
+          <div className="bg-black/90 border border-white/10 rounded-xl p-6 w-[420px] text-center text-white shadow-2xl">
             <h3 className="text-xl font-bold text-red-400 mb-2">❌ Kullanıcı Bulunamadı</h3>
-            <p className="text-gray-300 mb-3">
+            <p className="text-muted mb-3">
               Sadece çoklu satın alımlarda geçerlidir.<br />
               Çoklu satın alan kişilerin arasında yapılır dosya transferi.
             </p>
             <button
               onClick={() => setNotFoundModal(false)}
-              className="mt-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg hover:opacity-90"
+              className="mt-2 px-4 py-2 bg-accent text-black rounded-lg hover:opacity-90"
             >
               Tamam
             </button>
@@ -448,17 +448,17 @@ export default function Cloud() {
       {/* Evrak Analizi Popup */}
       {analysisModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-30">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 w-[600px] text-white max-h-[80vh] overflow-y-auto shadow-2xl backdrop-blur-2xl">
+          <div className="bg-black border border-white/10 rounded-2xl p-6 w-[600px] text-white max-h-[80vh] overflow-y-auto shadow-2xl backdrop-blur-2xl">
             <h3 className="text-lg font-bold mb-3">📄 Evrak Analizi</h3>
             {aiLoading ? (
-              <p className="animate-pulse text-gray-400">Analiz ediliyor...</p>
+              <p className="animate-pulse text-subtle">Analiz ediliyor...</p>
             ) : (
-              <pre className="text-gray-300 whitespace-pre-wrap">{aiResponse}</pre>
+              <pre className="text-muted whitespace-pre-wrap">{aiResponse}</pre>
             )}
             <div className="flex justify-end mt-3">
               <button
                 onClick={() => setAnalysisModal(false)}
-                className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600"
+                className="px-4 py-2 rounded bg-white/10 hover:bg-white/20"
               >
                 Kapat
               </button>

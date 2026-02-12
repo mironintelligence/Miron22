@@ -91,7 +91,7 @@ export default function YargitaySearch() {
               <h2 className="text-2xl font-semibold">
                 Yargıtay Karar Analizi (AI)
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-subtle">
                 Olayını, filtrelerini ve (varsa) karar metnini gir; AI sana
                 emsal mantığı, riskler ve stratejiyi anlatsın.
               </p>
@@ -101,11 +101,11 @@ export default function YargitaySearch() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* OLAY / SORU */}
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-subtle mb-1">
                 Soru / Olay Özeti
               </label>
               <textarea
-                className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm min-h-[130px] focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm min-h-[130px] focus:outline-none focus:ring-1 focus:ring-accent"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="Örn: Kira sözleşmesi feshi, tahliye ve birikmiş kira alacağı hakkında Yargıtay içtihadı nedir? Kiracı 3 dönemdir ödeme yapmıyor..."
@@ -115,11 +115,11 @@ export default function YargitaySearch() {
             {/* HIZLI FILTRELER */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">
+                <label className="block text-xs font-medium text-subtle mb-1">
                   Daire (opsiyonel)
                 </label>
                 <input
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary mb-2"
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent mb-2"
                   value={chamber}
                   onChange={(e) => setChamber(e.target.value)}
                   placeholder="Örn: 3. HD, 11. CD"
@@ -131,7 +131,7 @@ export default function YargitaySearch() {
                       type="button"
                       onClick={() => setChamberQuick(d)}
                       className={`px-2 py-1 rounded-full text-[11px] border border-white/10 ${
-                        chamber === d ? "bg-primary text-black" : "bg-black/40"
+                        chamber === d ? "bg-accent text-black" : "bg-black/40"
                       }`}
                     >
                       {d}
@@ -143,7 +143,7 @@ export default function YargitaySearch() {
                       type="button"
                       onClick={() => setChamberQuick(d)}
                       className={`px-2 py-1 rounded-full text-[11px] border border-white/10 ${
-                        chamber === d ? "bg-primary text-black" : "bg-black/40"
+                        chamber === d ? "bg-accent text-black" : "bg-black/40"
                       }`}
                     >
                       {d}
@@ -154,23 +154,23 @@ export default function YargitaySearch() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1">
+                  <label className="block text-xs font-medium text-subtle mb-1">
                     Yıl (opsiyonel)
                   </label>
                   <input
                     type="number"
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
                     value={year}
                     onChange={(e) => setYear(e.target.value)}
                     placeholder="2022"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1">
+                  <label className="block text-xs font-medium text-subtle mb-1">
                     İlgili Kanun (opsiyonel)
                   </label>
                   <input
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary mb-2"
+                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent mb-2"
                     value={law}
                     onChange={(e) => setLaw(e.target.value)}
                     placeholder="TBK, TCK, İİK..."
@@ -182,7 +182,7 @@ export default function YargitaySearch() {
                         type="button"
                         onClick={() => setLawQuick(k)}
                         className={`px-2 py-1 rounded-full text-[11px] border border-white/10 ${
-                          law === k ? "bg-primary text-black" : "bg-black/40"
+                          law === k ? "bg-accent text-black" : "bg-black/40"
                         }`}
                       >
                         {k}
@@ -195,7 +195,7 @@ export default function YargitaySearch() {
 
             {/* KARAR METNİ TOGGLE + TEXTAREA */}
             <div className="space-y-2">
-              <label className="flex items-center gap-2 text-xs font-medium text-gray-300">
+              <label className="flex items-center gap-2 text-xs font-medium text-muted">
                 <input
                   type="checkbox"
                   className="rounded border-white/20 bg-black/60"
@@ -208,7 +208,7 @@ export default function YargitaySearch() {
 
               {useDecisionText && (
                 <textarea
-                  className="w-full bg-black/60 border border-primary/40 rounded-xl px-3 py-2 text-xs min-h-[110px] focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full bg-black/60 border border-accent/40 rounded-xl px-3 py-2 text-xs min-h-[110px] focus:outline-none focus:ring-1 focus:ring-accent"
                   value={decisionText}
                   onChange={(e) => setDecisionText(e.target.value)}
                   placeholder="İlgili Yargıtay kararının gerekçesini buraya yapıştır. AI bunu emsal olarak dikkate alacak."
@@ -226,11 +226,11 @@ export default function YargitaySearch() {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 rounded-full bg-primary text-xs font-semibold text-black disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-full bg-accent text-xs font-semibold text-black disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? "Analiz ediliyor..." : "AI ile Yargıtay Analizi Yap"}
               </button>
-              <span className="text-[11px] text-gray-500">
+              <span className="text-[11px] text-subtle">
                 Gerçek veri tabanına bağlı değil; emsal kontrolü için UYAP /
                 Kazancı şart.
               </span>
@@ -246,11 +246,11 @@ export default function YargitaySearch() {
             </div>
 
             {loading && (
-              <div className="text-xs text-gray-400">Cevap üretiliyor...</div>
+              <div className="text-xs text-subtle">Cevap üretiliyor...</div>
             )}
 
             {!loading && !answer && (
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-subtle">
                 Henüz bir analiz yok. Solda olayı ve filtreleri doldurup
                 sorgu gönder.
               </div>
@@ -264,10 +264,10 @@ export default function YargitaySearch() {
           </div>
 
           <div className="glass px-5 py-4">
-            <h4 className="text-xs font-semibold text-gray-300 mb-2">
+            <h4 className="text-xs font-semibold text-muted mb-2">
               İpucu: Daha isabetli analiz için
             </h4>
-            <ul className="text-[11px] text-gray-400 space-y-1.5">
+            <ul className="text-[11px] text-subtle space-y-1.5">
               <li>
                 • Olayı anlatırken; tarih, taraf sayısı, talep kalemleri ve
                 önemli delilleri mutlaka yaz.

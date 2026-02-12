@@ -75,16 +75,47 @@ export default function Pricing() {
           {/* Özellikler */}
           <div className="lg:col-span-7 glass p-5 rounded-2xl">
             <h3 className="font-semibold text-accent mb-3">Paket Özellikleri</h3>
-            <ul className="text-sm space-y-2 text-muted">
-              <li>📂 Evrak Analizi</li>
-              <li>🧾 Dilekçe Oluşturucu</li>
-              <li>💬 Miron Assistant</li>
-              <li>🔐 KVKK Maskeleme</li>
-              <li>⚖️ Yargıtay Karar Arama (Yakında)</li>
-              <li>📚 Mevzuat Analizi (Yakında)</li>
-              <li>🎯 Dava Simülasyonu (Yakında)</li>
-              <li>🧠Risk & Strateji Analizi</li>
-            </ul>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="glass rounded-xl p-3">
+                <div className="text-accent font-semibold">📂 Evrak Analizi</div>
+                <div className="text-subtle text-xs mt-1">Otomatik özet, alan çıkarımı</div>
+              </div>
+              <div className="glass rounded-xl p-3">
+                <div className="text-accent font-semibold">🧾 Dilekçe Oluşturucu</div>
+                <div className="text-subtle text-xs mt-1">Şablonlar, dışa aktarma</div>
+              </div>
+              <div className="glass rounded-xl p-3">
+                <div className="text-accent font-semibold">💬 Miron Assistant</div>
+                <div className="text-subtle text-xs mt-1">Dava bazlı soru-cevap</div>
+              </div>
+              <div className="glass rounded-xl p-3">
+                <div className="text-accent font-semibold">🔐 KVKK Maskeleme</div>
+                <div className="text-subtle text-xs mt-1">Hassas veriler için güvenlik</div>
+              </div>
+              <div className="glass rounded-xl p-3">
+                <div className="text-accent font-semibold">🧠 Risk & Strateji</div>
+                <div className="text-subtle text-xs mt-1">Kazanma olasılığı & riskler</div>
+              </div>
+              <div className="glass rounded-xl p-3">
+                <div className="text-accent font-semibold">📊 Raporlama</div>
+                <div className="text-subtle text-xs mt-1">Dosya trafiği & metrikler</div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-subtle">
+              <div className="glass rounded-xl p-3">
+                ⚖️ Yargıtay Karar Arama (Yakında)
+              </div>
+              <div className="glass rounded-xl p-3">
+                📚 Mevzuat Analizi (Yakında)
+              </div>
+              <div className="glass rounded-xl p-3">
+                🎯 Dava Simülasyonu (Yakında)
+              </div>
+              <div className="glass rounded-xl p-3">
+                ☁️ Libra Cloud paylaşımları (Yakında)
+              </div>
+            </div>
           </div>
 
           {/* Fiyat kutusu */}
@@ -93,6 +124,15 @@ export default function Pricing() {
               {isMulti
                 ? "Çok kişili lisans • " + count + " kullanıcı"
                 : "Şahıs lisansı • 1 kullanıcı"}
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-subtle">
+              <div className="glass rounded-xl p-3 text-center">
+                Sınırsız analiz
+              </div>
+              <div className="glass rounded-xl p-3 text-center">
+                E-posta destek
+              </div>
             </div>
 
             {/* Ödeme uyarısı */}
@@ -109,7 +149,7 @@ export default function Pricing() {
                 </div>
               )}
 
-              <div className="text-3xl font-extrabold text-white">
+              <div className="text-3xl font-extrabold text-fg">
                 {tl(finalPrice)}
               </div>
 

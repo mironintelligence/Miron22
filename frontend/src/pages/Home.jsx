@@ -81,8 +81,8 @@ export default function Home() {
     <div className="mt-24 pb-28">
       <div className="glass px-6 py-10">
         <div className="text-center mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold">Hoş geldiniz</h2>
-          <p className="text-sm text-gray-500 mt-1">MIRON AI modüllerini keşfedin.</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-accent">Hoş geldiniz</h2>
+          <p className="text-sm text-subtle mt-1">MIRON AI modüllerini keşfedin.</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -110,9 +110,9 @@ export default function Home() {
                   <div>
                     <div className="text-3xl">{t.icon}</div>
                     <h3 className="text-lg font-semibold mt-3">{t.title}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{t.desc}</p>
+                    <p className="text-sm text-subtle mt-1">{t.desc}</p>
                   </div>
-                  <div className="mt-4 text-right text-primary">
+                  <div className="mt-4 text-right text-accent">
                     {t.disabled ? "Yakında" : "Aç"}
                   </div>
                 </TileTag>
@@ -122,23 +122,23 @@ export default function Home() {
         </div>
       </div>
 
-      <footer className="mt-10 mb-6 text-center text-xs text-gray-500">
+      <footer className="mt-10 mb-6 text-center text-xs text-subtle">
         <div>©️ 2025 Miron Intelligence — Tüm hakları saklıdır</div>
 
         <div className="mt-2 flex items-center justify-center gap-4">
-          <Link to="/user-agreement" className="text-cyan-400 underline">
+          <Link to="/user-agreement" className="text-accent underline">
             Kullanıcı Sözleşmesi
           </Link>
-          <Link to="/privacy" className="text-cyan-400 underline">
+          <Link to="/privacy" className="text-accent underline">
             Gizlilik Politikası
           </Link>
-          <Link to="/terms" className="text-cyan-400 underline">
+          <Link to="/terms" className="text-accent underline">
             Kullanım Şartları
           </Link>
         </div>
 
         <div className="mt-2">
-          <a href="mailto:mironintelligence@gmail.com" className="text-cyan-400 underline">
+          <a href="mailto:mironintelligence@gmail.com" className="text-accent underline">
             mironintelligence@gmail.com
           </a>
         </div>
