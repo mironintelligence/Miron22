@@ -1,57 +1,25 @@
 import os
-import json
 import secrets
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Optional, Dict, Any
 from fastapi import Header, HTTPException, status
+import jwt
 
-DATA_DIR = Path(os.getenv("DATA_DIR") or "data")
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-ADMIN_SESSIONS_FILE = DATA_DIR / "admin_sessions.json"
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-def _iso(dt: datetime) -> str:
-    return dt.astimezone(timezone.utc).isoformat()
-
-def _load_sessions() -> Dict[str, Any]:
-    if not ADMIN_SESSIONS_FILE.exists():
-        return {}
-    try:
-        with ADMIN_SESSIONS_FILE.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
-
-def _save_sessions(data: Dict[str, Any]) -> None:
-    ADMIN_SESSIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    tmp = ADMIN_SESSIONS_FILE.with_suffix(".tmp")
-    try:
-        with tmp.open("w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp, ADMIN_SESSIONS_FILE)
-    finally:
-        if tmp.exists():
-            try:
-                tmp.unlink()
-            except Exception:
-                pass
+SECRET_KEY = os.getenv("SECRET_KEY", "CHANGE_THIS_IN_PROD_OR_ENV_VAR")
+ALGORITHM = "HS256"
 
 def issue_admin_token(admin_id: str, ttl_hours: int = 24) -> str:
-    token = secrets.token_urlsafe(32)
-    sessions = _load_sessions()
-    sessions[token] = {
-        "admin_id": admin_id,
-        "issued_at": _iso(_now()),
-        "expires_at": _iso(_now() + timedelta(hours=ttl_hours)),
+    """
+    Issue a stateless JWT token for admin.
+    """
+    expire = datetime.now(timezone.utc) + timedelta(hours=ttl_hours)
+    payload = {
+        "sub": admin_id,
+        "role": "admin",
+        "exp": expire
     }
-    _save_sessions(sessions)
-    return token
+    encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
 def _extract_bearer(authorization: Optional[str]) -> Optional[str]:
     if not authorization:
@@ -71,17 +39,22 @@ def require_admin(authorization: Optional[str] = Header(default=None)) -> Dict[s
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Admin token gerekli. Authorization: Bearer <token>",
         )
-    sessions = _load_sessions()
-    info = sessions.get(incoming)
-    if not info:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin token geçersiz.")
+    
     try:
-        exp = datetime.fromisoformat(str(info.get("expires_at"))).astimezone(timezone.utc)
-    except Exception:
-        exp = _now() - timedelta(days=1)
-    if exp <= _now():
-        # remove expired
-        sessions.pop(incoming, None)
-        _save_sessions(sessions)
+        payload = jwt.decode(incoming, SECRET_KEY, algorithms=[ALGORITHM])
+        admin_id = payload.get("sub")
+        role = payload.get("role")
+        
+        if role != "admin" or not admin_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Geçersiz admin yetkisi.")
+            
+        return {
+            "admin_id": admin_id,
+            "role": role,
+            "expires_at": payload.get("exp")
+        }
+        
+    except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin token süresi doldu.")
-    return info
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Geçersiz admin token.")

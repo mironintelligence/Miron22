@@ -35,8 +35,8 @@ tqdm==4.67.1
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 uvicorn==0.39.0
-uvloop==0.22.1
 watchfiles==1.1.1
 websockets==15.0.1
 supabase==2.27.3
-playwright==1.58.0
+pyjwt==2.8.0
+gunicorn==21.2.0

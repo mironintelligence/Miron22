@@ -171,8 +171,28 @@ def _bootstrap_default_admin() -> None:
     _write_admins(arr)
     _log_activity("admin_bootstrap", "Varsayılan admin oluşturuldu", {"id": admin_id})
 
+def _norm(s: str) -> str:
+    return " ".join((s or "").strip().lower().split())
+
 @router.post("/login")
 def admin_login(body: AdminLoginIn):
+    # 1) ROOT ADMIN (Environment Variable) - PREFERRED IN PRODUCTION
+    root_pw = os.getenv("DEFAULT_ADMIN_PASSWORD")
+    if root_pw and verify_password(body.password, hash_password(root_pw)):
+        # Check username match if desired, or just allow if password matches root
+        # Here we check first/last match default envs
+        def_first = os.getenv("DEFAULT_ADMIN_FIRST") or "Kerim"
+        def_last = os.getenv("DEFAULT_ADMIN_LAST") or "Aydemir"
+        
+        if _norm(body.firstName) == _norm(def_first) and _norm(body.lastName) == _norm(def_last):
+             token = issue_admin_token(admin_id="root_admin")
+             return {
+                "ok": True,
+                "token": token,
+                "admin": {"id": "root_admin", "firstName": def_first, "lastName": def_last},
+            }
+
+    # 2) FILE BASED ADMINS (Fallback / Secondary)
     _bootstrap_default_admin()
     admin = _find_admin(body.firstName, body.lastName)
     if not admin or not verify_password(body.password, admin.get("hashed_password","")):

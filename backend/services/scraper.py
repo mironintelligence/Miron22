@@ -5,7 +5,7 @@ import random
 import urllib.parse
 from typing import Any, Dict, List
 
-from playwright.async_api import async_playwright
+# from playwright.async_api import async_playwright
 
 
 _USER_AGENTS = [
@@ -23,49 +23,53 @@ async def _sleep(min_s: float = 2.0, max_s: float = 5.0) -> None:
 
 
 async def search_yargitay_karar(keyword: str) -> List[Dict[str, Any]]:
-    q = (keyword or "").strip()
-    if not q:
-        return []
+    # STUBBED OUT TO REMOVE HEAVY PLAYWRIGHT DEPENDENCY ON RENDER
+    # TODO: Re-enable if dedicated scraper service is available
+    return []
 
-    ua = random.choice(_USER_AGENTS)
-    query = urllib.parse.quote_plus(f"{q} yargıtay karar")
-    url = f"https://scholar.google.com/scholar?q={query}"
+    # q = (keyword or "").strip()
+    # if not q:
+    #     return []
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent=ua,
-            locale="tr-TR",
-            viewport={"width": 1280, "height": 720},
-        )
-        page = await context.new_page()
+    # ua = random.choice(_USER_AGENTS)
+    # query = urllib.parse.quote_plus(f"{q} yargıtay karar")
+    # url = f"https://scholar.google.com/scholar?q={query}"
 
-        await _sleep()
-        await page.goto(url, wait_until="domcontentloaded", timeout=45_000)
-        await _sleep()
+    # async with async_playwright() as p:
+    #     browser = await p.chromium.launch(headless=True)
+    #     context = await browser.new_context(
+    #         user_agent=ua,
+    #         locale="tr-TR",
+    #         viewport={"width": 1280, "height": 720},
+    #     )
+    #     page = await context.new_page()
 
-        await page.wait_for_selector("div#gs_res_ccl_mid", timeout=20_000)
-        await _sleep()
+    #     await _sleep()
+    #     await page.goto(url, wait_until="domcontentloaded", timeout=45_000)
+    #     await _sleep()
 
-        cards = await page.query_selector_all("div.gs_r.gs_or.gs_scl")
-        out: List[Dict[str, Any]] = []
+    #     await page.wait_for_selector("div#gs_res_ccl_mid", timeout=20_000)
+    #     await _sleep()
 
-        for card in cards[:5]:
-            title_el = await card.query_selector("h3.gs_rt")
-            snippet_el = await card.query_selector("div.gs_rs")
+    #     cards = await page.query_selector_all("div.gs_r.gs_or.gs_scl")
+    #     out: List[Dict[str, Any]] = []
 
-            title = (await title_el.inner_text()) if title_el else ""
-            snippet = (await snippet_el.inner_text()) if snippet_el else ""
+    #     for card in cards[:5]:
+    #         title_el = await card.query_selector("h3.gs_rt")
+    #         snippet_el = await card.query_selector("div.gs_rs")
 
-            title = " ".join((title or "").split())
-            snippet = " ".join((snippet or "").split())
+    #         title = (await title_el.inner_text()) if title_el else ""
+    #         snippet = (await snippet_el.inner_text()) if snippet_el else ""
 
-            if title or snippet:
-                out.append({"title": title, "summary": snippet})
+    #         title = " ".join((title or "").split())
+    #         snippet = " ".join((snippet or "").split())
 
-            await _sleep()
+    #         if title or snippet:
+    #             out.append({"title": title, "summary": snippet})
 
-        await context.close()
-        await browser.close()
+    #         await _sleep()
 
-    return out
+    #     await context.close()
+    #     await browser.close()
+
+    # return out

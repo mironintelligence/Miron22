@@ -24,7 +24,7 @@ os.environ["SUPABASE_KEY"] = "test_key"
 
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.auth_router import _save_verification, _load_verification
+from backend.auth_router import router
 
 client = TestClient(app)
 
@@ -39,7 +39,19 @@ def clean_data():
     if os.path.exists("test_data"):
         shutil.rmtree("test_data")
 
+@patch("backend.admin_auth.SECRET_KEY", "test_secret_key")
+@patch("backend.admin_auth.ALGORITHM", "HS256")
 def test_pricing_flow():
+    # 0. Generate a valid admin token for the test
+    import jwt
+    from datetime import datetime, timedelta, timezone
+    
+    token = jwt.encode({
+        "sub": "admin_123",
+        "role": "admin",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1)
+    }, "test_secret_key", algorithm="HS256")
+
     # 1. Check default pricing
     res = client.post("/api/pricing/calculate", json={"count": 1})
     assert res.status_code == 200
@@ -55,7 +67,7 @@ def test_pricing_flow():
     res = client.post(
         "/api/pricing/config", 
         json=new_config,
-        headers={"Authorization": "Bearer secret_admin_token"}
+        headers={"Authorization": f"Bearer {token}"}
     )
     assert res.status_code == 200
 
@@ -75,23 +87,15 @@ def test_pricing_flow():
     # 5 * 10000 = 50000. Discount 25% = 12500. Total = 37500.
     assert res.json()["final_total"] == 37500.0
 
-@patch("backend.auth_router.get_supabase_client")
-@patch("backend.auth_router._send_verification_email")
-def test_auth_single_user_flow(mock_send_email, mock_supabase):
-    # Mock Supabase responses
-    mock_auth = MagicMock()
-    mock_supabase.return_value.auth = mock_auth
-    
-    # Mock register response
-    mock_auth.sign_up.return_value = {
-        "user": {"id": "test_user_id", "email": "test@example.com"}
-    }
-    
-    # Mock login response
-    mock_auth.sign_in_with_password.return_value = {
-        "session": {"access_token": "fake_jwt", "expires_in": 3600},
-        "user": {"id": "test_user_id", "email": "test@example.com"}
-    }
+@patch("backend.auth_router._read_users")
+@patch("backend.auth_router._write_users")
+def test_auth_single_user_flow(mock_write_users, mock_read_users):
+    # Mock data store
+    mock_users = []
+    mock_read_users.side_effect = lambda: mock_users
+    def save_users(users):
+        mock_users[:] = users
+    mock_write_users.side_effect = save_users
 
     # 1. Register
     payload = {
@@ -103,41 +107,26 @@ def test_auth_single_user_flow(mock_send_email, mock_supabase):
     }
     res = client.post("/api/auth/register", json=payload)
     assert res.status_code == 200
-    assert res.json()["requires_verification"] is True
+    assert res.json()["requires_verification"] is False
     
-    # Verify email was "sent"
-    mock_send_email.assert_called_once()
-    
-    # 2. Try to login (should fail)
-    res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "password123"})
-    assert res.status_code == 403
-    assert "verify" in res.json()["detail"].lower()
-
-    # 3. Get verification token manually from file (since we mocked email sending)
-    store = _load_verification()
-    assert "test@example.com" in store
-    token = store["test@example.com"]["token"]
-    
-    # 4. Verify email
-    res = client.get(f"/api/auth/verify-email?token={token}", follow_redirects=False)
-    assert res.status_code == 307 # Redirect
-    assert "verified=1" in res.headers["location"]
-
-    # 5. Login again (should succeed)
+    # 2. Login
     res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "password123"})
     assert res.status_code == 200
-    assert res.json()["token"] == "fake_jwt"
+    assert "token" in res.json()
+    
+    # 3. Wrong password
+    res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "wrong"})
+    assert res.status_code == 401
 
-@patch("backend.auth_router.get_supabase_client")
-def test_auth_multi_user_flow(mock_supabase):
-    # Mock Supabase
-    mock_auth = MagicMock()
-    mock_supabase.return_value.auth = mock_auth
-    mock_auth.sign_up.return_value = {"user": {"email": "multi@example.com"}}
-    mock_auth.sign_in_with_password.return_value = {
-        "session": {"access_token": "fake_jwt_multi"},
-        "user": {"email": "multi@example.com"}
-    }
+@patch("backend.auth_router._read_users")
+@patch("backend.auth_router._write_users")
+def test_auth_multi_user_flow(mock_write_users, mock_read_users):
+    # Mock data store
+    mock_users = []
+    mock_read_users.side_effect = lambda: mock_users
+    def save_users(users):
+        mock_users[:] = users
+    mock_write_users.side_effect = save_users
 
     # 1. Register Multi
     payload = {
