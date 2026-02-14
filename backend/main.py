@@ -33,17 +33,52 @@ from openai_client import get_openai_client, get_openai_api_key
 
 # OpenAI error types (sürüm uyumlu)
 try:
-    from openai import AuthenticationError, BadRequestError, RateLimitError, APIateLimitError, APIConnectionError, APIStatusError
+    from openai import AuthenticationError, BadRequestError, RateLimitError, APIConnectionError, APIStatusError
 except Exception:
     AuthenticationError = BadRequestError = RateLimitError = APIConnectionError = APIStatusError = Exception
 
-OPENAI_API_KEY = get_openai_api_key()
-client = get_openai_client()
+# Initialize lazily or checking env
+client = None
+try:
+    # Try to init client but don't crash module if key missing (will be checked in startup)
+    client = get_openai_client()
+except Exception:
+    client = None
 
 # ---------------------------
 # APP
 # ---------------------------
 app = FastAPI(title="Libra AI Backend", version="1.4.0")
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    Runtime validation of environment variables.
+    Fails clearly if critical keys are missing.
+    """
+    required_vars = [
+        "SUPABASE_URL",
+        "SUPABASE_KEY",
+        "OPENAI_API_KEY",
+        "SECRET_KEY"
+    ]
+    missing = []
+    print("--- STARTUP ENVIRONMENT CHECK ---")
+    for var in required_vars:
+        val = os.getenv(var)
+        if not val:
+            missing.append(var)
+            print(f"❌ {var} is MISSING")
+        else:
+            masked = val[:4] + "*" * 4 + val[-4:] if len(val) > 8 else "****"
+            print(f"✅ {var} is set ({masked})")
+    
+    if missing:
+        print(f"🔥 CRITICAL: Missing environment variables: {', '.join(missing)}")
+        # We can choose to raise exception here to crash explicitly in logs
+        # raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
+    else:
+        print("✅ All required environment variables are present.")
 
 # ---------------------------
 # CORS
@@ -282,6 +317,13 @@ def _run_llm(messages):
 @app.post("/assistant-chat")
 def assistant_chat(req: ChatRequest = Body(...)):
     global client
+    if not client:
+        # Try to init again if it failed at startup
+        try:
+             client = get_openai_client()
+        except Exception:
+             pass
+        
     if not client:
         # .env yanlışsa burada patlar
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY eksik/boş ya da client oluşturulamadı.")
