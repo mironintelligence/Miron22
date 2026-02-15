@@ -36,26 +36,26 @@ const tiles = [
   // ✅ Yeni: Dava Simülasyonu (yakında)
   {
     title: "Dava Simülasyonu",
-    desc: "Senaryoya göre olası sonuçlar ve strateji önerisi. (Yakında)",
+    desc: "Senaryoya göre olası sonuçlar ve strateji önerisi.",
     to: "/simulation",
     icon: "🎯",
-    disabled: true,
+    disabled: false,
   },
 
   // ✅ Yakında: Yargıtay / Mevzuat (launch’u bozmasın)
   {
     title: "Yargıtay Karar Arama",
-    desc: "AI destekli emsal karar ve strateji analizi. (Yakında)",
+    desc: "AI destekli emsal karar ve strateji analizi.",
     to: "/yargitay",
     icon: "⚖️",
-    disabled: true,
+    disabled: false,
   },
   {
     title: "Mevzuat Analizi",
-    desc: "Kanun / madde bazlı AI açıklama ve strateji. (Yakında)",
+    desc: "Kanun / madde bazlı AI açıklama ve strateji.",
     to: "/mevzuat",
     icon: "📚",
-    disabled: true,
+    disabled: false,
   },
 
   {
