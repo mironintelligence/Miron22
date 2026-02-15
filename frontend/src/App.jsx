@@ -26,6 +26,7 @@ import GuestRoute from "./components/GuestRoute.jsx";
 import Calculators from "./pages/Calculators";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import Welcome from "./pages/Welcome.jsx";
+import CaseSimulation from "./pages/CaseSimulation.jsx";
 
 import { useAuth } from "./auth/AuthProvider";
 
@@ -158,6 +159,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Calculators />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/case-simulation"
+            element={
+              <ProtectedRoute>
+                <CaseSimulation />
               </ProtectedRoute>
             }
           />

@@ -13,6 +13,7 @@ export default function Header({ onOpenLogin }) {
     if (authed) {
       return [
         { to: "/home", label: "Ana Menü" },
+        { to: "/case-simulation", label: "Dava Simülasyonu" },
         { to: "/yargitay", label: "Yargıtay Kararları" },
         { to: "/pleadings", label: "Dilekçe Oluşturucu" },
         { to: "/assistant", label: "Asistan" },
@@ -47,15 +48,18 @@ export default function Header({ onOpenLogin }) {
               <span className="text-xl leading-none">☰</span>
             </button>
 
-            <Link to={authed ? "/home" : "/"} className="flex flex-col leading-tight">
-              <span className="text-2xl font-bold tracking-tighter bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">
-                {authed ? "Ana Menü" : "Miron AI"}
-              </span>
-              {!authed && (
-                <span className="text-[10px] text-white/60 uppercase tracking-widest -mt-1">
-                  by Miron Intelligence
+            <Link to={authed ? "/home" : "/"} className="flex items-center gap-2">
+              <img src="/logo.jpg" alt="Miron AI" className="h-8 w-auto rounded-md object-contain" onError={(e) => e.target.style.display = 'none'} />
+              <div className="flex flex-col leading-tight">
+                <span className="text-2xl font-bold tracking-tighter bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">
+                  Miron AI
                 </span>
-              )}
+                {!authed && (
+                  <span className="text-[10px] text-white/60 uppercase tracking-widest -mt-1">
+                    by Miron Intelligence
+                  </span>
+                )}
+              </div>
             </Link>
           </div>
 
