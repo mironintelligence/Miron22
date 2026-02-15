@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 try:
     from backend.auth import get_supabase_client
-except Exception:
+except ImportError:
     from auth import get_supabase_client
 
 from rag_engine import analyze_case_risk

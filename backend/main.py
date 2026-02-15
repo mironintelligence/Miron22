@@ -399,11 +399,19 @@ if analyze_router:  app.include_router(analyze_router)
                     
 
 # New Auth Router (Supabase)
-from backend.auth_router import router as auth_router_new
+try:
+    from backend.auth_router import router as auth_router_new
+except ImportError:
+    from auth_router import router as auth_router_new
+
 app.include_router(auth_router_new, prefix="/api/auth", tags=["Authentication"])
 
 # Pricing Router
-from backend.pricing_router import router as pricing_router
+try:
+    from backend.pricing_router import router as pricing_router
+except ImportError:
+    from pricing_router import router as pricing_router
+
 app.include_router(pricing_router, prefix="/api/pricing", tags=["Pricing"])
 
 # Admin Router (ensure it is included)
