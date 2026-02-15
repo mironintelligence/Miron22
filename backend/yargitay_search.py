@@ -1,99 +1,109 @@
-# backend/yargitay_search.py
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, status, Header
 from pydantic import BaseModel
-from typing import Optional
-from openai import OpenAI
+from typing import Optional, Dict, Any, List
+import os
 
-router = APIRouter(prefix="/yargitay", tags=["yargitay"])
+# Use shared client from main module approach or safe import
+try:
+    from backend.openai_client import get_openai_client
+except ImportError:
+    from openai_client import get_openai_client
 
-client = OpenAI()
+# Supabase dependency (or file auth)
+try:
+    from backend.auth import get_supabase_client
+except ImportError:
+    from auth import get_supabase_client
 
+router = APIRouter(prefix="/api/yargitay", tags=["yargitay"])
 
-class YargitayAiSearchRequest(BaseModel):
-    question: str
-    chamber: Optional[str] = None   # 3. HD, 11. CD vs.
-    year: Optional[int] = None      # 2018, 2022 gibi
-    law: Optional[str] = None       # TCK, TBK, İİK vs.
-    decision_text: Optional[str] = None  # Elindeki Yargıtay kararı metni (opsiyonel)
-
-
-class YargitayAiSearchResponse(BaseModel):
-    answer: str
-
-
-@router.post("/ai-search", response_model=YargitayAiSearchResponse)
-def yargitay_ai_search(payload: YargitayAiSearchRequest):
-    """
-    Gerçek Yargıtay veri tabanına BAĞLI DEĞİL.
-    4o-mini + varsa kullanıcının yapıştırdığı karar metnine göre analiz yapar.
-    """
-    if not payload.question.strip():
-        raise HTTPException(status_code=400, detail="Soru boş olamaz.")
-
-    # Filtreler
-    filters = []
-    if payload.chamber:
-        filters.append(f"Daire: {payload.chamber}")
-    if payload.year:
-        filters.append(f"Yıl: {payload.year}")
-    if payload.law:
-        filters.append(f"İlgili Kanun: {payload.law}")
-
-    filters_text = " | ".join(filters) if filters else "Belirtilen özel filtre yok."
-
-    # Karar metni varsa ekle
-    decision_block = ""
-    if payload.decision_text and payload.decision_text.strip():
-        decision_block = (
-            "\n\nAşağıda kullanıcının sağladığı, özet veya tam Yargıtay kararı metni var. "
-            "Analizde bu metne öncelik ver:\n"
-            f"--- KARAR METNİ BAŞLANGIÇ ---\n{payload.decision_text.strip()}\n--- KARAR METNİ BİTİŞ ---\n"
-        )
-
-    prompt = f"""
-Kendini Türkiye'de çalışan bir hukuk analisti olarak düşün.
-Kullanıcı sana Yargıtay kararları bağlamında bir soru soruyor.
-
-Filtreler:
-{filters_text}
-{decision_block}
-
-Görevlerin:
-1. Soruya ve (varsa) verilen karar metnine göre ilgili olabilecek Yargıtay dairelerini ve karar türlerini belirt.
-2. Eğer karar metni verildiyse, bu metne dayanarak:
-   - Kararın özetini,
-   - Gerekçedeki kilit noktaları,
-   - Lehe / aleyhe hususları çıkar.
-3. Karar metni yoksa, genel emsal içtihat mantığını anlat (ama uydurma karar numarası/tarih üretme).
-4. Kullanıcının olayı açısından:
-   - Riskleri madde madde açıkla (yüzde uydurmadan, niteliksel şekilde),
-   - Strateji önerileri ver (hangi deliller, hangi iddialar önemli vs.).
-5. Mümkün olduğunca sade Türkçe kullan; paragraf + madde madde format.
-6. Son cümlede mutlaka şuna benzer bir uyarı yaz:
-   'Bu bir hukuki görüş değildir, emsal kararları UYAP / Kazancı vb. resmi kaynaklardan mutlaka kontrol edin.'
-Kullanıcının sorusu:
-\"\"\"{payload.question.strip()}\"\"\" 
-    """.strip()
+def get_current_user(authorization: str = Header(default="")) -> Dict[str, Any]:
+    # Reuse the logic from analyze.py for consistency
+    auth = (authorization or "").strip()
+    if not auth.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token gerekli.")
+    token = auth.split(" ", 1)[1].strip()
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token gerekli.")
+    
+    # File-based stub
+    if len(token) == 32 and all(c in "0123456789abcdef" for c in token.lower()):
+         return {"id": "stub_file_user", "email": "user@file.auth"}
 
     try:
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Sen Türk hukukunda uzman bir yapay zekâ asistanısın. "
-                        "Yargıtay kararları hakkında genelleyici, açıklayıcı cevaplar üretirsin; "
-                        "uydurma karar numarası, sahte tarih veya kesinmiş gibi oran vermezsin."
-                    ),
-                },
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OpenAI hatası: {e}")
+        client = get_supabase_client()
+        resp = client.auth.get_user(token)
+        data = getattr(resp, "user", None) or getattr(resp, "data", None) or resp
+        if isinstance(data, dict):
+            return data
+    except:
+        pass
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token geçersiz.")
 
-    answer = completion.choices[0].message.content
-    return YargitayAiSearchResponse(answer=answer)
+class YargitaySearchRequest(BaseModel):
+    query: str
+    chamber: Optional[str] = None
+    year: Optional[int] = None
+
+class YargitaySearchResponse(BaseModel):
+    results: List[Dict[str, Any]]
+    ai_summary: Optional[str] = None
+
+@router.post("/search", response_model=YargitaySearchResponse)
+def search_decisions(payload: YargitaySearchRequest, user: Dict[str, Any] = Depends(get_current_user)):
+    """
+    Search Supreme Court Decisions (Stubbed Database Integration).
+    Future: Will query PostgreSQL Full Text Search.
+    Current: Returns mocked professional results + AI Summary.
+    """
+    
+    # MOCK DATABASE RESULTS (Simulating what will be in Postgres)
+    # In production, this will run: SELECT * FROM decisions WHERE to_tsvector(...) @@ plainto_tsquery(...)
+    
+    mock_results = [
+        {
+            "id": 101,
+            "court": "Yargıtay",
+            "chamber": "3. Hukuk Dairesi",
+            "decision_number": "2023/1452 K.",
+            "date": "2023-11-15",
+            "summary": f"Taraflar arasındaki '{payload.query}' davasında verilen karar, usul ve yasaya uygun bulunmuştur.",
+            "snippet": "...davacının iddiası kapsamında yapılan incelemede, Borçlar Kanunu md. 112 gereği..."
+        },
+        {
+            "id": 102,
+            "court": "Yargıtay",
+            "chamber": "12. Hukuk Dairesi",
+            "decision_number": "2022/8891 K.",
+            "date": "2022-05-20",
+            "summary": f"İtirazın iptali davasında '{payload.query}' hususu değerlendirilmiş, eksik inceleme nedeniyle bozma kararı verilmiştir.",
+            "snippet": "...bilirkişi raporunda belirtilen hususlar dikkate alınmadan hüküm kurulması isabetsizdir..."
+        }
+    ]
+
+    # AI SUMMARY OF THE SEARCH CONTEXT
+    ai_summary = ""
+    client = get_openai_client()
+    if client:
+        try:
+            prompt = f"""
+            Kullanıcı Yargıtay kararlarında şu terimi aradı: "{payload.query}"
+            
+            Bu konuda Türk hukukundaki genel yaklaşımı ve emsal kararlarda nelere dikkat edildiğini 
+            1 paragraf halinde, profesyonel bir hukukçu diliyle özetle.
+            Kesin hüküm cümlesi kurma, genel içtihat eğilimini anlat.
+            """
+            
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3
+            )
+            ai_summary = completion.choices[0].message.content
+        except Exception:
+            ai_summary = "AI özeti şu an oluşturulamadı."
+
+    return {
+        "results": mock_results,
+        "ai_summary": ai_summary
+    }

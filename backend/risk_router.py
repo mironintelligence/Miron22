@@ -1,13 +1,87 @@
-# backend/risk_router.py
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query, Depends
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import os, io, json, re
 
+try:
+    from backend.openai_client import get_openai_client
+except ImportError:
+    from openai_client import get_openai_client
+
 import pdfplumber
 from docx import Document
 
-router = APIRouter(prefix="/risk", tags=["Risk & Strateji Analizi"])
+router = APIRouter(prefix="/api/risk", tags=["Risk & Strateji Analizi"])
+
+# Use advanced model for simulation
+SIMULATION_MODEL = "gpt-4o"  # High reasoning
+
+class SimulationResponse(Dict[str, Any]):
+    pass
+
+@router.post("/simulate", response_model=SimulationResponse)
+def simulate_case(
+    case_description: str = Form(...),
+    jurisdiction: str = Form("Türkiye"),
+    user_role: str = Form("Davacı")
+):
+    """
+    Advanced Case Simulation with Deep Reasoning.
+    Uses a stronger model to predict outcomes, risks, and strategic moves.
+    """
+    client = get_openai_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="AI Client init failed.")
+
+    prompt = f"""
+    Sen kıdemli bir stratejik dava danışmanısın.
+    Aşağıdaki dava senaryosunu derinlemesine simüle et.
+    
+    SENARYO:
+    {case_description}
+    
+    Taraf: {user_role}
+    Yargı Yeri: {jurisdiction}
+    
+    GÖREVLERİN:
+    1. Yargı Yeri ve Usul Analizi: Hangi mahkeme görevli? İspat yükü kimde?
+    2. Risk Analizi: Zayıf noktalarımız neler? Karşı taraf ne diyebilir?
+    3. Simülasyon:
+       - En İyi Senaryo: (Kazanma ihtimali, süre, maliyet)
+       - En Kötü Senaryo: (Kaybetme riski, masraflar)
+       - En Olası Sonuç: (Gerekçeli tahmin)
+    4. Stratejik Tavsiye: Şimdi ne yapmalıyız? (Delil, ihtar, sulh vb.)
+    
+    ÇIKTI FORMATI (JSON):
+    {{
+        "jurisdiction_analysis": "...",
+        "burden_of_proof": "...",
+        "risk_factors": ["risk1", "risk2"],
+        "counter_arguments": ["arg1", "arg2"],
+        "scenarios": {{
+            "best_case": "...",
+            "worst_case": "...",
+            "most_probable": "..."
+        }},
+        "win_probability_percent": 60,
+        "estimated_duration_months": 12,
+        "strategic_recommendation": "..."
+    }}
+    Sadece JSON döndür.
+    """
+    
+    try:
+        completion = client.chat.completions.create(
+            model=SIMULATION_MODEL,
+            messages=[{"role": "system", "content": "You are a senior legal strategist. Output valid JSON only."}],
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+            response_format={"type": "json_object"}
+        )
+        result = json.loads(completion.choices[0].message.content)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 
 # ------- Helpers -------
 

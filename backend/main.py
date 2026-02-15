@@ -144,9 +144,79 @@ def root():
     return {"status": "ok", "msg": "Libra AI Backend çalışıyor!"}
 
 # =============================
-# EVRAK ANALİZ
+# EVRAK ANALİZ (UPDATED FOR LEGAL STRUCTURE)
 # =============================
 def smart_format(text: str, filename: str, dava_turu: str):
+    """
+    Uses OpenAI to structure raw text into a professional legal analysis format.
+    Fallback to simple parsing if AI fails or key missing.
+    """
+    if client:
+        try:
+            # AI-POWERED STRUCTURED ANALYSIS
+            prompt = f"""
+            Aşağıdaki hukuk belgesi metnini profesyonel, yapılandırılmış bir formatta analiz et.
+            Eksik bilgiler için "Belgede belirtilmemiş" yaz.
+            Format tam olarak şu şekilde olmalı:
+
+            ## CASE INFORMATION
+            * Court: [Mahkeme adı]
+            * Case Number: [Dosya/Esas No]
+            * File Number: [Karar No varsa]
+            * Decision Number: [Karar No]
+            * Decision Date: [Karar Tarihi]
+            * Document Type: [Dilekçe / Karar / Bilirkişi Raporu vb.]
+
+            ## PARTIES
+            * Plaintiff (Davacı): [İsim/Unvan]
+            * Defendant (Davalı): [İsim/Unvan]
+            * Attorneys: [Varsa vekiller]
+            * Other Parties: [İhbar olunan vb.]
+
+            ## SUBJECT OF THE CASE
+            [Uyuşmazlığın net özeti]
+
+            ## CLAIMS
+            [Davacı iddiaları maddeler halinde]
+
+            ## DEFENSES
+            [Davalı savunmaları maddeler halinde]
+
+            ## LEGAL GROUNDS
+            [Dayanılan kanun maddeleri ve mevzuat]
+
+            ## COURT REASONING
+            [Mahkemenin gerekçesi veya bilirkişinin tespitleri]
+
+            ## FINAL DECISION
+            [Sonuç ve hüküm]
+
+            ---
+            BELGE METNİ:
+            {text[:15000]}  # Truncate to avoid context limit if huge
+            """
+            
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "Sen kıdemli bir hukuk asistanısın. Çıktın sadece istenen formatta olmalı."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1
+            )
+            structured_output = completion.choices[0].message.content.strip()
+            
+            # Extract a short summary for the summary field
+            summary = "AI tarafından yapılandırılmış analiz aşağıdadır."
+            
+            return structured_output, summary
+            
+        except Exception as e:
+            print(f"AI Analysis Failed: {e}")
+            # Fallback to legacy method below
+            pass
+
+    # LEGACY FALLBACK (Regex/Rule based)
     clean = text.replace("\r", "")
     lines = [l.strip() for l in clean.split("\n") if l.strip()]
 
@@ -166,38 +236,19 @@ def smart_format(text: str, filename: str, dava_turu: str):
     summary = " ".join(lines)[:1200] + ("..." if len(" ".join(lines)) > 1200 else "")
 
     formatted = f"""
-📄 Dosya Adı: {filename}
+## CASE INFORMATION
+* Court: Not specified (Legacy Parse)
+* Case Number: Not specified
+* Document Type: {dava_turu}
 
----
+## PARTIES
+{chr(10).join(f"* {t}" for t in taraflar[:10])}
 
-⚖ Dava Türü: {dava_turu}
-
----
-
-📘 Dava Özeti:
+## SUMMARY
 {summary}
 
----
-
-🧾 Taraflar:
-{chr(10).join(f"- {t}" for t in taraflar[:12])}
-
----
-
-📚 Olaylar ve Olgular:
-{chr(10).join(f"- {o}" for o in olaylar[:12])}
-
----
-
-📑 Hukuki Değerlendirme:
-{chr(10).join(f"- {h}" for h in hukuki[:12])}
-
----
-
-📘 Dayanak Maddeler:
-{chr(10).join(f"- {d}" for d in dayanak[:12])}
-
----
+## LEGAL EXTRACTS
+{chr(10).join(f"* {d}" for d in dayanak[:10])}
 """.strip()
 
     return formatted, summary
@@ -260,31 +311,36 @@ class ChatRequest(BaseModel):
     context: Optional[str] = None
 
 SYSTEM_PROMPT = """
-Senin adın *Libra Assistant*.
-Türkiye’de aktif çalışan profesyonel bir avukat yapay zekâ asistanısın.
+Senin adın *Miron AI Legal Assistant*.
+Şu anki tarih: 2026.
 
-Kurallar:
-- Kullanıcı hukuki soru sormuyorsa SADECE kısa cevap ver.
-- Kullanıcı “adın ne / kimsin” derse AYNEN şöyle cevap ver:
-  “Ben Libra Assistant. Türkiye hukukuna uygun şekilde hukuki analiz ve strateji üretmek için buradayım.”
-- Hukuki sorularda: başlık + maddeler, kısa net.
+TEMEL PRENSİPLER:
+1. Sen SADECE ve SADECE bir hukuk asistanısın. Hukuk dışı (spor, magazin, yemek tarifi vb.) sorulara "Ben sadece hukuki konularda yardımcı olabilirim." diyerek nazikçe ret cevabı ver.
+2. Cevapların profesyonel, net ve yapılandırılmış olmalı.
+3. Asla tarih (gün/ay) belirtme, sadece "2026 yılı itibarıyla..." gibi genel ifadeler kullan.
+4. Kullanıcı "adın ne" derse: "Ben Miron AI Legal Assistant. Türkiye hukukuna uygun analiz ve strateji desteği sağlarım." de.
 
-Hukuki yanıt formatı:
+YANIT FORMATI (HUKUKİ SORULAR İÇİN):
 
 ### 📌 Konunun Özeti
-- 1–3 cümle
+- 1–3 cümle ile durumu özetle.
 
 ### ⚖ Hukuki Değerlendirme
-- Madde madde
+- Mevzuat ve içtihat ışığında analiz yap.
 
 ### 🧾 Olası Haklar ve Talepler
-- Madde madde
+- Hangi davalar açılabilir?
+- Hangi tazminatlar istenebilir?
 
 ### 🧠 Stratejik Öneriler
-- Delil/evrak/hamle önerileri
+- Delil toplama, ihtarname, arabuluculuk vb. adımlar.
 
 ### 📚 İlgili Mevzuat
-- Sadece gerçekten ilgili maddeler
+- Kanun maddeleri (TMK, TBK, HMK vb.)
+
+MODEL KULLANIMI:
+- Genel sorular ve analizler için hızlı model kullanılır.
+- Simülasyon modunda derinlemesine stratejik analiz yapılır.
 """.strip()
 
 def _new_chat_id() -> str:
