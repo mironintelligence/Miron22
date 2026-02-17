@@ -153,53 +153,65 @@ def smart_format(text: str, filename: str, dava_turu: str):
     """
     if client:
         try:
-            # AI-POWERED STRUCTURED ANALYSIS
+            # AI-POWERED STRUCTURED ANALYSIS - DEEP MODE
             prompt = f"""
-            Aşağıdaki hukuk belgesi metnini profesyonel, yapılandırılmış bir formatta analiz et.
-            Eksik bilgiler için "Belgede belirtilmemiş" yaz.
-            Format tam olarak şu şekilde olmalı:
+            Sen kıdemli bir hukuk analisti ve eski bir hakimsin.
+            Aşağıdaki hukuk belgesini (dilekçe, karar, bilirkişi raporu vb.) en ince detayına kadar analiz etmelisin.
+            
+            Yüzeysel özetleme YAPMA.
+            Her bir argümanı, her bir delili, her bir yasal atfı tek tek çıkar.
+            
+            Eğer bir bilgi belgede açıkça yoksa, "Belgede belirtilmemiş" yaz. Asla "-" veya boşluk bırakma.
+            
+            ÇIKTI FORMATI (Aşağıdaki başlıkları aynen kullan):
 
             ## CASE INFORMATION
-            * Court: [Mahkeme adı]
+            * Court: [Mahkeme Adı - Tam unvan]
             * Case Number: [Dosya/Esas No]
-            * File Number: [Karar No varsa]
-            * Decision Number: [Karar No]
+            * Decision Number: [Karar No - varsa]
             * Decision Date: [Karar Tarihi]
-            * Document Type: [Dilekçe / Karar / Bilirkişi Raporu vb.]
+            * Document Type: [Belge Türü: Dava Dilekçesi / Cevap Dilekçesi / Bilirkişi Raporu / Gerekçeli Karar vb.]
+            * Jurisdiction: [Yargı Yeri / Şehir]
 
             ## PARTIES
-            * Plaintiff (Davacı): [İsim/Unvan]
-            * Defendant (Davalı): [İsim/Unvan]
-            * Attorneys: [Varsa vekiller]
-            * Other Parties: [İhbar olunan vb.]
+            * Plaintiff (Davacı): [Tam İsim/Unvan]
+            * Defendant (Davalı): [Tam İsim/Unvan]
+            * Attorneys: [Varsa vekillerin isimleri]
+            * Other Parties: [İhbar olunan, fer'i müdahil vb.]
 
-            ## SUBJECT OF THE CASE
-            [Uyuşmazlığın net özeti]
+            ## PROCEDURAL HISTORY
+            [Davanın aşamaları, duruşma tarihleri, ara kararlar ve usuli işlemlerin kronolojik özeti]
 
-            ## CLAIMS
-            [Davacı iddiaları maddeler halinde]
+            ## CLAIMS (DAVACI İDDİALARI)
+            [Davacının tüm iddialarını maddeler halinde, detaylıca listele]
 
-            ## DEFENSES
-            [Davalı savunmaları maddeler halinde]
+            ## DEFENSES (DAVALI SAVUNMALARI)
+            [Davalının tüm karşı argümanlarını maddeler halinde, detaylıca listele]
 
-            ## LEGAL GROUNDS
-            [Dayanılan kanun maddeleri ve mevzuat]
+            ## EVIDENCE MENTIONED
+            [Belgede geçen tüm deliller: Tanıklar, faturalar, sözleşmeler, keşif, bilirkişi raporları vb.]
 
-            ## COURT REASONING
-            [Mahkemenin gerekçesi veya bilirkişinin tespitleri]
+            ## LEGAL REFERENCES
+            [Dayanılan tüm kanun maddeleri, yönetmelikler ve Yargıtay içtihatları]
+
+            ## COURT REASONING STRUCTURE
+            [Mahkemenin veya bilirkişinin gerekçesi. Hangi delile neden itibar edildi? Hangi argüman neden reddedildi? Mantıksal akışı kur.]
 
             ## FINAL DECISION
-            [Sonuç ve hüküm]
+            [Hüküm fıkrası veya sonuç talebi. Kim kazandı? Ne kadar tazminat? Masraflar kime yüklendi?]
+
+            ## POTENTIAL APPEAL GROUNDS
+            [Eğer bu bir kararsa: Temyiz veya istinaf için olası hukuki hatalar veya eksik inceleme noktaları. Eğer dilekçeyse: Karşı tarafın itiraz edebileceği zayıf noktalar.]
 
             ---
-            BELGE METNİ:
-            {text[:15000]}  # Truncate to avoid context limit if huge
+            BELGE METNİ (Analiz Edilecek Kısım):
+            {text[:25000]}  # Increased context limit for deep analysis
             """
             
             completion = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Sen kıdemli bir hukuk asistanısın. Çıktın sadece istenen formatta olmalı."},
+                    {"role": "system", "content": "Sen Türk hukukunda uzman, titiz ve analitik düşünen bir yapay zeka asistanısın. Çıktın profesyonel hukuk formatında olmalı."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1
@@ -207,7 +219,7 @@ def smart_format(text: str, filename: str, dava_turu: str):
             structured_output = completion.choices[0].message.content.strip()
             
             # Extract a short summary for the summary field
-            summary = "AI tarafından yapılandırılmış analiz aşağıdadır."
+            summary = "Miron AI tarafından yapılan detaylı analiz aşağıdadır."
             
             return structured_output, summary
             
