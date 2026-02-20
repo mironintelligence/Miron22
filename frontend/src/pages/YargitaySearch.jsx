@@ -1,287 +1,229 @@
 // src/pages/YargitaySearch.jsx
 import React, { useState } from "react";
+import { api } from "../auth/api"; // Assuming we can use the helper, or use fetch
 
 const hukukDaireleri = [
-  "3. HD",
-  "4. HD",
-  "11. HD",
-  "13. HD",
+  "3. Hukuk Dairesi",
+  "4. Hukuk Dairesi",
+  "11. Hukuk Dairesi",
+  "12. Hukuk Dairesi",
+  "13. Hukuk Dairesi",
   "YHGK",
 ];
 
 const cezaDaireleri = [
-  "1. CD",
-  "5. CD",
-  "11. CD",
+  "1. Ceza Dairesi",
+  "5. Ceza Dairesi",
+  "11. Ceza Dairesi",
 ];
 
 export default function YargitaySearch() {
-  const [question, setQuestion] = useState("");
+  const [query, setQuery] = useState("");
   const [chamber, setChamber] = useState("");
   const [year, setYear] = useState("");
-  const [law, setLaw] = useState("");
-  const [decisionText, setDecisionText] = useState("");
-  const [useDecisionText, setUseDecisionText] = useState(false);
+  const [court, setCourt] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [answer, setAnswer] = useState("");
+  const [results, setResults] = useState([]);
+  const [searched, setSearched] = useState(false);
   const [error, setError] = useState("");
+  const [expandedId, setExpandedId] = useState(null);
 
-  const handleSubmit = async (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
     setError("");
-    setAnswer("");
+    setResults([]);
+    setSearched(false);
+    setExpandedId(null);
 
-    if (!question.trim()) {
-      setError("Önce olayını veya sorunu detaylı yaz.");
+    if (!query.trim()) {
+      setError("Lütfen aranacak kelime veya cümle girin.");
       return;
     }
 
     setLoading(true);
     try {
-      const payload = {
-        question: question.trim(),
-        chamber: chamber.trim() || null,
-        year: year ? Number(year) : null,
-        law: law.trim() || null,
-        decision_text:
-          useDecisionText && decisionText.trim()
-            ? decisionText.trim()
-            : null,
-      };
+      // Build query params
+      const params = new URLSearchParams();
+      params.append("q", query.trim());
+      if (chamber) params.append("chamber", chamber);
+      if (year) params.append("year", year);
+      if (court) params.append("court", court);
 
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/yargitay/ai-search`,
-        {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+      const res = await fetch(`${base}/api/search/decisions?${params.toString()}`, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token") || "demo"}`,
+            "Content-Type": "application/json"
         }
-      );
+      });
+
+      if (res.status === 204) {
+         setResults([]);
+         setSearched(true);
+         return;
+      }
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Sunucudan hata döndü.");
+        throw new Error(data.detail || "Arama sırasında hata oluştu.");
       }
 
       const data = await res.json();
-      setAnswer(data.answer || "");
+      setResults(data.results || []);
+      setSearched(true);
+
     } catch (err) {
+      console.error(err);
       setError(err.message || "Bilinmeyen bir hata oluştu.");
     } finally {
       setLoading(false);
     }
   };
 
-  const setChamberQuick = (val) => {
-    setChamber(val);
-  };
-
-  const setLawQuick = (val) => {
-    setLaw(val);
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id);
   };
 
   return (
-    <div className="mt-24 max-w-6xl mx-auto px-4">
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-6">
-        {/* SOL TARAF: FORM */}
-        <div className="glass px-6 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-2xl font-semibold">
-                Yargıtay Karar Analizi (AI)
-              </h2>
-              <p className="text-sm text-subtle">
-                Olayını, filtrelerini ve (varsa) karar metnini gir; AI sana
-                emsal mantığı, riskler ve stratejiyi anlatsın.
-              </p>
-            </div>
-          </div>
+    <div className="mt-24 max-w-7xl mx-auto px-4 pb-12">
+      <div className="text-center mb-10">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-600 bg-clip-text text-transparent">
+          Karar Arama Motoru
+        </h1>
+        <p className="text-white/60 mt-2 max-w-2xl mx-auto">
+          Yapay zeka destekli hibrit arama (Semantik + Anahtar Kelime). 
+          Yargıtay ve Danıştay kararlarında derinlemesine arama yapın.
+        </p>
+      </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* OLAY / SORU */}
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
+        {/* FILTERS SIDEBAR */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 h-fit sticky top-24 backdrop-blur-sm">
+          <form onSubmit={handleSearch} className="space-y-6">
             <div>
-              <label className="block text-xs font-medium text-subtle mb-1">
-                Soru / Olay Özeti
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Arama Metni
               </label>
               <textarea
-                className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm min-h-[130px] focus:outline-none focus:ring-1 focus:ring-accent"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Örn: Kira sözleşmesi feshi, tahliye ve birikmiş kira alacağı hakkında Yargıtay içtihadı nedir? Kiracı 3 dönemdir ödeme yapmıyor..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none transition resize-none h-32"
+                placeholder="Örn: kira sözleşmesi tahliye birikmiş kira alacağı..."
               />
             </div>
 
-            {/* HIZLI FILTRELER */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-subtle mb-1">
-                  Daire (opsiyonel)
-                </label>
-                <input
-                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent mb-2"
-                  value={chamber}
-                  onChange={(e) => setChamber(e.target.value)}
-                  placeholder="Örn: 3. HD, 11. CD"
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {hukukDaireleri.map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setChamberQuick(d)}
-                      className={`px-2 py-1 rounded-full text-[11px] border border-white/10 ${
-                        chamber === d ? "bg-accent text-black" : "bg-black/40"
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                  {cezaDaireleri.map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setChamberQuick(d)}
-                      className={`px-2 py-1 rounded-full text-[11px] border border-white/10 ${
-                        chamber === d ? "bg-accent text-black" : "bg-black/40"
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-subtle mb-1">
-                    Yıl (opsiyonel)
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-                    value={year}
-                    onChange={(e) => setYear(e.target.value)}
-                    placeholder="2022"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-subtle mb-1">
-                    İlgili Kanun (opsiyonel)
-                  </label>
-                  <input
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent mb-2"
-                    value={law}
-                    onChange={(e) => setLaw(e.target.value)}
-                    placeholder="TBK, TCK, İİK..."
-                  />
-                  <div className="flex flex-wrap gap-1.5">
-                    {["TBK", "TCK", "İİK", "HMK"].map((k) => (
-                      <button
-                        key={k}
-                        type="button"
-                        onClick={() => setLawQuick(k)}
-                        className={`px-2 py-1 rounded-full text-[11px] border border-white/10 ${
-                          law === k ? "bg-accent text-black" : "bg-black/40"
-                        }`}
-                      >
-                        {k}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* KARAR METNİ TOGGLE + TEXTAREA */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-xs font-medium text-muted">
-                <input
-                  type="checkbox"
-                  className="rounded border-white/20 bg-black/60"
-                  checked={useDecisionText}
-                  onChange={(e) => setUseDecisionText(e.target.checked)}
-                />
-                Elimde ilgili Yargıtay kararı var, metnini de analize dahil et
-                (önerilir)
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Yıl
               </label>
-
-              {useDecisionText && (
-                <textarea
-                  className="w-full bg-black/60 border border-accent/40 rounded-xl px-3 py-2 text-xs min-h-[110px] focus:outline-none focus:ring-1 focus:ring-accent"
-                  value={decisionText}
-                  onChange={(e) => setDecisionText(e.target.value)}
-                  placeholder="İlgili Yargıtay kararının gerekçesini buraya yapıştır. AI bunu emsal olarak dikkate alacak."
-                />
-              )}
+              <input
+                type="number"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                placeholder="Örn: 2023"
+              />
             </div>
 
-            {error && (
-              <div className="text-xs text-red-400 bg-red-900/20 border border-red-500/30 rounded-lg px-3 py-2">
-                {error}
-              </div>
-            )}
-
-            <div className="flex items-center justify-between">
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-4 py-2 rounded-full bg-accent text-xs font-semibold text-black disabled:opacity-60 disabled:cursor-not-allowed"
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Mahkeme / Daire
+              </label>
+              <select
+                value={chamber}
+                onChange={(e) => setChamber(e.target.value)}
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-yellow-500 outline-none appearance-none"
               >
-                {loading ? "Analiz ediliyor..." : "AI ile Yargıtay Analizi Yap"}
-              </button>
-              <span className="text-[11px] text-subtle">
-                Gerçek veri tabanına bağlı değil; emsal kontrolü için UYAP /
-                Kazancı şart.
-              </span>
+                <option value="">Tüm Daireler</option>
+                <optgroup label="Hukuk Daireleri">
+                  {hukukDaireleri.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Ceza Daireleri">
+                  {cezaDaireleri.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </optgroup>
+              </select>
             </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-black font-bold shadow-lg transition-all disabled:opacity-50"
+            >
+              {loading ? "Aranıyor..." : "Karar Ara"}
+            </button>
           </form>
         </div>
 
-        {/* SAĞ TARAF: CEVAP + QUICK HINTS */}
-        <div className="space-y-4">
-          <div className="glass px-5 py-4 min-h-[160px]">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">Analiz Sonucu</h3>
+        {/* RESULTS AREA */}
+        <div className="space-y-6">
+          {error && (
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200">
+              {error}
             </div>
+          )}
 
-            {loading && (
-              <div className="text-xs text-subtle">Cevap üretiliyor...</div>
-            )}
+          {!loading && searched && results.length === 0 && !error && (
+            <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10">
+              <div className="text-4xl mb-4">🔍</div>
+              <h3 className="text-xl font-semibold text-white">Karar Bulunamadı</h3>
+              <p className="text-white/50 mt-2">
+                Arama kriterlerinizi değiştirerek tekrar deneyebilirsiniz.
+              </p>
+            </div>
+          )}
 
-            {!loading && !answer && (
-              <div className="text-xs text-subtle">
-                Henüz bir analiz yok. Solda olayı ve filtreleri doldurup
-                sorgu gönder.
+          {results.map((item) => (
+            <div 
+              key={item.id} 
+              className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-yellow-500/30 transition-all cursor-pointer group"
+              onClick={() => toggleExpand(item.id)}
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex flex-wrap gap-2 text-xs font-mono text-yellow-500/80">
+                  <span className="bg-yellow-500/10 px-2 py-1 rounded">{item.court || "Yargıtay"}</span>
+                  <span className="bg-yellow-500/10 px-2 py-1 rounded">{item.chamber}</span>
+                  <span className="bg-yellow-500/10 px-2 py-1 rounded">{item.decision_number}</span>
+                  <span className="bg-yellow-500/10 px-2 py-1 rounded">{item.date}</span>
+                </div>
+                <div className="text-xs text-white/40 flex flex-col items-end">
+                  <span>Skor: {item.final_score?.toFixed(2)}</span>
+                  <span className="text-[10px] opacity-60">
+                    (S: {item.semantic_score?.toFixed(2)} / K: {item.keyword_rank?.toFixed(2)})
+                  </span>
+                </div>
               </div>
-            )}
 
-            {!loading && answer && (
-              <div className="prose prose-invert max-w-none text-sm leading-relaxed">
-                <ReactMarkdown>{answer}</ReactMarkdown>
+              <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-yellow-400 transition-colors">
+                {item.summary || "Özet bilgisi bulunmuyor."}
+              </h3>
+              
+              <div className="text-sm text-white/70 mb-4 line-clamp-2">
+                 Sonuç: <span className="font-bold text-white">{item.outcome || "Belirtilmemiş"}</span>
               </div>
-            )}
-          </div>
 
-          <div className="glass px-5 py-4">
-            <h4 className="text-xs font-semibold text-muted mb-2">
-              İpucu: Daha isabetli analiz için
-            </h4>
-            <ul className="text-[11px] text-subtle space-y-1.5">
-              <li>
-                • Olayı anlatırken; tarih, taraf sayısı, talep kalemleri ve
-                önemli delilleri mutlaka yaz.
-              </li>
-              <li>
-                • Elinde karar metni varsa mutlaka yukarıdaki kutuya yapıştır;
-                AI tamamen o metne göre lehe/aleyhe analizi çıkarır.
-              </li>
-              <li>
-                • Çıkan sonucu birebir hukuki görüş gibi kullanma; UYAP ve
-                resmi mevzuat üzerinden her zaman kontrol et.
-              </li>
-            </ul>
-          </div>
+              {/* Expanded Content */}
+              {expandedId === item.id && (
+                <div className="mt-4 pt-4 border-t border-white/10 animate-fade-in">
+                  <h4 className="text-xs font-bold text-white/50 uppercase mb-2">Tam Metin</h4>
+                  <div className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap font-serif bg-black/20 p-4 rounded-lg">
+                    {item.clean_text || "Tam metin bulunamadı."}
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-2 text-center">
+                 <span className="text-xs text-white/30 group-hover:text-yellow-500/70 transition-colors">
+                    {expandedId === item.id ? "▲ Daralt" : "▼ Detayları Göster"}
+                 </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1,7 +1,6 @@
 import os
 import math
-from typing import List, Dict, Any, Tuple
-from rank_bm25 import BM25Okapi
+from typing import List, Dict, Any, Optional
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import numpy as np
@@ -10,116 +9,180 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Initialize OpenAI for embeddings
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Initialize OpenAI
+client = None
+try:
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+except:
+    pass
 
-def get_embedding(text: str, model="text-embedding-3-small") -> List[float]:
+def get_embedding(text: str, model="text-embedding-3-large") -> List[float]:
+    if not client:
+        return [0.0] * 3072
     text = text.replace("\n", " ")
     return client.embeddings.create(input=[text], model=model).data[0].embedding
 
-class HybridSearchEngine:
-    def __init__(self, db_url: str):
-        self.db_url = db_url
-        self.bm25 = None
-        self.documents = [] # Cache for BM25 (in production, use Elasticsearch/OpenSearch for BM25)
+class YargitaySearchEngine:
+    def __init__(self, db_url: str = None):
+        self.db_url = db_url or os.getenv("DATABASE_URL")
 
-    def index_documents(self, docs: List[Dict[str, str]]):
-        """
-        BM25 için belgeleri belleğe yükler (Basit implementasyon).
-        Production'da bu işlem Elasticsearch/Solr/Meilisearch üzerinde yapılmalı.
-        """
-        self.documents = docs
-        tokenized_corpus = [doc['content'].split(" ") for doc in docs]
-        self.bm25 = BM25Okapi(tokenized_corpus)
+    def _get_connection(self):
+        if not self.db_url:
+            return None
+        return psycopg2.connect(self.db_url)
 
-    def search_bm25(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        if not self.bm25 or not self.documents:
-            return []
-        
-        tokenized_query = query.split(" ")
-        scores = self.bm25.get_scores(tokenized_query)
-        
-        # Get top k indices
-        top_indices = np.argsort(scores)[::-1][:top_k]
-        
-        results = []
-        for idx in top_indices:
-            if scores[idx] > 0:
-                results.append({
-                    "doc": self.documents[idx],
-                    "score": float(scores[idx]),
-                    "type": "bm25"
-                })
-        return results
-
-    def search_vector(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, year: Optional[int] = None, court: Optional[str] = None, chamber: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
         """
-        PostgreSQL pgvector kullanarak semantik arama yapar.
+        Performs hybrid search (Semantic + Keyword) on decisions table.
         """
+        embedding = get_embedding(query)
+        embedding_vector = str(embedding)
+        
+        conn = None
         try:
-            embedding = get_embedding(query)
-            embedding_vector = str(embedding)
-            
-            conn = psycopg2.connect(self.db_url)
+            conn = self._get_connection()
+            if not conn:
+                # Fallback for dev/sandbox without DB
+                return self._mock_search(query)
+
             cur = conn.cursor(cursor_factory=RealDictCursor)
+
+            # Base filters
+            filters = []
+            params = []
             
-            # Assuming table 'legal_docs' with 'embedding' vector column
-            # Using cosine distance (<=>) or L2 (<->)
-            sql = """
-                SELECT id, content, metadata, 1 - (embedding <=> %s::vector) as similarity
-                FROM legal_docs
-                ORDER BY similarity DESC
+            if year:
+                filters.append("EXTRACT(YEAR FROM decision_date) = %s")
+                params.append(year)
+            if court:
+                filters.append("court = %s")
+                params.append(court)
+            if chamber:
+                filters.append("chamber = %s")
+                params.append(chamber)
+            
+            filter_sql = " AND ".join(filters)
+            if filter_sql:
+                filter_sql = " AND " + filter_sql
+
+            # 1. Semantic Search
+            # 1 - (embedding <=> query) gives similarity (1 is identical, 0 is opposite)
+            # vector_cosine_ops distance is 1 - cosine_similarity. So we want to minimize distance.
+            # But here we want score. 1 - distance is good.
+            semantic_sql = f"""
+                SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
+                    1 - (embedding <=> %s::vector) AS semantic_score
+                FROM decisions
+                WHERE 1=1 {filter_sql}
+                ORDER BY embedding <=> %s::vector
                 LIMIT %s;
             """
-            cur.execute(sql, (embedding_vector, top_k))
-            rows = cur.fetchall()
+            # Params: vector, filter_params, vector, limit
+            sem_params = [embedding_vector] + params + [embedding_vector, limit]
+            cur.execute(semantic_sql, sem_params)
+            semantic_results = {row['id']: dict(row) for row in cur.fetchall()}
+
+            # 2. Keyword Search
+            # plainto_tsquery for simple query parsing
+            keyword_sql = f"""
+                SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
+                    ts_rank_cd(to_tsvector('turkish', clean_text), plainto_tsquery('turkish', %s)) AS keyword_rank
+                FROM decisions
+                WHERE to_tsvector('turkish', clean_text) @@ plainto_tsquery('turkish', %s)
+                {filter_sql}
+                ORDER BY keyword_rank DESC
+                LIMIT %s;
+            """
+            # Params: query, query, filter_params, limit
+            kw_params = [query, query] + params + [limit]
+            cur.execute(keyword_sql, kw_params)
+            keyword_results = {row['id']: dict(row) for row in cur.fetchall()}
+
             cur.close()
             conn.close()
+
+            # 3. Merge Results (RRF or Weighted Sum)
+            # Using Weighted Sum as requested: 0.65 Semantic, 0.35 Keyword
+            # We need to normalize scores first if they are on different scales.
+            # Semantic is 0-1 (mostly). Keyword rank is unbounded (usually 0-1 or 0-something).
+            # For simplicity and robustness, we just sum them with weights.
             
-            results = []
-            for row in rows:
-                results.append({
-                    "doc": {"content": row['content'], "metadata": row['metadata']},
-                    "score": float(row['similarity']),
-                    "type": "vector"
-                })
-            return results
+            merged = {}
+            all_ids = set(semantic_results.keys()) | set(keyword_results.keys())
+            
+            for id in all_ids:
+                sem_score = 0.0
+                if id in semantic_results:
+                    item = semantic_results[id]
+                    sem_score = float(item['semantic_score'])
+                    merged[id] = item
+                
+                kw_score = 0.0
+                if id in keyword_results:
+                    if id not in merged:
+                        merged[id] = keyword_results[id]
+                    kw_score = float(keyword_results[id]['keyword_rank'])
+                
+                # Normalize keyword score roughly (e.g. max 1.0)
+                # This is heuristic.
+                kw_score = min(kw_score, 1.0)
+                
+                final_score = (sem_score * 0.65) + (kw_score * 0.35)
+                merged[id]['final_score'] = final_score
+                merged[id]['semantic_score'] = sem_score
+                merged[id]['keyword_rank'] = kw_score
+
+            # Sort by final score
+            sorted_results = sorted(merged.values(), key=lambda x: x['final_score'], reverse=True)
+            
+            return {
+                "query": query,
+                "results": sorted_results[:10]
+            }
+
         except Exception as e:
-            print(f"Vector search failed: {e}")
-            return []
+            print(f"Search error: {e}")
+            if conn:
+                conn.close()
+            # Fallback to mock if DB fails (e.g. table not found)
+            return self._mock_search(query)
 
-    def hybrid_search(self, query: str, alpha: float = 0.5) -> List[Dict[str, Any]]:
+    def _mock_search(self, query: str) -> Dict[str, Any]:
         """
-        BM25 ve Vektör sonuçlarını birleştirir (Reciprocal Rank Fusion veya Weighted Sum).
-        Burada basit Weighted Sum kullanıyoruz.
+        Mock results for dev/sandbox environment
         """
-        bm25_res = self.search_bm25(query, top_k=10)
-        vector_res = self.search_vector(query, top_k=10)
-        
-        # Normalize scores (min-max normalization simplified)
-        # Combine
-        combined = {}
-        
-        # Add BM25 scores
-        if bm25_res:
-            max_bm25 = max(r['score'] for r in bm25_res)
-            for r in bm25_res:
-                content = r['doc']['content']
-                norm_score = r['score'] / max_bm25 if max_bm25 > 0 else 0
-                combined[content] = combined.get(content, 0) + (1 - alpha) * norm_score
+        return {
+            "query": query,
+            "results": [
+                {
+                    "id": "mock-1",
+                    "decision_number": "2023/1452 K.",
+                    "case_number": "2023/1023 E.",
+                    "court": "Yargıtay",
+                    "chamber": "3. Hukuk Dairesi",
+                    "date": "2023-11-15",
+                    "summary": f"MOCK RESULT for '{query}': Kira alacağı nedeniyle tahliye talebi reddedilmiştir.",
+                    "outcome": "ONAMA",
+                    "clean_text": "Taraflar arasındaki kira sözleşmesinden kaynaklanan tahliye davasında...",
+                    "semantic_score": 0.95,
+                    "keyword_rank": 0.4,
+                    "final_score": 0.88
+                },
+                {
+                    "id": "mock-2",
+                    "decision_number": "2022/8891 K.",
+                    "case_number": "2022/5678 E.",
+                    "court": "Yargıtay",
+                    "chamber": "12. Hukuk Dairesi",
+                    "date": "2022-05-20",
+                    "summary": f"MOCK RESULT for '{query}': İtirazın iptali ve icra inkar tazminatı...",
+                    "outcome": "BOZMA",
+                    "clean_text": "İtirazın iptali davasında, davalının imza inkarı üzerine...",
+                    "semantic_score": 0.82,
+                    "keyword_rank": 0.3,
+                    "final_score": 0.75
+                }
+            ]
+        }
 
-        # Add Vector scores
-        if vector_res:
-            max_vec = max(r['score'] for r in vector_res)
-            for r in vector_res:
-                content = r['doc']['content']
-                norm_score = r['score'] / max_vec if max_vec > 0 else 0
-                combined[content] = combined.get(content, 0) + alpha * norm_score
-        
-        # Sort by final score
-        sorted_results = sorted(combined.items(), key=lambda x: x[1], reverse=True)
-        
-        return [{"content": k, "score": v} for k, v in sorted_results[:10]]
-
-# Example usage
-# search_engine = HybridSearchEngine(os.getenv("DATABASE_URL"))
+search_engine = YargitaySearchEngine()
