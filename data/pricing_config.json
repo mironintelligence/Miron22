@@ -1,5 +1,5 @@
 {
-  "base_price": 8000.0,
-  "discount_rate": 20.0,
-  "bulk_threshold": 3
+  "base_price": 12000.0,
+  "discount_rate": 25.0,
+  "bulk_threshold": 5
 }

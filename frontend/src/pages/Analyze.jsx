@@ -1,5 +1,6 @@
 // src/pages/Analyze.jsx
 import React, { useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
@@ -295,6 +296,18 @@ export default function Analyze() {
                   {summary || "Özet üretilemedi."}
                 </div>
               </div>
+
+              {/* DETAILED STRATEGIC ANALYSIS */}
+              {analysisText && (
+                <div className="mt-6 glass p-6 rounded-2xl border border-white/10">
+                  <h3 className="text-xl font-bold text-accent mb-4">
+                    Detaylı Stratejik Analiz
+                  </h3>
+                  <div className="prose prose-invert max-w-none text-sm leading-relaxed text-fg/90">
+                    <ReactMarkdown>{analysisText}</ReactMarkdown>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

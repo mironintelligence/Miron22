@@ -21,10 +21,15 @@ def admin_headers():
     # Ensure env token matches our header
     import os
     os.environ["ADMIN_TOKEN"] = ADMIN_TOKEN
-    # Patch both places where admin deps are referenced
-    with patch("admin_router.require_admin", return_value=None), \
-         patch("backend.pricing_router.require_admin", return_value=None):
+    import admin_auth
+    from backend.admin_auth import require_admin as require_admin_backend
+    app.dependency_overrides[admin_auth.require_admin] = lambda: None
+    app.dependency_overrides[require_admin_backend] = lambda: None
+    try:
         yield {"Authorization": f"Bearer {ADMIN_TOKEN}"}
+    finally:
+        app.dependency_overrides.pop(admin_auth.require_admin, None)
+        app.dependency_overrides.pop(require_admin_backend, None)
 
 def test_admin_pricing_config(admin_headers):
     # 1. Get initial config

@@ -37,7 +37,7 @@ const tiles = [
   {
     title: "Dava Simülasyonu",
     desc: "Senaryoya göre olası sonuçlar ve strateji önerisi.",
-    to: "/simulation",
+    to: "/case-simulation",
     icon: "🎯",
     disabled: false,
   },

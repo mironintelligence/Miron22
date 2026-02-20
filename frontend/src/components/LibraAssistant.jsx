@@ -76,7 +76,6 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
       setChats([newChat]);
       setCurrentChatId(newChat.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
 
   // -----------------------------

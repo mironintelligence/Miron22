@@ -30,6 +30,10 @@ load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 # OpenAI client (tek kaynak)
 # ---------------------------
 from openai_client import get_openai_client, get_openai_api_key
+try:
+    from backend.middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware
+except ImportError:
+    from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware
 
 # OpenAI error types (sürüm uyumlu)
 try:
@@ -100,6 +104,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 @app.get("/health")
 def health():
@@ -133,6 +139,7 @@ uyap_udf_router  = _safe_import("uyap_udf", "router")
 billing_router   = _safe_import("routes.billing_routes", "router")
 feedback_router  = _safe_import("routes.feedback_routes", "router")
 analyze_router   = _safe_import("routes.analyze", "router")
+orchestrator_router = _safe_import("routers.orchestrator", "router")
 admin_api_router = _safe_import("admin_router", "api_router")
 admin_router     = _safe_import("admin_router", "router")
 
@@ -196,6 +203,31 @@ def smart_format(text: str, filename: str, dava_turu: str):
 
             ## COURT REASONING STRUCTURE
             [Mahkemenin veya bilirkişinin gerekçesi. Hangi delile neden itibar edildi? Hangi argüman neden reddedildi? Mantıksal akışı kur.]
+
+            ## PROCEDURAL RISK ASSESSMENT (USUL RİSKİ ANALİZİ)
+            [MANDATORY: Analyze specifically for: Jurisdiction errors, Statute of limitations, Missing procedural requirements, Standing issues, Improper court selection]
+            * Risk Level: [Low / Medium / High]
+            * Identified Risks: [List each risk with explanation]
+            * Legal Basis: [Cite specific HMK/IYUK articles]
+            * Corrective Action: [What should be done?]
+
+            ## CONTRADICTION ANALYSIS (ÇELİŞKİ ANALİZİ)
+            [Identify contradictions within the document or between parties' statements]
+            * Internal Contradictions: [Inconsistencies within the text itself]
+            * External Contradictions: [Conflicts with known facts or other evidence]
+            * Impact Score: [1-10]
+
+            ## MISSING CLAIM DETECTION (EKSİK TALEP TESPİTİ)
+            [Identify claims that SHOULD have been made but were missed based on the facts]
+            * Missed Claim: [e.g., "Manevi tazminat talep edilmemiş"]
+            * Rationale: [Why is this claim applicable?]
+            * Potential Value: [Estimated impact]
+
+            ## ALTERNATIVE LEGAL QUALIFICATION (ALTERNATİF HUKUKİ NİTELEME)
+            [Suggest alternative legal grounds or qualifications for the case]
+            * Current Qualification: [As stated in doc]
+            * Alternative Qualification: [e.g., "Sebepsiz zenginleşme yerine sözleşmeye aykırılık"]
+            * Strategic Advantage: [Why change the qualification?]
 
             ## FINAL DECISION
             [Hüküm fıkrası veya sonuç talebi. Kim kazandı? Ne kadar tazminat? Masraflar kime yüklendi?]
@@ -464,6 +496,7 @@ if uyap_udf_router: app.include_router(uyap_udf_router)
 if billing_router:  app.include_router(billing_router)
 if feedback_router: app.include_router(feedback_router)
 if analyze_router:  app.include_router(analyze_router)
+if orchestrator_router: app.include_router(orchestrator_router)
                     
 
 # New Auth Router (Supabase)

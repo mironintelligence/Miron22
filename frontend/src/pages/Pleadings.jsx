@@ -329,12 +329,12 @@ export default function Pleadings() {
                   <div className="text-accent font-semibold mb-2">
                     📄 Önizleme
                   </div>
-                  {["header", "summary", "legal_basis", "result_requests", "attachments"].map(
+                  {["strategic_assessment", "header", "summary", "legal_basis", "result_requests", "attachments"].map(
                     (k) =>
                       preview[k] ? (
-                        <div key={k} className="mb-3">
-                          <div className="opacity-70 capitalize">
-                            {k.replace("_", " ")}
+                        <div key={k} className={`mb-3 ${k === "strategic_assessment" ? "bg-accent/10 p-3 rounded-lg border border-accent/20" : ""}`}>
+                          <div className={`opacity-70 capitalize ${k === "strategic_assessment" ? "text-accent font-bold" : ""}`}>
+                            {k === "strategic_assessment" ? "🔍 STRATEGIC PRE-CHECK" : k.replace("_", " ")}
                           </div>
                           <pre className="whitespace-pre-wrap">{preview[k]}</pre>
                         </div>

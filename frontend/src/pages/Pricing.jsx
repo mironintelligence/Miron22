@@ -14,7 +14,6 @@ export default function Pricing() {
 
   useEffect(() => {
     if (!state) navigate("/register");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   const count = state?.count || 1;

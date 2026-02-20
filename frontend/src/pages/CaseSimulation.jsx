@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { api } from "../auth/api";
 
 export default function CaseSimulation() {
   const [formData, setFormData] = useState({
@@ -22,14 +21,21 @@ export default function CaseSimulation() {
     setResult(null);
 
     try {
-      // Form data payload format
       const payload = new FormData();
       payload.append("case_description", formData.case_description);
       payload.append("jurisdiction", formData.jurisdiction);
       payload.append("user_role", formData.user_role);
 
-      const resp = await api.post("/api/risk/simulate", payload);
-      setResult(resp.data);
+      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+      const resp = await fetch(`${base}/api/risk/simulate`, {
+        method: "POST",
+        body: payload,
+      });
+      if (!resp.ok) {
+        throw new Error("request_failed");
+      }
+      const data = await resp.json();
+      setResult(data);
     } catch (err) {
       console.error(err);
       setError("Simülasyon başarısız oldu. Lütfen tekrar deneyin.");
@@ -159,6 +165,89 @@ export default function CaseSimulation() {
               <p className="text-white/90 leading-relaxed text-lg">
                 {result.strategic_recommendation}
               </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">
+                  🧩 Zorunlu Yapısal Katmanlar
+                </h3>
+                <div className="space-y-4 text-white/85">
+                  <div>
+                    <div className="text-xs uppercase text-white/50 tracking-wider">
+                      Usul Riski
+                    </div>
+                    <div className="text-sm mt-1">
+                      {result.procedural_risk?.level || "—"}{" "}
+                      {result.procedural_risk?.details
+                        ? `• ${result.procedural_risk.details}`
+                        : ""}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase text-white/50 tracking-wider">
+                      Çelişki Analizi
+                    </div>
+                    <div className="text-sm mt-1">
+                      {result.contradiction_analysis?.internal || "—"}
+                    </div>
+                    {result.contradiction_analysis?.external ? (
+                      <div className="text-sm mt-1">
+                        {result.contradiction_analysis.external}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase text-white/50 tracking-wider">
+                      Eksik Talep
+                    </div>
+                    <ul className="mt-2 space-y-1 text-sm">
+                      {(result.missing_claims || []).length ? (
+                        result.missing_claims.map((claim, i) => (
+                          <li key={i} className="flex gap-2">
+                            <span className="text-yellow-400">•</span>
+                            <span>{claim}</span>
+                          </li>
+                        ))
+                      ) : (
+                        <li className="text-white/60">—</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">
+                  🧭 Alternatif Hukuki Niteleme
+                </h3>
+                <div className="space-y-4 text-white/85">
+                  <div>
+                    <div className="text-xs uppercase text-white/50 tracking-wider">
+                      Mevcut Niteleme
+                    </div>
+                    <div className="text-sm mt-1">
+                      {result.alternative_qualification?.current || "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase text-white/50 tracking-wider">
+                      Alternatif Niteleme
+                    </div>
+                    <div className="text-sm mt-1">
+                      {result.alternative_qualification?.proposed || "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase text-white/50 tracking-wider">
+                      Stratejik Avantaj
+                    </div>
+                    <div className="text-sm mt-1">
+                      {result.alternative_qualification?.advantage || "—"}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Detailed Analysis Grid */}

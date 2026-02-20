@@ -5,8 +5,16 @@ import os, io, json, re
 
 try:
     from backend.openai_client import get_openai_client
+    from backend.services.risk_engine import risk_engine
 except ImportError:
-    from openai_client import get_openai_client
+    try:
+        from openai_client import get_openai_client
+        from services.risk_engine import risk_engine
+    except ImportError:
+        from openai_client import get_openai_client
+        class MockRiskEngine:
+            def analyze_risk(self, text): return {}
+        risk_engine = MockRiskEngine()
 
 import pdfplumber
 from docx import Document
@@ -16,10 +24,7 @@ router = APIRouter(prefix="/api/risk", tags=["Risk & Strateji Analizi"])
 # Use advanced model for simulation
 SIMULATION_MODEL = "gpt-4o"  # High reasoning
 
-class SimulationResponse(Dict[str, Any]):
-    pass
-
-@router.post("/simulate", response_model=SimulationResponse)
+@router.post("/simulate", response_model=dict)
 def simulate_case(
     case_description: str = Form(...),
     jurisdiction: str = Form("Türkiye"),
@@ -28,10 +33,15 @@ def simulate_case(
     """
     Advanced Case Simulation with Deep Reasoning.
     Uses a stronger model to predict outcomes, risks, and strategic moves.
+    Enhanced with Deterministic Risk Engine.
     """
     client = get_openai_client()
     if not client:
         raise HTTPException(status_code=500, detail="AI Client init failed.")
+
+    det_risk = risk_engine.analyze_risk(case_description)
+    det_score = det_risk.get("risk_score", 50)
+    det_issues = det_risk.get("key_issues", [])
 
     prompt = f"""
     Sen kıdemli bir stratejik dava danışmanısın.
@@ -43,14 +53,24 @@ def simulate_case(
     Taraf: {user_role}
     Yargı Yeri: {jurisdiction}
     
+    DETERMİNİSTİK RİSK ANALİZİ BULGULARI (Referans Al):
+    - Hesaplanan Temel Risk Skoru: {det_score}/100
+    - Tespit Edilen Kritik Hususlar: {', '.join(det_issues)}
+    
     GÖREVLERİN:
     1. Yargı Yeri ve Usul Analizi: Hangi mahkeme görevli? İspat yükü kimde?
-    2. Risk Analizi: Zayıf noktalarımız neler? Karşı taraf ne diyebilir?
+    2. Risk Analizi: Zayıf noktalarımız neler? Karşı taraf ne diyebilir? (Deterministik bulguları yorumla)
     3. Simülasyon:
        - En İyi Senaryo: (Kazanma ihtimali, süre, maliyet)
        - En Kötü Senaryo: (Kaybetme riski, masraflar)
        - En Olası Sonuç: (Gerekçeli tahmin)
     4. Stratejik Tavsiye: Şimdi ne yapmalıyız? (Delil, ihtar, sulh vb.)
+    
+    MANDATORY STRUCTURAL LAYERS (Include these in JSON):
+    - procedural_risk: {{ "level": "High/Med/Low", "details": "..." }}
+    - contradiction_analysis: {{ "internal": "...", "external": "..." }}
+    - missing_claims: [ "claim1", "claim2" ]
+    - alternative_qualification: {{ "current": "...", "proposed": "...", "advantage": "..." }}
     
     ÇIKTI FORMATI (JSON):
     {{
@@ -63,6 +83,10 @@ def simulate_case(
             "worst_case": "...",
             "most_probable": "..."
         }},
+        "procedural_risk": {{ "level": "...", "details": "..." }},
+        "contradiction_analysis": {{ "internal": "...", "external": "..." }},
+        "missing_claims": ["..."],
+        "alternative_qualification": {{ "current": "...", "proposed": "...", "advantage": "..." }},
         "win_probability_percent": 60,
         "estimated_duration_months": 12,
         "strategic_recommendation": "..."
@@ -73,10 +97,12 @@ def simulate_case(
     try:
         completion = client.chat.completions.create(
             model=SIMULATION_MODEL,
-            messages=[{"role": "system", "content": "You are a senior legal strategist. Output valid JSON only."}],
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": "You are a senior legal strategist. Output valid JSON only."},
+                {"role": "user", "content": prompt},
+            ],
             temperature=0.2,
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
         )
         result = json.loads(completion.choices[0].message.content)
         return result

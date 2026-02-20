@@ -411,6 +411,7 @@ def build_prompt(tpl_obj: Dict[str, Any], req: PreviewRequest) -> str:
     return f"""
 You are Libra AI Legal Writer. Produce formal legal petitions (dilekçe) conforming to Turkish legal style.
 Output must include these sections and ONLY these markers in order:
+#STRATEGIC_ASSESSMENT
 #HEADER
 #SUMMARY
 #LEGAL_BASIS
@@ -430,11 +431,17 @@ Output must include these sections and ONLY these markers in order:
 - If ADD_STATUTES, cite relevant articles (HMK/TMK/TBK/İİK/CMK/4857/6502/5651/KVKK) where appropriate.
 - If ADD_CASELAW, mention 1-2 concise Yargıtay precedent hints (no long quotes).
 - RESULT_REQUESTS must include attorney fee + costs when appropriate.
+- #STRATEGIC_ASSESSMENT: Provide a brief strategic analysis BEFORE the petition. Include:
+  1. Argument Strength (Weak/Moderate/Strong) & why.
+  2. Opponent Simulation (Likely counter-arguments).
+  3. Risk Score (0-100% rejection risk).
+  4. Improvement Suggestion.
+  (This section is for the lawyer, not the court).
 """.strip()
 
 def parse_marked_text(text: str) -> Dict[str, str]:
-    keys = ["#HEADER", "#SUMMARY", "#LEGAL_BASIS", "#RESULT_REQUESTS", "#ATTACHMENTS"]
-    out = {"header": "", "summary": "", "legal_basis": "", "result_requests": "", "attachments": ""}
+    keys = ["#STRATEGIC_ASSESSMENT", "#HEADER", "#SUMMARY", "#LEGAL_BASIS", "#RESULT_REQUESTS", "#ATTACHMENTS"]
+    out = {"strategic_assessment": "", "header": "", "summary": "", "legal_basis": "", "result_requests": "", "attachments": ""}
     s = (text or "").replace("\r\n", "\n")
 
     idx = {k: s.find(k) for k in keys if s.find(k) != -1}
@@ -456,6 +463,8 @@ def parse_marked_text(text: str) -> Dict[str, str]:
             out["result_requests"] = body
         elif mk == "#ATTACHMENTS":
             out["attachments"] = body
+        elif mk == "#STRATEGIC_ASSESSMENT":
+            out["strategic_assessment"] = body
     return out
 
 

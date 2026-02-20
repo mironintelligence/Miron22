@@ -257,8 +257,8 @@ export default function YargitaySearch() {
             )}
 
             {!loading && answer && (
-              <div className="prose prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">
-                {answer}
+              <div className="prose prose-invert max-w-none text-sm leading-relaxed">
+                <ReactMarkdown>{answer}</ReactMarkdown>
               </div>
             )}
           </div>

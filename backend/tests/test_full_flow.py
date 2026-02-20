@@ -52,15 +52,15 @@ def test_pricing_flow():
         "exp": datetime.now(timezone.utc) + timedelta(hours=1)
     }, "test_secret_key", algorithm="HS256")
 
-    # 1. Check default pricing
+    # 1. Check default pricing (10000.0 from file)
     res = client.post("/api/pricing/calculate", json={"count": 1})
     assert res.status_code == 200
     data = res.json()
-    assert data["final_total"] == 8000.0
+    assert data["final_total"] == 10000.0
 
     # 2. Admin updates pricing
     new_config = {
-        "base_price": 10000.0,
+        "base_price": 12000.0,
         "discount_rate": 25.0,
         "bulk_threshold": 5
     }
@@ -73,19 +73,19 @@ def test_pricing_flow():
 
     # 3. Check new pricing for single user
     res = client.post("/api/pricing/calculate", json={"count": 1})
-    assert res.json()["final_total"] == 10000.0
+    assert res.json()["final_total"] == 12000.0
 
     # 4. Check bulk discount (threshold 5)
     # 4 users -> no discount
     res = client.post("/api/pricing/calculate", json={"count": 4})
     assert res.json()["is_discounted"] is False
-    assert res.json()["final_total"] == 40000.0
+    assert res.json()["final_total"] == 48000.0
 
     # 5 users -> discount applied (25%)
     res = client.post("/api/pricing/calculate", json={"count": 5})
     assert res.json()["is_discounted"] is True
-    # 5 * 10000 = 50000. Discount 25% = 12500. Total = 37500.
-    assert res.json()["final_total"] == 37500.0
+    # 5 * 12000 = 60000. Discount 25% = 15000. Total = 45000.
+    assert res.json()["final_total"] == 45000.0
 
 @patch("backend.auth_router._read_users")
 @patch("backend.auth_router._write_users")
