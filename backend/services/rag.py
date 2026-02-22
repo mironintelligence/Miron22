@@ -6,7 +6,11 @@ from .search import HybridSearchEngine
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+def _get_client() -> OpenAI:
+    key = os.getenv("OPENAI_API_KEY")
+    if not key:
+        raise RuntimeError("OPENAI_API_KEY missing")
+    return OpenAI(api_key=key)
 
 class RAGPipeline:
     def __init__(self, search_engine: HybridSearchEngine):
@@ -28,6 +32,7 @@ class RAGPipeline:
         Eğer bağlamda yanıt yoksa, genel bilgiye dayanarak cevapla ama bunu belirt.
         """
 
+        client = _get_client()
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[

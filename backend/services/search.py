@@ -127,4 +127,86 @@ class YargitaySearchEngine:
             cur.close()
             conn.close()
 
+class HybridSearchEngine:
+    def __init__(self, db_url: Optional[str] = None):
+        self._engine = YargitaySearchEngine(db_url=db_url)
+
+    def hybrid_search(
+        self,
+        query: str,
+        alpha: float = 0.65,
+        year: Optional[int] = None,
+        court: Optional[str] = None,
+        chamber: Optional[str] = None,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        r = self._engine.search(query=query, year=year, court=court, chamber=chamber, limit=max(limit, 10))
+        out: List[Dict[str, Any]] = []
+        for item in (r.get("results") or [])[:limit]:
+            if not isinstance(item, dict):
+                continue
+            content = item.get("clean_text") or item.get("summary") or ""
+            out.append(
+                {
+                    "id": item.get("id"),
+                    "content": content,
+                    "score": float(item.get("final_score") or 0.0),
+                    "semantic_score": float(item.get("semantic_score") or 0.0),
+                    "keyword_rank": float(item.get("keyword_rank") or 0.0),
+                    "meta": {
+                        "court": item.get("court"),
+                        "chamber": item.get("chamber"),
+                        "decision_number": item.get("decision_number"),
+                        "case_number": item.get("case_number"),
+                        "outcome": item.get("outcome"),
+                        "decision_date": item.get("decision_date"),
+                    },
+                }
+            )
+        return out
+
+    def search_vector(
+        self,
+        query: str,
+        top_k: int = 5,
+        year: Optional[int] = None,
+        court: Optional[str] = None,
+        chamber: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        q = _sanitize_query(query)
+        if not q:
+            return []
+        embedding = get_embedding(q)
+        vector = _vector_literal(embedding)
+        filter_sql, params = self._engine._build_filters(year, court, chamber)
+        conn = self._engine._connect()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        try:
+            rows = self._engine._semantic_search(cur, vector, filter_sql, params, top_k)
+            sorted_rows = sorted(rows.values(), key=lambda x: float(x.get("semantic_score") or 0.0), reverse=True)
+            out: List[Dict[str, Any]] = []
+            for row in sorted_rows[:top_k]:
+                content = row.get("clean_text") or row.get("summary") or ""
+                out.append(
+                    {
+                        "score": float(row.get("semantic_score") or 0.0),
+                        "doc": {
+                            "id": row.get("id"),
+                            "content": content,
+                            "meta": {
+                                "court": row.get("court"),
+                                "chamber": row.get("chamber"),
+                                "decision_number": row.get("decision_number"),
+                                "case_number": row.get("case_number"),
+                                "outcome": row.get("outcome"),
+                                "decision_date": row.get("decision_date"),
+                            },
+                        },
+                    }
+                )
+            return out
+        finally:
+            cur.close()
+            conn.close()
+
 search_engine = YargitaySearchEngine()

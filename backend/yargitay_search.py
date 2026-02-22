@@ -3,7 +3,10 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
 import logging
-from security import sanitize_text
+try:
+    from backend.security import sanitize_text
+except ImportError:
+    from security import sanitize_text
 
 try:
     from backend.openai_client import get_openai_client

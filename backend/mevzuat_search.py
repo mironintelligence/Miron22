@@ -15,8 +15,15 @@ try:
 except ImportError:
     from auth import get_supabase_client
 
-from services.search import search_engine
-from security import sanitize_text
+try:
+    from backend.services.search import search_engine
+except ImportError:
+    from services.search import search_engine
+
+try:
+    from backend.security import sanitize_text
+except ImportError:
+    from security import sanitize_text
 
 router = APIRouter(prefix="/api/mevzuat", tags=["mevzuat"])
 
