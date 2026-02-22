@@ -10,7 +10,10 @@ from pydantic import BaseModel, EmailStr, Field
 from stores.users_store import hash_password, verify_password, read_users, write_users, find_user_by_email
 from stores.demo_users_store import read_demo_users, write_demo_users, purge_expired_demo_users
 from security import create_access_token, create_refresh_token, decode_token, token_fingerprint, hmac_hash, sanitize_user_for_response
-from backend.services.pricing_service import find_valid_discount, increment_usage
+try:
+    from backend.services.pricing_service import find_valid_discount, increment_usage
+except ImportError:
+    from services.pricing_service import find_valid_discount, increment_usage
 
 router = APIRouter()
 
