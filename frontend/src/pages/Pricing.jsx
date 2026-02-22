@@ -19,16 +19,18 @@ export default function Pricing() {
   const count = state?.count || 1;
   const isMulti = state?.mode === "multi";
   const verificationNeeded = state?.verificationNeeded;
+  const discountCode = state?.discount_code;
 
   useEffect(() => {
     async function fetchPrice() {
       setLoadingPrice(true);
       try {
         const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+        const payload = discountCode ? { count, discount_code: discountCode } : { count };
         const res = await fetch(`${base}/api/pricing/calculate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ count }),
+          body: JSON.stringify(payload),
         });
         if (res.ok) {
           const data = await res.json();
@@ -103,13 +105,13 @@ export default function Pricing() {
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-subtle">
               <div className="glass rounded-xl p-3">
-                ⚖️ Yargıtay Karar Arama (Yakında)
+                ⚖️ Yargıtay Karar Arama
               </div>
               <div className="glass rounded-xl p-3">
-                📚 Mevzuat Analizi (Yakında)
+                📚 Mevzuat Analizi
               </div>
               <div className="glass rounded-xl p-3">
-                🎯 Dava Simülasyonu (Yakında)
+                🎯 Dava Simülasyonu
               </div>
             </div>
           </div>
@@ -156,9 +158,9 @@ export default function Pricing() {
             </div>
 
             <button
-              onClick={() =>
-                alert("Ödeme entegrasyonu daha sonra bağlanacak.")
-              }
+              onClick={() => {
+                window.location.href = "mailto:hello@mironintelligence.com?subject=Miron%20AI%20Lisans%20Talebi";
+              }}
               className="mt-5 w-full btn-primary"
             >
               Satın Al

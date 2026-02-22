@@ -52,29 +52,37 @@ export default function Register() {
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
   
-  // Pricing state
   const [pricingData, setPricingData] = useState(null);
+  const [discountCode, setDiscountCode] = useState("");
+  const [discountError, setDiscountError] = useState("");
 
   useEffect(() => {
     async function fetchPrice() {
       try {
         const count = mode === "single" ? 1 : personCount;
         const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+        const code = (discountCode || "").trim();
+        const payload = code ? { count, discount_code: code } : { count };
         const res = await fetch(`${base}/api/pricing/calculate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ count }),
+          body: JSON.stringify(payload),
         });
         if (res.ok) {
           const data = await res.json();
           setPricingData(data);
+          setDiscountError("");
+        } else {
+          if (res.status === 400) {
+            setDiscountError("İndirim kodu geçersiz, süresi dolmuş veya kullanım sınırı doldu.");
+          }
         }
       } catch (e) {
         console.error("Price fetch error", e);
       }
     }
     fetchPrice();
-  }, [mode, personCount]);
+  }, [mode, personCount, discountCode]);
 
   const openDoc = (type) => {
     setActiveDoc(type);
@@ -144,6 +152,7 @@ export default function Register() {
     setSubmitSuccess("");
     setSubmitting(true);
 
+    const normalizedDiscount = (discountCode || "").trim().toUpperCase();
     const payload =
       mode === "single"
         ? {
@@ -151,6 +160,7 @@ export default function Register() {
             count: 1,
             city,
             firm: firm || "",
+            discount_code: normalizedDiscount || undefined,
             persons: [
               {
                 firstName: firstName.trim(),
@@ -165,6 +175,7 @@ export default function Register() {
             count: personCount,
             city,
             firm: firm || "",
+            discount_code: normalizedDiscount || undefined,
             persons: persons.map((p) => ({
               firstName: p.firstName.trim(),
               lastName: p.lastName.trim(),
@@ -587,32 +598,60 @@ export default function Register() {
               </>
             )}
 
-            {/* Pricing Summary */}
             {pricingData && (
-              <div className="mt-6 p-4 rounded-xl bg-black/50 border border-accent/40">
-                 <div className="flex justify-between items-center text-sm mb-1">
+              <div className="mt-6 space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3 items-end">
+                  <div className="flex-1">
+                    <label className="block text-xs text-subtle mb-1">İndirim Kodu (opsiyonel)</label>
+                    <input
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                      placeholder="Örn. BARO10"
+                      className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/20 text-white text-sm"
+                    />
+                  </div>
+                  {discountError && (
+                    <div className="text-xs text-red-400 mb-1">
+                      {discountError}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 rounded-xl bg-black/50 border border-accent/40">
+                  <div className="flex justify-between items-center text-sm mb-1">
                     <span className="text-subtle">Kişi Sayısı:</span>
                     <span className="text-white font-medium">{pricingData.count}</span>
-                 </div>
-                 {pricingData.is_discounted && (
-                   <div className="flex justify-between items-center text-sm mb-1 text-green-400">
-                      <span>Toplu İndirim (%{pricingData.applied_discount_rate}):</span>
-                      <span>-{pricingData.discount_amount.toLocaleString("tr-TR")} TL</span>
-                   </div>
-                 )}
-                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/15">
+                  </div>
+                  {pricingData.applied_discount_rate > 0 && (
+                    <div className="flex justify-between items-center text-sm mb-1 text-green-400">
+                      <span>Toplu İndirim %{pricingData.applied_discount_rate}</span>
+                      <span>
+                        -{(pricingData.discount_amount - (pricingData.discount_code_amount || 0)).toLocaleString("tr-TR")} TL
+                      </span>
+                    </div>
+                  )}
+                  {pricingData.discount_code && pricingData.discount_code_amount > 0 && (
+                    <div className="flex justify-between items-center text-sm mb-1 text-green-400">
+                      <span>Kupon ({pricingData.discount_code})</span>
+                      <span>
+                        -{pricingData.discount_code_amount.toLocaleString("tr-TR")} TL
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/15">
                     <span className="text-white font-semibold">Toplam Tutar:</span>
                     <div className="text-right">
-                       {pricingData.is_discounted && (
-                          <span className="text-xs text-subtle line-through mr-2">
-                            {pricingData.raw_total.toLocaleString("tr-TR")} TL
-                          </span>
-                       )}
-                       <span className="text-xl font-bold text-accent">
-                          {pricingData.final_total.toLocaleString("tr-TR")} TL
-                       </span>
+                      {(pricingData.applied_discount_rate > 0 || (pricingData.discount_code_amount || 0) > 0) && (
+                        <span className="text-xs text-subtle line-through mr-2">
+                          {pricingData.raw_total.toLocaleString("tr-TR")} TL
+                        </span>
+                      )}
+                      <span className="text-xl font-bold text-accent">
+                        {pricingData.final_total.toLocaleString("tr-TR")} TL
+                      </span>
                     </div>
-                 </div>
+                  </div>
+                </div>
               </div>
             )}
 

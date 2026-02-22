@@ -9,18 +9,23 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("pricing");
   const [msg, setMsg] = useState("");
 
-  // Pricing State
   const [pricing, setPricing] = useState({
     base_price: 8000,
     discount_rate: 20,
     bulk_threshold: 3,
   });
 
-  // Demo Requests State
   const [demos, setDemos] = useState([]);
-  
-  // Users State
   const [users, setUsers] = useState([]);
+  const [discounts, setDiscounts] = useState([]);
+  const [newDiscount, setNewDiscount] = useState({
+    code: "",
+    type: "percent",
+    value: 0,
+    max_usage: "",
+    expires_at: "",
+    description: "",
+  });
 
   useEffect(() => {
     if (token) {
@@ -49,6 +54,7 @@ export default function AdminPanel() {
     fetchPricing();
     fetchDemos();
     fetchUsers();
+    fetchDiscounts();
   };
 
   const fetchPricing = async () => {
@@ -83,6 +89,76 @@ export default function AdminPanel() {
             setUsers(data);
         }
     } catch (e) { console.error(e); }
+  };
+
+  const fetchDiscounts = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/pricing/discount-codes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDiscounts(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const createDiscount = async () => {
+    setMsg("");
+    try {
+      const payload = {
+        code: (newDiscount.code || "").toUpperCase(),
+        type: newDiscount.type,
+        value: Number(newDiscount.value),
+        max_usage: newDiscount.max_usage ? Number(newDiscount.max_usage) : null,
+        expires_at: newDiscount.expires_at || null,
+        description: newDiscount.description || null,
+      };
+      const res = await fetch(`${API_BASE}/api/pricing/discount-codes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        setMsg("❌ İndirim kodu oluşturulamadı.");
+        return;
+      }
+      setNewDiscount({
+        code: "",
+        type: "percent",
+        value: 0,
+        max_usage: "",
+        expires_at: "",
+        description: "",
+      });
+      setMsg("✅ İndirim kodu oluşturuldu.");
+      fetchDiscounts();
+    } catch (e) {
+      console.error(e);
+      setMsg("❌ İndirim kodu oluşturulamadı.");
+    }
+  };
+
+  const toggleDiscount = async (code, active) => {
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/pricing/discount-codes/${code}/toggle?active=${active ? "true" : "false"}`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (res.ok) {
+        fetchDiscounts();
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleLogin = async (e) => {
@@ -282,6 +358,16 @@ export default function AdminPanel() {
         >
             Kullanıcılar
         </button>
+        <button 
+            onClick={() => setActiveTab("discounts")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+              activeTab === "discounts"
+                ? "bg-[var(--miron-gold)] text-black"
+                : "bg-black/40 text-white hover:bg-black/60 border border-white/10"
+            }`}
+        >
+            İndirim Kodları
+        </button>
       </div>
 
       {msg && <div className="mb-4 p-3 bg-green-900/50 text-green-200 rounded border border-green-500/30">{msg}</div>}
@@ -414,6 +500,132 @@ export default function AdminPanel() {
                     </table>
                 </div>
             )}
+        </div>
+      )}
+
+      {activeTab === "discounts" && (
+        <div className="glass p-6 rounded-xl border border-white/10 space-y-6">
+          <h2 className="text-xl font-semibold mb-2 text-accent">İndirim Kodları</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-subtle mb-1">Kod</label>
+                <input
+                  value={newDiscount.code}
+                  onChange={(e) => setNewDiscount({ ...newDiscount, code: e.target.value.toUpperCase() })}
+                  className="w-full p-3 bg-black/40 border border-white/15 rounded-lg text-white text-sm"
+                  placeholder="Örn. BARO10"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-subtle mb-1">Tür</label>
+                  <select
+                    value={newDiscount.type}
+                    onChange={(e) => setNewDiscount({ ...newDiscount, type: e.target.value })}
+                    className="w-full p-3 bg-black/40 border border-white/15 rounded-lg text-white text-sm"
+                  >
+                    <option value="percent">% Oran</option>
+                    <option value="fixed">Sabit Tutar</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-subtle mb-1">Değer</label>
+                  <input
+                    type="number"
+                    value={newDiscount.value}
+                    onChange={(e) => setNewDiscount({ ...newDiscount, value: Number(e.target.value) })}
+                    className="w-full p-3 bg-black/40 border border-white/15 rounded-lg text-white text-sm"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-subtle mb-1">Kullanım Sınırı</label>
+                  <input
+                    type="number"
+                    value={newDiscount.max_usage}
+                    onChange={(e) => setNewDiscount({ ...newDiscount, max_usage: e.target.value })}
+                    className="w-full p-3 bg-black/40 border border-white/15 rounded-lg text-white text-sm"
+                    placeholder="Boş bırakılabilir"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-subtle mb-1">Bitiş Tarihi (ISO)</label>
+                  <input
+                    value={newDiscount.expires_at}
+                    onChange={(e) => setNewDiscount({ ...newDiscount, expires_at: e.target.value })}
+                    className="w-full p-3 bg-black/40 border border-white/15 rounded-lg text-white text-sm"
+                    placeholder="2026-12-31T23:59:59+03:00"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-subtle mb-1">Açıklama</label>
+                <textarea
+                  rows={3}
+                  value={newDiscount.description}
+                  onChange={(e) => setNewDiscount({ ...newDiscount, description: e.target.value })}
+                  className="w-full p-3 bg-black/40 border border-white/15 rounded-lg text-white text-sm"
+                />
+              </div>
+              <button
+                onClick={createDiscount}
+                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:opacity-90 rounded-lg font-bold transition shadow-lg"
+              >
+                İndirim Kodu Oluştur
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              {discounts.length === 0 ? (
+                <p className="text-subtle text-sm">Henüz tanımlı indirim kodu yok.</p>
+              ) : (
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-white/10 text-subtle">
+                      <th className="p-2">Kod</th>
+                      <th className="p-2">Tür</th>
+                      <th className="p-2">Değer</th>
+                      <th className="p-2">Kullanım</th>
+                      <th className="p-2">Durum</th>
+                      <th className="p-2">İşlem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {discounts.map((d, i) => (
+                      <tr key={i} className="border-b border-white/10">
+                        <td className="p-2 font-semibold">{d.code}</td>
+                        <td className="p-2">{d.type === "percent" ? "% Oran" : "Sabit"}</td>
+                        <td className="p-2">
+                          {d.type === "percent"
+                            ? `%${d.value}`
+                            : `${d.value.toLocaleString("tr-TR")} TL`}
+                        </td>
+                        <td className="p-2">
+                          {(d.used_count || 0).toString()}
+                          {d.max_usage ? ` / ${d.max_usage}` : ""}
+                        </td>
+                        <td className="p-2">
+                          <span className={d.active ? "text-green-400" : "text-red-400"}>
+                            {d.active ? "Aktif" : "Pasif"}
+                          </span>
+                        </td>
+                        <td className="p-2">
+                          <button
+                            onClick={() => toggleDiscount(d.code, !d.active)}
+                            className="px-3 py-1 rounded-lg text-xs bg-white/10 border border-white/20 hover:bg-white/20"
+                          >
+                            {d.active ? "Pasifleştir" : "Aktifleştir"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

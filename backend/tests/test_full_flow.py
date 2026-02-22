@@ -41,50 +41,85 @@ def clean_data():
 @patch("backend.admin_auth.SECRET_KEY", "test_secret_key")
 @patch("backend.admin_auth.ALGORITHM", "HS256")
 def test_pricing_flow():
-    # 0. Generate a valid admin token for the test
     import jwt
     from datetime import datetime, timedelta, timezone
-    
-    token = jwt.encode({
-        "sub": "admin_123",
-        "role": "admin",
-        "exp": datetime.now(timezone.utc) + timedelta(hours=1)
-    }, "test_secret_key", algorithm="HS256")
-
-    # 1. Check default pricing (10000.0 from file)
+    token = jwt.encode(
+        {
+            "sub": "admin_123",
+            "role": "admin",
+            "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        },
+        "test_secret_key",
+        algorithm="HS256",
+    )
     res = client.post("/api/pricing/calculate", json={"count": 1})
     assert res.status_code == 200
     data = res.json()
     assert data["final_total"] == 10000.0
-
-    # 2. Admin updates pricing
     new_config = {
         "base_price": 12000.0,
         "discount_rate": 25.0,
-        "bulk_threshold": 5
+        "bulk_threshold": 5,
     }
     res = client.post(
-        "/api/pricing/config", 
+        "/api/pricing/config",
         json=new_config,
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200
-
-    # 3. Check new pricing for single user
     res = client.post("/api/pricing/calculate", json={"count": 1})
     assert res.json()["final_total"] == 12000.0
-
-    # 4. Check bulk discount (threshold 5)
-    # 4 users -> no discount
     res = client.post("/api/pricing/calculate", json={"count": 4})
-    assert res.json()["is_discounted"] is False
-    assert res.json()["final_total"] == 48000.0
-
-    # 5 users -> discount applied (25%)
+    body = res.json()
+    assert body["is_discounted"] is False
+    assert body["final_total"] == 48000.0
     res = client.post("/api/pricing/calculate", json={"count": 5})
-    assert res.json()["is_discounted"] is True
-    # 5 * 12000 = 60000. Discount 25% = 15000. Total = 45000.
-    assert res.json()["final_total"] == 45000.0
+    body = res.json()
+    assert body["is_discounted"] is True
+    assert body["final_total"] == 45000.0
+    res = client.post(
+        "/api/pricing/discount-codes",
+        json={
+            "code": "BARO10",
+            "type": "percent",
+            "value": 10.0,
+            "max_usage": 1,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200
+    res = client.post(
+        "/api/pricing/calculate",
+        json={"count": 1, "discount_code": "baro10"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["discount_code"] == "BARO10"
+    assert data["discount_code_type"] == "percent"
+    assert data["discount_code_amount"] == 1200.0
+    assert data["final_total"] == 10800.0
+    res = client.post(
+        "/api/pricing/calculate",
+        json={"count": 1, "discount_code": "BARO10"},
+    )
+    assert res.status_code == 400
+    res = client.post(
+        "/api/pricing/discount-codes",
+        json={
+            "code": "EXPIRED",
+            "type": "fixed",
+            "value": 1000.0,
+            "max_usage": 10,
+            "expires_at": "2000-01-01T00:00:00+00:00",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200
+    res = client.post(
+        "/api/pricing/calculate",
+        json={"count": 1, "discount_code": "EXPIRED"},
+    )
+    assert res.status_code == 400
 
 @patch("backend.security.encrypt_value", lambda v: v)
 @patch("backend.security.decrypt_value", lambda v: v)

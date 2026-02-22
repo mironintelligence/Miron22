@@ -590,5 +590,5 @@ def export_doc(req: ExportRequest):
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Export: {e}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Export işlemi sırasında hata oluştu.")
