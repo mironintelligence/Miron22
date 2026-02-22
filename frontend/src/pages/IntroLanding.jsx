@@ -1,10 +1,11 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 
 export default function IntroLanding() {
   const navigate = useNavigate();
   const containerRef = useRef(null);
+  const [counters, setCounters] = useState({ timeSaved: 0, accuracy: 0, decisions: 0 });
   
   // Scroll Animations
   const { scrollYProgress } = useScroll({
@@ -22,6 +23,21 @@ export default function IntroLanding() {
     visible: { transition: { staggerChildren: 0.1 } },
   };
 
+  useEffect(() => {
+    const start = Date.now();
+    const duration = 1400;
+    const id = setInterval(() => {
+      const p = Math.min(1, (Date.now() - start) / duration);
+      setCounters({
+        timeSaved: Math.floor(72 * p),
+        accuracy: Math.floor(98 * p),
+        decisions: Math.floor(1200 * p),
+      });
+      if (p >= 1) clearInterval(id);
+    }, 30);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <div ref={containerRef} className="bg-[#020202] text-white font-sans overflow-hidden selection:bg-[var(--miron-gold)] selection:text-black">
       
@@ -37,7 +53,7 @@ export default function IntroLanding() {
         <div className="max-w-7xl mx-auto px-6 z-10 w-full pt-20">
           <motion.div variants={fadeUp} className="text-center mb-8">
             <span className="inline-block py-1 px-4 rounded-full bg-white/5 border border-white/10 text-xs font-bold tracking-[0.2em] text-[var(--miron-gold)] uppercase backdrop-blur-md">
-              Miron AI — Advanced Legal Intelligence
+              Miron AI — Avukatlara Stratejik Güç
             </span>
           </motion.div>
           
@@ -46,8 +62,8 @@ export default function IntroLanding() {
           </motion.h1>
           
           <motion.p variants={fadeUp} className="text-xl md:text-2xl text-white/50 text-center max-w-4xl mx-auto leading-relaxed font-light mb-12">
-            Kurumsal düzeyde dilekçe otomasyonu, derin evrak analizi ve stratejik risk simülasyonu. 
-            <span className="text-white/80"> Yargı süreçlerini saniyelere indirin.</span>
+            Davayı okumak, anlamlandırmak ve stratejiye çevirmek artık saatler değil dakikalar alır.
+            <span className="text-white/80"> Daha az risk, daha güçlü savunma, daha ikna edici dosya.</span>
           </motion.p>
 
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-6">
@@ -116,29 +132,29 @@ export default function IntroLanding() {
         <div className="max-w-7xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="mb-20">
             <motion.div variants={fadeUp} className="text-[var(--miron-gold)] text-sm font-bold tracking-[0.2em] uppercase mb-4">
-              Miron Core Engine
+              Stratejik Avantaj
             </motion.div>
             <motion.h2 variants={fadeUp} className="text-5xl md:text-6xl font-bold max-w-3xl">
-              Çok Katmanlı Hibrit<br />Yapay Zeka Mimarisi.
+              Daha Hızlı, Daha Net,<br />Daha Güçlü Savunma.
             </motion.h2>
           </motion.div>
 
           <div className="grid lg:grid-cols-3 gap-8">
             {[
               {
-                title: "Model Routing & Orchestration",
-                desc: "Sistem, görevin karmaşıklığına göre GPT-4o (Reasoning) ve GPT-4o-mini (Analysis) arasında dinamik geçiş yapar. Simülasyonlar derin düşünme modeline, analizler hızlı modele yönlendirilir.",
-                icon: "⚡"
+                title: "Hızlı İçtihat Erişimi",
+                desc: "Dosyanızla benzer kararları saniyeler içinde yakalayın, güçlü dayanaklarla ilerleyin.",
+                icon: "🏛️"
               },
               {
-                title: "Vector Embeddings & Semantic Search",
-                desc: "Milyonlarca içtihat metni vektör uzayına dönüştürülür. PostgreSQL + pgvector altyapısı ile kelime değil, 'anlam' ve 'bağlam' araması yapılır.",
-                icon: "🧠"
+                title: "Net Strateji Çerçevesi",
+                desc: "Usul, ispat, karşı argüman ve riskleri tek bir bakışta görün ve karar verin.",
+                icon: "⚖️"
               },
               {
-                title: "RAG (Retrieval-Augmented Generation)",
-                desc: "AI halüsinasyonunu önlemek için model, doğrudan veritabanındaki gerçek kanun maddeleri ve emsal kararlarla beslenir. Referanssız cümle kurulmaz.",
-                icon: "🔗"
+                title: "Müvekkil İletişimi",
+                desc: "Risk ve olasılıkları anlaşılır şekilde sunun, güveni somut veriye dayandırın.",
+                icon: "📜"
               }
             ].map((item, i) => (
               <motion.div 
@@ -164,25 +180,25 @@ export default function IntroLanding() {
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}>
             <motion.div variants={fadeUp} className="text-[var(--miron-gold)] text-sm font-bold tracking-[0.2em] uppercase mb-4">
-              Veri İstihbaratı
+              İçtihat Gücü
             </motion.div>
             <motion.h2 variants={fadeUp} className="text-5xl md:text-6xl font-bold mb-8">
               Yargıtay & Danıştay<br />İçtihat Analizi.
             </motion.h2>
             <motion.p variants={fadeUp} className="text-lg text-white/50 mb-10 leading-relaxed">
-              Sadece karar aramak yetmez. Miron AI, kararları daire, yıl, sonuç (onama/bozma) ve hukuki gerekçe bazında indeksler.
+              Davanızla benzer kararları hızlıca yakalayın, gerekçeyi netleştirin ve dosyanızı güçlendirin.
               <br /><br />
-              Özel algoritmalarımız, binlerce karar arasından davanızla en yüksek "hukuki benzerlik" skoruna sahip olanları filtreler ve özetler.
+              Daire, yıl ve sonuç odaklı filtrelerle doğru içtihada hızlı erişin.
             </motion.p>
             
             <motion.div variants={fadeUp} className="grid grid-cols-2 gap-8 border-t border-white/10 pt-8">
               <div>
-                <div className="text-4xl font-bold text-white mb-2">10M+</div>
-                <div className="text-sm text-white/40 uppercase tracking-widest">İndekslenen Karar</div>
+                <div className="text-4xl font-bold text-white mb-2">{counters.decisions}+</div>
+                <div className="text-sm text-white/40 uppercase tracking-widest">Karar Kümeleri</div>
               </div>
               <div>
-                <div className="text-4xl font-bold text-white mb-2">%99.8</div>
-                <div className="text-sm text-white/40 uppercase tracking-widest">Uptime</div>
+                <div className="text-4xl font-bold text-white mb-2">%{counters.accuracy}</div>
+                <div className="text-sm text-white/40 uppercase tracking-widest">Eşleşme Tutarlılığı</div>
               </div>
             </motion.div>
           </motion.div>

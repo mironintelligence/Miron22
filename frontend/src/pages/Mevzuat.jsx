@@ -1,5 +1,6 @@
 // src/pages/Mevzuat.jsx
 import React, { useState } from "react";
+import { authFetch } from "../auth/api";
 
 const quickLaws = ["TBK", "TCK", "İİK", "HMK", "TTK"];
 
@@ -10,13 +11,15 @@ export default function Mevzuat() {
   const [question, setQuestion] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [answer, setAnswer] = useState("");
+  const [analysis, setAnalysis] = useState(null);
+  const [precedents, setPrecedents] = useState([]);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setAnswer("");
+    setAnalysis(null);
+    setPrecedents([]);
 
     if (!question.trim()) {
       setError("Önce bir soru / olay özeti yaz.");
@@ -26,20 +29,17 @@ export default function Mevzuat() {
     setLoading(true);
     try {
       const payload = {
+        query: question.trim(),
         law: law.trim() || null,
         article: article.trim() || null,
-        question: question.trim(),
         article_text: articleText.trim() || null,
       };
 
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/mevzuat/ai-explain`,
-        {
+      const res = await authFetch(`/api/mevzuat/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-        }
-      );
+      });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -47,7 +47,8 @@ export default function Mevzuat() {
       }
 
       const data = await res.json();
-      setAnswer(data.answer || "");
+      setAnalysis(data.analysis || null);
+      setPrecedents(data.precedents || []);
     } catch (err) {
       setError(err.message || "Bilinmeyen bir hata oluştu.");
     } finally {
@@ -64,7 +65,7 @@ export default function Mevzuat() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-6">
         {/* SOL: FORM */}
         <div className="glass px-6 py-6">
-          <h2 className="text-2xl font-semibold mb-1">Mevzuat Analizi (AI)</h2>
+          <h2 className="text-2xl font-semibold mb-1">Mevzuat Analizi</h2>
           <p className="text-sm text-subtle mb-5">
             Belirli bir kanun ve maddeyi baz alarak veya sadece olayı anlatarak
             AI'dan açıklama, risk analizi ve strateji önerileri al.
@@ -183,36 +184,80 @@ export default function Mevzuat() {
               <div className="text-xs text-subtle">Cevap üretiliyor...</div>
             )}
 
-            {!loading && !answer && (
+            {!loading && !analysis && (
               <div className="text-xs text-subtle">
                 Henüz bir analiz yok. Soldaki alanları doldurup sorgu gönder.
               </div>
             )}
 
-            {!loading && answer && (
-              <div className="prose prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">
-                {answer}
+            {!loading && analysis && (
+              <div className="space-y-4 text-sm text-white/80">
+                <div>
+                  <div className="text-xs text-white/50 mb-1">Madde Uygunluğu</div>
+                  <div>{analysis.madde_uygunlugu || "Belirtilmedi"}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-white/50 mb-1">Yanlış Madde Riski</div>
+                  <div>{analysis.yanlis_madde_riski || "Belirtilmedi"}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-white/50 mb-1">İlgili Maddeler</div>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {(analysis.ilgili_maddeler || []).map((m, i) => (
+                      <li key={i}>
+                        <span className="font-semibold">{m.kanun || ""} {m.madde || ""}</span>
+                        <span className="text-white/60"> — {m.gerekce || ""}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <div className="text-xs text-white/50 mb-1">Çapraz Atıflar</div>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {(analysis.capraz_atiflar || []).map((a, i) => (
+                      <li key={i}>{a}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <div className="text-xs text-white/50 mb-1">Hiyerarşi Çatışması</div>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {(analysis.hiyerarsi_catisma || []).map((a, i) => (
+                      <li key={i}>{a}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <div className="text-xs text-white/50 mb-1">Riskler</div>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {(analysis.riskler || []).map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <div className="text-xs text-white/50 mb-1">Gerekçe</div>
+                  <div>{analysis.gerekce || "Belirtilmedi"}</div>
+                </div>
               </div>
             )}
           </div>
 
           <div className="glass px-5 py-4">
             <h4 className="text-xs font-semibold text-muted mb-2">
-              İpucu: Mevzuatı AI ile kullanırken
+              İlgili İçtihatlar
             </h4>
-            <ul className="text-[11px] text-subtle space-y-1.5">
-              <li>
-                • İmkanın varsa ilgili maddeyi mevzuat.gov.tr’den kopyalayıp
-                yukarıdaki kutuya yapıştır; AI yorumu direkt o metne göre yapar.
-              </li>
-              <li>
-                • Olay özetinde tarih, taraf ilişkisi, sözleşme türü ve temel
-                talebini net yaz; bulanık anlatırsan cevap da bulanık olur.
-              </li>
-              <li>
-                • Çıkan sonucu “ön analiz” gibi düşün; nihai hukuki görüş için
-                her zaman sorumlu avukat kontrolü gerekir.
-              </li>
+            {precedents.length === 0 && (
+              <div className="text-xs text-subtle">İçtihat bulunamadı.</div>
+            )}
+            <ul className="text-[11px] text-subtle space-y-2">
+              {precedents.map((p) => (
+                <li key={p.id}>
+                  <div className="text-white/80 font-semibold">{p.decision_number} {p.case_number}</div>
+                  <div className="text-white/60">{p.court} {p.chamber}</div>
+                  <div className="text-white/50">{p.summary}</div>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

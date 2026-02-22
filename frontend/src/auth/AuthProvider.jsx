@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { login as apiLogin, register as apiRegister } from "./api";
+import { login as apiLogin, register as apiRegister, refresh as apiRefresh, logout as apiLogout } from "./api";
 import { clearStoredAuth, getStoredAuth, setStoredAuth } from "../utils/auth";
 
 const AuthContext = createContext(null);
@@ -16,9 +16,20 @@ export function AuthProvider({ children }) {
       setToken(stored.token);
       setUser(stored.user || null);
       setStatus("authed");
-    } else {
-      setStatus("guest");
+      return;
     }
+    apiRefresh()
+      .then((data) => {
+        const newToken = data?.access_token || "";
+        if (newToken) {
+          setStoredAuth(newToken, stored?.user || null);
+          setToken(newToken);
+          setStatus("authed");
+        } else {
+          setStatus("guest");
+        }
+      })
+      .catch(() => setStatus("guest"));
   }, []);
 
   const login = async (email, password) => {
@@ -31,8 +42,9 @@ export function AuthProvider({ children }) {
       lastName: meta?.last_name || meta?.lastName || meta?.user_metadata?.last_name || "",
     };
 
-    setStoredAuth(data?.token || "", normalized);
-    setToken(data?.token || "");
+    const accessToken = data?.access_token || "";
+    setStoredAuth(accessToken, normalized);
+    setToken(accessToken);
     setUser(normalized);
     setStatus("authed");
     setLastLoginMeta({
@@ -49,7 +61,12 @@ export function AuthProvider({ children }) {
     return apiRegister({ email, password, firstName, lastName, mode });
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await apiLogout();
+    } catch {
+      null;
+    }
     clearStoredAuth();
     setToken(null);
     setUser(null);

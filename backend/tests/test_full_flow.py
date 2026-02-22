@@ -5,7 +5,6 @@ import pytest
 from unittest.mock import patch, MagicMock
 import sys
 
-# Mock modules that are not installed but imported in main.py
 sys.modules["pdfplumber"] = MagicMock()
 sys.modules["docx"] = MagicMock()
 sys.modules["docx.shared"] = MagicMock()
@@ -16,11 +15,12 @@ mock_openai_client = MagicMock()
 mock_openai_client.get_openai_api_key.return_value = "sk-fake-key-123456"
 sys.modules["openai_client"] = mock_openai_client
 
-# Set env vars for testing
 os.environ["ADMIN_TOKEN"] = "secret_admin_token"
 os.environ["DATA_DIR"] = "test_data"
 os.environ["SUPABASE_URL"] = "https://test.supabase.co"
 os.environ["SUPABASE_KEY"] = "test_key"
+os.environ["JWT_SECRET"] = "test_jwt_secret"
+os.environ["DATA_HASH_KEY"] = "test_hash_key"
 
 from fastapi.testclient import TestClient
 from backend.main import app
@@ -30,7 +30,6 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def clean_data():
-    # Clean up test data before/after
     import shutil
     if os.path.exists("test_data"):
         shutil.rmtree("test_data")
@@ -87,17 +86,17 @@ def test_pricing_flow():
     # 5 * 12000 = 60000. Discount 25% = 15000. Total = 45000.
     assert res.json()["final_total"] == 45000.0
 
-@patch("backend.auth_router._read_users")
-@patch("backend.auth_router._write_users")
+@patch("backend.security.encrypt_value", lambda v: v)
+@patch("backend.security.decrypt_value", lambda v: v)
+@patch("backend.auth_router.read_users")
+@patch("backend.auth_router.write_users")
 def test_auth_single_user_flow(mock_write_users, mock_read_users):
-    # Mock data store
     mock_users = []
     mock_read_users.side_effect = lambda: mock_users
     def save_users(users):
         mock_users[:] = users
     mock_write_users.side_effect = save_users
 
-    # 1. Register
     payload = {
         "email": "test@example.com",
         "password": "password123",
@@ -109,12 +108,10 @@ def test_auth_single_user_flow(mock_write_users, mock_read_users):
     assert res.status_code == 200
     assert res.json()["requires_verification"] is False
     
-    # 2. Login
     res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "password123"})
     assert res.status_code == 200
-    assert "token" in res.json()
+    assert "access_token" in res.json()
     
-    # 3. Wrong password
     res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "wrong"})
     assert res.status_code == 401
 

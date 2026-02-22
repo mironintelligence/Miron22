@@ -54,7 +54,7 @@ export default function Pricing() {
       <div className="glass p-6 sm:px-8 rounded-2xl">
         <div className="text-center mb-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-accent">
-            Libra AI – Legal Intelligence Suite
+            Miron AI – Legal Intelligence Suite
           </h2>
           <p className="text-sm text-subtle mt-1">
             Lisansınızı etkinleştirin ve tüm modüllere erişin.
@@ -110,9 +110,6 @@ export default function Pricing() {
               </div>
               <div className="glass rounded-xl p-3">
                 🎯 Dava Simülasyonu (Yakında)
-              </div>
-              <div className="glass rounded-xl p-3">
-                ☁️ Libra Cloud paylaşımları (Yakında)
               </div>
             </div>
           </div>

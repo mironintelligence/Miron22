@@ -1,188 +1,130 @@
 import os
-import math
 from typing import List, Dict, Any, Optional
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import numpy as np
-from openai import OpenAI
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# Initialize OpenAI
-client = None
 try:
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-except:
-    pass
+    from backend.openai_client import get_openai_client
+except ImportError:
+    from openai_client import get_openai_client
 
-def get_embedding(text: str, model="text-embedding-3-large") -> List[float]:
+def _sanitize_query(text: str) -> str:
+    value = (text or "").replace("\x00", " ").strip()
+    value = " ".join(value.split())
+    return value[:500]
+
+def _vector_literal(vec: List[float]) -> str:
+    return "[" + ",".join(f"{v:.8f}" for v in vec) + "]"
+
+def get_embedding(text: str) -> List[float]:
+    client = get_openai_client()
     if not client:
-        return [0.0] * 3072
-    text = text.replace("\n", " ")
-    return client.embeddings.create(input=[text], model=model).data[0].embedding
+        raise RuntimeError("OpenAI client not configured")
+    payload = text.replace("\n", " ")
+    resp = client.embeddings.create(input=[payload], model="text-embedding-3-large")
+    return resp.data[0].embedding
 
 class YargitaySearchEngine:
-    def __init__(self, db_url: str = None):
+    def __init__(self, db_url: Optional[str] = None):
         self.db_url = db_url or os.getenv("DATABASE_URL")
 
-    def _get_connection(self):
+    def _connect(self):
         if not self.db_url:
-            return None
+            raise RuntimeError("DATABASE_URL missing")
         return psycopg2.connect(self.db_url)
 
+    def _build_filters(self, year: Optional[int], court: Optional[str], chamber: Optional[str]):
+        filters = []
+        params: List[Any] = []
+        if year:
+            filters.append("EXTRACT(YEAR FROM decision_date) = %s")
+            params.append(year)
+        if court:
+            filters.append("court = %s")
+            params.append(court)
+        if chamber:
+            filters.append("chamber = %s")
+            params.append(chamber)
+        if not filters:
+            return "", params
+        return " AND " + " AND ".join(filters), params
+
+    def _semantic_search(self, cur, vector: str, filter_sql: str, params: List[Any], limit: int):
+        sql = f"""
+            SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
+                1 - (embedding <=> %s::vector) AS semantic_score
+            FROM decisions
+            WHERE 1=1 {filter_sql}
+            ORDER BY embedding <=> %s::vector
+            LIMIT %s
+        """
+        cur.execute(sql, [vector] + params + [vector, limit])
+        return {row["id"]: dict(row) for row in cur.fetchall()}
+
+    def _keyword_search(self, cur, query: str, filter_sql: str, params: List[Any], limit: int):
+        sql = f"""
+            SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
+                ts_rank_cd(to_tsvector('turkish', clean_text), plainto_tsquery('turkish', %s)) AS keyword_rank
+            FROM decisions
+            WHERE to_tsvector('turkish', clean_text) @@ plainto_tsquery('turkish', %s)
+            {filter_sql}
+            ORDER BY keyword_rank DESC
+            LIMIT %s
+        """
+        cur.execute(sql, [query, query] + params + [limit])
+        return {row["id"]: dict(row) for row in cur.fetchall()}
+
     def search(self, query: str, year: Optional[int] = None, court: Optional[str] = None, chamber: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
-        """
-        Performs hybrid search (Semantic + Keyword) on decisions table.
-        """
-        embedding = get_embedding(query)
-        embedding_vector = str(embedding)
-        
-        conn = None
+        q = _sanitize_query(query)
+        if not q:
+            return {"query": "", "results": [], "message": "empty_query"}
+        embedding = get_embedding(q)
+        vector = _vector_literal(embedding)
+        filter_sql, params = self._build_filters(year, court, chamber)
+        conn = self._connect()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
         try:
-            conn = self._get_connection()
-            if not conn:
-                # Fallback for dev/sandbox without DB
-                return self._mock_search(query)
-
-            cur = conn.cursor(cursor_factory=RealDictCursor)
-
-            # Base filters
-            filters = []
-            params = []
-            
-            if year:
-                filters.append("EXTRACT(YEAR FROM decision_date) = %s")
-                params.append(year)
-            if court:
-                filters.append("court = %s")
-                params.append(court)
-            if chamber:
-                filters.append("chamber = %s")
-                params.append(chamber)
-            
-            filter_sql = " AND ".join(filters)
-            if filter_sql:
-                filter_sql = " AND " + filter_sql
-
-            # 1. Semantic Search
-            # 1 - (embedding <=> query) gives similarity (1 is identical, 0 is opposite)
-            # vector_cosine_ops distance is 1 - cosine_similarity. So we want to minimize distance.
-            # But here we want score. 1 - distance is good.
-            semantic_sql = f"""
-                SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
-                    1 - (embedding <=> %s::vector) AS semantic_score
-                FROM decisions
-                WHERE 1=1 {filter_sql}
-                ORDER BY embedding <=> %s::vector
-                LIMIT %s;
-            """
-            # Params: vector, filter_params, vector, limit
-            sem_params = [embedding_vector] + params + [embedding_vector, limit]
-            cur.execute(semantic_sql, sem_params)
-            semantic_results = {row['id']: dict(row) for row in cur.fetchall()}
-
-            # 2. Keyword Search
-            # plainto_tsquery for simple query parsing
-            keyword_sql = f"""
-                SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
-                    ts_rank_cd(to_tsvector('turkish', clean_text), plainto_tsquery('turkish', %s)) AS keyword_rank
-                FROM decisions
-                WHERE to_tsvector('turkish', clean_text) @@ plainto_tsquery('turkish', %s)
-                {filter_sql}
-                ORDER BY keyword_rank DESC
-                LIMIT %s;
-            """
-            # Params: query, query, filter_params, limit
-            kw_params = [query, query] + params + [limit]
-            cur.execute(keyword_sql, kw_params)
-            keyword_results = {row['id']: dict(row) for row in cur.fetchall()}
-
+            semantic = self._semantic_search(cur, vector, filter_sql, params, limit)
+            keyword = self._keyword_search(cur, q, filter_sql, params, limit)
+            merged: Dict[str, Dict[str, Any]] = {}
+            all_ids = set(semantic.keys()) | set(keyword.keys())
+            max_kw = 0.0
+            for row in keyword.values():
+                try:
+                    max_kw = max(max_kw, float(row.get("keyword_rank") or 0.0))
+                except Exception:
+                    pass
+            for row_id in all_ids:
+                base = {}
+                sem_score = 0.0
+                kw_score = 0.0
+                if row_id in semantic:
+                    base.update(semantic[row_id])
+                    sem_score = float(semantic[row_id].get("semantic_score") or 0.0)
+                if row_id in keyword:
+                    base.update(keyword[row_id])
+                    kw_score = float(keyword[row_id].get("keyword_rank") or 0.0)
+                kw_norm = 0.0 if max_kw <= 0 else kw_score / max_kw
+                final_score = (sem_score * 0.65) + (kw_norm * 0.35)
+                base["semantic_score"] = sem_score
+                base["keyword_rank"] = kw_norm
+                base["final_score"] = final_score
+                merged[row_id] = base
+            sorted_results = sorted(merged.values(), key=lambda x: x.get("final_score", 0.0), reverse=True)
+            if not sorted_results:
+                semantic_only = self._semantic_search(cur, vector, filter_sql, params, 10)
+                semantic_sorted = sorted(
+                    semantic_only.values(),
+                    key=lambda x: x.get("semantic_score", 0.0),
+                    reverse=True,
+                )
+                for item in semantic_sorted:
+                    item["keyword_rank"] = 0.0
+                    item["final_score"] = float(item.get("semantic_score") or 0.0)
+                return {"query": q, "results": semantic_sorted[:10], "message": "semantic_fallback" if semantic_sorted else "no_results"}
+            return {"query": q, "results": sorted_results[:10]}
+        finally:
             cur.close()
             conn.close()
-
-            # 3. Merge Results (RRF or Weighted Sum)
-            # Using Weighted Sum as requested: 0.65 Semantic, 0.35 Keyword
-            # We need to normalize scores first if they are on different scales.
-            # Semantic is 0-1 (mostly). Keyword rank is unbounded (usually 0-1 or 0-something).
-            # For simplicity and robustness, we just sum them with weights.
-            
-            merged = {}
-            all_ids = set(semantic_results.keys()) | set(keyword_results.keys())
-            
-            for id in all_ids:
-                sem_score = 0.0
-                if id in semantic_results:
-                    item = semantic_results[id]
-                    sem_score = float(item['semantic_score'])
-                    merged[id] = item
-                
-                kw_score = 0.0
-                if id in keyword_results:
-                    if id not in merged:
-                        merged[id] = keyword_results[id]
-                    kw_score = float(keyword_results[id]['keyword_rank'])
-                
-                # Normalize keyword score roughly (e.g. max 1.0)
-                # This is heuristic.
-                kw_score = min(kw_score, 1.0)
-                
-                final_score = (sem_score * 0.65) + (kw_score * 0.35)
-                merged[id]['final_score'] = final_score
-                merged[id]['semantic_score'] = sem_score
-                merged[id]['keyword_rank'] = kw_score
-
-            # Sort by final score
-            sorted_results = sorted(merged.values(), key=lambda x: x['final_score'], reverse=True)
-            
-            return {
-                "query": query,
-                "results": sorted_results[:10]
-            }
-
-        except Exception as e:
-            print(f"Search error: {e}")
-            if conn:
-                conn.close()
-            # Fallback to mock if DB fails (e.g. table not found)
-            return self._mock_search(query)
-
-    def _mock_search(self, query: str) -> Dict[str, Any]:
-        """
-        Mock results for dev/sandbox environment
-        """
-        return {
-            "query": query,
-            "results": [
-                {
-                    "id": "mock-1",
-                    "decision_number": "2023/1452 K.",
-                    "case_number": "2023/1023 E.",
-                    "court": "Yargıtay",
-                    "chamber": "3. Hukuk Dairesi",
-                    "date": "2023-11-15",
-                    "summary": f"MOCK RESULT for '{query}': Kira alacağı nedeniyle tahliye talebi reddedilmiştir.",
-                    "outcome": "ONAMA",
-                    "clean_text": "Taraflar arasındaki kira sözleşmesinden kaynaklanan tahliye davasında...",
-                    "semantic_score": 0.95,
-                    "keyword_rank": 0.4,
-                    "final_score": 0.88
-                },
-                {
-                    "id": "mock-2",
-                    "decision_number": "2022/8891 K.",
-                    "case_number": "2022/5678 E.",
-                    "court": "Yargıtay",
-                    "chamber": "12. Hukuk Dairesi",
-                    "date": "2022-05-20",
-                    "summary": f"MOCK RESULT for '{query}': İtirazın iptali ve icra inkar tazminatı...",
-                    "outcome": "BOZMA",
-                    "clean_text": "İtirazın iptali davasında, davalının imza inkarı üzerine...",
-                    "semantic_score": 0.82,
-                    "keyword_rank": 0.3,
-                    "final_score": 0.75
-                }
-            ]
-        }
 
 search_engine = YargitaySearchEngine()

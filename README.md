@@ -1,42 +1,61 @@
-# Miron AI - Yargıtay Search Engine
+# Miron AI
 
 ## Overview
-This project includes a Hybrid Search Engine for Yargıtay (Supreme Court) decisions, combining Semantic Search (pgvector) and Full-Text Search (tsvector).
+Miron AI is a production-ready legal intelligence platform for document analysis, decision search, legislation analysis, risk strategy, and legal calculators. The system is designed for secure, transient processing with strong authentication and hardened request handling.
 
-## Setup
+## Requirements
+- Python 3.11+
+- Node 18+
+- PostgreSQL 16 with pgvector extension
 
-### Database
-The system requires PostgreSQL with `pgvector` extension.
+## Environment Variables
+Set these in your secret manager or deployment environment:
+- `DATABASE_URL`
+- `OPENAI_API_KEY`
+- `JWT_SECRET`
+- `DATA_ENCRYPTION_KEY` (Fernet key)
+- `DATA_HASH_KEY`
+- `SUPABASE_URL` (optional)
+- `SUPABASE_KEY` (optional)
+- `RATE_LIMIT_WINDOW_SECONDS` (optional)
+- `RATE_LIMIT_MAX_REQUESTS` (optional)
 
-1. **Migration**: Run the SQL script to create table and indexes.
-   ```bash
-   psql -d <db_name> -f backend/migrations/001_create_decisions.sql
-   ```
+## Database Setup
 
-2. **Seeding**: Populate the database with sample decisions and embeddings.
-   ```bash
-   # Ensure DATABASE_URL is set in .env
-   python3 backend/scripts/seed_yargitay.py
-   ```
+### Migration
+```bash
+psql -d <db_name> -f backend/migrations/001_create_decisions.sql
+```
+
+### Seeding (100+ Real Decisions)
+Provide a JSONL dataset and set `DECISIONS_SOURCE` to its path or URL:
+```bash
+export DECISIONS_SOURCE="/path/to/decisions.jsonl"
+python3 backend/scripts/seed_yargitay.py
+```
+
+### Validation
+```bash
+python3 backend/scripts/validate_decisions.py
+```
 
 ## Search API
 
-### Endpoint
+### Decisions Search
 `GET /api/search/decisions`
 
-### Parameters
-- `q` (required): Search query string.
-- `year` (optional): Filter by year (e.g., 2023).
-- `court` (optional): Filter by court (e.g., "Yargıtay").
-- `chamber` (optional): Filter by chamber (e.g., "3. Hukuk Dairesi").
+Parameters:
+- `q` (required)
+- `year` (optional)
+- `court` (optional)
+- `chamber` (optional)
 
-### Example Request
+Example:
 ```bash
-curl -X GET "http://localhost:8000/api/search/decisions?q=kira+tahliye&year=2023" \
-     -H "Authorization: Bearer demo"
+curl -X GET "http://localhost:8000/api/search/decisions?q=kira+tahliye&year=2023"
 ```
 
-### Example Response
+Response:
 ```json
 {
   "query": "kira tahliye",
@@ -44,9 +63,9 @@ curl -X GET "http://localhost:8000/api/search/decisions?q=kira+tahliye&year=2023
     {
       "id": "uuid...",
       "decision_number": "2023/1452 K.",
+      "case_number": "2023/1023 E.",
       "court": "Yargıtay",
       "chamber": "3. Hukuk Dairesi",
-      "date": "2023-11-15",
       "summary": "...",
       "outcome": "ONAMA",
       "semantic_score": 0.92,
@@ -57,16 +76,62 @@ curl -X GET "http://localhost:8000/api/search/decisions?q=kira+tahliye&year=2023
 }
 ```
 
-## Hybrid Scoring Algorithm
-The final score is calculated using a Weighted Sum model:
-```python
+Hybrid scoring:
+```
 Final Score = (Semantic Score * 0.65) + (Keyword Rank * 0.35)
 ```
-- **Semantic Score**: Cosine similarity (1 - distance) between query embedding and document embedding.
-- **Keyword Rank**: PostgreSQL `ts_rank_cd` score normalized (clamped to 1.0).
+
+## Mevzuat API
+`POST /api/mevzuat/search`
+
+Example:
+```bash
+curl -X POST "http://localhost:8000/api/mevzuat/search" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"kira tahliye", "law":"TBK", "article":"315"}'
+```
+
+## Risk & Strategy API
+`POST /api/risk/analyze`
+
+Example:
+```bash
+curl -X POST "http://localhost:8000/api/risk/analyze" \
+  -F "case_text=Davada delil yok ve zamanaşımı söz konusu."
+```
+
+## Calculators API
+Endpoints:
+- `/calc/faiz-basit`
+- `/calc/faiz-bilesik`
+- `/calc/faiz-ticari`
+- `/calc/faiz-temerrut`
+- `/calc/iscilik`
+- `/calc/kidem`
+- `/calc/ihbar`
+- `/calc/zamanasimi`
+- `/calc/harc`
+- `/calc/vekalet`
+- `/calc/icra-masraf`
+
+## Production Deployment Guide
+
+### Backend
+```bash
+pip install -r backend/requirements.txt
+uvicorn backend.main:app --host 0.0.0.0 --port 8000
+```
+
+### Frontend
+```bash
+npm -C frontend install
+npm -C frontend run build
+```
+
+Deploy the frontend build output to a static host (Vercel, Netlify, or Nginx). Source maps are disabled in production builds.
 
 ## Testing
-Run the automated tests to verify logic:
 ```bash
-pytest backend/tests/test_yargitay_search.py -v
+pytest backend/tests -v
+npm -C frontend run build
 ```

@@ -31,9 +31,10 @@ load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 # ---------------------------
 from openai_client import get_openai_client, get_openai_api_key
 try:
-    from backend.middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware
+    from backend.middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, RateLimitMiddleware, BotProtectionMiddleware
 except ImportError:
-    from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware
+    from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, RateLimitMiddleware, BotProtectionMiddleware
+from security import sanitize_text
 
 # OpenAI error types (sürüm uyumlu)
 try:
@@ -52,7 +53,7 @@ except Exception:
 # ---------------------------
 # APP
 # ---------------------------
-app = FastAPI(title="Libra AI Backend", version="1.4.0")
+app = FastAPI(title="Miron AI Backend", version="1.4.0")
 
 @app.on_event("startup")
 async def startup_event():
@@ -106,6 +107,8 @@ app.add_middleware(
 )
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(BotProtectionMiddleware)
 
 @app.get("/health")
 def health():
@@ -124,13 +127,10 @@ def _safe_import(path: str, name: str = "router"):
         return None
 
 
-auth_router      = _safe_import("routes.auth_routes", "router")
-pool_router      = _safe_import("routes.users_pool", "router")
 assistant_router = _safe_import("assistant_routes", "router")
 writer_router    = _safe_import("legal_writer", "writer_router")
 stats_router     = _safe_import("stats_router", "stats_router")
 risk_router      = _safe_import("risk_router", "router")
-demo_router      = _safe_import("demo_router", "router")
 calc_router      = _safe_import("calculators", "router")
 reports_router   = _safe_import("reports", "router")
 yargitay_router  = _safe_import("yargitay_search", "router")
@@ -163,81 +163,34 @@ def smart_format(text: str, filename: str, dava_turu: str):
             # AI-POWERED STRUCTURED ANALYSIS - DEEP MODE
             prompt = f"""
             Sen kıdemli bir hukuk analisti ve eski bir hakimsin.
-            Aşağıdaki hukuk belgesini (dilekçe, karar, bilirkişi raporu vb.) en ince detayına kadar analiz etmelisin.
-            
-            Yüzeysel özetleme YAPMA.
-            Her bir argümanı, her bir delili, her bir yasal atfı tek tek çıkar.
-            
-            Eğer bir bilgi belgede açıkça yoksa, "Belgede belirtilmemiş" yaz. Asla "-" veya boşluk bırakma.
-            
-            ÇIKTI FORMATI (Aşağıdaki başlıkları aynen kullan):
+            Metni cümle cümle analiz et, somut bilgi üret ve çıkarımları gerekçelendir.
+            Her başlık dolu olmalı. Metinde açıkça yoksa çıkarım yap, çıkarım yapılamıyorsa nedenini açıkça yaz.
+            Çıktıda '-' ya da boş ifade kullanma.
 
-            ## CASE INFORMATION
-            * Court: [Mahkeme Adı - Tam unvan]
-            * Case Number: [Dosya/Esas No]
-            * Decision Number: [Karar No - varsa]
-            * Decision Date: [Karar Tarihi]
-            * Document Type: [Belge Türü: Dava Dilekçesi / Cevap Dilekçesi / Bilirkişi Raporu / Gerekçeli Karar vb.]
-            * Jurisdiction: [Yargı Yeri / Şehir]
+            Başlıklar aşağıdaki gibi ve Türkçe olmalı:
 
-            ## PARTIES
-            * Plaintiff (Davacı): [Tam İsim/Unvan]
-            * Defendant (Davalı): [Tam İsim/Unvan]
-            * Attorneys: [Varsa vekillerin isimleri]
-            * Other Parties: [İhbar olunan, fer'i müdahil vb.]
+            ### DAVACI
+            ### DAVALI
+            ### MAHKEME
+            ### DOSYA NO
+            ### KARAR NO
+            ### DAVA TÜRÜ
+            ### TALEP KONUSU
+            ### UYUŞMAZLIK ÖZETİ
+            ### TESPİT EDİLEN DELİLLER
+            ### İSPAT YÜKÜ
+            ### ZAMANAŞIMI RİSKİ
+            ### GÖREV / YETKİ SORUNU
+            ### USULİ RİSKLER
+            ### MADDİ HUKUK RİSKLERİ
+            ### STRATEJİ ÖNERİSİ
+            ### MUHTEMEL KARŞI ARGÜMANLAR
+            ### RİSK SKORU (%)
 
-            ## PROCEDURAL HISTORY
-            [Davanın aşamaları, duruşma tarihleri, ara kararlar ve usuli işlemlerin kronolojik özeti]
+            Her başlık altında kısa ve net paragraflar yaz. Çelişkileri, eksik delilleri, usuli tuzakları, ispat zayıflıklarını, zamanaşımı ve görev/yetki risklerini açıkça belirt.
 
-            ## CLAIMS (DAVACI İDDİALARI)
-            [Davacının tüm iddialarını maddeler halinde, detaylıca listele]
-
-            ## DEFENSES (DAVALI SAVUNMALARI)
-            [Davalının tüm karşı argümanlarını maddeler halinde, detaylıca listele]
-
-            ## EVIDENCE MENTIONED
-            [Belgede geçen tüm deliller: Tanıklar, faturalar, sözleşmeler, keşif, bilirkişi raporları vb.]
-
-            ## LEGAL REFERENCES
-            [Dayanılan tüm kanun maddeleri, yönetmelikler ve Yargıtay içtihatları]
-
-            ## COURT REASONING STRUCTURE
-            [Mahkemenin veya bilirkişinin gerekçesi. Hangi delile neden itibar edildi? Hangi argüman neden reddedildi? Mantıksal akışı kur.]
-
-            ## PROCEDURAL RISK ASSESSMENT (USUL RİSKİ ANALİZİ)
-            [MANDATORY: Analyze specifically for: Jurisdiction errors, Statute of limitations, Missing procedural requirements, Standing issues, Improper court selection]
-            * Risk Level: [Low / Medium / High]
-            * Identified Risks: [List each risk with explanation]
-            * Legal Basis: [Cite specific HMK/IYUK articles]
-            * Corrective Action: [What should be done?]
-
-            ## CONTRADICTION ANALYSIS (ÇELİŞKİ ANALİZİ)
-            [Identify contradictions within the document or between parties' statements]
-            * Internal Contradictions: [Inconsistencies within the text itself]
-            * External Contradictions: [Conflicts with known facts or other evidence]
-            * Impact Score: [1-10]
-
-            ## MISSING CLAIM DETECTION (EKSİK TALEP TESPİTİ)
-            [Identify claims that SHOULD have been made but were missed based on the facts]
-            * Missed Claim: [e.g., "Manevi tazminat talep edilmemiş"]
-            * Rationale: [Why is this claim applicable?]
-            * Potential Value: [Estimated impact]
-
-            ## ALTERNATIVE LEGAL QUALIFICATION (ALTERNATİF HUKUKİ NİTELEME)
-            [Suggest alternative legal grounds or qualifications for the case]
-            * Current Qualification: [As stated in doc]
-            * Alternative Qualification: [e.g., "Sebepsiz zenginleşme yerine sözleşmeye aykırılık"]
-            * Strategic Advantage: [Why change the qualification?]
-
-            ## FINAL DECISION
-            [Hüküm fıkrası veya sonuç talebi. Kim kazandı? Ne kadar tazminat? Masraflar kime yüklendi?]
-
-            ## POTENTIAL APPEAL GROUNDS
-            [Eğer bu bir kararsa: Temyiz veya istinaf için olası hukuki hatalar veya eksik inceleme noktaları. Eğer dilekçeyse: Karşı tarafın itiraz edebileceği zayıf noktalar.]
-
-            ---
-            BELGE METNİ (Analiz Edilecek Kısım):
-            {text[:25000]}  # Increased context limit for deep analysis
+            BELGE METNİ:
+            {text[:20000]}
             """
             
             completion = client.chat.completions.create(
@@ -280,19 +233,56 @@ def smart_format(text: str, filename: str, dava_turu: str):
     summary = " ".join(lines)[:1200] + ("..." if len(" ".join(lines)) > 1200 else "")
 
     formatted = f"""
-## CASE INFORMATION
-* Court: Not specified (Legacy Parse)
-* Case Number: Not specified
-* Document Type: {dava_turu}
+### DAVACI
+{', '.join(taraflar[:2]) or "Metinde açıkça yer almıyor; çıkarım yapılamadı."}
 
-## PARTIES
-{chr(10).join(f"* {t}" for t in taraflar[:10])}
+### DAVALI
+{', '.join(taraflar[2:4]) or "Metinde açıkça yer almıyor; çıkarım yapılamadı."}
 
-## SUMMARY
+### MAHKEME
+Metinde açıkça yer almıyor; çıkarım yapılamadı.
+
+### DOSYA NO
+Metinde açıkça yer almıyor; çıkarım yapılamadı.
+
+### KARAR NO
+Metinde açıkça yer almıyor; çıkarım yapılamadı.
+
+### DAVA TÜRÜ
+{dava_turu}
+
+### TALEP KONUSU
+Metinde açıkça yer almıyor; çıkarım yapılamadı.
+
+### UYUŞMAZLIK ÖZETİ
 {summary}
 
-## LEGAL EXTRACTS
-{chr(10).join(f"* {d}" for d in dayanak[:10])}
+### TESPİT EDİLEN DELİLLER
+{chr(10).join(dayanak[:10]) or "Metinde açıkça yer almıyor; çıkarım yapılamadı."}
+
+### İSPAT YÜKÜ
+Metinde açıkça yer almıyor; çıkarım yapılamadı.
+
+### ZAMANAŞIMI RİSKİ
+Metinde açıkça yer almıyor; çıkarım yapılamadı.
+
+### GÖREV / YETKİ SORUNU
+Metinde açıkça yer almıyor; çıkarım yapılamadı.
+
+### USULİ RİSKLER
+Metinde açıkça yer almıyor; çıkarım yapılamadı.
+
+### MADDİ HUKUK RİSKLERİ
+Metinde açıkça yer almıyor; çıkarım yapılamadı.
+
+### STRATEJİ ÖNERİSİ
+Metinde açıkça yer almıyor; çıkarım yapılamadı.
+
+### MUHTEMEL KARŞI ARGÜMANLAR
+Metinde açıkça yer almıyor; çıkarım yapılamadı.
+
+### RİSK SKORU (%)
+50
 """.strip()
 
     return formatted, summary
@@ -346,8 +336,6 @@ async def analyze_file(file: UploadFile = File(...)):
 # =============================
 # ASSISTANT CHAT
 # =============================
-SESSIONS_DIR = BASE_DIR / "sessions"
-SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 
 class ChatRequest(BaseModel):
     chat_id: Optional[str] = None
@@ -429,8 +417,8 @@ def assistant_chat(req: ChatRequest = Body(...)):
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY eksik/boş ya da client oluşturulamadı.")
 
     chat_id = _sanitize_chat_id(req.chat_id)
-    user_text = req.message.strip()
-    context = (req.context or "").strip()
+    user_text = sanitize_text(req.message)
+    context = sanitize_text(req.context or "")
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     if context:
@@ -440,41 +428,24 @@ def assistant_chat(req: ChatRequest = Body(...)):
     try:
         completion = _run_llm(messages)
         reply = (completion.choices[0].message.content or "").strip()
-
-        session_path = SESSIONS_DIR / f"{chat_id}.txt"
-        with open(session_path, "a", encoding="utf-8") as f:
-            f.write(f"User: {user_text}\nAssistant: {reply}\n\n")
-
         return {"reply": reply, "chat_id": chat_id}
 
-    except AuthenticationError as e:
-        # SENDEKİ HATA BU: invalid_api_key
-        raise HTTPException(status_code=401, detail=f"OpenAI auth failed: {str(e)}")
+    except AuthenticationError:
+        raise HTTPException(status_code=401, detail="Harici hizmet doğrulama hatası.")
 
-    except RateLimitError as e:
-        raise HTTPException(status_code=429, detail=f"OpenAI rate limit: {str(e)}")
+    except RateLimitError:
+        raise HTTPException(status_code=429, detail="Harici hizmet hız limiti aşıldı.")
 
-    except APIConnectionError as e:
-        raise HTTPException(status_code=503, detail=f"OpenAI connection error: {str(e)}")
+    except APIConnectionError:
+        raise HTTPException(status_code=503, detail="Harici hizmet bağlantı hatası.")
 
-    except (BadRequestError, APIStatusError) as e:
-        code = getattr(e, "status_code", 400)
-        raise HTTPException(status_code=int(code), detail=f"OpenAI API error: {str(e)}")
+    except (BadRequestError, APIStatusError):
+        raise HTTPException(status_code=400, detail="Harici hizmet isteği başarısız.")
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Assistant error: {repr(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="İşlem sırasında hata oluştu.")
 
 
-
-from fastapi.routing import APIRoute
-
-@app.get("/__routes")
-def __routes():
-    return sorted([
-        {"path": r.path, "methods": sorted(list(r.methods or []))}
-        for r in app.routes
-        if isinstance(r, APIRoute)
-    ], key=lambda x: x["path"])
 
 
 
@@ -486,8 +457,6 @@ if assistant_router: app.include_router(assistant_router)
 if stats_router:    app.include_router(stats_router)
 if risk_router:     app.include_router(risk_router)
 if admin_router:    app.include_router(admin_router, prefix="/admin")
-if pool_router:     app.include_router(pool_router)
-if demo_router:     app.include_router(demo_router)
 if calc_router:     app.include_router(calc_router)
 if reports_router:  app.include_router(reports_router)
 if yargitay_router: app.include_router(yargitay_router)

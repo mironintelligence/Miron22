@@ -1,6 +1,6 @@
 // src/pages/YargitaySearch.jsx
 import React, { useState } from "react";
-import { api } from "../auth/api"; // Assuming we can use the helper, or use fetch
+import { authFetch } from "../auth/api";
 
 const hukukDaireleri = [
   "3. Hukuk Dairesi",
@@ -50,13 +50,9 @@ export default function YargitaySearch() {
       if (year) params.append("year", year);
       if (court) params.append("court", court);
 
-      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-      const res = await fetch(`${base}/api/search/decisions?${params.toString()}`, {
+      const res = await authFetch(`/api/search/decisions?${params.toString()}`, {
         method: "GET",
-        headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token") || "demo"}`,
-            "Content-Type": "application/json"
-        }
+        headers: { "Content-Type": "application/json" },
       });
 
       if (res.status === 204) {

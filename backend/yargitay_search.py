@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends, status, Header, Query
+from fastapi import APIRouter, HTTPException, Depends, status, Header, Query, Request
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
+import logging
+from security import sanitize_text
 
 try:
     from backend.openai_client import get_openai_client
@@ -13,37 +15,21 @@ try:
 except ImportError:
     from auth import get_supabase_client
 
-# Import the new search engine
 try:
     from backend.services.search import search_engine
 except ImportError:
     from services.search import search_engine
 
-# Change prefix to handle both /api/search (new) and potentially /api/yargitay (old/ai)
-# We can just mount this router at /api/search in main.py, OR use a dual router approach.
-# For simplicity and to match the prompt exactly, let's expose /api/search/decisions here
-# but also keep /api/yargitay prefix if needed for other endpoints.
-# Actually, let's just use /api/search prefix and update main.py reference if needed,
-# OR simpler: keep prefix="/api/yargitay" but add a new router instance for /api/search
-# The user wants GET /api/search/decisions.
-
 router = APIRouter(prefix="/api", tags=["Search"])
+logger = logging.getLogger("miron.search")
 
 def get_current_user(authorization: str = Header(default="")) -> Dict[str, Any]:
-    # Reuse the logic from analyze.py for consistency
     auth = (authorization or "").strip()
     if not auth.lower().startswith("bearer "):
-        # Allow unauthorized for now if needed, or raise 401
-        # For demo purposes, we might want to be lenient or strict.
-        # Given previous files, let's be strict but allow file stub.
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token gerekli.")
+        return {"id": "guest"}
     token = auth.split(" ", 1)[1].strip()
     if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token gerekli.")
-    
-    # File-based stub
-    if len(token) == 32 and all(c in "0123456789abcdef" for c in token.lower()):
-         return {"id": "stub_file_user", "email": "user@file.auth"}
+        return {"id": "guest"}
 
     try:
         client = get_supabase_client()
@@ -54,10 +40,7 @@ def get_current_user(authorization: str = Header(default="")) -> Dict[str, Any]:
     except:
         pass
 
-    if token == "demo":
-        return {"id": "demo", "email": "demo@miron.ai"}
-        
-    return {"id": "stub_user", "email": "stub@miron.ai"} # Fallback for now
+    return {"id": "guest"}
 
 class DecisionResult(BaseModel):
     id: str
@@ -76,6 +59,7 @@ class DecisionResult(BaseModel):
 class SearchResponse(BaseModel):
     query: str
     results: List[DecisionResult]
+    message: Optional[str] = None
 
 @router.get("/search/decisions", response_model=SearchResponse)
 def search_decisions(
@@ -83,31 +67,20 @@ def search_decisions(
     year: Optional[int] = Query(None, description="Decision year"),
     court: Optional[str] = Query(None, description="Court name (e.g. Yargıtay)"),
     chamber: Optional[str] = Query(None, description="Chamber name (e.g. 3. Hukuk Dairesi)"),
-    user: Dict[str, Any] = Depends(get_current_user)
+    request: Request = None
 ):
-    """
-    Hybrid Search for Supreme Court Decisions.
-    Combines semantic search (vector) and keyword search (tsvector).
-    """
     if not q or not q.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
-    results = search_engine.search(q, year=year, court=court, chamber=chamber)
-    
+    ip = request.client.host if request and request.client else ""
+    ua = request.headers.get("user-agent", "") if request else ""
+    logger.info("decision_search", extra={"query": q, "ip": ip, "ua": ua, "year": year, "court": court, "chamber": chamber})
+    try:
+        results = search_engine.search(q, year=year, court=court, chamber=chamber)
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="Search unavailable")
     if not results or not results.get("results"):
-        # The requirement says: "If Hybrid search returns no rows... return 204"
-        # FastAPI 204 response means no content body.
-        # But usually client expects JSON structure if possible or just handle empty list.
-        # Let's check requirement: "If still none → return 204 with message..."
-        # 204 cannot have a message body. Maybe 404 or 200 with empty list?
-        # "return 204 with message" is contradictory for standard HTTP.
-        # I'll return 200 with empty list, or raise 404 if strictly needed.
-        # But requirement says "No 'Not Found' errors occur" in Documentation section?
-        # Wait, "Ensure no 404 behavior" in Frontend section.
-        # So backend should return 200 empty or handled 204.
-        # If I return 204, I must return Response(status_code=204).
-        pass
-
+        return {"query": q, "results": [], "message": "No decisions found for query."}
     return results
 
 class AiSearchRequest(BaseModel):
@@ -129,15 +102,15 @@ def ai_search_analysis(payload: AiSearchRequest, user: Dict[str, Any] = Depends(
 
     context_text = ""
     if payload.decision_text:
-        context_text = f"\n\nANALİZ EDİLECEK KARAR METNİ:\n{payload.decision_text[:5000]}"
+        context_text = f"\n\nANALİZ EDİLECEK KARAR METNİ:\n{sanitize_text(payload.decision_text, 5000)}"
 
     prompt = f"""
     Sen kıdemli bir Yargıtay tetkik hakimisin. Aşağıdaki hukuki meseleyi analiz et.
 
-    KONU/SORU: {payload.question}
-    İLGİLİ DAİRE: {payload.chamber or "Genel"}
+    KONU/SORU: {sanitize_text(payload.question, 800)}
+    İLGİLİ DAİRE: {sanitize_text(payload.chamber or "Genel", 120)}
     YIL: {payload.year or "Son yıllar"}
-    KANUN: {payload.law or "İlgili mevzuat"}
+    KANUN: {sanitize_text(payload.law or "İlgili mevzuat", 120)}
     {context_text}
 
     GÖREVİN:

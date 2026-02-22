@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 import sys
 import os
 
-# Mock openai
 sys.modules["openai"] = MagicMock()
 
 from backend.services.search import YargitaySearchEngine
@@ -21,7 +20,6 @@ def mock_db_cursor():
     mock_cur = MagicMock()
     mock_conn.cursor.return_value = mock_cur
     
-    # Mock context manager
     mock_conn.__enter__.return_value = mock_conn
     mock_conn.__exit__.return_value = None
     mock_cur.__enter__.return_value = mock_cur
@@ -32,7 +30,6 @@ def mock_db_cursor():
 def test_search_engine_logic(mock_db_cursor):
     conn, cur = mock_db_cursor
     
-    # Mock data
     mock_semantic_rows = [
         {
             "id": "1", "clean_text": "text1", "summary": "sum1", "outcome": "ONAMA", 
@@ -63,24 +60,13 @@ def test_search_engine_logic(mock_db_cursor):
     
     assert len(results["results"]) == 2
     
-    # Check scoring for ID 1
-    # 0.9 * 0.65 + 0.5 * 0.35 = 0.585 + 0.175 = 0.76
     res1 = next(r for r in results["results"] if r["id"] == "1")
-    assert abs(res1["final_score"] - 0.76) < 0.001
+    assert abs(res1["final_score"] - 0.80375) < 0.001
     
-    # Check scoring for ID 2 (Semantic 0 implicit, Keyword 0.8)
-    # 0 * 0.65 + 0.8 * 0.35 = 0.28
     res2 = next(r for r in results["results"] if r["id"] == "2")
-    assert abs(res2["final_score"] - 0.28) < 0.001
+    assert abs(res2["final_score"] - 0.35) < 0.001
 
 def test_api_endpoint_mock_db():
-    # Test API when DB is NOT connected (fallback to mock)
-    # This simulates the current sandbox environment
-    
-    # Force db_url to None for engine used by router?
-    # Actually router imports search_engine instance.
-    # We can patch the search method of that instance.
-    
     with patch("backend.services.search.search_engine.search") as mock_search:
         mock_search.return_value = {
             "query": "test",
@@ -93,10 +79,7 @@ def test_api_endpoint_mock_db():
             ]
         }
         
-        response = client.get(
-            "/api/search/decisions?q=test",
-            headers={"Authorization": "Bearer demo"}
-        )
+        response = client.get("/api/search/decisions?q=test")
         
         assert response.status_code == 200
         data = response.json()
@@ -104,9 +87,5 @@ def test_api_endpoint_mock_db():
         assert data["results"][0]["id"] == "mock-1"
 
 def test_api_validation():
-    response = client.get(
-        "/api/search/decisions?q=",
-        headers={"Authorization": "Bearer demo"}
-    )
+    response = client.get("/api/search/decisions?q=")
     assert response.status_code == 400
-

@@ -4,7 +4,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen px-6 sm:px-10 md:px-16 py-16">
       <header className="flex items-center justify-between mb-12">
-        <div className="text-xl font-bold text-accent">Libra AI — Legal Intelligence Suite</div>
+        <div className="text-xl font-bold text-accent">Miron AI — Legal Intelligence Suite</div>
         <div className="flex gap-3">
           <Link to="/login" className="px-4 py-2 rounded-lg glass hover:bg-white/10">Giriş Yap</Link>
           <Link to="/register" className="px-4 py-2 rounded-lg btn-primary">
@@ -19,8 +19,8 @@ export default function Landing() {
             Avukatlar için <span className="text-accent">tam entegre</span> yapay zekâ asistanı
           </h1>
           <p className="text-muted mb-6">
-            Evrak analizi, KVKK maskeleme, emsal karar özetleri, dilekçe oluşturma ve
-            Libra Assistant ile dava bazlı soru-cevap… Hepsi tek panelde.
+            Evrak analizi, emsal karar taraması, dilekçe oluşturma ve stratejik risk analizi.
+            Avukat odaklı tek panel deneyimi.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link to="/demo-request" className="px-5 py-2 rounded-lg btn-primary">
@@ -38,8 +38,7 @@ export default function Landing() {
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-white">
             <li className="glass p-3 rounded-xl">📂 Evrak Analizi</li>
             <li className="glass p-3 rounded-xl">🧾 Dilekçe Oluşturucu</li>
-            <li className="glass p-3 rounded-xl">💬 Libra Assistant</li>
-            <li className="glass p-3 rounded-xl">☁️ Libra Cloud</li>
+            <li className="glass p-3 rounded-xl">💬 Akıllı Asistan</li>
             <li className="glass p-3 rounded-xl">🔒 KVKK Maskeleme</li>
             <li className="glass p-3 rounded-xl">📊 Raporlama & Olasılık</li>
           </ul>

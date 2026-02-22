@@ -2,46 +2,15 @@ from __future__ import annotations
 
 import json
 import os
-import base64
-import hashlib
-import hmac
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+from backend.security import encrypt_value, decrypt_value, hmac_hash, hash_password, verify_password
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 USERS_FILE = DATA_DIR / "users.json"
-
-_PBKDF2_ITERS = int(os.getenv("PASSWORD_PBKDF2_ITERS", "210000"))
-
-def _b64e(b: bytes) -> str:
-    return base64.urlsafe_b64encode(b).decode("utf-8").rstrip("=")
-
-def _b64d(s: str) -> bytes:
-    pad = "=" * (-len(s) % 4)
-    return base64.urlsafe_b64decode((s + pad).encode("utf-8"))
-
-def hash_password(password: str) -> str:
-    pw = (password or "").encode("utf-8")
-    if not pw:
-        raise ValueError("password empty")
-    salt = os.urandom(16)
-    dk = hashlib.pbkdf2_hmac("sha256", pw, salt, _PBKDF2_ITERS)
-    return f"pbkdf2_sha256${_PBKDF2_ITERS}${_b64e(salt)}${_b64e(dk)}"
-
-def verify_password(password: str, stored: str) -> bool:
-    if not stored or not stored.startswith("pbkdf2_sha256$"):
-        return hmac.compare_digest(password or "", stored or "")
-    try:
-        _, it_s, salt_b64, hash_b64 = stored.split("$", 3)
-        it = int(it_s)
-        salt = _b64d(salt_b64)
-        expected = _b64d(hash_b64)
-        dk = hashlib.pbkdf2_hmac("sha256", (password or "").encode("utf-8"), salt, it)
-        return hmac.compare_digest(dk, expected)
-    except Exception:
-        return False
 
 def _load_json(path: Path, default):
     if not path.exists():
@@ -68,9 +37,55 @@ def _write_json(path: Path, data) -> None:
             except Exception:
                 pass
 
+def _norm_email(email: str) -> str:
+    return (email or "").strip().lower()
+
+def _decode_user(u: Dict[str, Any]) -> Dict[str, Any]:
+    email = u.get("email")
+    if not email and u.get("email_enc"):
+        email = decrypt_value(str(u.get("email_enc")))
+    first_name = u.get("firstName")
+    if first_name is None and u.get("firstName_enc"):
+        first_name = decrypt_value(str(u.get("firstName_enc")))
+    last_name = u.get("lastName")
+    if last_name is None and u.get("lastName_enc"):
+        last_name = decrypt_value(str(u.get("lastName_enc")))
+    decoded = dict(u)
+    decoded["email"] = _norm_email(str(email or ""))
+    decoded["firstName"] = str(first_name or "")
+    decoded["lastName"] = str(last_name or "")
+    return decoded
+
+def _encode_user(u: Dict[str, Any]) -> Dict[str, Any]:
+    email = _norm_email(str(u.get("email") or ""))
+    record = dict(u)
+    record["email_hash"] = hmac_hash(email, os.getenv("DATA_HASH_KEY", ""))
+    record["email_enc"] = encrypt_value(email)
+    record["firstName_enc"] = encrypt_value(str(u.get("firstName") or ""))
+    record["lastName_enc"] = encrypt_value(str(u.get("lastName") or ""))
+    record.pop("email", None)
+    record.pop("firstName", None)
+    record.pop("lastName", None)
+    return record
+
 def read_users() -> List[Dict[str, Any]]:
     arr = _load_json(USERS_FILE, [])
-    return arr if isinstance(arr, list) else []
+    if not isinstance(arr, list):
+        return []
+    return [_decode_user(u) for u in arr if isinstance(u, dict)]
 
 def write_users(users: List[Dict[str, Any]]) -> None:
-    _write_json(USERS_FILE, users)
+    encoded = [_encode_user(u) for u in users if isinstance(u, dict)]
+    _write_json(USERS_FILE, encoded)
+
+def find_user_by_email(email: str) -> Optional[Dict[str, Any]]:
+    email_norm = _norm_email(email)
+    if not email_norm:
+        return None
+    users = read_users()
+    for u in users:
+        if _norm_email(str(u.get("email") or "")) == email_norm:
+            return u
+    return None
+
+__all__ = ["read_users", "write_users", "find_user_by_email", "hash_password", "verify_password"]

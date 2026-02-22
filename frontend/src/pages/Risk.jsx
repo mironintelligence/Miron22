@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { authFetch } from "../auth/api";
 
-const API = `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/risk`;
+const API = `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/api/risk`;
 
 export default function Risk() {
   const [file, setFile] = useState(null);
@@ -22,7 +23,7 @@ export default function Risk() {
     if (caseText.trim()) fd.append("case_text", caseText);
 
     try {
-      const r = await fetch(`${API}/analyze`, { method: "POST", body: fd });
+      const r = await authFetch(`/api/risk/analyze`, { method: "POST", body: fd });
       const data = await r.json();
       setResult(data);
     } catch (e) {
@@ -36,7 +37,7 @@ export default function Risk() {
     <div className="min-h-screen px-6 sm:px-10 md:px-16 py-20 overflow-y-auto">
       <h1 className="text-3xl font-bold mb-2 text-accent">🧠 Risk & Strateji Analizi</h1>
       <p className="text-subtle mb-6">
-        Dosyanızı veya dava özetinizi girin; Libra AI risk puanı, kazanma ihtimali ve strateji önerileri çıkarsın.
+        Dosyanızı veya dava özetinizi girin; Miron AI risk puanı, kazanma ihtimali ve strateji önerileri çıkarsın.
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -123,9 +124,40 @@ export default function Risk() {
                   ))}
                 </ul>
               </div>
-
+              <div className="mt-5">
+                <div className="text-sm text-subtle mb-2">🎯 Taktik Strateji</div>
+                <ul className="list-disc pl-5 space-y-1">
+                  {(result.tactical_strategy || []).map((k, i) => (
+                    <li key={i}>{k}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="mt-5">
+                <div className="text-sm text-subtle mb-2">🛡️ Savunma Stratejisi</div>
+                <ul className="list-disc pl-5 space-y-1">
+                  {(result.defensive_strategy || []).map((k, i) => (
+                    <li key={i}>{k}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="mt-5">
+                <div className="text-sm text-subtle mb-2">🧩 Karşı Strateji</div>
+                <ul className="list-disc pl-5 space-y-1">
+                  {(result.counter_strategy || []).map((k, i) => (
+                    <li key={i}>{k}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="mt-5">
+                <div className="text-sm text-subtle mb-2">🤝 Uzlaşma Analizi</div>
+                <ul className="list-disc pl-5 space-y-1">
+                  {(result.settlement_analysis || []).map((k, i) => (
+                    <li key={i}>{k}</li>
+                  ))}
+                </ul>
+              </div>
               <div className="mt-5 text-xs text-subtle">
-                Kaynak: <span className="font-mono">{result.source}</span> • Kayıt: {result.saved_report}
+                Olasılık mantığı: {result.probability_logic || "Belirtilmedi"}
               </div>
             </>
           )}

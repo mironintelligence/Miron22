@@ -47,6 +47,7 @@ const Login = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: "include",
       });
 
       const data = await response.json().catch(() => ({}));
@@ -56,8 +57,8 @@ const Login = () => {
         throw new Error(msg);
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('miron_token', data.access_token);
+      localStorage.setItem('miron_user', JSON.stringify(data.user));
       const user = data?.user || {};
       setLibraUser({
         id: user?.id,
