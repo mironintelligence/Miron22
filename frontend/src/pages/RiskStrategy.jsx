@@ -14,8 +14,7 @@ export default function RiskStrategy() {
     setErr("");
     setRes(null);
 
-    const noInput = !file && !caseText.trim();
-    if (noInput) {
+    if (!file && !caseText.trim()) {
       setErr("Lütfen bir dosya seçin veya metin girin.");
       return;
     }
@@ -40,78 +39,98 @@ export default function RiskStrategy() {
     }
   };
 
-  // basit bar komponenti (grafiksiz)
-  const Bar = ({ label, value, max = 100 }) => {
-    const pct = Math.max(0, Math.min(100, Number(value) || 0));
+  const ScoreCard = ({ label, value, color = "text-white", sub }) => (
+    <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-center">
+      <div className="text-sm text-white/50 uppercase tracking-wider mb-1">{label}</div>
+      <div className={`text-3xl font-bold ${color}`}>{value}</div>
+      {sub && <div className="text-xs text-white/40 mt-1">{sub}</div>}
+    </div>
+  );
+
+  const ListSection = ({ title, items, icon = "•" }) => {
+    if (!items || items.length === 0) return null;
     return (
-      <div className="mb-3">
-        <div className="flex justify-between text-xs text-subtle mb-1">
-          <span>{label}</span>
-          <span>{pct}%</span>
-        </div>
-        <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-accent"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+      <div className="bg-white/5 border border-white/10 p-5 rounded-xl">
+        <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <span className="text-yellow-500">{icon}</span> {title}
+        </h3>
+        <ul className="space-y-2">
+          {items.map((item, i) => (
+            <li key={i} className="text-sm text-white/80 flex gap-2">
+              <span className="text-white/30 mt-1">▪</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen px-6 sm:px-10 md:px-16 py-20 overflow-y-auto">
-      <div className="glass p-6 md:p-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-accent mb-6">
-          🛡️ Risk & Strateji Analizi
+    <div className="min-h-screen px-4 md:px-8 py-24 max-w-7xl mx-auto">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-red-400 to-yellow-500 bg-clip-text text-transparent mb-4">
+          Risk & Strateji Motoru
         </h1>
+        <p className="text-white/60 max-w-2xl mx-auto">
+          Yapay zeka destekli derinlemesine dava analizi. Kazanma ihtimali, risk skoru ve taktiksel öneriler.
+        </p>
+      </div>
 
-        {/* GİRİŞ BLOKU */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Dosya / Metin */}
-          <div className="glass p-4">
-            <div className="mb-4">
-              <label className="block text-sm text-muted mb-1">Dosya (PDF/DOCX/TXT…)</label>
-              <input
-                type="file"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="w-full rounded-xl bg-white/10 border border-white/20 p-2"
-                accept=".pdf,.docx,.txt,.rtf,.odt"
-              />
-              {file && (
-                <div className="text-xs text-subtle mt-1">
-                  Seçilen: <span className="text-fg">{file.name}</span>
+      <div className="grid lg:grid-cols-[400px_1fr] gap-8">
+        {/* INPUT SECTION */}
+        <div className="space-y-6 h-fit sticky top-24">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
+            <h2 className="text-xl font-semibold text-white mb-4">Dava Verileri</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-white/60 mb-2">Dosya Yükle (PDF/DOCX)</label>
+                <input
+                  type="file"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="w-full text-sm text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-600 file:text-black hover:file:bg-yellow-500 transition"
+                  accept=".pdf,.docx,.txt"
+                />
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10"></div>
                 </div>
-              )}
-            </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-[#0a0a0a] px-2 text-white/40">veya</span>
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-sm text-muted mb-1">Veya Metin</label>
-              <textarea
-                rows={8}
-                value={caseText}
-                onChange={(e) => setCaseText(e.target.value)}
-                placeholder="Dava özeti / olay metni…"
-                className="w-full rounded-xl bg-white/10 border border-white/20 p-3"
-              />
-            </div>
+              <div>
+                <label className="block text-sm text-white/60 mb-2">Dava Metni / Özet</label>
+                <textarea
+                  rows={10}
+                  value={caseText}
+                  onChange={(e) => setCaseText(e.target.value)}
+                  placeholder="Dava dilekçesi, olay özeti veya hukuki uyuşmazlık metnini buraya yapıştırın..."
+                  className="w-full bg-black/50 border border-white/20 rounded-xl p-4 text-white text-sm focus:ring-2 focus:ring-yellow-500 outline-none resize-none"
+                />
+              </div>
 
-            <div className="mt-4 flex gap-3">
               <button
                 onClick={handleAnalyze}
                 disabled={loading}
-                className="px-5 py-2 rounded-xl bg-accent text-black font-semibold hover:scale-105 transition disabled:opacity-60"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-yellow-500 text-black font-bold shadow-lg hover:brightness-110 transition disabled:opacity-50 flex justify-center items-center gap-2"
               >
-                {loading ? "Analiz ediliyor…" : "Analiz Et"}
+                {loading ? (
+                  <>
+                    <span className="animate-spin text-xl">⟳</span> Analiz Ediliyor...
+                  </>
+                ) : (
+                  "Analizi Başlat"
+                )}
               </button>
+
               <button
-                onClick={() => {
-                  setFile(null);
-                  setCaseText("");
-                  setErr("");
-                  setRes(null);
-                }}
-                className="px-4 py-2 rounded-xl bg-white/10 border border-white/20"
+                onClick={() => { setFile(null); setCaseText(""); setErr(""); setRes(null); }}
+                className="w-full py-2 rounded-xl border border-white/10 text-white/60 hover:bg-white/5 transition text-sm"
               >
                 Temizle
               </button>
@@ -120,106 +139,72 @@ export default function RiskStrategy() {
             <AnimatePresence>
               {err && (
                 <motion.div
-                  initial={{ opacity: 0, y: 6 }}
+                  initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  className="mt-3 text-sm text-red-400"
+                  exit={{ opacity: 0 }}
+                  className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-300 text-sm"
                 >
-                  ❌ {err}
+                  {err}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
-
-          {/* Sonuç kartı */}
-          <div className="glass p-4">
-            <h3 className="text-lg font-semibold mb-3 text-accent">📊 Sonuç</h3>
-
-            {!res && (
-              <div className="text-sm text-subtle">
-                Henüz analiz yok. Dosya yükleyin veya metin girip <span className="text-accent">Analiz Et</span>’e basın.
-              </div>
-            )}
-
-            {res && (
-              <div className="space-y-4">
-                {/* üst özet */}
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="glass p-3">
-                    <div className="text-subtle">Dosya/Kaynak</div>
-                    <div className="font-semibold">{res.source || "-"}</div>
-                  </div>
-                  <div className="glass p-3">
-                    <div className="text-subtle">Olası Tür</div>
-                    <div className="font-semibold">{res.case_type_guess || "-"}</div>
-                  </div>
-                  <div className="glass p-3">
-                    <div className="text-subtle">Metin Uzunluğu</div>
-                    <div className="font-semibold">{res.length || 0}</div>
-                  </div>
-                  <div className="glass p-3">
-                    <div className="text-subtle">Tarih</div>
-                    <div className="font-semibold">{res.created_at || "-"}</div>
-                  </div>
-                </div>
-
-                {/* barlar */}
-                <Bar label="Kazanma İhtimali" value={res.winning_probability} />
-                <Bar label="Risk Skoru" value={res.risk_score} />
-
-                {/* kritik başlıklar */}
-                <div className="glass p-3">
-                  <div className="text-sm text-accent font-semibold mb-2">⚠️ Risk/Kritik Başlıklar</div>
-                  {(res.key_issues || []).length ? (
-                    <ul className="list-disc ml-5 text-sm text-fg space-y-1">
-                      {res.key_issues.map((k, i) => (
-                        <li key={i}>{k}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="text-sm text-subtle">Kayıt yok.</div>
-                  )}
-                </div>
-
-                {/* öneriler */}
-                <div className="glass p-3">
-                  <div className="text-sm text-accent font-semibold mb-2">🧭 Strateji / Öneriler</div>
-                  {(res.recommended_actions || []).length ? (
-                    <ul className="list-disc ml-5 text-sm text-fg space-y-1">
-                      {res.recommended_actions.map((k, i) => (
-                        <li key={i}>{k}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="text-sm text-subtle">Kayıt yok.</div>
-                  )}
-                </div>
-
-                {/* rapor yolu */}
-                {res.saved_report && (
-                  <div className="text-xs text-subtle">
-                    Kaydedildi: <span className="text-muted">{res.saved_report}</span>
-                  </div>
-                )}
-
-                {/* yazdır */}
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => window.print()}
-                    className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 text-sm"
-                  >
-                    Yazdır
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* bilgilendirme */}
-        <p className="text-xs text-subtle mt-6">
-          Not: Bu modül <span className="text-accent">/risk/analyze</span> endpoint’inden canlı sonuç çeker.
-        </p>
+        {/* RESULTS SECTION */}
+        <div className="space-y-6">
+          {!res && !loading && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center flex flex-col items-center justify-center h-full min-h-[400px]">
+              <div className="text-6xl mb-4 opacity-20">⚖️</div>
+              <h3 className="text-xl font-semibold text-white/60">Analiz Sonucu Bekleniyor</h3>
+              <p className="text-white/30 mt-2 max-w-md">
+                Sol taraftan dosya yükleyin veya metin girerek yapay zeka destekli risk analizini başlatın.
+              </p>
+            </div>
+          )}
+
+          {res && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              
+              {/* Score Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <ScoreCard label="Kazanma İhtimali" value={`%${res.winning_probability}`} color="text-green-400" />
+                <ScoreCard label="Risk Skoru" value={res.risk_score} color={res.risk_score > 70 ? "text-red-500" : res.risk_score > 40 ? "text-yellow-500" : "text-green-500"} />
+                <ScoreCard label="Risk Kategorisi" value={res.risk_category} color="text-white" />
+                <ScoreCard label="Güven Skoru" value={res.confidence_score} sub="Model Güvenilirliği" />
+              </div>
+
+              {/* Probability Logic */}
+              <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                <h3 className="text-sm font-bold text-white/50 uppercase mb-3">Analiz Mantığı</h3>
+                <p className="text-white/90 leading-relaxed italic border-l-4 border-yellow-500 pl-4">
+                  "{res.probability_logic}"
+                </p>
+              </div>
+
+              {/* Main Analysis Grid */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <ListSection title="Kritik Riskler" items={res.key_issues} icon="⚠️" />
+                <ListSection title="Olumlu Sinyaller" items={res.positive_signals} icon="✅" />
+                <ListSection title="Eksik Unsurlar" items={res.missing_elements} icon="🔍" />
+                <ListSection title="Önerilen Aksiyonlar" items={res.recommended_actions} icon="🚀" />
+              </div>
+
+              {/* Strategy Tabs / Sections */}
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-white border-b border-white/10 pb-2">Stratejik Planlama</h2>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <ListSection title="Taktiksel Strateji (Saldırı)" items={res.tactical_strategy} icon="⚔️" />
+                  <ListSection title="Savunma Stratejisi" items={res.defensive_strategy} icon="🛡️" />
+                  <ListSection title="Karşı Hamle Öngörüsü" items={res.counter_strategy} icon="♟️" />
+                  <ListSection title="Sulh & Anlaşma Analizi" items={res.settlement_analysis} icon="🤝" />
+                </div>
+              </div>
+
+            </motion.div>
+          )}
+        </div>
       </div>
     </div>
   );

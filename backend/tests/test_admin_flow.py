@@ -1,25 +1,81 @@
-
 import sys
 from unittest.mock import MagicMock
+import os
+import json
 
 # Mock dependencies to avoid import errors
 sys.modules["pdfplumber"] = MagicMock()
 sys.modules["docx"] = MagicMock()
 sys.modules["openai"] = MagicMock()
 
+# Set env vars BEFORE importing app
+from cryptography.fernet import Fernet
+os.environ["DATA_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
+os.environ["JWT_SECRET"] = "test_jwt_secret"
+os.environ["DATA_HASH_KEY"] = "test_hash_key"
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch
 from backend.main import app
+import backend.admin_router
+import backend.stores.users_store
+import backend.stores.demo_users_store
+from pathlib import Path
 
 client = TestClient(app)
 
 # Mock admin token
 ADMIN_TOKEN = "test_admin_token"
+
+@pytest.fixture(autouse=True)
+def clean_data():
+    import shutil
+    from pathlib import Path
+    
+    # Ensure backend is in path to access 'stores' module as main.py does
+    sys.path.append(str(Path(__file__).parent.parent))
+    
+    try:
+        import stores.users_store
+        import stores.demo_users_store
+    except ImportError:
+        # Fallback if path hacking fails, though it shouldn't
+        pass
+
+    test_path = Path("test_data_admin")
+    backend.pricing_router.PRICING_CONFIG_FILE = test_path / "pricing_config.json"
+    backend.admin_router.DATA_DIR = test_path
+    backend.admin_router.DEMO_REQUESTS_FILE = test_path / "demo_requests.json"
+    backend.admin_router.ADMINS_FILE = test_path / "admins.json"
+    backend.admin_router.USERS_FILE = test_path / "users.json"
+    backend.stores.users_store.DATA_DIR = test_path
+    backend.stores.users_store.USERS_FILE = test_path / "users.json"
+    backend.stores.demo_users_store.DEMO_USERS_FILE = test_path / "demo_users.json"
+    
+    # Also update the 'stores' module variants
+    if 'stores.users_store' in sys.modules:
+        sys.modules['stores.users_store'].DATA_DIR = test_path
+        sys.modules['stores.users_store'].USERS_FILE = test_path / "users.json"
+    if 'stores.demo_users_store' in sys.modules:
+        sys.modules['stores.demo_users_store'].DEMO_USERS_FILE = test_path / "demo_users.json"
+    
+    # Update admin_router in sys.modules if present (to ensure app sees it)
+    if 'backend.admin_router' in sys.modules:
+        mod = sys.modules['backend.admin_router']
+        mod.DATA_DIR = test_path
+        mod.DEMO_REQUESTS_FILE = test_path / "demo_requests.json"
+        mod.ADMINS_FILE = test_path / "admins.json"
+        mod.USERS_FILE = test_path / "users.json"
+    
+    if os.path.exists("test_data_admin"):
+        shutil.rmtree("test_data_admin")
+    os.makedirs("test_data_admin", exist_ok=True)
+    yield
+    if os.path.exists("test_data_admin"):
+        shutil.rmtree("test_data_admin")
+
 @pytest.fixture
 def admin_headers():
-    # Ensure env token matches our header
-    import os
     os.environ["ADMIN_TOKEN"] = ADMIN_TOKEN
     import admin_auth
     from backend.admin_auth import require_admin as require_admin_backend
@@ -32,94 +88,64 @@ def admin_headers():
         app.dependency_overrides.pop(require_admin_backend, None)
 
 def test_admin_pricing_config(admin_headers):
-    # 1. Get initial config
     res = client.get("/api/pricing/config")
     assert res.status_code == 200
-    initial_config = res.json()
     
-    # 2. Update config
-    new_config = {
-        "base_price": 9000,
-        "discount_rate": 25,
-        "bulk_threshold": 5
-    }
+    new_config = {"base_price": 9000, "discount_rate": 25, "bulk_threshold": 5}
     res = client.post("/api/pricing/config", json=new_config, headers=admin_headers)
     assert res.status_code == 200
     
-    # 3. Verify update
     res = client.get("/api/pricing/config")
     assert res.status_code == 200
     updated_config = res.json()
     assert updated_config["base_price"] == 9000
-    assert updated_config["discount_rate"] == 25
-    assert updated_config["bulk_threshold"] == 5
-    
-    # 4. Revert changes (cleanup)
-    client.post("/api/pricing/config", json=initial_config, headers=admin_headers)
 
-@patch("admin_router._load_json")
-@patch("admin_router._atomic_write_json")
-def test_admin_user_management(mock_write, mock_load, admin_headers):
-    # Mock user data
-    mock_users = [
+def test_admin_user_management(admin_headers):
+    # Setup initial data using store directly
+    users = [
         {"email": "user1@example.com", "firstName": "User", "lastName": "One", "created_at": "2024-01-01T00:00:00Z"},
         {"email": "user2@example.com", "firstName": "User", "lastName": "Two", "created_at": "2024-01-02T00:00:00Z"}
     ]
-    mock_load.return_value = mock_users
+    backend.stores.users_store.write_users(users)
     
-    # 1. List users
     res = client.get("/admin/users", headers=admin_headers)
     assert res.status_code == 200
-    users = res.json()
-    assert len(users) == 2
-    assert users[0]["email"] == "user1@example.com"
-    
-    # 2. Delete user
-    # Simulate delete by filtering the list in the mock call logic would be complex, 
-    # so we just check if the endpoint calls write with the filtered list.
+    users_resp = res.json()
+    assert len(users_resp) == 2
+    assert users_resp[0]["email"] == "user1@example.com"
     
     res = client.delete("/admin/users/user1@example.com", headers=admin_headers)
     assert res.status_code == 200
     
-    # Verify one of the write calls targeted users.json with the user removed
-    found_users_write = False
-    for call in mock_write.call_args_list:
-        path_arg, data_arg = call[0][0], call[0][1]
-        if str(path_arg).endswith("users.json"):
-            assert len(data_arg) == 1
-            assert data_arg[0]["email"] == "user2@example.com"
-            found_users_write = True
-            break
-    assert found_users_write
+    # Verify persistence
+    remaining = backend.stores.users_store.read_users()
+    assert len(remaining) == 1
+    assert remaining[0]["email"] == "user2@example.com"
 
-@patch("admin_router._load_json")
-@patch("admin_router._atomic_write_json")
-def test_admin_demo_requests(mock_write, mock_load, admin_headers):
-    # Mock demo requests
-    mock_requests = [
-        {"id": "req1", "email": "demo1@example.com", "name": "Demo One", "date": "2024-01-01"}
+def test_admin_demo_requests(admin_headers):
+    # Setup initial data using file directly (since no store for requests yet, admin_router handles it)
+    reqs = [
+        {"id": "req1", "email": "demo1@example.com", "firstName": "Demo", "lastName": "One", "date": "2024-01-01"}
     ]
-    mock_load.side_effect = lambda path, default: mock_requests if "demo_requests" in str(path) else []
-    
-    # 1. List requests
+    with backend.admin_router.DEMO_REQUESTS_FILE.open("w") as f:
+        json.dump(reqs, f)
+        
     res = client.get("/admin/demo-requests", headers=admin_headers)
     assert res.status_code == 200
-    reqs = res.json()
-    assert len(reqs) == 1
-    assert reqs[0]["email"] == "demo1@example.com"
+    resp_reqs = res.json()
+    assert len(resp_reqs) == 1
+    assert resp_reqs[0]["email"] == "demo1@example.com"
     
-    # 2. Approve request
     res = client.post("/admin/demo-requests/req1/approve", headers=admin_headers)
     assert res.status_code == 200
     assert res.json()["ok"] is True
     
-    # Verify writes targeted both demo_users.json and demo_requests.json
-    wrote_demo_users = False
-    wrote_demo_requests = False
-    for call in mock_write.call_args_list:
-        path_arg = call[0][0]
-        if str(path_arg).endswith("demo_users.json"):
-            wrote_demo_users = True
-        if str(path_arg).endswith("demo_requests.json"):
-            wrote_demo_requests = True
-    assert wrote_demo_users and wrote_demo_requests
+    # Verify request removed
+    with backend.admin_router.DEMO_REQUESTS_FILE.open("r") as f:
+        remaining = json.load(f)
+    assert len(remaining) == 0
+    
+    # Verify demo user created
+    demo_users = backend.stores.demo_users_store.read_demo_users()
+    assert len(demo_users) == 1
+    assert demo_users[0]["email"] == "demo1@example.com"

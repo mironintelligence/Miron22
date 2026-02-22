@@ -1,47 +1,71 @@
 import json
 import os
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import List, Dict, Any, Optional
 from backend.security import encrypt_value, decrypt_value, hmac_hash
 
-BACKEND_DIR = os.path.dirname(os.path.dirname(__file__))
-DEMO_USERS_FILE = os.path.join(BACKEND_DIR, "data", "admin", "demo_users.json")
-
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+DEMO_USERS_FILE = BACKEND_DIR / "data" / "demo_users.json"
 
 def _ensure():
-    os.makedirs(os.path.dirname(DEMO_USERS_FILE), exist_ok=True)
-    if not os.path.exists(DEMO_USERS_FILE):
-        with open(DEMO_USERS_FILE, "w", encoding="utf-8") as f:
+    DEMO_USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not DEMO_USERS_FILE.exists():
+        with DEMO_USERS_FILE.open("w", encoding="utf-8") as f:
             json.dump([], f, ensure_ascii=False, indent=2)
-
 
 def _norm_email(email: str) -> str:
     return (email or "").strip().lower()
 
-def _decode_user(u: dict) -> dict:
+def _decode_user(u: Dict[str, Any]) -> Dict[str, Any]:
     email = u.get("email")
     if not email and u.get("email_enc"):
         email = decrypt_value(str(u.get("email_enc")))
-    full_name = u.get("full_name")
-    if full_name is None and u.get("full_name_enc"):
-        full_name = decrypt_value(str(u.get("full_name_enc")))
+    
+    first_name = u.get("firstName")
+    if first_name is None and u.get("firstName_enc"):
+        first_name = decrypt_value(str(u.get("firstName_enc")))
+        
+    last_name = u.get("lastName")
+    if last_name is None and u.get("lastName_enc"):
+        last_name = decrypt_value(str(u.get("lastName_enc")))
+        
     out = dict(u)
     out["email"] = _norm_email(str(email or ""))
-    out["full_name"] = str(full_name or "")
+    out["firstName"] = str(first_name or "")
+    out["lastName"] = str(last_name or "")
+    
+    # Remove encrypted fields from output for cleaner usage
+    out.pop("email_enc", None)
+    out.pop("firstName_enc", None)
+    out.pop("lastName_enc", None)
+    out.pop("email_hash", None)
+    
     return out
 
-def _encode_user(u: dict) -> dict:
+def _encode_user(u: Dict[str, Any]) -> Dict[str, Any]:
     email = _norm_email(str(u.get("email") or ""))
     out = dict(u)
+    
+    # Add hash for searching
     out["email_hash"] = hmac_hash(email, os.getenv("DATA_HASH_KEY", ""))
+    
+    # Encrypt PII
     out["email_enc"] = encrypt_value(email)
-    out["full_name_enc"] = encrypt_value(str(u.get("full_name") or ""))
+    out["firstName_enc"] = encrypt_value(str(u.get("firstName") or ""))
+    out["lastName_enc"] = encrypt_value(str(u.get("lastName") or ""))
+    
+    # Remove plain text PII from storage
     out.pop("email", None)
+    out.pop("firstName", None)
+    out.pop("lastName", None)
+    
     return out
 
-def read_demo_users():
+def read_demo_users() -> List[Dict[str, Any]]:
     _ensure()
     try:
-        with open(DEMO_USERS_FILE, "r", encoding="utf-8") as f:
+        with DEMO_USERS_FILE.open("r", encoding="utf-8") as f:
             data = json.load(f)
             if not isinstance(data, list):
                 return []
@@ -49,51 +73,37 @@ def read_demo_users():
     except Exception:
         return []
 
-
-def write_demo_users(users):
+def write_demo_users(users: List[Dict[str, Any]]) -> None:
     _ensure()
-    with open(DEMO_USERS_FILE, "w", encoding="utf-8") as f:
-        encoded = [_encode_user(u) for u in users if isinstance(u, dict)]
+    encoded = [_encode_user(u) for u in users if isinstance(u, dict)]
+    with DEMO_USERS_FILE.open("w", encoding="utf-8") as f:
         json.dump(encoded, f, ensure_ascii=False, indent=2)
-
-
-def _parse_iso(dt_str: str):
-    # supports "Z" or "+00:00"
-    if not dt_str:
-        return None
-    try:
-        if dt_str.endswith("Z"):
-            dt_str = dt_str[:-1] + "+00:00"
-        return datetime.fromisoformat(dt_str)
-    except Exception:
-        return None
-
 
 def purge_expired_demo_users(now=None):
     now = now or datetime.now(timezone.utc)
     users = read_demo_users()
-
     kept = []
     removed = 0
-
     for u in users:
-        expires_at = _parse_iso(str(u.get("expires_at") or ""))
-        if expires_at and expires_at <= now:
-            removed += 1
-            continue
+        try:
+            exp_str = str(u.get("expires_at") or "")
+            if exp_str:
+                exp = datetime.fromisoformat(exp_str.replace("Z", "+00:00"))
+                if exp <= now:
+                    removed += 1
+                    continue
+        except Exception:
+            pass # Keep if parse fails or assume valid? Let's keep to be safe
         kept.append(u)
-
+        
     if removed:
         write_demo_users(kept)
-
     return removed
 
-
-def find_demo_user_by_email(email: str):
+def find_demo_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     email_norm = _norm_email(email)
-    if not email_norm:
-        return None
-    for u in read_demo_users():
-        if (u.get("email") or "").strip().lower() == email_norm:
+    users = read_demo_users()
+    for u in users:
+        if _norm_email(str(u.get("email"))) == email_norm:
             return u
     return None

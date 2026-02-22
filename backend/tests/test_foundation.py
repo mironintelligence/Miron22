@@ -1,7 +1,9 @@
 import sys
 import os
 import asyncio
+import json
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -20,12 +22,36 @@ def test_normalization():
     assert len(chunks[0]) == 1000
     assert len(chunks[1]) == 600 # 1500 - (1000 - 100) = 600
 
-def test_risk_engine():
+@patch("services.risk_engine.get_openai_client")
+def test_risk_engine(mock_get_client):
+    # Mock OpenAI response
+    mock_client = MagicMock()
+    mock_get_client.return_value = mock_client
+    
+    mock_completion = MagicMock()
+    mock_completion.choices[0].message.content = json.dumps({
+        "risk_score": 85,
+        "risk_category": "High",
+        "winning_probability": 15.0,
+        "confidence_score": 0.9,
+        "key_issues": ["Zamanaşımı riski.", "Deliller yetersiz/eksik belirtilmiş."],
+        "positive_signals": [],
+        "missing_elements": [],
+        "tactical_strategy": [],
+        "defensive_strategy": [],
+        "counter_strategy": [],
+        "settlement_analysis": [],
+        "recommended_actions": [],
+        "probability_logic": "Test logic"
+    })
+    mock_client.chat.completions.create.return_value = mock_completion
+
     text = "Davada delil yok ve zamanaşımı söz konusu."
     risk = risk_engine.analyze_risk(text)
-    assert risk["risk_score"] > 50
-    assert "Deliller yetersiz/eksik belirtilmiş." in risk["key_issues"]
+    
+    assert risk["risk_score"] == 85
     assert "Zamanaşımı riski." in risk["key_issues"]
+    assert risk["risk_category"] == "High"
 
 def test_crawler_mock():
     # Mocking fetch_url since we don't want to hit real URLs
@@ -47,7 +73,9 @@ if __name__ == "__main__":
         print("Testing Normalization...")
         test_normalization()
         print("Testing Risk Engine...")
-        test_risk_engine()
+        # Need to call with patch context or just run pytest
+        # For manual run, we skip complex mocking or use pytest
+        print("Skipping manual Risk Engine test (requires mock)")
         print("Testing Crawler...")
         test_crawler_mock()
         print("All foundation tests passed!")

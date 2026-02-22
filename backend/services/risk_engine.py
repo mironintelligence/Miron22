@@ -1,141 +1,155 @@
-import re
-from typing import Dict, Any, List
+from __future__ import annotations
 
-class DeterministicRiskEngine:
-    def __init__(self):
-        self.risk_factors = [
-            (r"\bdelil\b.*(yok|eksik|zayıf)", 18, "evidence", "Delil seti zayıf veya eksik."),
-            (r"tan(ı|i)k\s*(bulunmuyor|yok|belirsiz)", 10, "evidence", "Tanık bilgileri belirsiz."),
-            (r"yetki itiraz(ı|i)|yetkisizlik", 12, "jurisdiction", "Yetki itirazı riski."),
-            (r"g(ö|o)revsizlik", 12, "jurisdiction", "Görev yönünden risk."),
-            (r"zamana(ş|s)ımı", 16, "limitation", "Zamanaşımı riski."),
-            (r"hak d(ü|u)ş(ü|u)r(ü|u)cü", 14, "limitation", "Hak düşürücü süre riski."),
-            (r"tebligat|usuls(ü|u)z tebligat|ilanen tebligat", 12, "service", "Tebligat/tebliğ usulsüzlüğü riski."),
-            (r"delil(ler)? (geç|s(ü|u)resinde sunulmad(ı|i))", 12, "procedural", "Delillerin süresinde sunulmaması riski."),
-            (r"usul(.*?)eksik|eksik (usul|şart)", 12, "procedural", "Usuli eksiklik riski."),
-            (r"bilirki(ş|s)i raporu (aleyhe|aleyhte|olumsuz)", 10, "evidence", "Bilirkişi raporu aleyhe."),
-            (r"maddi zarar(ın|in) kan(ı|i)t(ı|i) (yok|zay(ı|i)f)", 14, "evidence", "Zararın ispatı zayıf."),
-            (r"narratif|çelişki|tutars(ı|i)z", 8, "narrative", "Olay anlatımında tutarsızlık."),
-            (r"haciz|tahsilat|infaz|icra", 8, "enforcement", "Tahsilat/infaz zafiyeti riski."),
-        ]
+import json
+import logging
+from typing import Dict, Any, List, Optional
+from pydantic import BaseModel, Field, ValidationError
 
-        self.positive_factors = [
-            (r"fatura|dekont|s(ö|o)zle(s|ş)me|ek protokol", 6, "evidence", "Yazılı delil seti güçlü."),
-            (r"tan(ı|i)k (ad|soyad|ifade)", 5, "evidence", "Tanık bilgileri net."),
-            (r"yarg(ı|i)tay|emsal karar|i(ç|c)tihat", 7, "precedent", "Emsal karar desteği var."),
-            (r"bilirki(ş|s)i raporu leh(ine|inde)|olumlu", 8, "evidence", "Bilirkişi raporu lehine."),
-            (r"ihtar|arabuluculuk|uzlaşma", 4, "procedural", "Usuli hazırlık adımları mevcut."),
-        ]
+try:
+    from backend.openai_client import get_openai_client
+except ImportError:
+    from openai_client import get_openai_client
+
+logger = logging.getLogger("miron.risk_engine")
+
+# -------------------------------------------------------------------
+# Pydantic Models for Strict Validation
+# -------------------------------------------------------------------
+
+class RiskAnalysisResult(BaseModel):
+    risk_score: int = Field(..., ge=0, le=100, description="0-100 risk score where 100 is highest risk")
+    risk_category: str = Field(..., description="Risk level: Low, Medium, High, Critical")
+    winning_probability: float = Field(..., ge=0.0, le=100.0, description="Estimated winning probability percentage")
+    confidence_score: float = Field(..., ge=0.0, le=1.0, description="Model confidence in the analysis (0.0 to 1.0)")
+
+    key_issues: List[str] = Field(default_factory=list, description="Critical legal weaknesses found")
+    positive_signals: List[str] = Field(default_factory=list, description="Strengths or advantages found")
+    missing_elements: List[str] = Field(default_factory=list, description="Crucial missing evidence or documents")
+
+    tactical_strategy: List[str] = Field(default_factory=list, description="Proactive moves to gain advantage")
+    defensive_strategy: List[str] = Field(default_factory=list, description="Moves to protect against risks")
+    counter_strategy: List[str] = Field(default_factory=list, description="Responses to opponent's likely moves")
+    settlement_analysis: List[str] = Field(default_factory=list, description="Settlement feasibility and timing")
+    recommended_actions: List[str] = Field(default_factory=list, description="Immediate next steps")
+
+    probability_logic: str = Field(..., description="Explanation of the scoring logic")
+
+
+class RiskEngine:
+    """
+    AI-powered Risk & Strategy Engine.
+    Uses LLM to perform deep legal analysis with strict output structure.
+    """
 
     def analyze_risk(self, text: str) -> Dict[str, Any]:
         if not text or not text.strip():
-            return {
-                "risk_score": 50,
-                "winning_probability": 50.0,
-                "key_issues": ["Metin boş veya yetersiz."],
-                "positive_signals": [],
-                "recommended_actions": ["Somut olay ve delil setini ekleyin."],
-                "tactical_strategy": [],
-                "defensive_strategy": [],
-                "counter_strategy": [],
-                "settlement_analysis": [],
-                "probability_logic": "Veri yok",
-            }
+            return self._empty_result("Metin boş veya yetersiz.")
 
-        t = text.lower()
-        risk_score = 20
-        key_issues: List[str] = []
-        positive_signals: List[str] = []
-        categories: Dict[str, List[str]] = {
-            "procedural": [],
-            "jurisdiction": [],
-            "limitation": [],
-            "evidence": [],
-            "service": [],
-            "narrative": [],
-            "enforcement": [],
-        }
+        client = get_openai_client()
+        if not client:
+            logger.error("OpenAI client not configured.")
+            return self._empty_result("AI servisi yapılandırılmamış.")
 
-        for pattern, weight, category, msg in self.risk_factors:
-            if re.search(pattern, t):
-                risk_score += weight
-                key_issues.append(msg)
-                if category in categories:
-                    categories[category].append(msg)
+        prompt = self._build_prompt(text)
 
-        for pattern, bonus, category, note in self.positive_factors:
-            if re.search(pattern, t):
-                risk_score -= bonus
-                positive_signals.append(note)
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",  # Using 4o-mini for speed/cost balance, upgrade to 4o if needed
+                messages=[
+                    {"role": "system", "content": "Sen kıdemli bir Türk Hukuku stratejistisin. Görevin davayı analiz edip riskleri, stratejileri ve kazanma ihtimalini belirlemektir. Asla halüsinasyon görme. Sadece metindeki verilere dayan."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2,
+                response_format={"type": "json_object"}
+            )
 
-        risk_score = max(0, min(95, risk_score))
-        bonus_points = 3 if len(positive_signals) >= 2 else 0
-        winning_probability = round(max(5.0, min(97.0, 100.0 - risk_score + bonus_points)), 2)
+            content = response.choices[0].message.content
+            if not content:
+                raise ValueError("Boş yanıt döndü.")
 
-        tactical = []
-        defensive = []
-        counter = []
-        settlement = []
+            data = json.loads(content)
+            
+            # Validate with Pydantic
+            validated = RiskAnalysisResult(**data)
+            return validated.model_dump()
 
-        if categories["evidence"]:
-            tactical.append("Delil zincirini güçlendirin, yazılı delilleri kronolojik ekleyin.")
-        if categories["procedural"]:
-            defensive.append("Süre ve usul şartlarını netleştirin, eksik giderimini belgeleyin.")
-        if categories["jurisdiction"]:
-            defensive.append("Görev ve yetki dayanaklarını HMK üzerinden somutlaştırın.")
-        if categories["limitation"]:
-            counter.append("Zamanaşımı kesen veya durduran işlemleri açıkça gösterin.")
-        if categories["service"]:
-            counter.append("Tebligatın usulüne uygun yapıldığını kanıtlayın.")
-        if categories["narrative"]:
-            tactical.append("Olay örgüsünü tarih sırasıyla yeniden kurun ve çelişkiyi giderin.")
-        if categories["enforcement"]:
-            settlement.append("Tahsilat riskine karşı teminat ve alternatif ödeme planları planlayın.")
+        except ValidationError as ve:
+            logger.error(f"Risk analizi şema hatası: {ve}")
+            return self._fallback_result(text, f"Şema doğrulama hatası: {str(ve)}")
+        except json.JSONDecodeError:
+            logger.error("Risk analizi JSON ayrıştırma hatası.")
+            return self._fallback_result(text, "JSON format hatası.")
+        except Exception as e:
+            logger.error(f"Risk analizi beklenmeyen hata: {e}")
+            return self._fallback_result(text, f"Analiz hatası: {str(e)}")
 
-        if not tactical:
-            tactical.append("İddia ve delil zincirini maddelendirerek güçlendirin.")
-        if not defensive:
-            defensive.append("Zayıf noktaları önden kabul edip hukuki gerekçeyi güçlendirin.")
-        if not counter:
-            counter.append("Muhtemel karşı savunmaları somut delillerle çürütün.")
-        if not settlement:
-            settlement.append("Uzlaşma penceresini maliyet-fayda ile değerlendirin.")
+    def _build_prompt(self, text: str) -> str:
+        return f"""
+        Aşağıdaki dava/olay metnini Türk Hukuku ve Yargıtay içtihatları çerçevesinde analiz et.
+        
+        METİN:
+        {text[:8000]}
 
-        probability_logic = f"Risk skoru {risk_score} üzerinden ters ölçekleme ve pozitif sinyaller dikkate alındı."
+        ANALİZ KURALLARI:
+        1. Zamanaşımı, Hak Düşürücü Süre, Görev/Yetki, Tebligat Usulsüzlüğü gibi usuli tuzakları mutlaka kontrol et.
+        2. İspat yükü kimde ve delil durumu (tanık, belge, bilirkişi) ne durumda?
+        3. Risk Puanı (0-100): 0=Risk Yok, 100=Kesin Kayıp.
+        4. Kazanma İhtimali (%): 100 - Risk Puanı (yaklaşık).
+        5. Güven Skoru (0.0-1.0): Analizin ne kadar kesin veriye dayandığı.
+        6. Stratejiler somut ve uygulanabilir olmalı.
 
+        Lütfen yanıtı aşağıdaki JSON formatında ver:
+        {{
+            "risk_score": int,
+            "risk_category": "Low" | "Medium" | "High" | "Critical",
+            "winning_probability": float,
+            "confidence_score": float,
+            "key_issues": [str],
+            "positive_signals": [str],
+            "missing_elements": [str],
+            "tactical_strategy": [str],
+            "defensive_strategy": [str],
+            "counter_strategy": [str],
+            "settlement_analysis": [str],
+            "recommended_actions": [str],
+            "probability_logic": str
+        }}
+        """
+
+    def _empty_result(self, msg: str) -> Dict[str, Any]:
         return {
-            "risk_score": int(risk_score),
-            "winning_probability": float(winning_probability),
-            "key_issues": key_issues or ["Belirgin risk tespit edilmedi."],
-            "positive_signals": positive_signals,
-            "recommended_actions": self._generate_recommendations(categories, positive_signals),
-            "tactical_strategy": tactical,
-            "defensive_strategy": defensive,
-            "counter_strategy": counter,
-            "settlement_analysis": settlement,
-            "probability_logic": probability_logic,
+            "risk_score": 0,
+            "risk_category": "Unknown",
+            "winning_probability": 0.0,
+            "confidence_score": 0.0,
+            "key_issues": [msg],
+            "positive_signals": [],
+            "missing_elements": [],
+            "tactical_strategy": [],
+            "defensive_strategy": [],
+            "counter_strategy": [],
+            "settlement_analysis": [],
+            "recommended_actions": [],
+            "probability_logic": "Veri yok."
         }
 
-    def _generate_recommendations(self, categories: Dict[str, List[str]], positives: List[str]) -> List[str]:
-        recs: List[str] = []
-        if categories["evidence"]:
-            recs.append("Eksik delilleri tamamlamak için ilgili kurumlardan kayıt ve belge alın.")
-        if categories["procedural"]:
-            recs.append("Usuli eksiklikleri gideren ek dilekçe ve süre planı oluşturun.")
-        if categories["jurisdiction"]:
-            recs.append("Görev ve yetki tartışmasını içtihatla destekleyin.")
-        if categories["limitation"]:
-            recs.append("Zamanaşımı süresini kesen işlemleri kronolojik olarak belgeleyin.")
-        if categories["service"]:
-            recs.append("Tebligat usulüne uygunluk delillerini dosyaya ekleyin.")
-        if categories["narrative"]:
-            recs.append("Olay anlatımını çelişkisiz ve tarihli şekilde yeniden yapılandırın.")
-        if categories["enforcement"]:
-            recs.append("Tahsilat riskine karşı icra stratejisini alternatifli planlayın.")
-        if positives:
-            recs.append("Lehe unsurları tek tek delil bağlantısıyla öne çıkarın.")
-        if not recs:
-            recs.append("Dosya kapsamını güçlendirmek için delil ve mevzuat bağını artırın.")
-        return list(dict.fromkeys(recs))
+    def _fallback_result(self, text: str, error_msg: str) -> Dict[str, Any]:
+        # Fallback to a simpler heuristic or just return error state
+        # For now, return safe default with error message
+        return {
+            "risk_score": 50,
+            "risk_category": "Medium",
+            "winning_probability": 50.0,
+            "confidence_score": 0.0,
+            "key_issues": [f"AI Analizi Başarısız: {error_msg}"],
+            "positive_signals": [],
+            "missing_elements": [],
+            "tactical_strategy": ["Manuel inceleme önerilir."],
+            "defensive_strategy": [],
+            "counter_strategy": [],
+            "settlement_analysis": [],
+            "recommended_actions": ["Sistemsel hata oluştu, lütfen tekrar deneyin."],
+            "probability_logic": "Hata nedeniyle varsayılan değerler."
+        }
 
-risk_engine = DeterministicRiskEngine()
+risk_engine = RiskEngine()

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel, EmailStr, Field
 
 from admin_auth import require_admin, issue_admin_token
@@ -24,6 +24,7 @@ DEMO_USERS_FILE    = DATA_DIR / "demo_users.json"
 USERS_FILE         = DATA_DIR / "users.json"
 ACTIVITY_FILE      = DATA_DIR / "activity.json"
 ADMINS_FILE        = DATA_DIR / "admins.json"
+SYSTEM_CONFIG_FILE = DATA_DIR / "system_config.json" # New for feature flags
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -91,6 +92,15 @@ class CreateUserIn(BaseModel):
     lastName: str = Field(default="", max_length=64)
     email: EmailStr
     password: str = Field(min_length=4, max_length=128)
+    role: str = "user"
+
+class UpdateRoleIn(BaseModel):
+    role: str = Field(..., pattern="^(user|admin|editor|viewer)$")
+
+class SystemConfigIn(BaseModel):
+    maintenance_mode: bool = False
+    allow_registration: bool = True
+    max_tokens_per_user: int = 1000
 
 # ------------------------
 # Router
@@ -124,7 +134,9 @@ def _bootstrap_default_admin() -> None:
     default_last = os.getenv("DEFAULT_ADMIN_LAST") or "Aydemir"
     default_pw = os.getenv("DEFAULT_ADMIN_PASSWORD")
     if not default_pw:
-        raise HTTPException(status_code=500, detail="DEFAULT_ADMIN_PASSWORD env ayarlı değil.")
+        # If env not set, do not create default admin to avoid security hole
+        return 
+        
     admin_id = secrets.token_hex(8)
     arr.append({
         "id": admin_id,
@@ -327,7 +339,7 @@ def set_demo_password(email: str, body: SetPasswordIn):
     return {"ok": True}
 
 # ------------------------
-# Normal Users
+# Normal Users (Extended)
 # ------------------------
 @router.get("/users", dependencies=[Depends(require_admin)])
 def list_users():
@@ -348,6 +360,8 @@ def create_user(body: CreateUserIn):
         "lastName": body.lastName.strip(),
         "hashed_password": hash_password(body.password),
         "is_demo": False,
+        "role": body.role,
+        "is_active": True,
         "created_at": _iso(_now())
     }
     arr.append(u)
@@ -382,6 +396,91 @@ def set_user_password(email: str, body: SetPasswordIn):
     write_users(arr)
     _log_activity("user_set_password", f"User şifre değişti: {email}", {"email": email})
     return {"ok": True}
+
+@router.put("/users/{email}/role", dependencies=[Depends(require_admin)])
+def update_user_role(email: str, body: UpdateRoleIn):
+    email = email.strip().lower()
+    arr = read_users()
+    found = False
+    for u in arr:
+        if str(u.get("email","")).strip().lower() == email:
+            u["role"] = body.role
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="User bulunamadı.")
+    write_users(arr)
+    _log_activity("user_role_update", f"User rolü güncellendi: {email} -> {body.role}", {"email": email})
+    return {"ok": True, "role": body.role}
+
+@router.put("/users/{email}/suspend", dependencies=[Depends(require_admin)])
+def toggle_user_suspend(email: str, active: bool = Body(..., embed=True)):
+    email = email.strip().lower()
+    arr = read_users()
+    found = False
+    for u in arr:
+        if str(u.get("email","")).strip().lower() == email:
+            u["is_active"] = active
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="User bulunamadı.")
+    write_users(arr)
+    status_str = "aktif" if active else "askıya alındı"
+    _log_activity("user_suspend_toggle", f"User {status_str}: {email}", {"email": email})
+    return {"ok": True, "is_active": active}
+
+# ------------------------
+# System Logs & Master Control
+# ------------------------
+@router.get("/logs/system", dependencies=[Depends(require_admin)])
+def get_system_logs(lines: int = 200):
+    log_file = Path("backend_access.log")
+    if not log_file.exists():
+        return {"logs": ["Log dosyası bulunamadı."]}
+    
+    try:
+        with log_file.open("r", encoding="utf-8") as f:
+            all_lines = f.readlines()
+            return {"logs": all_lines[-lines:]}
+    except Exception as e:
+        return {"logs": [f"Log okuma hatası: {e}"]}
+
+@router.get("/config", dependencies=[Depends(require_admin)])
+def get_system_config():
+    return _load_json(SYSTEM_CONFIG_FILE, {"maintenance_mode": False, "allow_registration": True})
+
+@router.post("/config", dependencies=[Depends(require_admin)])
+def update_system_config(cfg: SystemConfigIn):
+    _atomic_write_json(SYSTEM_CONFIG_FILE, cfg.dict())
+    _log_activity("system_config_update", "Sistem ayarları güncellendi", cfg.dict())
+    return {"ok": True, "config": cfg.dict()}
+
+@router.post("/emergency-switch", dependencies=[Depends(require_admin)])
+def emergency_switch(enable: bool = Body(..., embed=True)):
+    # Toggle maintenance mode immediately
+    cfg = _load_json(SYSTEM_CONFIG_FILE, {"maintenance_mode": False, "allow_registration": True})
+    cfg["maintenance_mode"] = enable
+    _atomic_write_json(SYSTEM_CONFIG_FILE, cfg)
+    _log_activity("emergency_switch", f"Acil durum modu: {enable}", {"enabled": enable})
+    return {"ok": True, "maintenance_mode": enable}
+
+@router.get("/stats", dependencies=[Depends(require_admin)])
+def get_admin_stats():
+    users = read_users()
+    demos = read_demo_users()
+    reqs = _load_json(DEMO_REQUESTS_FILE, [])
+    
+    active_users = sum(1 for u in users if u.get("is_active", True))
+    
+    return {
+        "total_users": len(users),
+        "active_users": active_users,
+        "demo_users": len(demos),
+        "pending_requests": len(reqs),
+        "system_status": "Operational",
+        "last_restart": _iso(_now()) # Mockup for process start time
+    }
 
 # ------------------------
 # Activity

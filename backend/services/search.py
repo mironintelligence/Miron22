@@ -78,12 +78,32 @@ class YargitaySearchEngine:
         q = _sanitize_query(query)
         if not q:
             return {"query": "", "results": [], "message": "empty_query"}
-        embedding = get_embedding(q)
+        
+        try:
+            embedding = get_embedding(q)
+        except Exception as e:
+             # Fallback: if embedding fails (e.g. OpenAI down), return empty or handle gracefully
+             # For now, let's just return empty results to avoid 500
+             print(f"[ERROR] Embedding generation failed: {e}")
+             return {"query": q, "results": [], "message": "embedding_failed"}
+
         vector = _vector_literal(embedding)
         filter_sql, params = self._build_filters(year, court, chamber)
-        conn = self._connect()
+        
+        try:
+            conn = self._connect()
+        except Exception as e:
+            print(f"[ERROR] DB Connection failed: {e}")
+            return {"query": q, "results": [], "message": "db_connection_failed"}
+
         cur = conn.cursor(cursor_factory=RealDictCursor)
         try:
+            # Check pgvector extension first (optional but safer)
+            cur.execute("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
+            if not cur.fetchone():
+                # raise RuntimeError("pgvector extension missing")
+                print("[WARN] pgvector extension missing or not visible")
+
             semantic = self._semantic_search(cur, vector, filter_sql, params, limit)
             keyword = self._keyword_search(cur, q, filter_sql, params, limit)
             merged: Dict[str, Dict[str, Any]] = {}
@@ -123,9 +143,12 @@ class YargitaySearchEngine:
                     item["final_score"] = float(item.get("semantic_score") or 0.0)
                 return {"query": q, "results": semantic_sorted[:10], "message": "semantic_fallback" if semantic_sorted else "no_results"}
             return {"query": q, "results": sorted_results[:10]}
+        except Exception as e:
+            print(f"[ERROR] Search query failed: {e}")
+            return {"query": q, "results": [], "message": "search_execution_failed"}
         finally:
-            cur.close()
-            conn.close()
+            if cur: cur.close()
+            if conn: conn.close()
 
 class HybridSearchEngine:
     def __init__(self, db_url: Optional[str] = None):
