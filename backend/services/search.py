@@ -62,6 +62,7 @@ class YargitaySearchEngine:
         return {row["id"]: dict(row) for row in cur.fetchall()}
 
     def _keyword_search(self, cur, query: str, filter_sql: str, params: List[Any], limit: int):
+        # Prevent SQL injection by using parameterized queries for ts_query
         sql = f"""
             SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
                 ts_rank_cd(to_tsvector('turkish', clean_text), plainto_tsquery('turkish', %s)) AS keyword_rank

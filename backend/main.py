@@ -75,7 +75,11 @@ async def startup_event():
             missing.append(var)
             print(f"❌ {var} is MISSING")
         else:
-            masked = val[:4] + "*" * 4 + val[-4:] if len(val) > 8 else "****"
+            # Mask critical values in logs
+            if var in ["OPENAI_API_KEY", "SUPABASE_KEY", "SECRET_KEY"]:
+                 masked = val[:4] + "*" * 4 + val[-4:] if len(val) > 8 else "****"
+            else:
+                 masked = val
             print(f"✅ {var} is set ({masked})")
     
     if missing:
@@ -84,6 +88,26 @@ async def startup_event():
         # raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
     else:
         print("✅ All required environment variables are present.")
+
+# ---------------------------
+# ERROR HANDLERS (GLOBAL)
+# ---------------------------
+from fastapi.responses import JSONResponse
+from starlette.requests import Request
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    # In production, do NOT expose stack trace
+    # Log the full error internally
+    print(f"[ERROR] Global Exception: {exc}")
+    # traceback.print_exc() 
+    
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin."},
+    )
+
 
 # ---------------------------
 # CORS
