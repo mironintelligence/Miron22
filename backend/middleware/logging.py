@@ -5,6 +5,8 @@ from collections import deque
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
+from stores.pg_users_store import log_audit
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -18,17 +20,63 @@ logger = logging.getLogger("miron_api")
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         start_time = time.time()
-        ip = request.client.host if request.client else ""
-        ua = request.headers.get("user-agent", "")
-        logger.info(f"Incoming Request: {request.method} {request.url.path} from {ip} | ua={ua}")
+        ip = request.client.host if request.client else "unknown"
+        ua = request.headers.get("user-agent", "unknown")
+        method = request.method
+        path = request.url.path
+        
+        # Log to file/stdout
+        logger.info(f"Incoming Request: {method} {path} from {ip} | ua={ua}")
+        
         try:
             response = await call_next(request)
             process_time = time.time() - start_time
+            
             logger.info(f"Response: {response.status_code} - Duration: {process_time:.4f}s")
             response.headers["X-Process-Time"] = str(process_time)
+            
+            # Log critical events to DB Audit
+            if response.status_code >= 400:
+                # Log failures (4xx, 5xx)
+                details = {
+                    "method": method,
+                    "path": path,
+                    "status": response.status_code,
+                    "duration": process_time
+                }
+                # We can't easily get user_id here without parsing token again or attaching it to request state
+                # Assuming auth middleware attaches user info to request.state if available
+                user_id = getattr(request.state, "user_id", None)
+                
+                # Async logging would be better here to not block response
+                try:
+                    log_audit(
+                        user_id=user_id,
+                        action="REQUEST_FAILED",
+                        resource=path,
+                        details=details,
+                        ip=ip,
+                        ua=ua
+                    )
+                except Exception as e:
+                    logger.error(f"Audit log failed: {e}")
+
             return response
+            
         except Exception as e:
             logger.error(f"Request failed: {e}")
+            # Audit log critical failure
+            try:
+                log_audit(
+                    user_id=None,
+                    action="SYSTEM_ERROR",
+                    resource=path,
+                    details={"error": str(e)},
+                    ip=ip,
+                    ua=ua
+                )
+            except:
+                pass
             raise e
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -43,26 +91,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         return response
 
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: ASGIApp):
-        super().__init__(app)
-        self.window_seconds = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
-        self.max_requests = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "120"))
-        self.hits = {}
-
-    async def dispatch(self, request: Request, call_next):
-        ip = request.client.host if request.client else "unknown"
-        now = time.time()
-        dq = self.hits.get(ip)
-        if dq is None:
-            dq = deque()
-            self.hits[ip] = dq
-        while dq and now - dq[0] > self.window_seconds:
-            dq.popleft()
-        if len(dq) >= self.max_requests:
-            return Response(status_code=429, content="Rate limit exceeded")
-        dq.append(now)
-        return await call_next(request)
+# Deprecated: RateLimitMiddleware logic moved to backend/middleware/rate_limit.py (Redis)
+# Keeping BotProtectionMiddleware here
 
 class BotProtectionMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: ASGIApp):

@@ -1,15 +1,28 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, status, Request, Response
 from pydantic import BaseModel, EmailStr, Field
 
-from stores.users_store import hash_password, verify_password, read_users, write_users, find_user_by_email
-from stores.demo_users_store import read_demo_users, write_demo_users, purge_expired_demo_users
-from security import create_access_token, create_refresh_token, decode_token, token_fingerprint, hmac_hash, sanitize_user_for_response
+# Use PostgreSQL Stores
+from stores.pg_users_store import (
+    create_user, find_user_by_email, update_user_login, 
+    increment_failed_login, is_account_locked, reset_failed_login,
+    create_session, revoke_session, is_session_valid
+)
+
+from security import (
+    create_access_token, create_refresh_token, decode_token, 
+    token_fingerprint, hmac_hash, hash_password, verify_password, 
+    sanitize_user_for_response
+)
+
+# Pricing Service (Keep existing logic if needed, but ensure it works with PG if it uses stores)
+# For now, we assume pricing service is independent or we might need to refactor it later.
+# The user instruction was "Update auth_router.py to use PostgreSQL store".
 try:
     from backend.services.pricing_service import find_valid_discount, increment_usage
 except ImportError:
@@ -20,12 +33,9 @@ router = APIRouter()
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
-def _iso(dt: datetime) -> str:
-    return dt.astimezone(timezone.utc).isoformat()
-
 class RegisterRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=12, max_length=128) # Increased min length
     firstName: str = Field(min_length=1, max_length=64)
     lastName: str = Field(min_length=1, max_length=64)
     mode: Optional[str] = Field(default="single", max_length=16)
@@ -40,55 +50,67 @@ class LoginRequest(BaseModel):
 @router.post("/register")
 def register(payload: RegisterRequest) -> Dict[str, Any]:
     email_norm = str(payload.email).strip().lower()
-    users = read_users()
-    if any(str(u.get("email","")).strip().lower() == email_norm for u in users):
+    
+    # Check existing
+    if find_user_by_email(email_norm):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email zaten kayıtlı.")
     
     used_code = None
     if payload.discountCode:
         dc = find_valid_discount(payload.discountCode)
         if dc:
-            # Code is valid, consume it
             increment_usage(dc["code"])
             used_code = dc["code"]
-        # If invalid, we ignore it or could raise error. 
-        # Usually better to register anyway but warn? 
-        # Or strict: if code provided but invalid -> fail?
-        # User said "Prevent server crash under any invalid input".
-        # Let's assume if code is invalid, just don't apply it, or maybe fail if user EXPECTS discount.
-        # Frontend already validated price. If it became invalid in between, we might want to fail.
-        # But let's keep it simple: if valid, use it.
 
-    users.append({
+    user_data = {
         "email": email_norm,
         "firstName": payload.firstName.strip(),
         "lastName": payload.lastName.strip(),
         "hashed_password": hash_password(payload.password),
-        "is_demo": False,
-        "created_at": _iso(_now_utc()),
+        "role": "user", # Default role
+        "is_active": True,
         "used_discount_code": used_code
-    })
-    write_users(users)
-    return {"status": "ok", "requires_verification": False}
+    }
+    
+    user_id = create_user(user_data)
+    
+    return {"status": "ok", "requires_verification": False, "user_id": user_id}
 
 
 @router.post("/login")
 def login(payload: LoginRequest, request: Request, response: Response) -> Dict[str, Any]:
     email_norm = str(payload.email).strip().lower()
-    ip = request.client.host if request.client else ""
-    ua = request.headers.get("user-agent", "")
+    ip = request.client.host if request.client else "unknown"
+    ua = request.headers.get("user-agent", "unknown")
     fingerprint = token_fingerprint(ua, ip)
-    users = read_users()
-    user = next((u for u in users if str(u.get("email","")).strip().lower() == email_norm), None)
-    if user and verify_password(payload.password, user.get("hashed_password","")):
-        access_token = create_access_token({"sub": email_norm, "role": user.get("role", "user")})
-        refresh_token = create_refresh_token({"sub": email_norm, "role": user.get("role", "user"), "fp": fingerprint})
-        user["refresh_token_hash"] = hmac_hash(refresh_token, os.getenv("DATA_HASH_KEY", ""))
-        user["refresh_token_expires_at"] = _iso(_now_utc())
-        user["refresh_token_fingerprint"] = fingerprint
-        user["last_login_ip"] = ip
-        user["last_login_ua"] = ua
-        write_users(users)
+    
+    # 1. Check Account Lockout
+    if is_account_locked(email_norm):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS, 
+            detail="Çok fazla başarısız giriş denemesi. Hesabınız 15 dakika kilitlendi."
+        )
+
+    user = find_user_by_email(email_norm)
+    
+    # 2. Verify Credentials
+    if user and verify_password(payload.password, user.get("password_hash") or user.get("hashed_password")):
+        # Success
+        reset_failed_login(user["id"])
+        
+        role = user.get("role", "user")
+        access_token = create_access_token({"sub": email_norm, "role": role, "uid": str(user["id"])})
+        refresh_token = create_refresh_token({"sub": email_norm, "role": role, "fp": fingerprint, "uid": str(user["id"])})
+        
+        refresh_hash = hmac_hash(refresh_token, os.getenv("DATA_HASH_KEY", ""))
+        
+        # Update User Stats
+        update_user_login(user["id"], ip, refresh_hash)
+        
+        # Create Session
+        expires_at = datetime.now(timezone.utc) + timedelta(seconds=int(os.getenv("REFRESH_TOKEN_TTL_SECONDS", "1209600")))
+        create_session(user["id"], refresh_hash, fingerprint, ip, ua, expires_at)
+        
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
@@ -98,78 +120,66 @@ def login(payload: LoginRequest, request: Request, response: Response) -> Dict[s
             max_age=int(os.getenv("REFRESH_TOKEN_TTL_SECONDS", "1209600")),
             path="/",
         )
+        
         return {
             "status": "ok",
             "message": "Giriş başarılı",
             "access_token": access_token,
             "user": sanitize_user_for_response(user),
         }
-    purge_expired_demo_users()
-    demo_users = read_demo_users()
-    du = next((d for d in demo_users if str(d.get("email","")).strip().lower() == email_norm), None)
-    if du and verify_password(payload.password, du.get("hashed_password","")):
-        access_token = create_access_token({"sub": email_norm, "role": "demo"})
-        refresh_token = create_refresh_token({"sub": email_norm, "role": "demo", "fp": fingerprint})
-        du["refresh_token_hash"] = hmac_hash(refresh_token, os.getenv("DATA_HASH_KEY", ""))
-        du["refresh_token_expires_at"] = _iso(_now_utc())
-        du["refresh_token_fingerprint"] = fingerprint
-        du["last_login_ip"] = ip
-        du["last_login_ua"] = ua
-        write_demo_users(demo_users)
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,
-            secure=True,
-            samesite="strict",
-            max_age=int(os.getenv("REFRESH_TOKEN_TTL_SECONDS", "1209600")),
-            path="/",
-        )
-        return {
-            "status": "ok",
-            "message": "Giriş başarılı",
-            "access_token": access_token,
-            "user": sanitize_user_for_response(du),
-        }
+    
+    # Failure
+    increment_failed_login(email_norm)
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı veya şifre hatalı.")
+
 
 @router.post("/refresh")
 def refresh(request: Request, response: Response) -> Dict[str, Any]:
     token = request.cookies.get("refresh_token", "")
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token gerekli.")
+    
     try:
         payload = decode_token(token)
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Geçersiz refresh token.")
+    
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Geçersiz token türü.")
-    ip = request.client.host if request.client else ""
-    ua = request.headers.get("user-agent", "")
+    
+    # Fingerprint Check
+    ip = request.client.host if request.client else "unknown"
+    ua = request.headers.get("user-agent", "unknown")
     fingerprint = token_fingerprint(ua, ip)
+    
     if payload.get("fp") != fingerprint:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Cihaz doğrulaması başarısız.")
+        # Possible token theft!
+        # Revoke session immediately?
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Cihaz doğrulaması başarısız. Lütfen tekrar giriş yapın.")
+    
+    refresh_hash = hmac_hash(token, os.getenv("DATA_HASH_KEY", ""))
+    
+    # Check DB Session
+    if not is_session_valid(refresh_hash):
+         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Oturum geçersiz veya sonlandırılmış.")
+
+    # Rotation: Revoke Old -> Issue New
+    revoke_session(refresh_hash, reason="rotation")
+    
     email = str(payload.get("sub") or "").strip().lower()
     role = payload.get("role")
-    if role == "demo":
-        users = read_demo_users()
-    else:
-        users = read_users()
-    user = next((u for u in users if str(u.get("email","")).strip().lower() == email), None)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı.")
-    stored_hash = str(user.get("refresh_token_hash") or "")
-    if not stored_hash or stored_hash != hmac_hash(token, os.getenv("DATA_HASH_KEY", "")):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token geçersiz.")
-    new_access = create_access_token({"sub": email, "role": role})
-    new_refresh = create_refresh_token({"sub": email, "role": role, "fp": fingerprint})
-    user["refresh_token_hash"] = hmac_hash(new_refresh, os.getenv("DATA_HASH_KEY", ""))
-    user["refresh_token_expires_at"] = _iso(_now_utc())
-    user["refresh_token_fingerprint"] = fingerprint
-    if role == "demo":
-        write_demo_users(users)
-    else:
-        write_users(users)
+    user_id = payload.get("uid")
+    
+    new_access = create_access_token({"sub": email, "role": role, "uid": user_id})
+    new_refresh = create_refresh_token({"sub": email, "role": role, "fp": fingerprint, "uid": user_id})
+    new_refresh_hash = hmac_hash(new_refresh, os.getenv("DATA_HASH_KEY", ""))
+    
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=int(os.getenv("REFRESH_TOKEN_TTL_SECONDS", "1209600")))
+    create_session(user_id, new_refresh_hash, fingerprint, ip, ua, expires_at)
+    
+    # Update User Record (Optional, mostly for quick lookup)
+    update_user_login(user_id, ip, new_refresh_hash)
+
     response.set_cookie(
         key="refresh_token",
         value=new_refresh,
@@ -181,28 +191,13 @@ def refresh(request: Request, response: Response) -> Dict[str, Any]:
     )
     return {"status": "ok", "access_token": new_access}
 
+
 @router.post("/logout")
 def logout(request: Request, response: Response) -> Dict[str, Any]:
     token = request.cookies.get("refresh_token", "")
     if token:
-        try:
-            payload = decode_token(token)
-            email = str(payload.get("sub") or "").strip().lower()
-            role = payload.get("role")
-            if role == "demo":
-                users = read_demo_users()
-            else:
-                users = read_users()
-            user = next((u for u in users if str(u.get("email","")).strip().lower() == email), None)
-            if user:
-                user["refresh_token_hash"] = ""
-                user["refresh_token_fingerprint"] = ""
-                user["refresh_token_expires_at"] = ""
-                if role == "demo":
-                    write_demo_users(users)
-                else:
-                    write_users(users)
-        except Exception:
-            pass
+        refresh_hash = hmac_hash(token, os.getenv("DATA_HASH_KEY", ""))
+        revoke_session(refresh_hash, reason="logout")
+        
     response.delete_cookie("refresh_token", path="/")
     return {"status": "ok"}

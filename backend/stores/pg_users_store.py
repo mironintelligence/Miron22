@@ -79,14 +79,46 @@ def update_user_login(user_id: str, ip: str, refresh_hash: str):
         cur.execute(sql, (ip, refresh_hash, user_id))
 
 def increment_failed_login(email: str):
-    """Lock account if too many failures"""
+    """
+    Increment failed login attempts and lock account if threshold reached.
+    Lock for 15 minutes after 5 failed attempts.
+    """
     sql = """
         UPDATE users 
-        SET failed_login_attempts = failed_login_attempts + 1
+        SET failed_login_attempts = failed_login_attempts + 1,
+            locked_until = CASE 
+                WHEN failed_login_attempts + 1 >= 5 THEN NOW() + INTERVAL '15 minutes'
+                ELSE NULL 
+            END
         WHERE email = %s
     """
     with get_db_cursor() as cur:
         cur.execute(sql, (_norm_email(email),))
+
+def reset_failed_login(user_id: str):
+    sql = """
+        UPDATE users 
+        SET failed_login_attempts = 0, locked_until = NULL
+        WHERE id = %s
+    """
+    with get_db_cursor() as cur:
+        cur.execute(sql, (user_id,))
+
+def is_account_locked(email: str) -> bool:
+    sql = """
+        SELECT locked_until, failed_login_attempts FROM users WHERE email = %s
+    """
+    with get_db_cursor() as cur:
+        cur.execute(sql, (_norm_email(email),))
+        row = cur.fetchone()
+        if not row:
+            return False
+        
+        locked_until = row.get("locked_until")
+        if locked_until and locked_until > datetime.now(locked_until.tzinfo):
+            return True
+            
+        return False
 
 def list_users(limit=100, offset=0) -> List[Dict[str, Any]]:
     sql = "SELECT * FROM users ORDER BY created_at DESC LIMIT %s OFFSET %s"

@@ -45,7 +45,26 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         else:
             ip = request.client.host if request.client else "unknown"
             
-        key = f"rate_limit:{ip}"
+        # Determine Rate Limit Policy based on path
+        path = request.url.path
+        if path.endswith("/api/auth/login"):
+            limit = 5
+            window = 900 # 15 minutes
+            policy_name = "login"
+        elif path.endswith("/api/auth/register"):
+            limit = 3
+            window = 3600 # 1 hour
+            policy_name = "register"
+        elif path.startswith("/admin"):
+            limit = 20 # Strict limit for admin
+            window = 60
+            policy_name = "admin"
+        else:
+            limit = self.max_requests
+            window = self.window_seconds
+            policy_name = "global"
+            
+        key = f"rate_limit:{policy_name}:{ip}"
         
         # Check limit
         if self.redis_client:
@@ -54,43 +73,45 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 pipe = self.redis_client.pipeline()
                 now = time.time()
                 # Remove old hits
-                pipe.zremrangebyscore(key, 0, now - self.window_seconds)
+                pipe.zremrangebyscore(key, 0, now - window)
                 # Count remaining
                 pipe.zcard(key)
                 # Add current hit
                 pipe.zadd(key, {str(now): now})
                 # Set expiry to clean up keys automatically
-                pipe.expire(key, self.window_seconds + 5)
+                pipe.expire(key, window + 5)
                 
                 _, count, _, _ = pipe.execute()
                 
-                if count >= self.max_requests:
-                    logger.warning(f"Rate limit exceeded for IP: {ip}")
-                    return Response(status_code=429, content="Rate limit exceeded")
+                if count > limit: # Strict greater than
+                    logger.warning(f"Rate limit exceeded for IP: {ip} on policy {policy_name}")
+                    return Response(status_code=429, content=f"Rate limit exceeded. Try again later.")
                     
             except redis.RedisError as e:
                 logger.error(f"Redis error during rate limit check: {e}")
                 # Fail open or use memory fallback? Let's use memory fallback for resilience
-                return await self._memory_check(ip, call_next, request)
+                return await self._memory_check(ip, call_next, request, limit, window, policy_name)
         else:
-            return await self._memory_check(ip, call_next, request)
+            return await self._memory_check(ip, call_next, request, limit, window, policy_name)
 
         return await call_next(request)
 
-    async def _memory_check(self, ip, call_next, request):
+    async def _memory_check(self, ip, call_next, request, limit, window, policy_name):
         from collections import deque
         now = time.time()
         
-        if ip not in self.memory_hits:
-            self.memory_hits[ip] = deque()
-            
-        dq = self.memory_hits[ip]
+        mem_key = f"{policy_name}:{ip}"
         
-        while dq and now - dq[0] > self.window_seconds:
+        if mem_key not in self.memory_hits:
+            self.memory_hits[mem_key] = deque()
+            
+        dq = self.memory_hits[mem_key]
+        
+        while dq and now - dq[0] > window:
             dq.popleft()
             
-        if len(dq) >= self.max_requests:
-            return Response(status_code=429, content="Rate limit exceeded (Memory)")
+        if len(dq) >= limit:
+             return Response(status_code=429, content=f"Rate limit exceeded. Try again later.")
             
         dq.append(now)
         
