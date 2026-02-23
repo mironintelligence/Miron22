@@ -5,7 +5,10 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from backend.security import encrypt_value, decrypt_value, hmac_hash, hash_password, verify_password
+try:
+    from backend.security import encrypt_value, decrypt_value, hmac_hash, hash_password, verify_password
+except ImportError:
+    from security import encrypt_value, decrypt_value, hmac_hash, hash_password, verify_password
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = BASE_DIR / "data"

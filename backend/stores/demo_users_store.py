@@ -3,7 +3,10 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-from backend.security import encrypt_value, decrypt_value, hmac_hash
+try:
+    from backend.security import encrypt_value, decrypt_value, hmac_hash
+except ImportError:
+    from security import encrypt_value, decrypt_value, hmac_hash
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 DEMO_USERS_FILE = BACKEND_DIR / "data" / "demo_users.json"
