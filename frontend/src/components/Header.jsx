@@ -11,7 +11,7 @@ export default function Header({ onOpenLogin }) {
 
   const links = useMemo(() => {
     if (authed) {
-      return [
+      const list = [
         { to: "/home", label: "Ana Menü" },
         { to: "/case-simulation", label: "Dava Simülasyonu" },
         { to: "/yargitay", label: "Yargıtay Kararları" },
@@ -19,6 +19,10 @@ export default function Header({ onOpenLogin }) {
         { to: "/assistant", label: "Asistan" },
         { to: "/calculators", label: "Hesaplama Araçları" },
       ];
+      if (user?.role === "admin") {
+        list.push({ to: "/admin", label: "Admin Paneli" });
+      }
+      return list;
     }
     return [
       { to: "/", label: "Tanıtım" },

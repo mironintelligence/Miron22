@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
 import os
 import time
 import re
 from typing import Any, Dict, Optional
 import jwt
 from cryptography.fernet import Fernet
+from passlib.hash import argon2
 
 _PBKDF2_ITERS = int(os.getenv("PASSWORD_PBKDF2_ITERS", "210000"))
 _JWT_SECRET = os.getenv("JWT_SECRET", "")
@@ -39,6 +37,8 @@ def decrypt_value(value: str) -> str:
     return f.decrypt(value.encode("utf-8")).decode("utf-8")
 
 def hmac_hash(value: str, key: str) -> str:
+    import hmac
+    import hashlib
     raw = (value or "").encode("utf-8")
     secret = _require_secret(key, "DATA_HASH_KEY").encode("utf-8")
     return hmac.new(secret, raw, hashlib.sha256).hexdigest()
@@ -83,36 +83,33 @@ def token_fingerprint(user_agent: str, ip: str) -> str:
     seed = f"{user_agent}|{ip}"
     return hmac_hash(seed, os.getenv("DATA_HASH_KEY", ""))
 
-def _b64e(b: bytes) -> str:
-    return base64.urlsafe_b64encode(b).decode("utf-8").rstrip("=")
-
-def _b64d(s: str) -> bytes:
-    pad = "=" * (-len(s) % 4)
-    return base64.urlsafe_b64decode((s + pad).encode("utf-8"))
-
 def hash_password(password: str) -> str:
-    pw = (password or "").encode("utf-8")
-    if not pw:
+    if not password:
         raise ValueError("password empty")
-    salt = os.urandom(16)
-    dk = hashlib.pbkdf2_hmac("sha256", pw, salt, _PBKDF2_ITERS)
-    return f"pbkdf2_sha256${_PBKDF2_ITERS}${_b64e(salt)}${_b64e(dk)}"
+    return argon2.hash(password)
 
 def verify_password(password: str, stored: str) -> bool:
-    if stored is None:
+    if not stored:
         return False
-    stored = str(stored)
-    if not stored.startswith("pbkdf2_sha256$"):
-        return hmac.compare_digest(str(password or ""), stored)
-
+    # Backward compatibility with PBKDF2
+    if stored.startswith("pbkdf2_sha256$"):
+        import base64
+        import hashlib
+        import hmac
+        try:
+            _, iters_s, salt_b64, hash_b64 = stored.split("$", 3)
+            pad = "=" * (-len(salt_b64) % 4)
+            salt = base64.urlsafe_b64decode((salt_b64 + pad).encode("utf-8"))
+            pad = "=" * (-len(hash_b64) % 4)
+            expected = base64.urlsafe_b64decode((hash_b64 + pad).encode("utf-8"))
+            pw = password.encode("utf-8")
+            dk = hashlib.pbkdf2_hmac("sha256", pw, salt, int(iters_s))
+            return hmac.compare_digest(dk, expected)
+        except Exception:
+            return False
+    # Argon2 Verification
     try:
-        _, iters_s, salt_b64, hash_b64 = stored.split("$", 3)
-        iters = int(iters_s)
-        salt = _b64d(salt_b64)
-        expected = _b64d(hash_b64)
-        pw = (password or "").encode("utf-8")
-        dk = hashlib.pbkdf2_hmac("sha256", pw, salt, iters)
-        return hmac.compare_digest(dk, expected)
+        return argon2.verify(password, stored)
     except Exception:
         return False
 
@@ -121,7 +118,8 @@ def sanitize_user_for_response(user: dict) -> dict:
         return {}
     safe = dict(user)
     safe.pop("password", None)
-    safe.pop("hashed_password", None)
+    safe.pop("password_hash", None) # New PG column name
+    safe.pop("hashed_password", None) # Old JSON key
     safe.pop("refresh_token_hash", None)
     safe.pop("refresh_token_expires_at", None)
     safe.pop("refresh_token_fingerprint", None)

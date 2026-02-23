@@ -31,9 +31,11 @@ load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 # ---------------------------
 from openai_client import get_openai_client, get_openai_api_key
 try:
-    from backend.middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, RateLimitMiddleware, BotProtectionMiddleware
+    from backend.middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
+    from backend.middleware.rate_limit import RateLimitMiddleware
 except ImportError:
-    from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, RateLimitMiddleware, BotProtectionMiddleware
+    from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
+    from middleware.rate_limit import RateLimitMiddleware
 from security import sanitize_text
 
 # OpenAI error types (sürüm uyumlu)
