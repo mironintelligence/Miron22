@@ -1,18 +1,27 @@
 import time
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 from collections import deque
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 from stores.pg_users_store import log_audit
 
+# Configure Rotating File Handler
+# Max 10 MB per file, keep last 5 backups
+file_handler = RotatingFileHandler(
+    "backend_access.log", 
+    maxBytes=10*1024*1024, 
+    backupCount=5
+)
+file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler("backend_access.log")
+        file_handler
     ]
 )
 logger = logging.getLogger("miron_api")

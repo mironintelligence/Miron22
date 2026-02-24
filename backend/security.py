@@ -13,7 +13,7 @@ _JWT_SECRET = os.getenv("JWT_SECRET", "")
 _JWT_ISSUER = os.getenv("JWT_ISSUER", "miron-ai")
 _JWT_AUDIENCE = os.getenv("JWT_AUDIENCE", "miron-ai")
 _ACCESS_TTL_SECONDS = int(os.getenv("ACCESS_TOKEN_TTL_SECONDS", "900"))
-_REFRESH_TTL_SECONDS = int(os.getenv("REFRESH_TOKEN_TTL_SECONDS", "1209600"))
+_REFRESH_TTL_SECONDS = int(os.getenv("REFRESH_TOKEN_TTL_SECONDS", "604800")) # 7 Days
 
 def _require_secret(value: str, name: str) -> str:
     if not value:
