@@ -33,9 +33,11 @@ from openai_client import get_openai_client, get_openai_api_key
 try:
     from backend.middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
     from backend.middleware.rate_limit import RateLimitMiddleware
+    from backend.middleware.csrf import CSRFProtectionMiddleware
 except ImportError:
     from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
     from middleware.rate_limit import RateLimitMiddleware
+    from middleware.csrf import CSRFProtectionMiddleware
 from security import sanitize_text
 
 # OpenAI error types (sürüm uyumlu)
@@ -131,10 +133,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(LoggingMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RateLimitMiddleware)
+# 3. Security Middlewares (Order Matters!)
 app.add_middleware(BotProtectionMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(CSRFProtectionMiddleware) # Double Submit Cookie
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(LoggingMiddleware) # Outermost logger
 
 @app.get("/health")
 def health():

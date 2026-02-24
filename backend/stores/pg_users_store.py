@@ -78,6 +78,21 @@ def update_user_login(user_id: str, ip: str, refresh_hash: str):
     with get_db_cursor() as cur:
         cur.execute(sql, (ip, refresh_hash, user_id))
 
+def get_user_token_version(user_id: str) -> int:
+    sql = "SELECT token_version FROM users WHERE id = %s"
+    with get_db_cursor() as cur:
+        cur.execute(sql, (user_id,))
+        row = cur.fetchone()
+        if row and row.get("token_version"):
+            return int(row["token_version"])
+        return 1
+
+def increment_token_version(user_id: str):
+    """Global Logout: Invalidates all existing tokens"""
+    sql = "UPDATE users SET token_version = token_version + 1 WHERE id = %s"
+    with get_db_cursor() as cur:
+        cur.execute(sql, (user_id,))
+
 def increment_failed_login(email: str):
     """
     Increment failed login attempts and lock account if threshold reached.

@@ -38,27 +38,52 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         # Identify client (IP or User ID if authenticated)
-        # Prioritize X-Forwarded-For for proxies (Render/Cloudflare)
         forwarded = request.headers.get("x-forwarded-for")
         if forwarded:
             ip = forwarded.split(",")[0].strip()
         else:
             ip = request.client.host if request.client else "unknown"
             
+        # Try to identify user if authenticated (e.g., from request.state or manually parsing token)
+        # Note: Middleware runs before route handler, so dependency injection hasn't run yet.
+        # But some auth middleware might have run before if configured. 
+        # In our main.py, RateLimit runs BEFORE Auth logic (except for manual token check here).
+        
+        # We can extract user_id from token manually if present for stricter limits
+        user_id = "anon"
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            try:
+                from security import decode_token
+                token = auth_header.split(" ")[1]
+                # decode_token might fail if expired, but we just want ID for rate limit
+                # We use a "safe" decode or just let it fail to anon
+                # Ideally, rate limit should not depend on full validation to avoid DoS via CPU exhaustion
+                # So we stick to IP for unauthenticated, and IP+User for authenticated if easy.
+                # Let's keep it simple: IP based for now, but allow "user_id" if we move RateLimit after Auth.
+                # Currently RateLimit is early in stack.
+                pass
+            except:
+                pass
+
         # Determine Rate Limit Policy based on path
         path = request.url.path
         if path.endswith("/api/auth/login"):
             limit = 5
-            window = 900 # 15 minutes
+            window = 60 # 1 minute (Strict 5/min)
             policy_name = "login"
         elif path.endswith("/api/auth/register"):
             limit = 3
             window = 3600 # 1 hour
             policy_name = "register"
         elif path.startswith("/admin"):
-            limit = 20 # Strict limit for admin
+            limit = 30 
             window = 60
             policy_name = "admin"
+        elif path.endswith("/api/auth/refresh"):
+            limit = 10
+            window = 60
+            policy_name = "refresh"
         else:
             limit = self.max_requests
             window = self.window_seconds

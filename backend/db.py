@@ -4,6 +4,13 @@ from typing import Generator
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
+from dotenv import load_dotenv
+
+# Explicitly load .env from backend folder if not already loaded
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env_path = os.path.join(BASE_DIR, "backend", ".env")
+if os.path.exists(env_path):
+    load_dotenv(env_path)
 
 logger = logging.getLogger("miron_db")
 
@@ -43,17 +50,25 @@ def init_db():
     Initialize database with schema if needed.
     This is a basic migration runner.
     """
-    schema_path = os.path.join(os.path.dirname(__file__), "migrations", "001_initial_schema.sql")
-    if not os.path.exists(schema_path):
-        logger.warning("Schema file not found, skipping init")
+    migrations_dir = os.path.join(os.path.dirname(__file__), "migrations")
+    if not os.path.exists(migrations_dir):
+        logger.warning("Migrations directory not found, skipping init")
         return
 
-    try:
-        with open(schema_path, "r") as f:
-            sql = f.read()
-            
-        with get_db_cursor() as cur:
-            cur.execute(sql)
-            logger.info("Database schema initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
+    # Simple migration runner: Just run all sql files in order
+    files = sorted([f for f in os.listdir(migrations_dir) if f.endswith(".sql")])
+    
+    for f in files:
+        path = os.path.join(migrations_dir, f)
+        logger.info(f"Applying migration: {f}")
+        try:
+            with open(path, "r") as sql_file:
+                sql = sql_file.read()
+                
+            # Each migration gets its own transaction context
+            with get_db_cursor() as cur:
+                cur.execute(sql)
+        except Exception as e:
+            # Log but continue if it's "relation already exists" etc.
+            # Ideally we track migration version in DB.
+            logger.warning(f"Migration {f} might have failed or already applied: {e}")

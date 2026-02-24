@@ -49,6 +49,11 @@ def sanitize_text(value: str, limit: int = 8000) -> str:
     text = " ".join(text.split())
     return text[:limit]
 
+import uuid
+from typing import Any, Dict, Optional
+
+# ... imports ...
+
 def create_access_token(payload: Dict[str, Any]) -> str:
     secret = _require_secret(_JWT_SECRET, "JWT_SECRET")
     now = int(time.time())
@@ -59,6 +64,7 @@ def create_access_token(payload: Dict[str, Any]) -> str:
         "iss": _JWT_ISSUER,
         "aud": _JWT_AUDIENCE,
         "type": "access",
+        "jti": str(uuid.uuid4()) # Unique Token ID
     })
     return jwt.encode(data, secret, algorithm="HS256")
 
@@ -72,12 +78,20 @@ def create_refresh_token(payload: Dict[str, Any]) -> str:
         "iss": _JWT_ISSUER,
         "aud": _JWT_AUDIENCE,
         "type": "refresh",
+        "jti": str(uuid.uuid4()) # Unique Token ID
     })
     return jwt.encode(data, secret, algorithm="HS256")
 
 def decode_token(token: str) -> Dict[str, Any]:
     secret = _require_secret(_JWT_SECRET, "JWT_SECRET")
-    return jwt.decode(token, secret, algorithms=["HS256"], audience=_JWT_AUDIENCE, issuer=_JWT_ISSUER)
+    return jwt.decode(
+        token, 
+        secret, 
+        algorithms=["HS256"], 
+        audience=_JWT_AUDIENCE, 
+        issuer=_JWT_ISSUER,
+        leeway=30 # 30 seconds clock skew tolerance
+    )
 
 def token_fingerprint(user_agent: str, ip: str) -> str:
     seed = f"{user_agent}|{ip}"
