@@ -34,10 +34,20 @@ try:
     from backend.middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
     from backend.middleware.rate_limit import RateLimitMiddleware
     from backend.middleware.csrf import CSRFProtectionMiddleware
+    from backend.middleware.metrics import PrometheusMiddleware
+    from backend.middleware.concurrency import IdempotencyMiddleware, TimeoutMiddleware
+    from backend.middleware.chaos import ChaosMiddleware
+    from backend.db import init_pool, close_pool
+    from backend.db_async import db as async_db
 except ImportError:
     from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
     from middleware.rate_limit import RateLimitMiddleware
     from middleware.csrf import CSRFProtectionMiddleware
+    from middleware.metrics import PrometheusMiddleware
+    from middleware.concurrency import IdempotencyMiddleware, TimeoutMiddleware
+    from middleware.chaos import ChaosMiddleware
+    from db import init_pool, close_pool
+    from db_async import db as async_db
 from security import sanitize_text
 
 # OpenAI error types (sürüm uyumlu)
@@ -92,6 +102,23 @@ async def startup_event():
         # raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
     else:
         print("✅ All required environment variables are present.")
+        
+    # Init Sync DB Pool (Legacy)
+    try:
+        init_pool(min_conn=5, max_conn=50)
+    except Exception as e:
+        print(f"🔥 CRITICAL: Sync DB Pool Init Failed: {e}")
+        
+    # Init Async DB Pool (Enterprise)
+    try:
+        await async_db.init_pools()
+    except Exception as e:
+        print(f"🔥 CRITICAL: Async DB Pool Init Failed: {e}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    close_pool()
+    await async_db.close_pools()
 
 # ---------------------------
 # ERROR HANDLERS (GLOBAL)
@@ -135,8 +162,12 @@ app.add_middleware(
 )
 # 3. Security Middlewares (Order Matters!)
 app.add_middleware(BotProtectionMiddleware)
+app.add_middleware(ChaosMiddleware) # Failure Injection (First to intercept everything)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(CSRFProtectionMiddleware) # Double Submit Cookie
+app.add_middleware(IdempotencyMiddleware)
+app.add_middleware(TimeoutMiddleware) # Global Timeout
+app.add_middleware(PrometheusMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(LoggingMiddleware) # Outermost logger
 

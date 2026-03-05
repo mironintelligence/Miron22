@@ -8,6 +8,11 @@ import jwt
 from cryptography.fernet import Fernet
 from passlib.hash import argon2
 
+# Adjust Argon2 parameters for Test Environment
+if os.getenv("ENVIRONMENT") == "test":
+    # Ultra-fast settings for testing
+    argon2 = argon2.using(time_cost=1, memory_cost=8, parallelism=1)
+
 _PBKDF2_ITERS = int(os.getenv("PASSWORD_PBKDF2_ITERS", "210000"))
 _JWT_SECRET = os.getenv("JWT_SECRET", "")
 _JWT_ISSUER = os.getenv("JWT_ISSUER", "miron-ai")
@@ -54,8 +59,34 @@ from typing import Any, Dict, Optional
 
 # ... imports ...
 
+import random
+from backend.config import settings
+
+def _get_signing_key(kid: str = None) -> str:
+    """Get key for signing or verification. Supports rotation."""
+    keys = settings.JWT_ROTATION_KEYS
+    if not keys or keys == ['']:
+        return _require_secret(_JWT_SECRET, "JWT_SECRET")
+        
+    if kid:
+        # Find key by ID (simple index based for now, ideally dict)
+        try:
+            idx = int(kid)
+            if 0 <= idx < len(keys):
+                return keys[idx]
+        except:
+            pass
+        return keys[0] # Fallback
+        
+    # Default to first key (latest)
+    return keys[0]
+
 def create_access_token(payload: Dict[str, Any]) -> str:
-    secret = _require_secret(_JWT_SECRET, "JWT_SECRET")
+    # Key Rotation Support: Use first key in list as active signing key
+    keys = settings.JWT_ROTATION_KEYS
+    kid = "0" if keys and keys != [''] else None
+    secret = keys[0] if keys and keys != [''] else _require_secret(_JWT_SECRET, "JWT_SECRET")
+    
     now = int(time.time())
     data = dict(payload)
     data.update({
@@ -66,10 +97,15 @@ def create_access_token(payload: Dict[str, Any]) -> str:
         "type": "access",
         "jti": str(uuid.uuid4()) # Unique Token ID
     })
-    return jwt.encode(data, secret, algorithm="HS256")
+    
+    headers = {"kid": kid} if kid else {}
+    return jwt.encode(data, secret, algorithm="HS256", headers=headers)
 
 def create_refresh_token(payload: Dict[str, Any]) -> str:
-    secret = _require_secret(_JWT_SECRET, "JWT_SECRET")
+    keys = settings.JWT_ROTATION_KEYS
+    kid = "0" if keys and keys != [''] else None
+    secret = keys[0] if keys and keys != [''] else _require_secret(_JWT_SECRET, "JWT_SECRET")
+    
     now = int(time.time())
     data = dict(payload)
     data.update({
@@ -80,10 +116,18 @@ def create_refresh_token(payload: Dict[str, Any]) -> str:
         "type": "refresh",
         "jti": str(uuid.uuid4()) # Unique Token ID
     })
-    return jwt.encode(data, secret, algorithm="HS256")
+    headers = {"kid": kid} if kid else {}
+    return jwt.encode(data, secret, algorithm="HS256", headers=headers)
 
 def decode_token(token: str) -> Dict[str, Any]:
-    secret = _require_secret(_JWT_SECRET, "JWT_SECRET")
+    # Peek headers to find kid
+    try:
+        unverified_headers = jwt.get_unverified_header(token)
+        kid = unverified_headers.get("kid")
+        secret = _get_signing_key(kid)
+    except:
+        secret = _require_secret(_JWT_SECRET, "JWT_SECRET")
+        
     return jwt.decode(
         token, 
         secret, 
@@ -126,6 +170,19 @@ def verify_password(password: str, stored: str) -> bool:
         return argon2.verify(password, stored)
     except Exception:
         return False
+
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+_executor = ThreadPoolExecutor(max_workers=os.cpu_count() or 1)
+
+async def hash_password_async(password: str) -> str:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_executor, hash_password, password)
+
+async def verify_password_async(password: str, stored: str) -> bool:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_executor, verify_password, password, stored)
 
 def sanitize_user_for_response(user: dict) -> dict:
     if not isinstance(user, dict):

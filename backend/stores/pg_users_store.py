@@ -15,22 +15,6 @@ def _row_to_user(row: Dict[str, Any]) -> Dict[str, Any]:
     """Convert DB row to user dict (decrypt PII)"""
     if not row:
         return None
-    
-    # Decrypt sensitive fields if they exist (though we might not store them encrypted in DB anymore per new spec, 
-    # but spec.md said "Encrypt sensitive data at rest".
-    # Let's assume DB columns are plaintext for simplicity OR we encrypt before insert.
-    # The SQL schema has `email`, `first_name` etc. 
-    # If we encrypt, we can't search easily.
-    # For enterprise, usually Column Level Encryption or Disk Encryption is used.
-    # We will stick to the current pattern: Encrypt sensitive fields in Python.
-    
-    # Actually, for SQL, searching by email is critical.
-    # Storing hashed email for search and encrypted email for retrieval is best practice.
-    # But schema says `email TEXT UNIQUE`. 
-    # We will store email as PLAIN TEXT in DB for this implementation to allow unique constraints and lookups.
-    # We will encrypt ONLY payload data if needed, but for now let's stick to standard practice:
-    # Passwords hashed (done). Email plain (for login). 
-    
     return dict(row)
 
 # --- User Operations ---
@@ -68,6 +52,30 @@ def find_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
         cur.execute(sql, (user_id,))
         row = cur.fetchone()
         return _row_to_user(row)
+
+def delete_user(email: str) -> bool:
+    sql = "DELETE FROM users WHERE email = %s RETURNING id"
+    with get_db_cursor() as cur:
+        cur.execute(sql, (_norm_email(email),))
+        return cur.fetchone() is not None
+
+def update_user_password(email: str, hashed_password: str) -> bool:
+    sql = "UPDATE users SET password_hash = %s WHERE email = %s RETURNING id"
+    with get_db_cursor() as cur:
+        cur.execute(sql, (hashed_password, _norm_email(email)))
+        return cur.fetchone() is not None
+
+def update_user_role(email: str, role: str) -> bool:
+    sql = "UPDATE users SET role = %s WHERE email = %s RETURNING id"
+    with get_db_cursor() as cur:
+        cur.execute(sql, (role, _norm_email(email)))
+        return cur.fetchone() is not None
+
+def update_user_active(email: str, is_active: bool) -> bool:
+    sql = "UPDATE users SET is_active = %s WHERE email = %s RETURNING id"
+    with get_db_cursor() as cur:
+        cur.execute(sql, (is_active, _norm_email(email)))
+        return cur.fetchone() is not None
 
 def update_user_login(user_id: str, ip: str, refresh_hash: str):
     sql = """
@@ -135,10 +143,56 @@ def is_account_locked(email: str) -> bool:
             
         return False
 
-def list_users(limit=100, offset=0) -> List[Dict[str, Any]]:
-    sql = "SELECT * FROM users ORDER BY created_at DESC LIMIT %s OFFSET %s"
+def lock_user(user_id: str, duration_minutes: int = 1440) -> bool:
+    """Manually lock user for X minutes (default 24h)"""
+    sql = """
+        UPDATE users 
+        SET locked_until = NOW() + (%s || ' minutes')::interval
+        WHERE id = %s
+        RETURNING id
+    """
     with get_db_cursor() as cur:
-        cur.execute(sql, (limit, offset))
+        cur.execute(sql, (str(duration_minutes), user_id))
+        return cur.fetchone() is not None
+
+def unlock_user(user_id: str) -> bool:
+    """Manually unlock user"""
+    sql = """
+        UPDATE users 
+        SET locked_until = NULL, failed_login_attempts = 0
+        WHERE id = %s
+        RETURNING id
+    """
+    with get_db_cursor() as cur:
+        cur.execute(sql, (user_id,))
+        return cur.fetchone() is not None
+
+def get_audit_logs(user_id: str = None, limit: int = 100) -> List[Dict[str, Any]]:
+    sql = "SELECT * FROM audit_logs"
+    params = []
+    
+    if user_id:
+        sql += " WHERE user_id = %s"
+        params.append(user_id)
+        
+    sql += " ORDER BY created_at DESC LIMIT %s"
+    params.append(limit)
+    
+    with get_db_cursor() as cur:
+        cur.execute(sql, tuple(params))
+        rows = cur.fetchall()
+        return [dict(r) for r in rows]
+
+def list_users(limit=100, offset=0, role: str = None) -> List[Dict[str, Any]]:
+    if role:
+        sql = "SELECT * FROM users WHERE role = %s ORDER BY created_at DESC LIMIT %s OFFSET %s"
+        params = (role, limit, offset)
+    else:
+        sql = "SELECT * FROM users ORDER BY created_at DESC LIMIT %s OFFSET %s"
+        params = (limit, offset)
+        
+    with get_db_cursor() as cur:
+        cur.execute(sql, params)
         rows = cur.fetchall()
         return [_row_to_user(r) for r in rows]
 
@@ -160,6 +214,24 @@ def revoke_session(refresh_hash: str, reason: str = "logout"):
     """
     with get_db_cursor() as cur:
         cur.execute(sql, (reason, refresh_hash))
+
+def rotate_refresh_token_atomic(old_refresh_hash: str, reason: str = "rotation") -> bool:
+    """
+    Atomically checks if session is valid (not revoked, not expired) AND revokes it.
+    Returns True if successful (session was valid and is now revoked).
+    Returns False if session was already revoked or expired (Race condition or Replay attack).
+    """
+    sql = """
+        UPDATE sessions
+        SET is_revoked = TRUE, revoked_at = NOW(), revoked_reason = %s
+        WHERE refresh_token_hash = %s 
+          AND is_revoked = FALSE 
+          AND expires_at > NOW()
+        RETURNING id
+    """
+    with get_db_cursor() as cur:
+        cur.execute(sql, (reason, old_refresh_hash))
+        return cur.fetchone() is not None
 
 def is_session_valid(refresh_hash: str) -> bool:
     sql = """

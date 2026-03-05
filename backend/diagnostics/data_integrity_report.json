@@ -1,0 +1,17 @@
+{
+  "total_records": 11685,
+  "unique_content_hashes": 11685,
+  "unique_source_urls": 11685,
+  "average_content_length": 140988,
+  "min_content_length": 120634,
+  "max_content_length": 813293,
+  "source_distribution": {
+    "AYM": 11685
+  },
+  "year_distribution": {
+    "Unknown": 11685
+  },
+  "duplicate_urls_count": 0,
+  "corrupted_entries_count": 0,
+  "integrity_status": "GOOD"
+}

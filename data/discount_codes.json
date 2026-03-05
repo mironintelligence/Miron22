@@ -1,0 +1,13 @@
+[
+  {
+    "code": "FIXED500",
+    "type": "fixed",
+    "value": 500.0,
+    "active": true,
+    "max_usage": null,
+    "used_count": 0,
+    "created_at": "2026-02-24T13:50:25.235974+00:00",
+    "expires_at": null,
+    "description": ""
+  }
+]

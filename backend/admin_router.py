@@ -1,30 +1,31 @@
 from __future__ import annotations
 
-import os, json, tempfile, secrets
+import os, json, secrets
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from pydantic import BaseModel, EmailStr, Field
 
 from admin_auth import require_admin, issue_admin_token
 from security import hash_password, verify_password, sanitize_user_for_response
-from stores.users_store import read_users, write_users
-from stores.demo_users_store import read_demo_users, write_demo_users, purge_expired_demo_users
+from stores.pg_users_store import (
+    create_user, find_user_by_email, find_user_by_id, list_users,
+    delete_user, update_user_role, update_user_password, update_user_active,
+    lock_user, unlock_user, get_audit_logs,
+    log_audit
+)
+from stores.demo_users_store import read_demo_users, write_demo_users, purge_expired_demo_users # Keep for demo requests mostly
 
 # ------------------------
-# Storage (JSON files)
+# Storage (JSON files for temp data)
 # ------------------------
 DATA_DIR = Path(os.getenv("DATA_DIR") or "data")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DEMO_REQUESTS_FILE = DATA_DIR / "demo_requests.json"
-DEMO_USERS_FILE    = DATA_DIR / "demo_users.json"
-USERS_FILE         = DATA_DIR / "users.json"
-ACTIVITY_FILE      = DATA_DIR / "activity.json"
-ADMINS_FILE        = DATA_DIR / "admins.json"
-SYSTEM_CONFIG_FILE = DATA_DIR / "system_config.json" # New for feature flags
+SYSTEM_CONFIG_FILE = DATA_DIR / "system_config.json"
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -42,6 +43,7 @@ def _load_json(path: Path, default):
         return default
 
 def _atomic_write_json(path: Path, data) -> None:
+    import tempfile
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=path.name + ".", dir=str(path.parent))
     try:
@@ -57,20 +59,6 @@ def _atomic_write_json(path: Path, data) -> None:
         except Exception:
             pass
 
-def _log_activity(event_type: str, message: str, meta: Optional[dict] = None):
-    arr = _load_json(ACTIVITY_FILE, [])
-    arr.append({
-        "id": secrets.token_hex(8),
-        "ts": _iso(_now()),
-        "type": event_type,
-        "message": message,
-        "meta": meta or {}
-    })
-    # son 1000 kayıt
-    arr = arr[-1000:]
-    _atomic_write_json(ACTIVITY_FILE, arr)
-
-
 # ------------------------
 # Models
 # ------------------------
@@ -78,13 +66,7 @@ class SetPasswordIn(BaseModel):
     password: str = Field(min_length=4, max_length=128)
 
 class AdminLoginIn(BaseModel):
-    firstName: str = Field(min_length=1, max_length=64)
-    lastName: str = Field(min_length=1, max_length=64)
-    password: str = Field(min_length=4, max_length=128)
-
-class AdminCreateIn(BaseModel):
-    firstName: str = Field(min_length=1, max_length=64)
-    lastName: str = Field(min_length=1, max_length=64)
+    email: EmailStr
     password: str = Field(min_length=4, max_length=128)
 
 class CreateUserIn(BaseModel):
@@ -95,7 +77,7 @@ class CreateUserIn(BaseModel):
     role: str = "user"
 
 class UpdateRoleIn(BaseModel):
-    role: str = Field(..., pattern="^(user|admin|editor|viewer)$")
+    role: str = Field(..., pattern="^(user|admin|demo)$")
 
 class SystemConfigIn(BaseModel):
     maintenance_mode: bool = False
@@ -110,118 +92,87 @@ router = APIRouter(tags=["admin"])
 # ------------------------
 # Admin Accounts & Login
 # ------------------------
-def _read_admins() -> List[Dict[str, Any]]:
-    arr = _load_json(ADMINS_FILE, [])
-    return arr if isinstance(arr, list) else []
-
-def _write_admins(arr: List[Dict[str, Any]]) -> None:
-    _atomic_write_json(ADMINS_FILE, arr)
-
-def _find_admin(firstName: str, lastName: str) -> Optional[Dict[str, Any]]:
-    fn = (firstName or "").strip().lower()
-    ln = (lastName or "").strip().lower()
-    for a in _read_admins():
-        if (a.get("firstName","").strip().lower() == fn and a.get("lastName","").strip().lower() == ln):
-            return a
-    return None
 
 def _bootstrap_default_admin() -> None:
-    arr = _read_admins()
-    if arr:
-        return
-    # Seed default admin securely (hashed only)
-    default_first = os.getenv("DEFAULT_ADMIN_FIRST") or "Kerim"
-    default_last = os.getenv("DEFAULT_ADMIN_LAST") or "Aydemir"
+    # Seed default admin securely if not exists
+    default_email = os.getenv("DEFAULT_ADMIN_EMAIL") or "admin@miron.ai"
     default_pw = os.getenv("DEFAULT_ADMIN_PASSWORD")
+    
     if not default_pw:
-        # If env not set, do not create default admin to avoid security hole
         return 
         
-    admin_id = secrets.token_hex(8)
-    arr.append({
-        "id": admin_id,
-        "firstName": default_first,
-        "lastName": default_last,
-        "hashed_password": hash_password(default_pw),
-        "created_at": _iso(_now())
-    })
-    _write_admins(arr)
-    _log_activity("admin_bootstrap", "Varsayılan admin oluşturuldu", {"id": admin_id})
-
-def _norm(s: str) -> str:
-    return " ".join((s or "").strip().lower().split())
+    admin = find_user_by_email(default_email)
+    if not admin:
+        create_user({
+            "email": default_email,
+            "firstName": "System",
+            "lastName": "Admin",
+            "hashed_password": hash_password(default_pw),
+            "role": "admin",
+            "is_active": True
+        })
+        log_audit(None, "ADMIN_BOOTSTRAP", "system", {"email": default_email})
 
 @router.post("/login")
-def admin_login(body: AdminLoginIn):
-    # 1) ROOT ADMIN (Environment Variable) - PREFERRED IN PRODUCTION
-    root_pw = os.getenv("DEFAULT_ADMIN_PASSWORD")
-    if root_pw and verify_password(body.password, hash_password(root_pw)):
-        # Check username match if desired, or just allow if password matches root
-        # Here we check first/last match default envs
-        def_first = os.getenv("DEFAULT_ADMIN_FIRST") or "Kerim"
-        def_last = os.getenv("DEFAULT_ADMIN_LAST") or "Aydemir"
-        
-        if _norm(body.firstName) == _norm(def_first) and _norm(body.lastName) == _norm(def_last):
-             token = issue_admin_token(admin_id="root_admin")
-             return {
-                "ok": True,
-                "token": token,
-                "admin": {"id": "root_admin", "firstName": def_first, "lastName": def_last},
-            }
-
-    # 2) FILE BASED ADMINS (Fallback / Secondary)
+def admin_login(body: AdminLoginIn, request: Request):
     _bootstrap_default_admin()
-    admin = _find_admin(body.firstName, body.lastName)
-    if not admin or not verify_password(body.password, admin.get("hashed_password","")):
+    
+    email = str(body.email).strip().lower()
+    user = find_user_by_email(email)
+    
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient": ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
+
+    if not user or not verify_password(body.password, user.get("password_hash") or user.get("hashed_password")):
+        log_audit(None, "ADMIN_LOGIN_FAILED", email, {"reason": "invalid_credentials"}, ip, ua)
         raise HTTPException(status_code=401, detail="Geçersiz admin bilgileri.")
-    token = issue_admin_token(admin_id=admin["id"])
+        
+    if user.get("role") != "admin":
+        log_audit(str(user["id"]), "ADMIN_LOGIN_DENIED", email, {"reason": "not_admin"}, ip, ua)
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+
+    token = issue_admin_token(admin_id=str(user["id"]))
+    log_audit(str(user["id"]), "ADMIN_LOGIN_SUCCESS", "auth", None, ip, ua)
+    
     return {
         "ok": True,
         "token": token,
-        "admin": {"id": admin["id"], "firstName": admin["firstName"], "lastName": admin["lastName"]},
+        "admin": sanitize_user_for_response(user),
     }
 
 @router.get("/admins", dependencies=[Depends(require_admin)])
 def list_admins():
-    _bootstrap_default_admin()
-    arr = _read_admins()
-    safe = [{"id": a.get("id"), "firstName": a.get("firstName"), "lastName": a.get("lastName"), "created_at": a.get("created_at")} for a in arr]
-    return safe
+    users = list_users(role="admin")
+    return [sanitize_user_for_response(u) for u in users]
 
 @router.post("/admins", dependencies=[Depends(require_admin)])
-def create_admin(body: AdminCreateIn):
-    arr = _read_admins()
-    if _find_admin(body.firstName, body.lastName):
+def create_admin(body: CreateUserIn, req: Request):
+    # Same as create user but role=admin
+    if find_user_by_email(body.email):
         raise HTTPException(status_code=409, detail="Admin zaten mevcut.")
-    admin_id = secrets.token_hex(8)
-    arr.append({
-        "id": admin_id,
-        "firstName": body.firstName.strip(),
-        "lastName": body.lastName.strip(),
+    
+    user_data = {
+        "email": body.email,
+        "firstName": body.firstName,
+        "lastName": body.lastName,
         "hashed_password": hash_password(body.password),
-        "created_at": _iso(_now())
-    })
-    _write_admins(arr)
-    _log_activity("admin_create", f"Admin oluşturuldu: {body.firstName} {body.lastName}", {"id": admin_id})
-    return {"ok": True, "id": admin_id}
-
-@router.delete("/admins/{admin_id}", dependencies=[Depends(require_admin)])
-def delete_admin(admin_id: str):
-    arr = _read_admins()
-    before = len(arr)
-    arr = [a for a in arr if str(a.get("id")) != str(admin_id)]
-    if len(arr) == before:
-        raise HTTPException(status_code=404, detail="Admin bulunamadı.")
-    _write_admins(arr)
-    _log_activity("admin_delete", f"Admin silindi: {admin_id}", {"id": admin_id})
-    return {"ok": True}
+        "role": "admin",
+        "is_active": True
+    }
+    uid = create_user(user_data)
+    
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "ADMIN_CREATE_ADMIN", str(body.email), {"new_admin_id": uid})
+    
+    return {"ok": True, "id": uid}
 
 @router.get("/health", dependencies=[Depends(require_admin)])
 def admin_health():
     return {"ok": True, "ts": _iso(_now())}
 
 # ------------------------
-# Demo Requests
+# Demo Requests (Keeping JSON for now)
 # ------------------------
 @router.get("/demo-requests", dependencies=[Depends(require_admin)])
 def list_demo_requests():
@@ -231,204 +182,165 @@ def list_demo_requests():
     return arr
 
 @router.post("/demo-requests/{request_id}/approve", dependencies=[Depends(require_admin)])
-def approve_demo_request(request_id: str):
+def approve_demo_request(request_id: str, req: Request):
     reqs = _load_json(DEMO_REQUESTS_FILE, [])
     if not isinstance(reqs, list):
         reqs = []
 
-    # request_id: id veya email ile çalışsın
-    req = next((r for r in reqs if str(r.get("id")) == request_id or str(r.get("email")) == request_id), None)
-    if not req:
+    req_data = next((r for r in reqs if str(r.get("id")) == request_id or str(r.get("email")) == request_id), None)
+    if not req_data:
         raise HTTPException(status_code=404, detail="Demo request bulunamadı.")
 
-    email = (req.get("email") or "").strip().lower()
+    email = (req_data.get("email") or "").strip().lower()
     if not email:
         raise HTTPException(status_code=400, detail="Request email boş.")
 
-    demo_users = read_demo_users()
+    password = (req_data.get("password") or "").strip() or secrets.token_urlsafe(10)
 
-    # aynı email varsa güncelle
-    expires_at = _now() + timedelta(days=15)
-    password = (req.get("password") or "").strip()
-    if not password:
-        password = secrets.token_urlsafe(10)  # request şifre vermediyse random
-
-    record = {
-        "email": email,
-        "firstName": req.get("firstName") or req.get("first_name") or "",
-        "lastName": req.get("lastName") or req.get("last_name") or "",
-        "hashed_password": hash_password(password),
-        "is_demo": True,
-        "created_at": _iso(_now()),
-        "expires_at": _iso(expires_at),
-    }
-
-    demo_users = [u for u in demo_users if str(u.get("email","")).strip().lower() != email]
-    demo_users.append(record)
-    write_demo_users(demo_users)
+    # Create as Demo User in PG
+    # Check if exists
+    existing = find_user_by_email(email)
+    if existing:
+        # Update to demo? Or fail? Let's fail for now to be safe
+        # Or update role to demo
+        update_user_role(email, "demo")
+    else:
+        create_user({
+            "email": email,
+            "firstName": req_data.get("firstName") or "",
+            "lastName": req_data.get("lastName") or "",
+            "hashed_password": hash_password(password),
+            "role": "demo",
+            "is_active": True
+        })
 
     # request’i sil
     reqs = [r for r in reqs if not (str(r.get("id")) == request_id or str(r.get("email")) == request_id)]
     _atomic_write_json(DEMO_REQUESTS_FILE, reqs)
 
-    _log_activity("demo_approve", f"Demo onaylandı: {email}", {"email": email})
-    # güvenlik: şifreyi asla dönmüyoruz
-    return {"ok": True, "email": email, "expires_at": record["expires_at"]}
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "DEMO_APPROVE", email)
+    
+    return {"ok": True, "email": email}
 
 @router.post("/demo-requests/{request_id}/reject", dependencies=[Depends(require_admin)])
-def reject_demo_request(request_id: str):
+def reject_demo_request(request_id: str, req: Request):
     reqs = _load_json(DEMO_REQUESTS_FILE, [])
-    if not isinstance(reqs, list):
-        reqs = []
     before = len(reqs)
     reqs = [r for r in reqs if not (str(r.get("id")) == request_id or str(r.get("email")) == request_id)]
-    after = len(reqs)
-    if before == after:
+    if len(reqs) == before:
         raise HTTPException(status_code=404, detail="Demo request bulunamadı.")
     _atomic_write_json(DEMO_REQUESTS_FILE, reqs)
-    _log_activity("demo_reject", f"Demo reddedildi: {request_id}", {"request_id": request_id})
+    
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "DEMO_REJECT", request_id)
     return {"ok": True}
 
 # ------------------------
-# Demo Users
-# ------------------------
-@router.get("/demo-users", dependencies=[Depends(require_admin)])
-def list_demo_users():
-    purge_expired_demo_users()
-    arr = read_demo_users()
-
-    now = _now()
-    out = []
-    for u in arr:
-        exp = datetime.fromisoformat(str(u.get("expires_at"))).astimezone(timezone.utc)
-        delta = exp - now
-        remaining_days = max(0, delta.days)
-        remaining_hours = max(0, int(delta.total_seconds() // 3600))
-        safe = sanitize_user_for_response(u)
-        safe["remaining_days"] = remaining_days
-        safe["remaining_hours"] = remaining_hours
-        out.append(safe)
-    return out
-
-@router.delete("/demo-users/{email}", dependencies=[Depends(require_admin)])
-def delete_demo_user(email: str):
-    email = email.strip().lower()
-    arr = read_demo_users()
-    before = len(arr)
-    arr = [u for u in arr if str(u.get("email","")).strip().lower() != email]
-    if len(arr) == before:
-        raise HTTPException(status_code=404, detail="Demo user bulunamadı.")
-    write_demo_users(arr)
-    _log_activity("demo_delete", f"Demo user silindi: {email}", {"email": email})
-    return {"ok": True}
-
-@router.post("/demo-users/{email}/set-password", dependencies=[Depends(require_admin)])
-def set_demo_password(email: str, body: SetPasswordIn):
-    email = email.strip().lower()
-    arr = read_demo_users()
-    found = False
-    for u in arr:
-        if str(u.get("email","")).strip().lower() == email:
-            u["hashed_password"] = hash_password(body.password)
-            found = True
-            break
-    if not found:
-        raise HTTPException(status_code=404, detail="Demo user bulunamadı.")
-    write_demo_users(arr)
-    _log_activity("demo_set_password", f"Demo şifre değişti: {email}", {"email": email})
-    return {"ok": True}
-
-# ------------------------
-# Normal Users (Extended)
+# User Management (PG)
 # ------------------------
 @router.get("/users", dependencies=[Depends(require_admin)])
-def list_users():
-    arr = read_users()
+def list_all_users():
+    arr = list_users(limit=1000)
     return [sanitize_user_for_response(u) for u in arr]
 
 @router.post("/users", dependencies=[Depends(require_admin)])
-def create_user(body: CreateUserIn):
-    arr = read_users()
-
-    email = str(body.email).strip().lower()
-    if any(str(u.get("email","")).strip().lower() == email for u in arr):
+def admin_create_user(body: CreateUserIn, req: Request):
+    if find_user_by_email(body.email):
         raise HTTPException(status_code=409, detail="Bu email zaten var.")
 
-    u = {
-        "email": email,
-        "firstName": body.firstName.strip(),
-        "lastName": body.lastName.strip(),
+    uid = create_user({
+        "email": body.email,
+        "firstName": body.firstName,
+        "lastName": body.lastName,
         "hashed_password": hash_password(body.password),
-        "is_demo": False,
         "role": body.role,
-        "is_active": True,
-        "created_at": _iso(_now())
-    }
-    arr.append(u)
-    write_users(arr)
-    _log_activity("user_create", f"Kullanıcı oluşturuldu: {email}", {"email": email})
+        "is_active": True
+    })
+    
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "USER_CREATE", str(body.email), {"new_user_id": uid})
     return {"ok": True}
 
 @router.delete("/users/{email}", dependencies=[Depends(require_admin)])
-def delete_user(email: str):
-    email = email.strip().lower()
-    arr = read_users()
-    before = len(arr)
-    arr = [u for u in arr if str(u.get("email","")).strip().lower() != email]
-    if len(arr) == before:
+def admin_delete_user(email: str, req: Request):
+    if not delete_user(email):
         raise HTTPException(status_code=404, detail="User bulunamadı.")
-    write_users(arr)
-    _log_activity("user_delete", f"Kullanıcı silindi: {email}", {"email": email})
+        
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "USER_DELETE", email)
     return {"ok": True}
 
 @router.post("/users/{email}/set-password", dependencies=[Depends(require_admin)])
-def set_user_password(email: str, body: SetPasswordIn):
-    email = email.strip().lower()
-    arr = read_users()
-    found = False
-    for u in arr:
-        if str(u.get("email","")).strip().lower() == email:
-            u["hashed_password"] = hash_password(body.password)
-            found = True
-            break
-    if not found:
+def admin_set_password(email: str, body: SetPasswordIn, req: Request):
+    if not update_user_password(email, hash_password(body.password)):
         raise HTTPException(status_code=404, detail="User bulunamadı.")
-    write_users(arr)
-    _log_activity("user_set_password", f"User şifre değişti: {email}", {"email": email})
+        
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "USER_SET_PASSWORD", email)
     return {"ok": True}
 
 @router.put("/users/{email}/role", dependencies=[Depends(require_admin)])
-def update_user_role(email: str, body: UpdateRoleIn):
-    email = email.strip().lower()
-    arr = read_users()
-    found = False
-    for u in arr:
-        if str(u.get("email","")).strip().lower() == email:
-            u["role"] = body.role
-            found = True
-            break
-    if not found:
+def admin_update_role(email: str, body: UpdateRoleIn, req: Request):
+    if not update_user_role(email, body.role):
         raise HTTPException(status_code=404, detail="User bulunamadı.")
-    write_users(arr)
-    _log_activity("user_role_update", f"User rolü güncellendi: {email} -> {body.role}", {"email": email})
+        
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "USER_ROLE_UPDATE", email, {"new_role": body.role})
     return {"ok": True, "role": body.role}
 
 @router.put("/users/{email}/suspend", dependencies=[Depends(require_admin)])
-def toggle_user_suspend(email: str, active: bool = Body(..., embed=True)):
-    email = email.strip().lower()
-    arr = read_users()
-    found = False
-    for u in arr:
-        if str(u.get("email","")).strip().lower() == email:
-            u["is_active"] = active
-            found = True
-            break
-    if not found:
+def admin_toggle_suspend(email: str, req: Request, active: bool = Body(..., embed=True)):
+    if not update_user_active(email, active):
         raise HTTPException(status_code=404, detail="User bulunamadı.")
-    write_users(arr)
-    status_str = "aktif" if active else "askıya alındı"
-    _log_activity("user_suspend_toggle", f"User {status_str}: {email}", {"email": email})
+        
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "USER_SUSPEND_TOGGLE", email, {"is_active": active})
     return {"ok": True, "is_active": active}
+
+@router.post("/users/{user_id}/lock", dependencies=[Depends(require_admin)])
+def admin_lock_user(user_id: str, req: Request):
+    if not lock_user(user_id):
+        raise HTTPException(status_code=404, detail="User bulunamadı.")
+        
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "USER_LOCKED", user_id)
+    return {"ok": True}
+
+@router.post("/users/{user_id}/unlock", dependencies=[Depends(require_admin)])
+def admin_unlock_user(user_id: str, req: Request):
+    if not unlock_user(user_id):
+        raise HTTPException(status_code=404, detail="User bulunamadı.")
+        
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "USER_UNLOCKED", user_id)
+    return {"ok": True}
+
+@router.post("/users/{user_id}/reset-password", dependencies=[Depends(require_admin)])
+def admin_reset_password_by_id(user_id: str, body: SetPasswordIn, req: Request):
+    # Need to find email from ID first? Or update store to use ID.
+    # Update_user_password uses EMAIL.
+    # Let's find user first.
+    user = find_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User bulunamadı.")
+        
+    if not update_user_password(user["email"], hash_password(body.password)):
+        raise HTTPException(status_code=500, detail="Update failed.")
+        
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "USER_RESET_PASSWORD", user["email"])
+    return {"ok": True}
+
+@router.get("/audit-logs", dependencies=[Depends(require_admin)])
+def get_audit_logs_endpoint(user_id: Optional[str] = None, limit: int = 100):
+    logs = get_audit_logs(user_id, limit)
+    # Convert timestamps to ISO
+    for l in logs:
+        if l.get("timestamp"):
+            l["timestamp"] = _iso(l["timestamp"])
+    return logs
+
 
 # ------------------------
 # System Logs & Master Control
@@ -451,47 +363,37 @@ def get_system_config():
     return _load_json(SYSTEM_CONFIG_FILE, {"maintenance_mode": False, "allow_registration": True})
 
 @router.post("/config", dependencies=[Depends(require_admin)])
-def update_system_config(cfg: SystemConfigIn):
+def update_system_config(cfg: SystemConfigIn, req: Request):
     _atomic_write_json(SYSTEM_CONFIG_FILE, cfg.dict())
-    _log_activity("system_config_update", "Sistem ayarları güncellendi", cfg.dict())
+    
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "SYSTEM_CONFIG_UPDATE", "config", cfg.dict())
     return {"ok": True, "config": cfg.dict()}
 
 @router.post("/emergency-switch", dependencies=[Depends(require_admin)])
-def emergency_switch(enable: bool = Body(..., embed=True)):
+def emergency_switch(req: Request, enable: bool = Body(..., embed=True)):
     # Toggle maintenance mode immediately
     cfg = _load_json(SYSTEM_CONFIG_FILE, {"maintenance_mode": False, "allow_registration": True})
     cfg["maintenance_mode"] = enable
     _atomic_write_json(SYSTEM_CONFIG_FILE, cfg)
-    _log_activity("emergency_switch", f"Acil durum modu: {enable}", {"enabled": enable})
+    
+    admin_info = req.state.admin if hasattr(req.state, "admin") else {}
+    log_audit(admin_info.get("admin_id"), "EMERGENCY_SWITCH", "system", {"enabled": enable})
     return {"ok": True, "maintenance_mode": enable}
 
 @router.get("/stats", dependencies=[Depends(require_admin)])
 def get_admin_stats():
-    users = read_users()
-    demos = read_demo_users()
-    reqs = _load_json(DEMO_REQUESTS_FILE, [])
-    
+    users = list_users(limit=10000) # Get all roughly
     active_users = sum(1 for u in users if u.get("is_active", True))
+    demo_users = sum(1 for u in users if u.get("role") == "demo")
     
     return {
         "total_users": len(users),
         "active_users": active_users,
-        "demo_users": len(demos),
-        "pending_requests": len(reqs),
+        "demo_users": demo_users,
         "system_status": "Operational",
-        "last_restart": _iso(_now()) # Mockup for process start time
+        "last_restart": _iso(_now())
     }
 
-# ------------------------
-# Activity
-# ------------------------
-@router.get("/activity", dependencies=[Depends(require_admin)])
-def list_activity():
-    arr = _load_json(ACTIVITY_FILE, [])
-    if not isinstance(arr, list):
-        arr = []
-    return arr[-300:][::-1]  # son 300, yeni->eski
-
-
-# Backward-compat: main.py eski isim api_router arıyorsa kırılmasın
+# Backward-compat
 api_router = router

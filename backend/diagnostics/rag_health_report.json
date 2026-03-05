@@ -1,0 +1,267 @@
+{
+  "timestamp": "2026-03-03T06:12:18.727329",
+  "indexes": [
+    {
+      "relname": "decisions",
+      "indexrelname": "idx_decisions_hash",
+      "idx_scan": 5696,
+      "idx_tup_read": 8708,
+      "idx_tup_fetch": 3410
+    },
+    {
+      "relname": "decisions",
+      "indexrelname": "decisions_pkey",
+      "idx_scan": 2062,
+      "idx_tup_read": 2495,
+      "idx_tup_fetch": 2405
+    },
+    {
+      "relname": "decisions",
+      "indexrelname": "idx_decisions_court",
+      "idx_scan": 9,
+      "idx_tup_read": 111701,
+      "idx_tup_fetch": 43155
+    },
+    {
+      "relname": "decisions",
+      "indexrelname": "unique_source_url",
+      "idx_scan": 8,
+      "idx_tup_read": 28144,
+      "idx_tup_fetch": 9590
+    },
+    {
+      "relname": "legal_chunks",
+      "indexrelname": "idx_chunks_decision_id",
+      "idx_scan": 7,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "decisions",
+      "indexrelname": "idx_decisions_fingerprint",
+      "idx_scan": 6,
+      "idx_tup_read": 495,
+      "idx_tup_fetch": 6
+    },
+    {
+      "relname": "decisions",
+      "indexrelname": "idx_decisions_date",
+      "idx_scan": 1,
+      "idx_tup_read": 14645,
+      "idx_tup_fetch": 4795
+    },
+    {
+      "relname": "decisions",
+      "indexrelname": "decisions_hash_key",
+      "idx_scan": 1,
+      "idx_tup_read": 14407,
+      "idx_tup_fetch": 4795
+    },
+    {
+      "relname": "sessions",
+      "indexrelname": "sessions_pkey",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "sessions",
+      "indexrelname": "idx_sessions_refresh_hash_unique",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "sessions",
+      "indexrelname": "idx_sessions_user_id",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "audit_logs",
+      "indexrelname": "audit_logs_pkey",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "discount_codes",
+      "indexrelname": "discount_codes_pkey",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "discount_codes",
+      "indexrelname": "discount_codes_code_key",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "ingestion_queue",
+      "indexrelname": "ingestion_queue_pkey",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "ingestion_queue",
+      "indexrelname": "ingestion_queue_source_url_key",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "ingestion_queue",
+      "indexrelname": "idx_ingestion_status",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "decisions",
+      "indexrelname": "idx_decisions_source_url",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "decisions",
+      "indexrelname": "idx_decisions_fts",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "legal_chunks",
+      "indexrelname": "legal_chunks_pkey",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "legal_updates_log",
+      "indexrelname": "legal_updates_log_pkey",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "legal_chunks",
+      "indexrelname": "idx_chunks_embedding",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "legal_chunks",
+      "indexrelname": "idx_chunks_tsv",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "legal_chunks",
+      "indexrelname": "idx_chunks_date",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "legal_chunks",
+      "indexrelname": "idx_chunks_court",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "users",
+      "indexrelname": "users_pkey",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "users",
+      "indexrelname": "users_email_key",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    },
+    {
+      "relname": "users",
+      "indexrelname": "idx_users_email_unique",
+      "idx_scan": 0,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0
+    }
+  ],
+  "tables": [
+    {
+      "relname": "legal_updates_log",
+      "seq_scan": 0,
+      "idx_scan": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0
+    },
+    {
+      "relname": "ingestion_queue",
+      "seq_scan": 0,
+      "idx_scan": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0
+    },
+    {
+      "relname": "users",
+      "seq_scan": 0,
+      "idx_scan": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0
+    },
+    {
+      "relname": "legal_chunks",
+      "seq_scan": 6,
+      "idx_scan": 7,
+      "n_tup_ins": 2055,
+      "n_tup_upd": 0,
+      "n_tup_del": 0
+    },
+    {
+      "relname": "decisions",
+      "seq_scan": 3,
+      "idx_scan": 7783,
+      "n_tup_ins": 2,
+      "n_tup_upd": 0,
+      "n_tup_del": 0
+    },
+    {
+      "relname": "audit_logs",
+      "seq_scan": 0,
+      "idx_scan": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0
+    },
+    {
+      "relname": "discount_codes",
+      "seq_scan": 0,
+      "idx_scan": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0
+    },
+    {
+      "relname": "sessions",
+      "seq_scan": 0,
+      "idx_scan": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "total_decisions": 55,
+  "duplicate_count": 0,
+  "average_text_length": 139355,
+  "min_text_length": 122304,
+  "max_text_length": 237385,
+  "failed_detail_fetch_count": 0,
+  "error_percentage": 0.0
+}

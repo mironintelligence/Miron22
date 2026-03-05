@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-03-02T01:28:22.739444",
+  "total_unique_decisions": 11685,
+  "total_chunks_prepared": 1147,
+  "graph_nodes": 76,
+  "graph_edges": 92,
+  "duplicates_prevented_count": "Unknown (Logs)",
+  "status": "CRAWLING (SAFE MODE)",
+  "target": 80000
+}

@@ -67,17 +67,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 pass
 
         # Determine Rate Limit Policy based on path
+        is_test = os.getenv("ENVIRONMENT") == "test"
         path = request.url.path
         if path.endswith("/api/auth/login"):
-            limit = 5
+            limit = 50 if is_test else 5
             window = 60 # 1 minute (Strict 5/min)
             policy_name = "login"
         elif path.endswith("/api/auth/register"):
-            limit = 3
+            limit = 30 if is_test else 3
             window = 3600 # 1 hour
             policy_name = "register"
         elif path.startswith("/admin"):
-            limit = 30 
+            limit = 300 if is_test else 30 
             window = 60
             policy_name = "admin"
         elif path.endswith("/api/auth/refresh"):

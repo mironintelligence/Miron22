@@ -19,24 +19,30 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         if request.method in self.safe_methods:
-            # For safe methods, ensure a CSRF cookie is set if missing
             response = await call_next(request)
+            
+            # If cookie missing, set it
             if self.cookie_name not in request.cookies:
                 token = secrets.token_urlsafe(32)
                 response.set_cookie(
                     key=self.cookie_name,
                     value=token,
-                    httponly=False,  # Must be readable by JS to send in header
-                    samesite="strict",
-                    secure=True
+                    httponly=False,  # JS needs to read this to send X-CSRF-Token header
+                    samesite="lax",  # Strict blocks navigation from external sites (e.g. email links)
+                    secure=True      # HTTPS only
                 )
             return response
 
         # For unsafe methods, validate the token
         cookie_token = request.cookies.get(self.cookie_name)
         header_token = request.headers.get(self.header_name)
+        
+        # DEBUG
+        # if request.url.path.startswith("/api/pricing"):
+        #    print(f"DEBUG CSRF: cookie={cookie_token} header={header_token}")
 
         if not cookie_token or not header_token or cookie_token != header_token:
+            print(f"DEBUG CSRF FAIL: cookie={cookie_token} header={header_token} path={request.url.path}")
             return Response(status_code=403, content="CSRF validation failed")
 
         return await call_next(request)

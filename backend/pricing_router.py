@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Body
 from pydantic import BaseModel, Field, field_validator
 
 try:
@@ -195,5 +195,5 @@ def create_discount_code(body: DiscountCodeCreate):
 
 
 @router.post("/discount-codes/{code}/toggle", dependencies=[Depends(require_admin)])
-def toggle_discount_code(code: str, active: bool = True):
+def toggle_discount_code(code: str, active: bool = Body(..., embed=True)):
     return toggle_discount(code, active)

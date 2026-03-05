@@ -1,5 +1,7 @@
 import time
 import os
+import json
+import uuid
 import logging
 from logging.handlers import RotatingFileHandler
 from collections import deque
@@ -8,6 +10,24 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 from stores.pg_users_store import log_audit
 
+class JsonFormatter(logging.Formatter):
+    def format(self, record):
+        log_record = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "logger": record.name,
+            "request_id": getattr(record, "request_id", None),
+            "user_id": getattr(record, "user_id", None),
+            "ip": getattr(record, "ip", None),
+            "method": getattr(record, "method", None),
+            "path": getattr(record, "path", None),
+            "status_code": getattr(record, "status_code", None),
+            "duration": getattr(record, "duration", None),
+            "error": getattr(record, "error", None),
+        }
+        return json.dumps({k: v for k, v in log_record.items() if v is not None})
+
 # Configure Rotating File Handler
 # Max 10 MB per file, keep last 5 backups
 file_handler = RotatingFileHandler(
@@ -15,49 +35,73 @@ file_handler = RotatingFileHandler(
     maxBytes=10*1024*1024, 
     backupCount=5
 )
-file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+file_handler.setFormatter(JsonFormatter())
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(JsonFormatter())
 
 logging.basicConfig(
     level=logging.INFO,
     handlers=[
-        logging.StreamHandler(),
+        stream_handler,
         file_handler
-    ]
+    ],
+    force=True # Override existing config
 )
 logger = logging.getLogger("miron_api")
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         start_time = time.time()
-        ip = request.client.host if request.client else "unknown"
+        request_id = str(uuid.uuid4())
+        
+        # Attach request_id to request state for other middlewares/routers
+        request.state.request_id = request_id
+        
+        ip = request.client.host if request.client else "127.0.0.1"
+        if ip == "testclient": ip = "127.0.0.1"
         ua = request.headers.get("user-agent", "unknown")
         method = request.method
         path = request.url.path
         
-        # Log to file/stdout
-        logger.info(f"Incoming Request: {method} {path} from {ip} | ua={ua}")
+        # Context for logging
+        log_context = {
+            "request_id": request_id,
+            "ip": ip,
+            "method": method,
+            "path": path,
+            "ua": ua
+        }
+        
+        logger.info(f"Incoming Request", extra=log_context)
         
         try:
             response = await call_next(request)
             process_time = time.time() - start_time
             
-            logger.info(f"Response: {response.status_code} - Duration: {process_time:.4f}s")
+            # Add user_id if available (from AuthMiddleware)
+            user_id = getattr(request.state, "user_id", None)
+            if user_id:
+                log_context["user_id"] = str(user_id)
+            
+            log_context["status_code"] = response.status_code
+            log_context["duration"] = round(process_time, 4)
+            
+            logger.info(f"Response Sent", extra=log_context)
+            
+            response.headers["X-Request-ID"] = request_id
             response.headers["X-Process-Time"] = str(process_time)
             
             # Log critical events to DB Audit
             if response.status_code >= 400:
-                # Log failures (4xx, 5xx)
                 details = {
                     "method": method,
                     "path": path,
                     "status": response.status_code,
-                    "duration": process_time
+                    "duration": process_time,
+                    "request_id": request_id
                 }
-                # We can't easily get user_id here without parsing token again or attaching it to request state
-                # Assuming auth middleware attaches user info to request.state if available
-                user_id = getattr(request.state, "user_id", None)
                 
-                # Async logging would be better here to not block response
                 try:
                     log_audit(
                         user_id=user_id,
@@ -68,19 +112,24 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                         ua=ua
                     )
                 except Exception as e:
-                    logger.error(f"Audit log failed: {e}")
+                    logger.error(f"Audit log failed: {e}", extra={"request_id": request_id})
 
             return response
             
         except Exception as e:
-            logger.error(f"Request failed: {e}")
+            process_time = time.time() - start_time
+            log_context["duration"] = round(process_time, 4)
+            log_context["error"] = str(e)
+            
+            logger.error(f"Request Failed: {e}", extra=log_context)
+            
             # Audit log critical failure
             try:
                 log_audit(
-                    user_id=None,
+                    user_id=getattr(request.state, "user_id", None),
                     action="SYSTEM_ERROR",
                     resource=path,
-                    details={"error": str(e)},
+                    details={"error": str(e), "request_id": request_id},
                     ip=ip,
                     ua=ua
                 )
@@ -88,14 +137,27 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 pass
             raise e
 
+from backend.config import settings
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.openai.com https://*.supabase.co;"
+        
+        # HSTS Config
+        hsts = f"max-age={settings.HSTS_MAX_AGE}"
+        if settings.HSTS_INCLUDE_SUBDOMAINS:
+            hsts += "; includeSubDomains"
+        if settings.HSTS_PRELOAD:
+            hsts += "; preload"
+        response.headers["Strict-Transport-Security"] = hsts
+        
+        # CSP Config
+        csp = "; ".join([f"{k} {v}" for k, v in settings.CSP_POLICY.items()])
+        response.headers["Content-Security-Policy"] = csp
+        
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         return response
