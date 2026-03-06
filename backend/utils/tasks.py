@@ -1,7 +1,7 @@
 import os
 import logging
 from typing import Any, Dict
-from backend.config import settings
+from config import settings
 
 logger = logging.getLogger("miron_tasks")
 

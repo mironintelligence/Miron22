@@ -7,12 +7,12 @@ import time
 os.environ["ENVIRONMENT"] = "test"
 
 from fastapi.testclient import TestClient
-from backend.main import app
-from backend.stores.pg_users_store import (
+from main import app
+from stores.pg_users_store import (
     create_user, find_user_by_email, reset_failed_login, 
     update_user_role, delete_user, get_user_token_version
 )
-from backend.security import hash_password, create_access_token, create_refresh_token
+from security import hash_password, create_access_token, create_refresh_token
 
 client = TestClient(app, base_url="https://testserver")
 client.headers["User-Agent"] = "MironAuditBot/1.0" # Bypass BotProtection

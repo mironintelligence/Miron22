@@ -6,14 +6,14 @@ from typing import List, Dict, Any
 import tiktoken
 import numpy as np
 
-# Adjust path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Adjust path to include backend/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend", ".env"))
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
-from backend.db_async import db
-from backend.rag.vector_store import vector_store
-from backend.rag.chunker import chunker
+from db_async import db
+from rag.vector_store import vector_store
+from rag.chunker import chunker
 from openai import AsyncOpenAI
 import numpy as np
 
@@ -23,8 +23,9 @@ import numpy as np
 api_key = os.getenv("OPENAI_API_KEY")
 
 # Check if key is valid/not dummy
-if api_key and "placeholder" in api_key:
-    api_key = None
+if api_key and ("placeholder" in api_key or not api_key.startswith("sk-") or len(api_key) < 20):
+    print("❌ Error: Set a valid OPENAI_API_KEY in backend/.env before running")
+    sys.exit(1)
 
 aclient = AsyncOpenAI(api_key=api_key) if api_key else None
 

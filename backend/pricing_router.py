@@ -10,11 +10,11 @@ from fastapi import APIRouter, HTTPException, Depends, Body
 from pydantic import BaseModel, Field, field_validator
 
 try:
-    from backend.admin_auth import require_admin
+    from admin_auth import require_admin
 except ImportError:
     from admin_auth import require_admin
 
-from backend.services.pricing_service import (
+from services.pricing_service import (
     _load_discounts, _save_discounts, find_valid_discount, increment_usage, 
     create_discount, toggle_discount, _normalize_code
 )

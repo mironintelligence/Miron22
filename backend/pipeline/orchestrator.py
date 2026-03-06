@@ -11,11 +11,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend", ".env"))
 
-from backend.db_async import db
-from backend.pipeline.structuring import structurer
-from backend.pipeline.segmentation import segmenter
-from backend.pipeline.graph_engine import GraphEngine, AuthorityScorer
-from backend.pipeline.vector_prep import vector_prep
+from db_async import db
+from pipeline.structuring import structurer
+from pipeline.segmentation import segmenter
+from pipeline.graph_engine import GraphEngine, AuthorityScorer
+from pipeline.vector_prep import vector_prep
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("pipeline")

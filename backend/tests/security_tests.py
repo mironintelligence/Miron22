@@ -3,10 +3,10 @@ import os
 import time
 import requests
 from fastapi.testclient import TestClient
-from backend.main import app
-from backend.stores.pg_users_store import create_user, find_user_by_email, reset_failed_login
-from backend.security import hash_password, create_access_token
-import backend.auth_router
+from main import app
+from stores.pg_users_store import create_user, find_user_by_email, reset_failed_login
+from security import hash_password, create_access_token
+import auth_router
 
 client = TestClient(app)
 

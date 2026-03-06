@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 try:
-    from backend.security import encrypt_value, decrypt_value, hmac_hash, hash_password, verify_password
+    from security import encrypt_value, decrypt_value, hmac_hash, hash_password, verify_password
 except ImportError:
     from security import encrypt_value, decrypt_value, hmac_hash, hash_password, verify_password
 

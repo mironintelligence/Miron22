@@ -1,8 +1,8 @@
 import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from backend.db import get_db_cursor
-from backend.security import encrypt_value, decrypt_value, hmac_hash
+from db import get_db_cursor
+from security import encrypt_value, decrypt_value, hmac_hash
 
 logger = logging.getLogger("miron_pg_store")
 

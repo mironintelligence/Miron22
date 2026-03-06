@@ -23,7 +23,7 @@ from security import (
 )
 
 try:
-    from backend.services.pricing_service import find_valid_discount, increment_usage
+    from services.pricing_service import find_valid_discount, increment_usage
 except ImportError:
     try:
         from services.pricing_service import find_valid_discount, increment_usage

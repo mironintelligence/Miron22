@@ -4,9 +4,9 @@ from datetime import datetime
 import os, io, json, re
 
 try:
-    from backend.openai_client import get_openai_client
-    from backend.services.risk_engine import risk_engine
-    from backend.security import sanitize_text
+    from openai_client import get_openai_client
+    from services.risk_engine import risk_engine
+    from security import sanitize_text
 except ImportError:
     from openai_client import get_openai_client
     from services.risk_engine import risk_engine

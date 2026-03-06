@@ -2,8 +2,8 @@ import logging
 import asyncio
 from typing import List, Dict, Any, AsyncGenerator, Optional, Tuple
 from bs4 import BeautifulSoup
-from backend.master_ingestion.async_client import client
-from backend.master_ingestion.decision_validator import validator
+from master_ingestion.async_client import client
+from master_ingestion.decision_validator import validator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("resolvers.aym")

@@ -1,9 +1,9 @@
 import asyncio
 import os
 import logging
-from backend.legal_crawler.pipeline import pipeline
-from backend.legal_crawler.models import LegalDocument
-from backend.db_async import db
+from legal_crawler.pipeline import pipeline
+from legal_crawler.models import LegalDocument
+from db_async import db
 from datetime import date
 
 # Mock data generator for validation

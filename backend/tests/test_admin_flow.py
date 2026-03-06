@@ -16,10 +16,10 @@ os.environ["DATA_HASH_KEY"] = "test_hash_key"
 
 import pytest
 from fastapi.testclient import TestClient
-from backend.main import app
-import backend.admin_router
-import backend.stores.users_store
-import backend.stores.demo_users_store
+from main import app
+import admin_router
+import stores.users_store
+import stores.demo_users_store
 from pathlib import Path
 
 client = TestClient(app)
@@ -78,7 +78,7 @@ def clean_data():
 def admin_headers():
     os.environ["ADMIN_TOKEN"] = ADMIN_TOKEN
     import admin_auth
-    from backend.admin_auth import require_admin as require_admin_backend
+    from admin_auth import require_admin as require_admin_backend
     app.dependency_overrides[admin_auth.require_admin] = lambda: None
     app.dependency_overrides[require_admin_backend] = lambda: None
     try:

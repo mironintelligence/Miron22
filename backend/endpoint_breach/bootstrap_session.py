@@ -1,7 +1,7 @@
 import httpx
 import logging
-from backend.endpoint_breach.diagnostic_logger import logger
-from backend.endpoint_breach.token_extractor import TokenExtractor
+from endpoint_breach.diagnostic_logger import logger
+from endpoint_breach.token_extractor import TokenExtractor
 
 class BootstrapSession:
     def __init__(self, base_url: str):

@@ -3,9 +3,9 @@ import os
 import concurrent.futures
 import time
 from fastapi.testclient import TestClient
-from backend.main import app
-from backend.stores.pg_users_store import create_user, find_user_by_email
-from backend.security import hash_password
+from main import app
+from stores.pg_users_store import create_user, find_user_by_email
+from security import hash_password
 
 # Ensure Test Env
 os.environ["ENVIRONMENT"] = "test"

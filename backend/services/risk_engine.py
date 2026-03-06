@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field, ValidationError
 
 try:
-    from backend.openai_client import get_openai_client
+    from openai_client import get_openai_client
 except ImportError:
     from openai_client import get_openai_client
 

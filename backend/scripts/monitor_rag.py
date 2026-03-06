@@ -5,12 +5,12 @@ import logging
 from datetime import datetime
 import json
 
-# Adjust path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Adjust path to include backend/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend", ".env"))
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
-from backend.db_async import db
+from db_async import db
 
 async def perf_check():
     print("--- 📊 PERFORMANCE MONITORING ---")
@@ -21,6 +21,8 @@ async def perf_check():
     try:
         await db.execute("ANALYZE decisions", timeout=120.0)
         await db.execute("ANALYZE legal_chunks", timeout=120.0)
+    except asyncio.TimeoutError:
+        print("ANALYZE skipped due to timeout — DB load may be high")
     except Exception as e:
         print(f"ANALYZE failed: {e}")
     

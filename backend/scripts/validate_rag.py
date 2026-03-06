@@ -4,12 +4,13 @@ import sys
 import os
 from typing import List
 
-# Adjust path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Adjust path to include backend/
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BACKEND_DIR)
 from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend", ".env"))
+load_dotenv(os.path.join(BACKEND_DIR, ".env"))
 
-from backend.rag.pipeline import rag_pipeline
+from rag.pipeline import rag_pipeline
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("rag_validation")

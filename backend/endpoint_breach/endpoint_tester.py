@@ -7,8 +7,8 @@ import os
 # Adjust path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from backend.endpoint_breach.bootstrap_session import BootstrapSession
-from backend.endpoint_breach.diagnostic_logger import logger
+from endpoint_breach.bootstrap_session import BootstrapSession
+from endpoint_breach.diagnostic_logger import logger
 
 class EndpointTester:
     def __init__(self):

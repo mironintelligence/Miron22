@@ -1,7 +1,7 @@
 import time
 import json
 import psycopg2
-from backend.db import get_db_cursor
+from db import get_db_cursor
 
 def run_diagnostics():
     print("--- PHASE 1: FORENSIC EVIDENCE COLLECTION ---\n")

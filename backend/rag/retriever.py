@@ -6,7 +6,7 @@ import json
 import numpy as np
 from openai import AsyncOpenAI
 
-from backend.db_async import db
+from db_async import db
 
 # Adjust for actual key
 api_key = os.getenv("OPENAI_API_KEY")

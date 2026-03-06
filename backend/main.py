@@ -31,14 +31,14 @@ load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 # ---------------------------
 from openai_client import get_openai_client, get_openai_api_key
 try:
-    from backend.middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
-    from backend.middleware.rate_limit import RateLimitMiddleware
-    from backend.middleware.csrf import CSRFProtectionMiddleware
-    from backend.middleware.metrics import PrometheusMiddleware
-    from backend.middleware.concurrency import IdempotencyMiddleware, TimeoutMiddleware
-    from backend.middleware.chaos import ChaosMiddleware
-    from backend.db import init_pool, close_pool
-    from backend.db_async import db as async_db
+    from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
+    from middleware.rate_limit import RateLimitMiddleware
+    from middleware.csrf import CSRFProtectionMiddleware
+    from middleware.metrics import PrometheusMiddleware
+    from middleware.concurrency import IdempotencyMiddleware, TimeoutMiddleware
+    from middleware.chaos import ChaosMiddleware
+    from db import init_pool, close_pool
+    from db_async import db as async_db
 except ImportError:
     from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
     from middleware.rate_limit import RateLimitMiddleware
@@ -531,7 +531,7 @@ if orchestrator_router: app.include_router(orchestrator_router)
 
 # New Auth Router (Supabase)
 try:
-    from backend.auth_router import router as auth_router_new
+    from auth_router import router as auth_router_new
 except ImportError:
     from auth_router import router as auth_router_new
 
@@ -539,7 +539,7 @@ app.include_router(auth_router_new, prefix="/api/auth", tags=["Authentication"])
 
 # Pricing Router
 try:
-    from backend.pricing_router import router as pricing_router
+    from pricing_router import router as pricing_router
 except ImportError:
     from pricing_router import router as pricing_router
 

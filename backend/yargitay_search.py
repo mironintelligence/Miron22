@@ -4,22 +4,22 @@ from typing import Optional, Dict, Any, List
 import os
 import logging
 try:
-    from backend.security import sanitize_text
+    from security import sanitize_text
 except ImportError:
     from security import sanitize_text
 
 try:
-    from backend.openai_client import get_openai_client
+    from openai_client import get_openai_client
 except ImportError:
     from openai_client import get_openai_client
 
 try:
-    from backend.auth import get_supabase_client
+    from auth import get_supabase_client
 except ImportError:
     from auth import get_supabase_client
 
 try:
-    from backend.services.search import search_engine
+    from services.search import search_engine
 except ImportError:
     from services.search import search_engine
 

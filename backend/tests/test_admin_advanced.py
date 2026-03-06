@@ -2,10 +2,10 @@ import pytest
 import os
 import uuid
 from fastapi.testclient import TestClient
-from backend.main import app
-from backend.stores.pg_users_store import create_user, find_user_by_email, update_user_role, delete_user
-from backend.security import hash_password, create_access_token
-from backend.admin_auth import issue_admin_token
+from main import app
+from stores.pg_users_store import create_user, find_user_by_email, update_user_role, delete_user
+from security import hash_password, create_access_token
+from admin_auth import issue_admin_token
 
 # Ensure we are in test mode
 os.environ["ENVIRONMENT"] = "test"

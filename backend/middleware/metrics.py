@@ -73,7 +73,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
         if request.url.path == "/metrics":
             # Collect Pool Metrics
             try:
-                from backend.db import get_pool_status
+                from db import get_pool_status
                 stats = get_pool_status()
                 if stats["status"] == "active":
                     DB_POOL_STATS.labels(state="active").set(stats["used"])
@@ -84,7 +84,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
                 
             # Collect Circuit Breaker Metrics
             try:
-                from backend.utils.circuit_breaker import db_circuit, redis_circuit, CircuitState
+                from utils.circuit_breaker import db_circuit, redis_circuit, CircuitState
                 state_map = {CircuitState.CLOSED: 0, CircuitState.OPEN: 1, CircuitState.HALF_OPEN: 2}
                 CB_STATE.labels(name="db_circuit").set(state_map[db_circuit.state])
                 CB_STATE.labels(name="redis_circuit").set(state_map[redis_circuit.state])

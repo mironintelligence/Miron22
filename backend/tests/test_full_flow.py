@@ -25,10 +25,10 @@ from cryptography.fernet import Fernet
 os.environ["DATA_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
 
 from fastapi.testclient import TestClient
-from backend.main import app
-import backend.security
+from main import app
+import security
 backend.security._JWT_SECRET = "test_jwt_secret"
-from backend.auth_router import router
+from auth_router import router
 
 client = TestClient(app)
 
@@ -36,11 +36,11 @@ client = TestClient(app)
 def clean_data():
     import shutil
     from pathlib import Path
-    import backend.pricing_router
-    import backend.admin_router
-    import backend.stores.users_store
-    import backend.stores.demo_users_store
-    import backend.services.pricing_service
+    import pricing_router
+    import admin_router
+    import stores.users_store
+    import stores.demo_users_store
+    import services.pricing_service
     
     # Force DATA_DIR and FILES
     test_path = Path("test_data")

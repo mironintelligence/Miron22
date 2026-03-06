@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 import json
 
 # Adjust path if needed, assuming backend is root or in path
-from backend.db_async import db
+from db_async import db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("vector_store")
@@ -39,10 +39,7 @@ class VectorStore:
             (
                 c['decision_id'], 
                 c['chunk_text'], 
-                json.dumps(c['embedding']) if isinstance(c['embedding'], list) else c['embedding'], # Format for vector type if needed, or pass as list if driver supports it.
-                # asyncpg vector support depends on setup. Usually list is fine if pgvector type is registered.
-                # But here it says expected str, got list. This means pgvector codec might not be registered or recognized.
-                # Standard pgvector input is string "[1,2,3]".
+                str(c['embedding']).replace(' ', ''), # Format for pgvector
                 c.get('authority_score', 0),
                 c.get('citation_score', 0),
                 c.get('decision_date'),

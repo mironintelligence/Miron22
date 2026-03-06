@@ -2,7 +2,7 @@ import time
 import enum
 import logging
 from functools import wraps
-from backend.config import settings
+from config import settings
 
 logger = logging.getLogger("miron_cb")
 

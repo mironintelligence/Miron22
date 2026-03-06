@@ -60,7 +60,7 @@ from typing import Any, Dict, Optional
 # ... imports ...
 
 import random
-from backend.config import settings
+from config import settings
 
 def _get_signing_key(kid: str = None) -> str:
     """Get key for signing or verification. Supports rotation."""

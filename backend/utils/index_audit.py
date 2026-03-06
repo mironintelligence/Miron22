@@ -5,7 +5,7 @@ import os
 # Ensure backend path is in sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from backend.db import get_db_cursor
+from db import get_db_cursor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("miron_audit")

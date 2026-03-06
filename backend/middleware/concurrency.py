@@ -1,7 +1,7 @@
 import time
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-from backend.config import settings
+from config import settings
 
 class IdempotencyMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):

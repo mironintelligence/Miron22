@@ -137,7 +137,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 pass
             raise e
 
-from backend.config import settings
+from config import settings
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):

@@ -9,7 +9,7 @@ import json
 # Adjust path BEFORE importing backend
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from backend.db_async import db
+from db_async import db
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend", ".env"))
 
@@ -78,7 +78,7 @@ class Persistence:
         # Deduplication check
         # We need to compute fingerprint here if not present
         if 'fingerprint' not in doc:
-            from backend.utils.fingerprint import simhash
+            from utils.fingerprint import simhash
             doc['fingerprint'] = simhash(doc['full_text'])
             
         try:

@@ -17,10 +17,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend", ".env"))
 
-from backend.master_ingestion.endpoint_resolver import AYMEndpointResolver
-from backend.master_ingestion.persistence import persistence
-from backend.master_ingestion.async_client import client
-from backend.master_ingestion.checkpoint import checkpoint
+from master_ingestion.endpoint_resolver import AYMEndpointResolver
+from master_ingestion.persistence import persistence
+from master_ingestion.async_client import client
+from master_ingestion.checkpoint import checkpoint
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("crawler_engine")

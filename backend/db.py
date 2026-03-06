@@ -9,8 +9,8 @@ from contextlib import contextmanager
 from typing import Generator
 from dotenv import load_dotenv
 from fastapi import HTTPException
-from backend.config import settings
-from backend.utils.circuit_breaker import db_circuit
+from config import settings
+from utils.circuit_breaker import db_circuit
 
 # Explicitly load .env from backend folder if not already loaded
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

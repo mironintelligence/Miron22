@@ -3,7 +3,7 @@ import os
 import logging
 from typing import Dict, Any, List
 
-from backend.rag.retriever import HybridRetriever, Reranker
+from rag.retriever import HybridRetriever, Reranker
 from openai import AsyncOpenAI
 
 logging.basicConfig(level=logging.INFO)
@@ -15,9 +15,10 @@ class RAGPipeline:
         self.reranker = Reranker()
         
         api_key = os.getenv("OPENAI_API_KEY")
-        if api_key and "placeholder" in api_key:
-            api_key = None
-        self.aclient = AsyncOpenAI(api_key=api_key) if api_key else None
+        if not api_key or "placeholder" in api_key:
+            raise RuntimeError("No valid LLM API Key configured. Set OPENAI_API_KEY in backend/.env")
+            
+        self.aclient = AsyncOpenAI(api_key=api_key)
         
     async def run(self, query: str) -> Dict[str, Any]:
         """

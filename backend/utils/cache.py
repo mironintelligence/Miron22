@@ -3,7 +3,7 @@ import logging
 from typing import Any, Optional, Callable, Dict
 import functools
 import redis
-from backend.config import settings
+from config import settings
 
 logger = logging.getLogger("miron_cache")
 

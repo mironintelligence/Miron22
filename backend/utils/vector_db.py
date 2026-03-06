@@ -1,5 +1,5 @@
 from typing import List, Dict, Any, Optional
-from backend.config import settings
+from config import settings
 
 class VectorDB:
     """

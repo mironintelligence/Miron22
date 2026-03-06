@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
 try:
-    from backend.auth import get_supabase_client
+    from auth import get_supabase_client
 except ImportError:
     from auth import get_supabase_client
 

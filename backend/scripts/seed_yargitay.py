@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 
 try:
-    from backend.openai_client import get_openai_client
+    from openai_client import get_openai_client
 except ImportError:
     from openai_client import get_openai_client
 
