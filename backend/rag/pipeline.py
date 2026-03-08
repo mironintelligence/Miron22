@@ -16,7 +16,7 @@ class RAGPipeline:
         
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key or "placeholder" in api_key:
-            raise RuntimeError("No valid LLM API Key configured. Set OPENAI_API_KEY in backend/.env")
+            raise RuntimeError("CRITICAL: No valid OPENAI_API_KEY. Production RAG cannot start without a real key.")
             
         self.aclient = AsyncOpenAI(api_key=api_key)
         
@@ -24,9 +24,6 @@ class RAGPipeline:
         """
         End-to-end RAG: Query -> Retrieve -> Rerank -> Generate -> Answer
         """
-        if not self.aclient:
-            return {"error": "No LLM API Key configured"}
-            
         logger.info(f"RAG Query: {query}")
         
         # 1. Retrieval
@@ -73,6 +70,6 @@ class RAGPipeline:
             }
         except Exception as e:
             logger.error(f"LLM Generation failed: {e}")
-            return {"error": str(e)}
+            raise e # Production Mode: Fail loudly if LLM fails
 
 rag_pipeline = RAGPipeline()

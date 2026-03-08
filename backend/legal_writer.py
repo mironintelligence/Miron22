@@ -488,15 +488,35 @@ def get_fields(template_key: str):
     return {"key": tpl_obj["key"], "title": tpl_obj["title"], "fields": tpl_obj["fields"]}
 
 @writer_router.post("/preview")
-def preview(req: PreviewRequest):
+async def preview(req: PreviewRequest):
     tpl_obj = get_template_by_key(req.template_key)
     if not tpl_obj:
         raise HTTPException(status_code=400, detail="Geçersiz template_key")
 
+    prompt = build_prompt(tpl_obj, req)
+
+    # Use RAG Pipeline if available to enrich context with relevant precedents
+    context_data = ""
+    try:
+        from rag.pipeline import rag_pipeline
+        # Construct a search query based on the case type and summary facts
+        search_query = f"{tpl_obj['title']} {req.values.get('subject', '')} {req.values.get('facts', '')}"
+        
+        # Only search if we have meaningful text
+        if len(search_query) > 20:
+            rag_result = await rag_pipeline.run(search_query)
+            if not rag_result.get("error"):
+                context_data = rag_result.get("context_used", "")
+                if context_data:
+                    prompt += f"\n\n#RELEVANT_PRECEDENTS_FROM_RAG\n{context_data}\n\n#INSTRUCTION_UPDATE\nUse the above precedents to strengthen the LEGAL_BASIS section if applicable."
+    except Exception as e:
+        print(f"RAG Enrichment failed for writer: {e}")
+        # Continue without RAG
+        pass
+
     if client is None:
         raise HTTPException(status_code=500, detail="OpenAI client yok. OPENAI_API_KEY kontrol et ve restart at.")
 
-    prompt = build_prompt(tpl_obj, req)
     try:
         resp = client.chat.completions.create(
             model="gpt-4o-mini",

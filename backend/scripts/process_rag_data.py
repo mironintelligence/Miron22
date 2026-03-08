@@ -24,7 +24,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 # Check if key is valid/not dummy
 if api_key and ("placeholder" in api_key or not api_key.startswith("sk-") or len(api_key) < 20):
-    print("❌ Error: Set a valid OPENAI_API_KEY in backend/.env before running")
+    print("❌ Error: Set a valid OPENAI_API_KEY in backend/.env before running. PRODUCTION MODE ENFORCED.")
     sys.exit(1)
 
 aclient = AsyncOpenAI(api_key=api_key) if api_key else None

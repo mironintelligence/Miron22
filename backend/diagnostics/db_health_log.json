@@ -59,6 +59,11 @@
       "timestamp": "2026-03-02T01:48:33.898331",
       "type": "POOL_RESET_SUCCESS",
       "details": "Pools re-initialized"
+    },
+    {
+      "timestamp": "2026-03-08T14:16:51.781752",
+      "type": "INIT_FAILURE",
+      "details": "MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size"
     }
   ]
 }

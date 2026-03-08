@@ -66,8 +66,8 @@ class AsyncDatabase:
             # Hardened settings as requested
             self._write_pool = await asyncpg.create_pool(
                 self.write_url,
-                min_size=5,  # Increased min_size for stability
-                max_size=20, # Increased max_size for concurrency
+                min_size=1,  # Decreased min_size
+                max_size=3,  # Decreased max_size
                 max_inactive_connection_lifetime=300,
                 timeout=60.0,
                 command_timeout=60.0,
@@ -79,8 +79,8 @@ class AsyncDatabase:
             read_url = os.getenv("DB_REPLICA_URL", self.write_url)
             self._read_pool = await asyncpg.create_pool(
                 read_url,
-                min_size=5,
-                max_size=20,
+                min_size=1,  # Decreased min_size
+                max_size=3,  # Decreased max_size
                 max_inactive_connection_lifetime=300,
                 timeout=60.0,
                 command_timeout=60.0,
