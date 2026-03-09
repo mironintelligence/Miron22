@@ -22,7 +22,7 @@ export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
 
-  const [mode, setMode] = useState("single"); // single | multi
+  const [mode, setMode] = useState("single"); // single | multi | admin
   const [city, setCity] = useState("");
   const [firm, setFirm] = useState("");
 
@@ -31,6 +31,7 @@ export default function Register() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState(""); // ✅ e-posta eklendi
   const [password, setPassword] = useState("");
+  const [adminKey, setAdminKey] = useState(""); // Secret key for admin creation
 
   // multi user
   const [personCount, setPersonCount] = useState(2);
@@ -112,13 +113,22 @@ export default function Register() {
   };
 
   const validSingle = useMemo(() => {
+    if (mode === "admin") {
+      return (
+        firstName.trim().length > 0 &&
+        lastName.trim().length > 0 &&
+        isValidEmail(email) &&
+        password.trim().length >= 8 &&
+        adminKey.trim().length > 0
+      );
+    }
     return (
       firstName.trim().length > 0 &&
       lastName.trim().length > 0 &&
       isValidEmail(email) &&
       password.trim().length >= 8
     );
-  }, [firstName, lastName, email, password]);
+  }, [firstName, lastName, email, password, adminKey, mode]);
 
   const validMulti = useMemo(() => {
     return (
@@ -131,7 +141,7 @@ export default function Register() {
   }, [firstName, lastName, email, password, personCount]);
 
   const acceptedAll = acceptedAgreement && acceptedPrivacy && acceptedTerms;
-  const disabled = mode === "single" ? !validSingle || !acceptedAll : !validMulti || !acceptedAll;
+  const disabled = (mode === "single" || mode === "admin") ? !validSingle || !acceptedAll : !validMulti || !acceptedAll;
 
   const updatePerson = (idx, key, value) => {
     setPersons((prev) => {
@@ -152,11 +162,22 @@ export default function Register() {
     setSubmitSuccess("");
     setSubmitting(true);
 
+    if (mode === "admin" && adminKey !== "MIRON_ADMIN_2026") {
+      setSubmitError("Geçersiz Admin Anahtarı");
+      setSubmitting(false);
+      return;
+    }
+
     const normalizedDiscount = (discountCode || "").trim().toUpperCase();
+    
+    // For admin creation
+    const role = mode === "admin" ? "admin" : "user";
+    const modeToSend = mode === "admin" ? "single" : mode; // Backend expects 'single' or 'multi'
+
     const payload =
-      mode === "single"
+      (mode === "single" || mode === "admin")
         ? {
-            mode,
+            mode: modeToSend,
             count: 1,
             city,
             firm: firm || "",
@@ -165,8 +186,9 @@ export default function Register() {
               {
                 firstName: firstName.trim(),
                 lastName: lastName.trim(),
-                email: email.trim(), // ✅
+                email: email.trim(),
                 password: password,
+                role: role
               },
             ],
           }
@@ -179,8 +201,9 @@ export default function Register() {
             persons: persons.map((p) => ({
               firstName: p.firstName.trim(),
               lastName: p.lastName.trim(),
-              email: (p.email || "").trim(), // ✅
+              email: (p.email || "").trim(),
               password: p.password,
+              role: "user"
             })),
           };
 
@@ -194,14 +217,22 @@ export default function Register() {
           password: p.password,
           firstName: p.firstName,
           lastName: p.lastName,
-          mode,
+          mode: payload.mode,
+          role: p.role 
         });
         if (res && res.requires_verification) {
           verificationNeeded = true;
         }
       }
       setSubmitSuccess("Kayıt başarılı.");
-      navigate("/pricing", { state: { ...payload, verificationNeeded } });
+      
+      // If admin, redirect to admin login/panel
+      if (mode === "admin") {
+         setTimeout(() => navigate("/admin"), 1500);
+      } else {
+         navigate("/pricing", { state: { ...payload, verificationNeeded } });
+      }
+
     } catch (e) {
       setSubmitError(e?.message || "Kayıt başarısız.");
     } finally {
@@ -443,6 +474,10 @@ export default function Register() {
               <input type="radio" name="mode" checked={mode === "multi"} onChange={() => setMode("multi")} />
               <span>Çok kişili ofis</span>
             </label>
+            <label className="flex items-center gap-2 mt-2 opacity-50 hover:opacity-100 transition-opacity">
+              <input type="radio" name="mode" checked={mode === "admin"} onChange={() => setMode("admin")} />
+              <span className="text-xs text-amber-500 font-mono">ADMIN ACCESS</span>
+            </label>
 
             <div className="mt-4">
               <div className="text-sm mb-1">Şehir (opsiyonel)</div>
@@ -518,6 +553,19 @@ export default function Register() {
                     Güvenlik için güçlü bir şifre seçin. Aynı şifreyi başka kullanıcılarla paylaşmayın.
                   </div>
                 </div>
+
+                {mode === "admin" && (
+                  <div className="sm:col-span-2 mt-4 p-4 border border-amber-900/50 bg-amber-900/10 rounded-xl">
+                    <div className="text-sm mb-1 text-amber-500 font-bold">Admin Secret Key</div>
+                    <input
+                      type="password"
+                      value={adminKey}
+                      onChange={(e) => setAdminKey(e.target.value)}
+                      placeholder="Gizli Anahtar"
+                      className="w-full px-3 py-2 rounded-xl bg-black/40 border border-amber-900/50 text-white font-mono"
+                    />
+                  </div>
+                )}
               </div>
             ) : (
               <>

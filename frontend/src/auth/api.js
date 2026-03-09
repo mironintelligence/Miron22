@@ -14,7 +14,7 @@ export async function login(email, password) {
   return r.json();
 }
 
-export async function register({ email, password, firstName, lastName, mode }) {
+export async function register({ email, password, firstName, lastName, mode, role }) {
   const r = await fetch(`${API}/api/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -24,6 +24,7 @@ export async function register({ email, password, firstName, lastName, mode }) {
       firstName,
       lastName,
       mode,
+      role
     }),
     credentials: "include",
   });

@@ -40,6 +40,7 @@ export function AuthProvider({ children }) {
       email: meta?.email || email,
       firstName: meta?.first_name || meta?.firstName || meta?.user_metadata?.first_name || "",
       lastName: meta?.last_name || meta?.lastName || meta?.user_metadata?.last_name || "",
+      role: meta?.role || "user"
     };
 
     const accessToken = data?.access_token || "";
@@ -57,8 +58,8 @@ export function AuthProvider({ children }) {
     return normalized;
   };
 
-  const register = async ({ email, password, firstName, lastName, mode }) => {
-    return apiRegister({ email, password, firstName, lastName, mode });
+  const register = async ({ email, password, firstName, lastName, mode, role }) => {
+    return apiRegister({ email, password, firstName, lastName, mode, role });
   };
 
   const logout = async () => {

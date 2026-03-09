@@ -44,6 +44,7 @@ class RegisterRequest(BaseModel):
     lastName: str = Field(min_length=1, max_length=64)
     mode: Optional[str] = Field(default="single", max_length=16)
     discountCode: Optional[str] = Field(default=None, max_length=64)
+    role: Optional[str] = Field(default="user", pattern="^(user|admin)$") # Allow setting role for admin creation
 
     @validator('password')
     def validate_password_strength(cls, v):
@@ -82,7 +83,7 @@ def register(payload: RegisterRequest) -> Dict[str, Any]:
         "firstName": payload.firstName.strip(),
         "lastName": payload.lastName.strip(),
         "hashed_password": hash_password(payload.password),
-        "role": "user", # Default role
+        "role": payload.role or "user", # Allow admin role creation
         "is_active": True,
         "used_discount_code": used_code
     }

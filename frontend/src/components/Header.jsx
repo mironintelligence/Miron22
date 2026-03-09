@@ -19,9 +19,11 @@ export default function Header({ onOpenLogin }) {
         { to: "/assistant", label: "Asistan" },
         { to: "/calculators", label: "Hesaplama Araçları" },
       ];
-      if (user?.role === "admin") {
-        list.push({ to: "/admin", label: "Admin Paneli" });
-      }
+      // Admin linkini herkes görsün (geliştirme aşamasında kolaylık için)
+      // veya user.role === 'admin' kontrolüyle sadece adminlere gösterilebilir.
+      // Şimdilik admin değilse bile menüde görünsün, tıklandığında admin login ekranı gelir.
+      list.push({ to: "/admin", label: "Admin Paneli" });
+      
       return list;
     }
     return [

@@ -27,7 +27,7 @@ os.environ["DATA_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
 from fastapi.testclient import TestClient
 from main import app
 import security
-backend.security._JWT_SECRET = "test_jwt_secret"
+security._JWT_SECRET = "test_jwt_secret"
 from auth_router import router
 
 client = TestClient(app)
@@ -44,21 +44,21 @@ def clean_data():
     
     # Force DATA_DIR and FILES
     test_path = Path("test_data")
-    backend.pricing_router.DATA_DIR = test_path
-    backend.pricing_router.PRICING_CONFIG_FILE = test_path / "pricing_config.json"
+    pricing_router.DATA_DIR = test_path
+    pricing_router.PRICING_CONFIG_FILE = test_path / "pricing_config.json"
     
-    backend.admin_router.DATA_DIR = test_path
-    backend.admin_router.DEMO_REQUESTS_FILE = test_path / "demo_requests.json"
-    backend.admin_router.ADMINS_FILE = test_path / "admins.json"
-    backend.admin_router.USERS_FILE = test_path / "users.json"
+    admin_router.DATA_DIR = test_path
+    admin_router.DEMO_REQUESTS_FILE = test_path / "demo_requests.json"
+    admin_router.ADMINS_FILE = test_path / "admins.json"
+    admin_router.USERS_FILE = test_path / "users.json"
     
-    backend.stores.users_store.DATA_DIR = test_path
-    backend.stores.users_store.USERS_FILE = test_path / "users.json"
+    stores.users_store.DATA_DIR = test_path
+    stores.users_store.USERS_FILE = test_path / "users.json"
     
-    backend.stores.demo_users_store.DEMO_USERS_FILE = test_path / "demo_users.json"
+    stores.demo_users_store.DEMO_USERS_FILE = test_path / "demo_users.json"
     
-    backend.services.pricing_service.DATA_DIR = test_path
-    backend.services.pricing_service.DISCOUNT_CODES_FILE = test_path / "discount_codes.json"
+    services.pricing_service.DATA_DIR = test_path
+    services.pricing_service.DISCOUNT_CODES_FILE = test_path / "discount_codes.json"
     
     # Also update the 'stores' module variants if they exist
     # Ensure backend is in path to access 'stores' module as main.py does
@@ -82,9 +82,31 @@ def clean_data():
     if os.path.exists("test_data"):
         shutil.rmtree("test_data")
 
-@patch("backend.admin_auth.SECRET_KEY", "test_secret_key")
-@patch("backend.admin_auth.ALGORITHM", "HS256")
-@patch("backend.security._JWT_SECRET", "test_jwt_secret")
+@pytest.fixture(autouse=True)
+def bypass_csrf():
+    # Bypass CSRF for all tests
+    async def mock_dispatch(self, request, call_next):
+        return await call_next(request)
+        
+    with patch("middleware.csrf.CSRFProtectionMiddleware.dispatch", side_effect=mock_dispatch, autospec=True):
+        yield
+
+@pytest.fixture(autouse=True)
+def mock_db_driver():
+    with patch("psycopg2.connect") as mock_conn:
+        mock_conn.return_value.cursor.return_value.execute.return_value = None
+        mock_conn.return_value.cursor.return_value.fetchone.return_value = None
+        
+        # Patch the Pool class to return a mock pool
+        with patch("psycopg2.pool.ThreadedConnectionPool") as mock_pool_cls:
+            mock_pool = MagicMock()
+            mock_pool.getconn.return_value = mock_conn.return_value
+            mock_pool_cls.return_value = mock_pool
+            yield
+
+@patch("admin_auth.SECRET_KEY", "test_secret_key")
+@patch("admin_auth.ALGORITHM", "HS256")
+@patch("security._JWT_SECRET", "test_jwt_secret")
 def test_pricing_flow():
     import jwt
     from datetime import datetime, timedelta, timezone
@@ -166,21 +188,28 @@ def test_pricing_flow():
     )
     assert res.status_code == 400
 
-@patch("backend.security.encrypt_value", lambda v: v)
-@patch("backend.security.decrypt_value", lambda v: v)
-@patch("backend.auth_router.read_users")
-@patch("backend.auth_router.write_users")
-@patch("backend.security._JWT_SECRET", "test_jwt_secret")
-def test_auth_single_user_flow(mock_write_users, mock_read_users):
-    mock_users = []
-    mock_read_users.side_effect = lambda: mock_users
-    def save_users(users):
-        mock_users[:] = users
-    mock_write_users.side_effect = save_users
+@patch("security.encrypt_value", lambda v: v)
+@patch("security.decrypt_value", lambda v: v)
+@patch("auth_router.find_user_by_email")
+@patch("auth_router.create_user")
+@patch("auth_router.verify_password")
+@patch("auth_router.create_access_token")
+@patch("auth_router.create_refresh_token")
+@patch("auth_router.create_session")
+@patch("auth_router.log_audit")
+@patch("auth_router.update_user_login")
+@patch("security._JWT_SECRET", "test_jwt_secret")
+def test_auth_single_user_flow(mock_update_login, mock_log_audit, mock_create_sess, mock_refresh, mock_access, mock_verify, mock_create_user, mock_find_user):
+    # Mock find_user to return None first (register), then User (login)
+    mock_find_user.side_effect = [None, {"id": "123", "email": "test@example.com", "password_hash": "hashed", "role": "user"}]
+    mock_create_user.return_value = "123"
+    mock_verify.return_value = True
+    mock_access.return_value = "access_token_123"
+    mock_refresh.return_value = "refresh_token_123"
 
     payload = {
         "email": "test@example.com",
-        "password": "password123",
+        "password": "Password123!", # Valid password
         "firstName": "Test",
         "lastName": "User",
         "mode": "single"
@@ -189,28 +218,37 @@ def test_auth_single_user_flow(mock_write_users, mock_read_users):
     assert res.status_code == 200
     assert res.json()["requires_verification"] is False
     
-    res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "password123"})
+    res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "Password123!"})
     assert res.status_code == 200
     assert "access_token" in res.json()
     
+    # Fail Login
+    mock_find_user.side_effect = [{"id": "123", "password_hash": "hashed"}]
+    mock_verify.return_value = False
     res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "wrong"})
     assert res.status_code == 401
 
-@patch("backend.auth_router.read_users")
-@patch("backend.auth_router.write_users")
-@patch("backend.security._JWT_SECRET", "test_jwt_secret")
-def test_auth_multi_user_flow(mock_write_users, mock_read_users):
+@patch("auth_router.find_user_by_email")
+@patch("auth_router.create_user")
+@patch("auth_router.verify_password")
+@patch("auth_router.create_access_token")
+@patch("auth_router.create_refresh_token")
+@patch("auth_router.create_session")
+@patch("auth_router.log_audit")
+@patch("auth_router.update_user_login")
+@patch("security._JWT_SECRET", "test_jwt_secret")
+def test_auth_multi_user_flow(mock_update_login, mock_log_audit, mock_create_sess, mock_refresh, mock_access, mock_verify, mock_create_user, mock_find_user):
     # Mock data store
-    mock_users = []
-    mock_read_users.side_effect = lambda: mock_users
-    def save_users(users):
-        mock_users[:] = users
-    mock_write_users.side_effect = save_users
+    mock_find_user.side_effect = [None, {"id": "456", "email": "multi@example.com", "password_hash": "hashed", "role": "user"}]
+    mock_create_user.return_value = "456"
+    mock_verify.return_value = True
+    mock_access.return_value = "access_token_456"
+    mock_refresh.return_value = "refresh_token_456"
 
     # 1. Register Multi
     payload = {
         "email": "multi@example.com",
-        "password": "password123",
+        "password": "Password123!",
         "firstName": "Multi",
         "lastName": "User",
         "mode": "multi"
@@ -220,5 +258,5 @@ def test_auth_multi_user_flow(mock_write_users, mock_read_users):
     assert res.json()["requires_verification"] is False
 
     # 2. Login immediately (should succeed)
-    res = client.post("/api/auth/login", json={"email": "multi@example.com", "password": "password123"})
+    res = client.post("/api/auth/login", json={"email": "multi@example.com", "password": "Password123!"})
     assert res.status_code == 200

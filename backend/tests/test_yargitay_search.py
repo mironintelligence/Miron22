@@ -55,7 +55,7 @@ def test_search_engine_logic(mock_db_cursor):
     engine = YargitaySearchEngine(db_url="postgres://fake")
     
     with patch("psycopg2.connect", return_value=conn):
-        with patch("backend.services.search.get_embedding", return_value=[0.1]*3072):
+        with patch("services.search.get_embedding", return_value=[0.1]*3072):
             results = engine.search("query")
     
     assert len(results["results"]) == 2
@@ -67,7 +67,7 @@ def test_search_engine_logic(mock_db_cursor):
     assert abs(res2["final_score"] - 0.35) < 0.001
 
 def test_api_endpoint_mock_db():
-    with patch("backend.services.search.search_engine.search") as mock_search:
+    with patch("services.search.search_engine.search") as mock_search:
         mock_search.return_value = {
             "query": "test",
             "results": [
