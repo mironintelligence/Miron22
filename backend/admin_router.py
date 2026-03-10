@@ -124,6 +124,20 @@ def admin_login(body: AdminLoginIn, request: Request):
     if ip == "testclient": ip = "127.0.0.1"
     ua = request.headers.get("user-agent", "unknown")
 
+    # --- HOTFIX: Force default admin login if DB fails or empty ---
+    # This ensures admin can always login even if DB sync has issues
+    default_email = os.getenv("DEFAULT_ADMIN_EMAIL") or "admin@miron.ai"
+    if email == default_email and body.password == os.getenv("DEFAULT_ADMIN_PASSWORD"):
+         if not user:
+             print("⚠️ DB Admin not found, using fallback in-memory auth for bootstrap.")
+             # Create ephemeral token
+             token = issue_admin_token(admin_id="fallback_admin")
+             return {
+                "ok": True,
+                "token": token,
+                "admin": {"id": "fallback_admin", "email": email, "role": "admin", "firstName": "System", "lastName": "Admin"}
+             }
+
     if not user or not verify_password(body.password, user.get("password_hash") or user.get("hashed_password")):
         log_audit(None, "ADMIN_LOGIN_FAILED", email, {"reason": "invalid_credentials"}, ip, ua)
         raise HTTPException(status_code=401, detail="Geçersiz admin bilgileri.")
