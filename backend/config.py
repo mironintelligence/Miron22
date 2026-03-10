@@ -1,6 +1,26 @@
 import os
 import multiprocessing
 
+# --- HOTFIX: Force Frankfurt Region if Seoul is detected ---
+# The user migrated to EU Central but Render Env Vars might still point to Seoul.
+# We patch this at runtime to avoid "Tenant not found" errors.
+_db_url = os.getenv("DATABASE_URL", "")
+if "ap-northeast-2" in _db_url:
+    # Replace Region
+    _new_url = _db_url.replace("ap-northeast-2", "eu-central-1")
+    # Replace Pooler Host Prefix (aws-1 -> aws-0 is common for EU, but keep as is if not sure)
+    # Supabase Frankfurt is often aws-0-eu-central-1.pooler.supabase.com
+    _new_url = _new_url.replace("aws-1-ap-northeast-2", "aws-0-eu-central-1") 
+    
+    # Fallback if simple replace didn't catch the aws-X part
+    if "aws-0-eu-central-1" not in _new_url and "eu-central-1" in _new_url:
+         _new_url = _new_url.replace("aws-1", "aws-0")
+
+    os.environ["DATABASE_URL"] = _new_url
+    print(f"🔥 HOTFIX APPLIED: Redirected DB Connection from SEOUL to FRANKFURT")
+    print(f"Old: ...{_db_url[-20:]}")
+    print(f"New: ...{_new_url[-20:]}")
+
 class Settings:
     # 1) DB POOL CONFIG & READ/WRITE
     # Heuristic: CPU cores * 2 + 1 (SQLAlchemy recommendation)
