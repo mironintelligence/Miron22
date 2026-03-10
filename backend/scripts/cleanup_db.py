@@ -14,15 +14,38 @@ def cleanup_db():
         conn = psycopg2.connect(DB_URL)
         cur = conn.cursor()
         
-        tables = ["audit_logs", "sessions", "discount_codes", "users"]
+        # Hotel management tables to remove
+        tables = [
+            "hotel_requests",
+            "hotels",
+            "feedback_messages", # Eski feedback tablosu
+            # Diğer gereksiz tablolar
+        ]
+        
+        # Columns to remove from 'users' table (if they exist)
+        drop_columns = [
+            "hotel_id", 
+            # "role" sütununu silmiyoruz çünkü admin/user ayrımı için gerekli
+        ]
+
+        # 1. Drop Tables
         for table in tables:
             print(f"Dropping {table}...", end=" ")
             cur.execute(f"DROP TABLE IF EXISTS {table} CASCADE")
             print("✅")
+
+        # 2. Drop Columns from Users
+        for col in drop_columns:
+            print(f"Dropping column '{col}' from users...", end=" ")
+            try:
+                cur.execute(f"ALTER TABLE users DROP COLUMN IF EXISTS {col}")
+                print("✅")
+            except Exception as e:
+                print(f"⚠️  (Skipped: {e})")
             
         conn.commit()
         conn.close()
-        print("✅ DB Cleanup Successful")
+        print("✅ DB Cleanup (Hotel Removal) Successful")
     except Exception as e:
         print(f"❌ Cleanup Failed: {e}")
 
