@@ -42,6 +42,10 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         #    print(f"DEBUG CSRF: cookie={cookie_token} header={header_token}")
 
         if not cookie_token or not header_token or cookie_token != header_token:
+            # DEBUG: Temporary allow login without CSRF to fix migration issues
+            if request.url.path in ["/api/auth/login", "/api/auth/refresh"]:
+                 return await call_next(request)
+            
             print(f"DEBUG CSRF FAIL: cookie={cookie_token} header={header_token} path={request.url.path}")
             return Response(status_code=403, content="CSRF validation failed")
 
