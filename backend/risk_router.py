@@ -21,10 +21,11 @@ router = APIRouter(prefix="/api/risk", tags=["Risk & Strateji Analizi"])
 SIMULATION_MODEL = "gpt-4o"
 
 @router.post("/simulate", response_model=dict)
-def simulate_case(
+async def simulate_case(
     case_description: str = Form(...),
     jurisdiction: str = Form("Türkiye"),
-    user_role: str = Form("Davacı")
+    user_role: str = Form("Davacı"),
+    file: Optional[UploadFile] = File(None)
 ):
     """
     Advanced Case Simulation with Deep Reasoning.
@@ -32,8 +33,29 @@ def simulate_case(
     client = get_openai_client()
     if not client:
         raise HTTPException(status_code=500, detail="AI Client init failed.")
+    
+    # 1. Dosya varsa oku ve metne ekle
+    file_content = ""
+    if file:
+        try:
+            raw = await file.read()
+            if file.filename.lower().endswith(".pdf"):
+                with pdfplumber.open(io.BytesIO(raw)) as pdf:
+                    file_content = "\n".join([p.extract_text() or "" for p in pdf.pages])
+            elif file.filename.lower().endswith(".docx"):
+                 doc = Document(io.BytesIO(raw))
+                 file_content = "\n".join([p.text for p in doc.paragraphs])
+            else:
+                 # Try decoding as text
+                 file_content = raw.decode("utf-8", errors="ignore")
+            
+            file_content = f"\n\n[EK DOSYA İÇERİĞİ ({file.filename})]:\n{file_content[:10000]}"
+        except Exception as e:
+            print(f"File read error in simulation: {e}")
 
-    clean_case = sanitize_text(case_description, 12000)
+    full_text = case_description + file_content
+    clean_case = sanitize_text(full_text, 15000)
+    
     det_risk = risk_engine.analyze_risk(clean_case)
     det_score = det_risk.get("risk_score", 50)
     det_issues = det_risk.get("key_issues", [])

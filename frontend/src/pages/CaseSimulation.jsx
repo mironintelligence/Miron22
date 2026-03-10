@@ -6,12 +6,19 @@ export default function CaseSimulation() {
     jurisdiction: "Türkiye",
     user_role: "Davacı",
   });
+  const [file, setFile] = useState(null); // Dosya state
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -25,6 +32,9 @@ export default function CaseSimulation() {
       payload.append("case_description", formData.case_description);
       payload.append("jurisdiction", formData.jurisdiction);
       payload.append("user_role", formData.user_role);
+      if (file) {
+        payload.append("file", file);
+      }
 
       const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
       const resp = await fetch(`${base}/api/risk/simulate`, {
@@ -91,6 +101,18 @@ export default function CaseSimulation() {
                   placeholder="Örn: İstanbul Asliye Ticaret Mahkemesi"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Dava Dosyası / Ek Belge Yükle (İsteğe Bağlı)
+              </label>
+              <input 
+                type="file" 
+                onChange={handleFileChange} 
+                className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100"
+              />
+              <p className="text-xs text-white/40 mt-1">PDF, DOCX veya TXT. Maks 10MB.</p>
             </div>
 
             <div>

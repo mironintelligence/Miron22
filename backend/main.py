@@ -197,6 +197,8 @@ reports_router   = _safe_import("reports", "router")
 yargitay_router  = _safe_import("yargitay_search", "router")
 mevzuat_router   = _safe_import("mevzuat_search", "router")
 uyap_udf_router  = _safe_import("uyap_udf", "router")
+billing_router   = _safe_import("routes.billing_routes", "router")
+feedback_router  = _safe_import("routes.feedback_routes", "router")
 analyze_router   = _safe_import("routes.analyze", "router")
 orchestrator_router = _safe_import("routers.orchestrator", "router")
 admin_api_router = _safe_import("admin_router", "api_router")
@@ -222,31 +224,28 @@ def smart_format(text: str, filename: str, dava_turu: str):
             # AI-POWERED STRUCTURED ANALYSIS - DEEP MODE
             prompt = f"""
             Sen kıdemli bir hukuk analisti ve eski bir hakimsin.
-            Metni cümle cümle analiz et, somut bilgi üret ve çıkarımları gerekçelendir.
-            Her başlık dolu olmalı. Metinde açıkça yoksa çıkarım yap, çıkarım yapılamıyorsa nedenini açıkça yaz.
-            Çıktıda '-' ya da boş ifade kullanma.
+            Metni detaylıca analiz et ve aşağıdaki JSON formatında, Türkçe karakterlere dikkat ederek, eksiksiz bir çıktı üret.
+            Eğer bir bilgi metinde yoksa, değer olarak "Belirtilmemiş" yaz. Asla boş bırakma.
 
-            Başlıklar aşağıdaki gibi ve Türkçe olmalı:
-
-            ### DAVACI
-            ### DAVALI
-            ### MAHKEME
-            ### DOSYA NO
-            ### KARAR NO
-            ### DAVA TÜRÜ
-            ### TALEP KONUSU
-            ### UYUŞMAZLIK ÖZETİ
-            ### TESPİT EDİLEN DELİLLER
-            ### İSPAT YÜKÜ
-            ### ZAMANAŞIMI RİSKİ
-            ### GÖREV / YETKİ SORUNU
-            ### USULİ RİSKLER
-            ### MADDİ HUKUK RİSKLERİ
-            ### STRATEJİ ÖNERİSİ
-            ### MUHTEMEL KARŞI ARGÜMANLAR
-            ### RİSK SKORU (%)
-
-            Her başlık altında kısa ve net paragraflar yaz. Çelişkileri, eksik delilleri, usuli tuzakları, ispat zayıflıklarını, zamanaşımı ve görev/yetki risklerini açıkça belirt.
+            İstenen JSON Yapısı:
+            {{
+                "dosya_no": "Dosya Numarası (Örn: 2023/123 E.)",
+                "evrak_no": "Evrak Numarası (Varsa)",
+                "davaci": "Davacı Adı Soyadı / Unvanı",
+                "davali": "Davalı Adı Soyadı / Unvanı",
+                "mahkeme": "Mahkeme Adı",
+                "dava_turu": "Dava Türü",
+                "konu_ozeti": "Uyuşmazlığın kısa ve net özeti",
+                "deliller": ["Delil 1", "Delil 2"],
+                "risk_analizi": {{
+                    "zamanasimi_riski": "Zamanaşımı durumu",
+                    "usuli_riskler": "Usuli eksiklikler veya riskler",
+                    "maddi_hukuk_riskleri": "Maddi hukuk açısından riskler",
+                    "risk_skoru": 50
+                }},
+                "strateji": "Önerilen hukuki strateji",
+                "karsi_argumanlar": "Muhtemel karşı taraf argümanları"
+            }}
 
             BELGE METNİ:
             {text[:20000]}
@@ -255,17 +254,63 @@ def smart_format(text: str, filename: str, dava_turu: str):
             completion = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Sen Türk hukukunda uzman, titiz ve analitik düşünen bir yapay zeka asistanısın. Çıktın profesyonel hukuk formatında olmalı."},
+                    {"role": "system", "content": "Sen Türk hukukunda uzman bir yapay zeka asistanısın. Çıktın SADECE geçerli bir JSON objesi olmalı. Markdown formatı kullanma."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1
+                temperature=0.1,
+                response_format={"type": "json_object"}
             )
-            structured_output = completion.choices[0].message.content.strip()
+            import json
+            structured_output = json.loads(completion.choices[0].message.content.strip())
             
-            # Extract a short summary for the summary field
-            summary = "Miron AI tarafından yapılan detaylı analiz aşağıdadır."
+            # Convert JSON to Markdown for compatibility with frontend display
+            formatted = f"""
+### DOSYA NO
+{structured_output.get('dosya_no', 'Belirtilmemiş')}
+
+### EVRAK NO
+{structured_output.get('evrak_no', 'Belirtilmemiş')}
+
+### DAVACI
+{structured_output.get('davaci', 'Belirtilmemiş')}
+
+### DAVALI
+{structured_output.get('davali', 'Belirtilmemiş')}
+
+### MAHKEME
+{structured_output.get('mahkeme', 'Belirtilmemiş')}
+
+### DAVA TÜRÜ
+{structured_output.get('dava_turu', dava_turu)}
+
+### UYUŞMAZLIK ÖZETİ
+{structured_output.get('konu_ozeti', 'Belirtilmemiş')}
+
+### TESPİT EDİLEN DELİLLER
+{', '.join(structured_output.get('deliller', [])) or 'Belirtilmemiş'}
+
+### RİSK ANALİZİ
+- **Zamanaşımı:** {structured_output.get('risk_analizi', {}).get('zamanasimi_riski', 'Belirtilmemiş')}
+- **Usuli Riskler:** {structured_output.get('risk_analizi', {}).get('usuli_riskler', 'Belirtilmemiş')}
+- **Maddi Hukuk:** {structured_output.get('risk_analizi', {}).get('maddi_hukuk_riskleri', 'Belirtilmemiş')}
+
+### STRATEJİ ÖNERİSİ
+{structured_output.get('strateji', 'Belirtilmemiş')}
+
+### MUHTEMEL KARŞI ARGÜMANLAR
+{structured_output.get('karsi_argumanlar', 'Belirtilmemiş')}
+
+### RİSK SKORU (%)
+{structured_output.get('risk_analizi', {}).get('risk_skoru', 50)}
+""".strip()
             
-            return structured_output, summary
+            summary = structured_output.get('konu_ozeti', "Otomatik analiz tamamlandı.")
+            return formatted, summary
+            
+        except Exception as e:
+            print(f"AI Analysis Failed: {e}")
+            # Fallback to legacy method below
+            pass
             
         except Exception as e:
             print(f"AI Analysis Failed: {e}")
@@ -521,6 +566,8 @@ if reports_router:  app.include_router(reports_router)
 if yargitay_router: app.include_router(yargitay_router)
 if mevzuat_router:  app.include_router(mevzuat_router)
 if uyap_udf_router: app.include_router(uyap_udf_router)
+if billing_router:  app.include_router(billing_router)
+if feedback_router: app.include_router(feedback_router)
 if analyze_router:  app.include_router(analyze_router)
 if orchestrator_router: app.include_router(orchestrator_router)
                     

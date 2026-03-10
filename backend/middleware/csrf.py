@@ -41,17 +41,21 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         # if request.url.path.startswith("/api/pricing"):
         #    print(f"DEBUG CSRF: cookie={cookie_token} header={header_token}")
 
-        # --- HOTFIX: BYPASS CSRF FOR NOW ---
-        # Render deployment is blocking cookies/headers due to domain mismatch or strict settings.
-        # We disable CSRF temporarily to allow users to login.
+        # --- CSRF Validation ---
+        # Allow requests if tokens match OR if we are in a known safe path (e.g. initial auth might be tricky on some clients)
+        # But for robust security, we require match.
+        
+        # NOTE: On Render, frontend and backend might be cross-site.
+        # Ensure your frontend sends 'credentials: "include"' and your backend CORS allows credentials.
+        
+        if not cookie_token or not header_token or cookie_token != header_token:
+             # Log failure for debugging but don't bypass blindly anymore.
+             # EXCEPTION: If the user is just logging in, sometimes the cookie isn't set yet in the browser's jar 
+             # until the response of a GET returns. 
+             # Ideally, the frontend should GET /api/auth/csrf first.
+             
+             # For now, we will enforce it. If login fails, check if the client made a GET request first.
+             print(f"DEBUG CSRF FAIL: cookie={cookie_token} header={header_token} path={request.url.path}")
+             return Response(status_code=403, content="CSRF validation failed")
+
         return await call_next(request)
-
-        # if not cookie_token or not header_token or cookie_token != header_token:
-        #     # DEBUG: Temporary allow login without CSRF to fix migration issues
-        #     if request.url.path in ["/api/auth/login", "/api/auth/refresh"]:
-        #          return await call_next(request)
-            
-        #     print(f"DEBUG CSRF FAIL: cookie={cookie_token} header={header_token} path={request.url.path}")
-        #     return Response(status_code=403, content="CSRF validation failed")
-
-        # return await call_next(request)
