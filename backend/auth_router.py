@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, status, Request, Response
+from fastapi import APIRouter, HTTPException, status, Request, Response, Body
 from pydantic import BaseModel, EmailStr, Field, validator
 
 from stores.pg_users_store import (
