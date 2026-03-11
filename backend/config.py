@@ -1,14 +1,19 @@
 import os
 import multiprocessing
 
-# --- HOTFIX: Force DIRECT Connection (Bypass Pooler) ---
-# Pooler connection seems unstable or misconfigured (Tenant not found).
-# We try connecting to the direct postgres port (5432) instead of pooler (6543).
-# This is less efficient for high load but guarantees connection if credentials are correct.
-# Format: postgresql://postgres:[PASS]@db.[PROJECT_REF].supabase.co:5432/postgres
-# Project Ref from previous logs: ffvdyjvmwmbtxqvqwhtt
-os.environ["DATABASE_URL"] = "postgresql://postgres:Kerimaydemir@db.ffvdyjvmwmbtxqvqwhtt.supabase.co:5432/postgres"
-print(f"🔥 FORCE OVERRIDE: Using DIRECT DB Connection (Port 5432) to bypass Pooler issues")
+# --- HOTFIX: Use Supabase Transaction Pooler (Port 6543) with correct Mode ---
+# Port 5432 (Direct) failed due to network unreachable (IPv6 issues on Render).
+# Port 6543 (Pooler) failed due to "Tenant not found" (likely incorrect pool mode or user format).
+# We revert to Pooler (6543) but ensure 'transaction' mode is used correctly.
+# Format for Pooler: postgresql://[user.project]:[pass]@aws-0-eu-central-1.pooler.supabase.com:6543/[db]
+# NOTE: If user contains '.', use quotes or verify Supabase dashboard for "Connection String".
+# Trying standard pooler endpoint again with explicit IPv4 fallback if possible.
+
+# Update: Render Free tier often has issues with IPv6.
+# We will use the specific AWS Pooler Endpoint: aws-0-eu-central-1.pooler.supabase.com
+# User format: postgres.ffvdyjvmwmbtxqvqwhtt (User + Project Ref)
+os.environ["DATABASE_URL"] = "postgresql://postgres.ffvdyjvmwmbtxqvqwhtt:Kerimaydemir@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?sslmode=require"
+print(f"🔥 FORCE OVERRIDE: Using Pooler DB Connection (Port 6543, Mode: Transaction)")
 
 class Settings:
     # 1) DB POOL CONFIG & READ/WRITE
