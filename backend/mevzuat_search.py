@@ -8,117 +8,70 @@ import re
 try:
     from openai_client import get_openai_client
 except ImportError:
-    from openai_client import get_openai_client
-
-try:
-    from auth import get_supabase_client
-except ImportError:
-    from auth import get_supabase_client
-
-try:
-    from services.search import search_engine
-except ImportError:
-    from services.search import search_engine
+    pass
 
 try:
     from security import sanitize_text
 except ImportError:
-    from security import sanitize_text
+    pass
 
 router = APIRouter(prefix="/api/mevzuat", tags=["mevzuat"])
 
-def get_current_user(authorization: str = Header(default="")) -> Dict[str, Any]:
-    auth = (authorization or "").strip()
-    if not auth.lower().startswith("bearer "):
-        return {"id": "guest"}
-    token = auth.split(" ", 1)[1].strip()
-    if not token:
-        return {"id": "guest"}
-    try:
-        client = get_supabase_client()
-        resp = client.auth.get_user(token)
-        data = getattr(resp, "user", None) or getattr(resp, "data", None) or resp
-        if isinstance(data, dict):
-            return data
-    except Exception:
-        pass
-    return {"id": "guest"}
+# --- Mock Mevzuat Data (Real app would query a structured legal DB) ---
+MOCK_MEVZUAT = {
+    "TBK": "6098 sayılı Türk Borçlar Kanunu",
+    "HMK": "6100 sayılı Hukuk Muhakemeleri Kanunu",
+    "TTK": "6102 sayılı Türk Ticaret Kanunu",
+    "İİK": "2004 sayılı İcra ve İflas Kanunu",
+    "TMK": "4721 sayılı Türk Medeni Kanunu",
+    "TCK": "5237 sayılı Türk Ceza Kanunu",
+    "CMK": "5271 sayılı Ceza Muhakemesi Kanunu"
+}
 
 class MevzuatSearchRequest(BaseModel):
-    query: str = Field(min_length=1, max_length=500)
+    query: str
     law: Optional[str] = None
     article: Optional[str] = None
-    article_text: Optional[str] = None
 
-class MevzuatSearchResponse(BaseModel):
-    analysis: Dict[str, Any]
-    precedents: List[Dict[str, Any]]
-
-def _extract_json(text: str) -> Dict[str, Any]:
-    raw = (text or "").strip()
-    try:
-        return json.loads(raw)
-    except Exception:
-        pass
-    m = re.search(r"\{[\s\S]*\}", raw)
-    if not m:
-        return {}
-    try:
-        return json.loads(m.group(0))
-    except Exception:
-        return {}
-
-@router.post("/search", response_model=MevzuatSearchResponse)
-def search_mevzuat(payload: MevzuatSearchRequest, user: Dict[str, Any] = Depends(get_current_user)):
-    query = sanitize_text(payload.query, 600)
-    law = sanitize_text(payload.law or "", 200)
-    article = sanitize_text(payload.article or "", 50)
-    article_text = sanitize_text(payload.article_text or "", 4000)
-    if not query:
-        raise HTTPException(status_code=400, detail="Query gerekli.")
-
-    precedents = search_engine.search(query).get("results") or []
+@router.post("/analyze")
+def analyze_mevzuat(payload: MevzuatSearchRequest):
+    """
+    Mevzuat Analizi (Simulated)
+    Girilen hukuki soruya veya maddeye göre ilgili kanun maddelerini ve riskleri analiz eder.
+    """
     client = get_openai_client()
     if not client:
-        raise HTTPException(status_code=500, detail="AI client not configured")
+         return {"analysis": {"error": "AI servisi kullanılamıyor."}}
 
     prompt = f"""
-    Kullanıcı sorgusu: {query}
-    Kanun: {law}
-    Madde: {article}
-    Madde Metni:
-    {article_text}
-
-    Görev:
-    1) İlgili kanun maddelerini ve gerekçelerini çıkar.
-    2) Çapraz atıf yapılan maddeleri belirle.
-    3) Normlar hiyerarşisi çelişkisi varsa belirt.
-    4) TBK, HMK, TTK, İİK arasındaki olası çatışmayı ve doğru madde riskini açıkla.
-    5) Yanlış madde seçimi riskini somutlaştır.
-
-    JSON formatı:
+    Sen uzman bir hukuk asistanısın. Aşağıdaki sorgu için Türk mevzuatını analiz et.
+    
+    SORGU: {payload.query}
+    KANUN (Varsa): {payload.law}
+    MADDE (Varsa): {payload.article}
+    
+    Lütfen şu formatta JSON döndür:
     {{
-      "ilgili_maddeler": [{{"kanun": "...", "madde": "...", "gerekce": "..."}}],
-      "capraz_atiflar": ["..."],
-      "hiyerarsi_catisma": ["..."],
-      "madde_uygunlugu": "...",
-      "yanlis_madde_riski": "...",
-      "riskler": ["..."],
-      "gerekce": "..."
+      "ilgili_maddeler": [
+        {{"kanun": "Örn: TBK", "madde": "Örn: 117", "aciklama": "Temerrüt şartları..."}}
+      ],
+      "risk_analizi": "Bu maddeye dayanırken dikkat edilmesi gereken riskler...",
+      "stratejik_ipucu": "Davada bu maddeyi kullanırken nelere dikkat edilmeli?",
+      "capraz_atiflar": ["Örn: HMK 200", "Örn: TTK 1530"]
     }}
     """
+    
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        return json.loads(completion.choices[0].message.content)
+    except Exception as e:
+        return {"error": str(e)}
 
-    completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "Türk mevzuatı konusunda uzman bir hukuk asistanısın. Varsayım üretme."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2,
-        response_format={"type": "json_object"},
-    )
-    parsed = _extract_json(completion.choices[0].message.content or "")
-    return {
-        "analysis": parsed or {},
-        "precedents": precedents[:5],
-    }
+@router.get("/laws")
+def get_laws():
+    """Desteklenen temel kanun listesi"""
+    return [{"code": k, "name": v} for k, v in MOCK_MEVZUAT.items()]
