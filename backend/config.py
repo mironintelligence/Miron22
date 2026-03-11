@@ -12,8 +12,44 @@ import multiprocessing
 # Update: Render Free tier often has issues with IPv6.
 # We will use the specific AWS Pooler Endpoint: aws-0-eu-central-1.pooler.supabase.com
 # User format: postgres.ffvdyjvmwmbtxqvqwhtt (User + Project Ref)
-os.environ["DATABASE_URL"] = "postgresql://postgres.ffvdyjvmwmbtxqvqwhtt:Kerimaydemir@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?sslmode=require"
-print(f"🔥 FORCE OVERRIDE: Using Pooler DB Connection (Port 6543, Mode: Transaction)")
+# FIX: Use quotes for user part or ensure no ambiguity. Also, sslmode=disable might be needed if pooler has cert issues on free tier, but let's try 'require' first.
+# IMPORTANT: Supabase pooler username is [db_user].[project_ref].
+# If your db_user is 'postgres', it should be 'postgres.ffvdyjvmwmbtxqvqwhtt'.
+# The previous error "Tenant or user not found" persists. This usually means the project ref or user is wrong for the pooler.
+# Let's try the ALTERNATIVE Pooler format which is sometimes required: [user]@[project_ref] or just ensure correct password.
+
+# Fallback Strategy:
+# 1. Check if we can use the direct connection string but force IPv4 via DNS resolution? (Hard in python app without hacks)
+# 2. Try the "Session" pooler port 5432 (which is direct) but using the pooler hostname? No, 5432 is direct.
+# 3. Try the "Transaction" pooler port 6543 with a different user format.
+
+# Trying simpler format or maybe the project ref is case sensitive?
+# Let's try explicit quote for username if needed, but URL encoding is safer.
+# postgres.ffvdyjvmwmbtxqvqwhtt is correct.
+# Maybe the password has special chars? 'Kerimaydemir' looks safe.
+
+# FINAL ATTEMPT: Use the direct connection URL provided by Supabase dashboard usually:
+# postgresql://postgres:Kerimaydemir@db.ffvdyjvmwmbtxqvqwhtt.supabase.co:5432/postgres
+# BUT we force the IP to resolve to IPv4 if possible?
+# Render supports IPv6 but sometimes it is flaky.
+
+# Let's switch back to DIRECT connection (5432) but use the "Session Mode" pooler endpoint if available?
+# Supabase provides:
+# - Transaction: Port 6543
+# - Session: Port 5432 (Direct)
+
+# If 6543 fails with "Tenant not found", it's strictly auth/user format.
+# If 5432 fails with "Network unreachable", it's network/IPv6.
+
+# SOLUTION: We will try to use the IPv4 address of the pooler if we can find it, or stick to 6543 but double check the user format.
+# Another possibility: The user 'postgres' is reserved or locked? No.
+
+# Let's try the ALIAS for the pooler: db.ffvdyjvmwmbtxqvqwhtt.supabase.co on port 5432 is failing.
+# Let's try aws-0-eu-central-1.pooler.supabase.com on port 5432 (Session mode via pooler)?
+# Usually port 5432 on pooler host also works as a proxy.
+
+os.environ["DATABASE_URL"] = "postgresql://postgres.ffvdyjvmwmbtxqvqwhtt:Kerimaydemir@aws-0-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require"
+print(f"🔥 FORCE OVERRIDE: Using Pooler Host (aws-0) on Port 5432 (Session Mode) to fix Network Unreachable")
 
 class Settings:
     # 1) DB POOL CONFIG & READ/WRITE
