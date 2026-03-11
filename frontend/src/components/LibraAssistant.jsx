@@ -372,13 +372,17 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
           {/* SAĞ PANEL */}
           <div className="flex-1 min-w-0 h-full flex flex-col bg-black/10">
             {/* Header */}
-            <div className="relative flex items-center justify-between px-5 py-4 border-b border-white/10">
-              <div className="min-w-0">
-                <div className="text-accent font-semibold text-lg truncate">
-                  ⚖️ Miron Assistant
+            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-[#111]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[var(--miron-gold)] to-yellow-600 flex items-center justify-center">
+                  <span className="text-black font-bold text-xs">MA</span>
                 </div>
-                <div className="text-xs text-white/50">
-                  {currentChat?.date || trDate()}
+                <div>
+                  <h3 className="font-bold text-sm text-white">Miron Assistant</h3>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span className="text-[10px] text-white/50">Çevrimiçi</span>
+                  </div>
                 </div>
               </div>
 

@@ -29,6 +29,7 @@ import Welcome from "./pages/Welcome.jsx";
 import CaseSimulation from "./pages/CaseSimulation.jsx";
 import Contracts from "./pages/Contracts.jsx"; // YENİ
 import Notifications from "./pages/Notifications.jsx"; // YENİ
+import About from "./pages/About.jsx"; // YENİ
 
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
@@ -235,6 +236,7 @@ export default function App() {
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/about" element={<About />} />
 
 
          

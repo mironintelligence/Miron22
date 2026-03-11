@@ -346,7 +346,7 @@ export default function Register() {
           <h3>5) İşleme Amaçları</h3>
           <ul className="list-disc pl-6 space-y-1 text-muted">
             <li>Belge analizi, özetleme, sınıflandırma ve raporlama</li>
-            <li>KRM Assistant üzerinden soru-cevap ve metin üretimi</li>
+            <li>Miron Assistant üzerinden soru-cevap ve metin üretimi</li>
             <li>Hizmet güvenliği, hata ayıklama ve performans iyileştirme</li>
             <li>Kullanıcı destek süreçleri ve geri bildirimlerin yönetimi</li>
           </ul>
@@ -397,7 +397,7 @@ export default function Register() {
 
         <h3>2) Hizmet Tanımı</h3>
         <p>
-          Miron AI; belge analizi, özetleme, metin üretimi ve KRM Assistant üzerinden soru-cevap gibi yapay zekâ destekli araçlar sağlar.
+          Miron AI; belge analizi, özetleme, metin üretimi ve Miron Assistant üzerinden soru-cevap gibi yapay zekâ destekli araçlar sağlar.
         </p>
 
         <h3>3) Hukuki Uyarı (Çok Net)</h3>

@@ -54,6 +54,21 @@ export default function Navbar() {
           <Link to="/" className="text-2xl font-bold tracking-tighter text-white">
             Miron<span className="text-[var(--miron-gold)]">.AI</span>
           </Link>
+          
+          <div className="hidden md:flex items-center gap-8">
+             <Link to="/about" className="text-sm font-medium text-white/70 hover:text-white transition">Biz Kimiz?</Link>
+             <div className="relative group">
+                <button className="text-sm font-medium text-white/70 hover:text-white transition flex items-center gap-1">
+                   Kurumsal <span className="text-[10px]">▼</span>
+                </button>
+                <div className="absolute left-0 top-full mt-2 w-48 bg-[#111] border border-white/10 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                   <Link to="/privacy" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">Gizlilik Politikası</Link>
+                   <Link to="/terms" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">Kullanım Şartları</Link>
+                   <Link to="/user-agreement" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">Kullanıcı Sözleşmesi</Link>
+                </div>
+             </div>
+          </div>
+
           <div className="flex gap-6">
             <Link to="/login" className="text-white/70 hover:text-white transition">Giriş Yap</Link>
             <Link to="/register" className="px-5 py-2 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition">Kayıt Ol</Link>

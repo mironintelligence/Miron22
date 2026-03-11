@@ -25,7 +25,7 @@ export default function Terms() {
               2) Hizmet Tanımı
             </h2>
             <p>
-              Miron AI; belge analizi, özetleme, metin üretimi ve KRM Assistant
+              Miron AI; belge analizi, özetleme, metin üretimi ve Miron Assistant
               üzerinden soru-cevap gibi yapay zekâ destekli araçlar sağlar.
             </p>
           </section>

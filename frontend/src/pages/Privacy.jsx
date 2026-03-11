@@ -77,10 +77,8 @@ export default function Privacy() {
             </p>
           </section>
 
-          <section className="space-y-2">
-            <h2 className="text-xl font-semibold text-accent">
-              5) İşleme Amaçları
-            </h2>
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold mb-3 text-accent">5. İşleme Amaçları</h2>
             <ul className="list-disc pl-6 space-y-1 text-muted">
               <li>Belge analizi, özetleme, sınıflandırma ve raporlama</li>
               <li>Miron Assistant üzerinden soru-cevap ve metin üretimi</li>

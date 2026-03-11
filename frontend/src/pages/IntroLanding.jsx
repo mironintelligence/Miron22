@@ -335,103 +335,11 @@ export default function IntroLanding() {
 
 
       {/* -------------------- 8. USE CASES -------------------- */}
-      <section className="py-40 px-6 border-t border-white/5">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-20">
-            <h2 className="text-5xl font-bold mb-6">Sektörel Çözümler</h2>
-            <p className="text-xl text-white/50">Miron AI, farklı endüstrilere özel, milyar dolarlık altyapı çözümleri sunar.</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="group relative h-[450px] rounded-3xl overflow-hidden border border-white/10">
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
-              <div className="absolute bottom-0 left-0 p-10 z-20">
-                <div className="text-4xl mb-4">⚖️</div>
-                <h3 className="text-3xl font-bold mb-2">Hukuk Büroları</h3>
-                <p className="text-white/70">Dilekçe yazım süresini %80 azaltın. İçtihat taramasını saniyelere indirin ve hata payını sıfırlayın.</p>
-              </div>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)] group-hover:scale-105 transition-transform duration-700" />
-            </div>
-
-            <div className="group relative h-[450px] rounded-3xl overflow-hidden border border-white/10">
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
-              <div className="absolute bottom-0 left-0 p-10 z-20">
-                <div className="text-4xl mb-4">🏨</div>
-                <h3 className="text-3xl font-bold mb-2">Otel & Turizm</h3>
-                <p className="text-white/70">Tedarikçi sözleşmeleri, KVKK uyumu ve misafir ilişkileri hukukunu otomatize edin.</p>
-              </div>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,215,0,0.1),transparent)] group-hover:scale-105 transition-transform duration-700" />
-            </div>
-
-            <div className="group relative h-[450px] rounded-3xl overflow-hidden border border-white/10">
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
-              <div className="absolute bottom-0 left-0 p-10 z-20">
-                <div className="text-4xl mb-4">🏗️</div>
-                <h3 className="text-3xl font-bold mb-2">Emlak & İnşaat</h3>
-                <p className="text-white/70">Gayrimenkul satış vaadi, kat karşılığı inşaat sözleşmeleri ve tapu iptal risk analizi.</p>
-              </div>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,215,0,0.1),transparent)] group-hover:scale-105 transition-transform duration-700" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* -------------------- 8.5. VISION / ABOUT US -------------------- */}
-      <section className="py-40 px-6 bg-[#050505] border-t border-white/5 relative">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
-           <div>
-              <h2 className="text-sm font-bold tracking-[0.2em] text-[var(--miron-gold)] uppercase mb-6">Biz Kimiz?</h2>
-              <h3 className="text-5xl font-bold mb-8 leading-tight">Yapay Zeka ile<br/>Hukuku Yeniden Kodluyoruz.</h3>
-              <p className="text-lg text-white/50 mb-6 leading-relaxed">
-                Miron Intelligence, sadece bir yazılım şirketi değil; hukukun geleceğini inşa eden bir teknoloji üssüdür. 
-                Milyar dolarlık gayrimenkul projelerinden, uluslararası otel zincirlerinin hukuk departmanlarına kadar geniş bir yelpazede hizmet veriyoruz.
-              </p>
-              <p className="text-lg text-white/50 mb-10 leading-relaxed">
-                Amacımız basit: Hukuki süreçlerdeki belirsizliği ortadan kaldırmak ve adalete erişimi hızlandırmak.
-              </p>
-              <div className="flex gap-4">
-                 <div className="px-6 py-4 bg-white/5 rounded-xl border border-white/10 text-center">
-                    <div className="text-3xl font-bold text-white mb-1">11K+</div>
-                    <div className="text-xs text-white/40 uppercase">İşlenen Veri</div>
-                 </div>
-                 <div className="px-6 py-4 bg-white/5 rounded-xl border border-white/10 text-center">
-                    <div className="text-3xl font-bold text-white mb-1">3</div>
-                    <div className="text-xs text-white/40 uppercase">Global Sektör</div>
-                 </div>
-              </div>
-           </div>
-           <div className="relative">
-              <div className="aspect-square rounded-full bg-gradient-to-br from-[var(--miron-gold)]/20 to-transparent blur-[100px] absolute inset-0" />
-              <div className="relative z-10 border border-white/10 bg-black/50 backdrop-blur-xl p-10 rounded-3xl">
-                 <h4 className="text-2xl font-bold mb-6">Vizyonumuz</h4>
-                 <ul className="space-y-6">
-                    <li className="flex gap-4">
-                       <span className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center font-bold">1</span>
-                       <div>
-                          <h5 className="font-bold text-white">Tam Otomasyon</h5>
-                          <p className="text-sm text-white/50 mt-1">Manuel veri girişini sıfıra indiren otonom sistemler.</p>
-                       </div>
-                    </li>
-                    <li className="flex gap-4">
-                       <span className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center font-bold">2</span>
-                       <div>
-                          <h5 className="font-bold text-white">Küresel Standart</h5>
-                          <p className="text-sm text-white/50 mt-1">Türk hukukunu global teknoloji standartlarına taşıma.</p>
-                       </div>
-                    </li>
-                    <li className="flex gap-4">
-                       <span className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center font-bold">3</span>
-                       <div>
-                          <h5 className="font-bold text-white">Erişilebilir Adalet</h5>
-                          <p className="text-sm text-white/50 mt-1">Karmaşık hukuki süreçleri herkes için anlaşılır kılma.</p>
-                       </div>
-                    </li>
-                 </ul>
-              </div>
-           </div>
-        </div>
-      </section>
-
+      {/* 
+         Removed "Sektörel Çözümler" and "Biz Kimiz" sections from here 
+         as per user request to focus solely on Miron AI for lawyers 
+         and move corporate info to "Biz Kimiz" page.
+      */}
 
       {/* -------------------- 9. CLOSING VISION -------------------- */}
       <section className="py-40 px-6 relative overflow-hidden">
