@@ -4,8 +4,9 @@ import multiprocessing
 # --- HOTFIX: Force Frankfurt Region (Explicit Override) ---
 # The user migrated to EU Central. We override the connection string with the correct one.
 # This ensures we always connect to the correct DB regardless of what Render sets.
-os.environ["DATABASE_URL"] = "postgresql://postgres.ffvdyjvmwmbtxqvqwhtt:Kerimaydemir@aws-1-eu-central-1.pooler.supabase.com:6543/postgres"
-print(f"🔥 FORCE OVERRIDE: Using Frankfurt DB Connection")
+# Using aws-0-eu-central-1.pooler.supabase.com (Standard Pooler Endpoint for EU)
+os.environ["DATABASE_URL"] = "postgresql://postgres.ffvdyjvmwmbtxqvqwhtt:Kerimaydemir@aws-0-eu-central-1.pooler.supabase.com:6543/postgres"
+print(f"🔥 FORCE OVERRIDE: Using Frankfurt DB Connection (aws-0)")
 
 class Settings:
     # 1) DB POOL CONFIG & READ/WRITE
