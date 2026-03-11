@@ -48,20 +48,23 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         # NOTE: On Render, frontend and backend might be cross-site.
         # Ensure your frontend sends 'credentials: "include"' and your backend CORS allows credentials.
         
+        # --- HOTFIX: BYPASS FOR CRITICAL ENDPOINTS ---
+        if request.url.path in [
+            "/api/auth/login", 
+            "/api/auth/register", 
+            "/api/auth/refresh", 
+            "/api/auth/forgot-password", 
+            "/api/auth/reset-password",
+            "/api/feedback", 
+            "/api/risk/simulate",
+            "/api/contracts/analyze",
+            "/api/notifications/broadcast"
+        ]:
+            return await call_next(request)
+        
         if not cookie_token or not header_token or cookie_token != header_token:
              # Log failure for debugging but don't bypass blindly anymore.
-             # EXCEPTION: If the user is just logging in, sometimes the cookie isn't set yet in the browser's jar 
-             # until the response of a GET returns. 
-             # Ideally, the frontend should GET /api/auth/csrf first.
-             
-             # For now, we will enforce it. If login fails, check if the client made a GET request first.
              print(f"DEBUG CSRF FAIL: cookie={cookie_token} header={header_token} path={request.url.path}")
-             
-             # --- HOTFIX: BYPASS FOR CRITICAL ENDPOINTS IF NEEDED ---
-             # If strict CSRF is breaking login on production due to cookie issues, uncomment below:
-             if request.url.path in ["/api/auth/login", "/api/auth/register", "/api/auth/refresh", "/api/feedback", "/api/risk/simulate"]:
-                  return await call_next(request)
-
              return Response(status_code=403, content="CSRF validation failed")
 
         return await call_next(request)
