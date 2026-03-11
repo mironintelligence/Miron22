@@ -120,8 +120,6 @@ def forgot_password(email: str = Body(..., embed=True)):
     
     reset_token = secrets.token_urlsafe(32)
     # DB'ye kaydet (Expires in 1 hour)
-    # update_user_reset_token(user['id'], reset_token) -> Bunu pg_users_store'a eklememiz lazım
-    # Şimdilik mock yapıyorum çünkü store fonksiyonu eksik olabilir, hemen ekleyelim.
     from db import get_db_cursor
     with get_db_cursor() as cur:
         cur.execute("UPDATE users SET reset_password_token = %s, reset_password_expires_at = NOW() + INTERVAL '1 hour' WHERE id = %s", (reset_token, user['id']))
