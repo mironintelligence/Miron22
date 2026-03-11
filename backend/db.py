@@ -137,8 +137,20 @@ def get_db_cursor(write: bool = True) -> Generator[RealDictCursor, None, None]:
     if pool_to_use is None:
         if _pg_pool_write is None:
             logger.warning("DB Pool not initialized, initializing lazily...")
-            init_pool()
-        pool_to_use = _pg_pool_write
+            # Initialize with retry logic for network unreachable errors
+            max_retries = 3
+            for i in range(max_retries):
+                try:
+                    init_pool()
+                    pool_to_use = _pg_pool_write
+                    break
+                except Exception as e:
+                    if i == max_retries - 1:
+                        logger.critical(f"Failed to lazy init DB Pool after {max_retries} attempts: {e}")
+                        raise HTTPException(status_code=503, detail="DB Connection Failed")
+                    time.sleep(1)
+        else:
+            pool_to_use = _pg_pool_write
 
     try:
         try:
