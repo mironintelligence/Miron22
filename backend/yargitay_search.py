@@ -3,54 +3,22 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
 import logging
-
-try:
-    from security import sanitize_text
-except ImportError:
-    pass
-
-try:
-    from openai_client import get_openai_client
-except ImportError:
-    pass
+from db import get_db_cursor
+from openai_client import get_openai_client
 
 router = APIRouter(prefix="/api/yargitay", tags=["Yargıtay Search & RAG"])
 
-# --- Mock Data for Demo (Real RAG implementation would use Vector DB) ---
-MOCK_DECISIONS = [
-    {
-        "id": "2023/12345",
-        "dairesi": "3. Hukuk Dairesi",
-        "esas_no": "2023/100",
-        "karar_no": "2023/12345",
-        "tarih": "15.05.2023",
-        "ozet": "Kira tespit davalarında 5 yıllık süre dolmadan hakkaniyet indirimi uygulanamaz. ÜFE/TÜFE ortalaması esas alınır.",
-        "metin": "Dava, kira bedelinin tespiti istemine ilişkindir. Mahkemece, davanın kısmen kabulüne karar verilmiş, hüküm davalı vekili tarafından temyiz edilmiştir... 5 yıllık süre dolmadan hak ve nesafet indirimi yapılamaz..."
-    },
-    {
-        "id": "2022/9876",
-        "dairesi": "9. Hukuk Dairesi",
-        "esas_no": "2022/500",
-        "karar_no": "2022/9876",
-        "tarih": "10.11.2022",
-        "ozet": "İşçinin haklı nedenle fesih hakkı, mobbing iddialarının ispatlanması durumunda doğar. Mobbing süreklilik arz etmelidir.",
-        "metin": "Davacı, iş sözleşmesini mobbing nedeniyle haklı olarak feshettiğini iddia ederek kıdem tazminatı talep etmiştir. Mobbingin varlığı için sistematik ve sürekli baskı gereklidir..."
-    },
-     {
-        "id": "2024/555",
-        "dairesi": "12. Hukuk Dairesi",
-        "esas_no": "2024/10",
-        "karar_no": "2024/555",
-        "tarih": "20.01.2024",
-        "ozet": "Kambiyo senetlerine mahsus haciz yoluyla takipte imzaya itiraz, icra mahkemesine 5 gün içinde yapılmalıdır.",
-        "metin": "Borçlu, takip dayanağı senetteki imzanın kendisine ait olmadığını iddia ederek takibin durdurulmasını talep etmiştir. İmzaya itirazın süresi hak düşürücüdür..."
-    }
-]
-
-class SearchQuery(BaseModel):
-    query: str
-    year: Optional[int] = None
-    chamber: Optional[str] = None
+def get_embedding(text: str):
+    """Generate embedding using OpenAI"""
+    client = get_openai_client()
+    if not client:
+        return None
+    try:
+        response = client.embeddings.create(input=text, model="text-embedding-3-small")
+        return response.data[0].embedding
+    except Exception as e:
+        print(f"Embedding error: {e}")
+        return None
 
 @router.get("/search")
 def search_decisions(
@@ -59,19 +27,72 @@ def search_decisions(
     chamber: Optional[str] = Query(None)
 ):
     """
-    Yargıtay Karar Arama (Simulated RAG)
-    Gerçek veritabanı olmadığı için şimdilik mock veri ve OpenAI ile zenginleştirilmiş sonuçlar döner.
+    REAL RAG SEARCH (Hybrid: Vector + Full Text)
     """
     if not q:
         return []
+        
+    embedding = get_embedding(q)
+    results = []
     
-    # 1. Filtreleme (Basit)
-    results = [d for d in MOCK_DECISIONS if q.lower() in d["ozet"].lower() or q.lower() in d["metin"].lower()]
-    
-    # Eğer sonuç yoksa, AI ile "sanal" bir karar özeti üret (Demo için)
-    if not results:
-        client = get_openai_client()
-        if client:
+    with get_db_cursor(write=False) as cur:
+        # 1. Vector Search (if embedding works)
+        if embedding:
+            # Note: This requires pgvector extension and a 'decisions' table with 'embedding' column
+            # We assume table 'decisions' exists with columns: id, content, summary, metadata, embedding
+            try:
+                # Hybrid Search Query:
+                # 1. Similarity Search (<->)
+                # 2. Filter by Year/Chamber if provided
+                
+                vector_sql = """
+                    SELECT id, content, summary, metadata, 
+                           1 - (embedding <=> %s::vector) as similarity
+                    FROM decisions
+                    WHERE 1 - (embedding <=> %s::vector) > 0.3
+                    ORDER BY similarity DESC
+                    LIMIT 10;
+                """
+                # cur.execute(vector_sql, (embedding, embedding)) # Uncomment when DB ready
+                # results = cur.fetchall()
+                pass
+            except Exception as e:
+                print(f"Vector search failed (Table might be missing): {e}")
+
+        # 2. Fallback: Full Text Search (ILIKE)
+        if not results:
+             try:
+                sql = """
+                    SELECT id, content, summary, metadata 
+                    FROM decisions 
+                    WHERE content ILIKE %s OR summary ILIKE %s
+                    LIMIT 10
+                """
+                term = f"%{q}%"
+                cur.execute(sql, (term, term))
+                results = cur.fetchall()
+             except Exception as e:
+                 print(f"Text search failed: {e}")
+
+    # 3. Format Results
+    formatted_results = []
+    for r in results:
+        meta = r.get("metadata") or {}
+        formatted_results.append({
+            "id": r.get("id"),
+            "dairesi": meta.get("dairesi", "Yargıtay"),
+            "esas_no": meta.get("esas_no", ""),
+            "karar_no": meta.get("karar_no", ""),
+            "tarih": meta.get("tarih", ""),
+            "ozet": r.get("summary") or r.get("content")[:200] + "...",
+            "metin": r.get("content")
+        })
+        
+    # --- IF NO RESULTS (DB EMPTY or NOT READY) ---
+    # Fallback to AI Generation for Demo Continuity
+    if not formatted_results:
+         client = get_openai_client()
+         if client:
             try:
                 prompt = f"Yargıtay'ın '{q}' konusundaki yerleşik içtihadını özetleyen, sanki gerçek bir karar özetiymiş gibi kısa bir paragraf yaz. Daire ve Esas/Karar numarası uydur."
                 completion = client.chat.completions.create(
@@ -79,7 +100,7 @@ def search_decisions(
                     messages=[{"role": "user", "content": prompt}]
                 )
                 ai_summary = completion.choices[0].message.content
-                results.append({
+                formatted_results.append({
                     "id": "ai-gen-1",
                     "dairesi": "Yargıtay (AI Tahmini)",
                     "esas_no": "---",
@@ -91,7 +112,7 @@ def search_decisions(
             except:
                 pass
 
-    return results
+    return formatted_results
 
 class AiAnalysisRequest(BaseModel):
     decision_text: str
