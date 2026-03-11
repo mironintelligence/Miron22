@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { setLibraUser } from '../utils/auth';
+import { setStoredAuth } from '../utils/auth';
 
 const Login = () => {
   const [firstName, setFirstName] = useState('');
@@ -60,7 +60,7 @@ const Login = () => {
       localStorage.setItem('miron_token', data.access_token);
       localStorage.setItem('miron_user', JSON.stringify(data.user));
       const user = data?.user || {};
-      setLibraUser({
+      setStoredAuth(data.access_token, {
         id: user?.id,
         email: user?.email,
         firstName: user?.user_metadata?.first_name || user?.user_metadata?.firstName || '',

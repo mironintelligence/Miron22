@@ -211,7 +211,7 @@ admin_router     = _safe_import("admin_router", "router")
 # ---------------------------
 @app.get("/")
 def root():
-    return {"status": "ok", "msg": "Libra AI Backend çalışıyor!"}
+    return {"status": "ok", "msg": "Miron AI Backend çalışıyor!"}
 
 # =============================
 # EVRAK ANALİZ (UPDATED FOR LEGAL STRUCTURE)
