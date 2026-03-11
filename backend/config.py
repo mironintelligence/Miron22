@@ -1,12 +1,14 @@
 import os
 import multiprocessing
 
-# --- HOTFIX: Force Frankfurt Region (Explicit Override) ---
-# The user migrated to EU Central. We override the connection string with the correct one.
-# This ensures we always connect to the correct DB regardless of what Render sets.
-# Using aws-0-eu-central-1.pooler.supabase.com (Standard Pooler Endpoint for EU)
-os.environ["DATABASE_URL"] = "postgresql://postgres.ffvdyjvmwmbtxqvqwhtt:Kerimaydemir@aws-0-eu-central-1.pooler.supabase.com:6543/postgres"
-print(f"🔥 FORCE OVERRIDE: Using Frankfurt DB Connection (aws-0)")
+# --- HOTFIX: Force DIRECT Connection (Bypass Pooler) ---
+# Pooler connection seems unstable or misconfigured (Tenant not found).
+# We try connecting to the direct postgres port (5432) instead of pooler (6543).
+# This is less efficient for high load but guarantees connection if credentials are correct.
+# Format: postgresql://postgres:[PASS]@db.[PROJECT_REF].supabase.co:5432/postgres
+# Project Ref from previous logs: ffvdyjvmwmbtxqvqwhtt
+os.environ["DATABASE_URL"] = "postgresql://postgres:Kerimaydemir@db.ffvdyjvmwmbtxqvqwhtt.supabase.co:5432/postgres"
+print(f"🔥 FORCE OVERRIDE: Using DIRECT DB Connection (Port 5432) to bypass Pooler issues")
 
 class Settings:
     # 1) DB POOL CONFIG & READ/WRITE
