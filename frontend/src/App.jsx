@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-import Header from "./components/Header.jsx";
+import Navbar from "./components/Navbar.jsx";
 import LoginModal from "./components/LoginModal.jsx";
 import Home from "./pages/Home.jsx";
 import Analyze from "./pages/Analyze.jsx";
@@ -27,7 +27,11 @@ import Calculators from "./pages/Calculators";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import Welcome from "./pages/Welcome.jsx";
 import CaseSimulation from "./pages/CaseSimulation.jsx";
+import Contracts from "./pages/Contracts.jsx"; // YENİ
+import Notifications from "./pages/Notifications.jsx"; // YENİ
 
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import { useAuth } from "./auth/AuthProvider";
 
 export default function App() {
@@ -48,9 +52,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <Header
-        onOpenLogin={() => setLoginOpen(true)}
-      />
+      <Navbar /> {/* Header yerine Navbar */}
       <LoginModal
         open={loginOpen}
         onClose={() => {
@@ -65,7 +67,7 @@ export default function App() {
         }}
       />
 
-      <div className="px-6 sm:px-10 md:px-12 lg:px-16">
+      <div className=""> {/* Padding removed, pages handle their own padding */}
         <Routes>
           <Route path="/demo-request" element={<DemoRequest />} />
 
@@ -87,6 +89,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Home />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contracts"
+            element={
+              <ProtectedRoute>
+                <Contracts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <Notifications />
               </ProtectedRoute>
             }
           />
@@ -194,6 +212,14 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/simulation"
+            element={
+              <ProtectedRoute>
+                <CaseSimulation />
+              </ProtectedRoute>
+            }
+          />
 
           {/* PUBLIC / GUEST ONLY */}
           <Route
@@ -207,6 +233,8 @@ export default function App() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/login" element={<IntroLanding />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
 
          
@@ -228,7 +256,7 @@ export default function App() {
         </Routes>
       </div>
 
-      <footer className="fixed bottom-0 left-0 w-full text-center text-xs py-3 bg-black/40 backdrop-blur-xl border-t border-white/10 text-white/70">
+      <footer className="fixed bottom-0 left-0 w-full text-center text-xs py-3 bg-black/40 backdrop-blur-xl border-t border-white/10 text-white/70 pointer-events-none">
         ⚠ Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
       </footer>
     </div>

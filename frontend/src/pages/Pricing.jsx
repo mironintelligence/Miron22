@@ -165,6 +165,15 @@ export default function Pricing() {
             >
               Satın Al
             </button>
+            
+            <button
+              onClick={() => {
+                window.location.href = "mailto:info@mironintelligence.com?subject=Miron%20AI%20Enterprise%20Talebi";
+              }}
+              className="mt-3 w-full border border-white/20 text-white font-bold py-3 rounded-xl hover:bg-white/5 transition-all"
+            >
+              Enterprise (Kurumsal) İletişim
+            </button>
 
             <div className="text-[11px] text-subtle mt-3">
               * Çoklu satın alımlarda 3+ kişide özel indirim uygulanır.

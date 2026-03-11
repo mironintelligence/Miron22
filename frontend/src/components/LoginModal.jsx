@@ -106,6 +106,20 @@ export default function LoginModal({ open, onClose, onSuccess }) {
         >
           {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
         </button>
+        
+        <div className="text-center mt-4">
+          <button 
+            type="button"
+            onClick={() => {
+              onClose();
+              // Opsiyonel: Şifre sıfırlama modalı veya sayfasına yönlendir
+              window.location.href = "/forgot-password"; 
+            }} 
+            className="text-sm text-subtle hover:text-white transition-colors underline"
+          >
+            Şifremi Unuttum
+          </button>
+        </div>
       </form>
     </Modal>
   );

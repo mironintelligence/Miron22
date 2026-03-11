@@ -7,9 +7,9 @@ export default function AdminPanel() {
   const [token, setToken] = useState(localStorage.getItem("adminToken") || "");
   const [cred, setCred] = useState({ firstName: "", lastName: "", password: "" });
   const [authed, setAuthed] = useState(false);
-  const [activeTab, setActiveTab] = useState("stats"); // Default to stats dashboard
+  const [activeTab, setActiveTab] = useState("stats");
   const [msg, setMsg] = useState("");
-  const [msgType, setMsgType] = useState("info"); // info, success, error
+  const [msgType, setMsgType] = useState("info");
 
   // Data States
   const [stats, setStats] = useState(null);
@@ -17,13 +17,13 @@ export default function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [demos, setDemos] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [pricing, setPricing] = useState({ base_price: 8000, discount_rate: 20, bulk_threshold: 3 });
   const [discounts, setDiscounts] = useState([]);
   
-  // Form States
+  // Forms
   const [newDiscount, setNewDiscount] = useState({
     code: "", type: "percent", value: 0, max_usage: "", expires_at: "", description: ""
   });
+  const [notif, setNotif] = useState({ title: "", message: "", type: "admin" });
 
   useEffect(() => {
     if (token) checkAuth();
@@ -45,7 +45,6 @@ export default function AdminPanel() {
     fetchConfig();
     fetchUsers();
     fetchDemos();
-    fetchPricing();
     fetchDiscounts();
   };
 
@@ -73,14 +72,12 @@ export default function AdminPanel() {
   const fetchConfig = async () => setConfig(await fetchWithAuth("/admin/config"));
   const fetchUsers = async () => setUsers(await fetchWithAuth("/admin/users") || []);
   const fetchDemos = async () => setDemos(await fetchWithAuth("/admin/demo-requests") || []);
-  const fetchPricing = async () => setPricing(await fetchWithAuth("/api/pricing/config") || {});
   const fetchDiscounts = async () => setDiscounts(await fetchWithAuth("/api/pricing/discount-codes") || []);
   const fetchLogs = async () => {
     const data = await fetchWithAuth("/admin/logs/system?lines=100");
     if (data?.logs) setLogs(data.logs);
   };
 
-  // Actions
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -139,6 +136,20 @@ export default function AdminPanel() {
     } else showMsg("❌ Kod oluşturulamadı", "error");
   };
 
+  const sendNotification = async () => {
+    if (!notif.title || !notif.message) return showMsg("Başlık ve mesaj gerekli", "error");
+    const res = await fetchWithAuth("/api/notifications/broadcast", {
+      method: "POST",
+      body: JSON.stringify(notif)
+    });
+    if (res?.status === "ok") {
+      showMsg(`✅ Duyuru gönderildi: ${res.count} kişi`, "success");
+      setNotif({ title: "", message: "", type: "admin" });
+    } else {
+      showMsg("❌ Gönderim hatası", "error");
+    }
+  };
+
   if (!authed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-amber-500 font-mono">
@@ -175,7 +186,7 @@ export default function AdminPanel() {
       <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto">
         {/* Navigation */}
         <div className="flex flex-wrap gap-2 mb-8 border-b border-zinc-800 pb-1">
-          {["stats", "master", "users", "demos", "discounts", "logs"].map(tab => (
+          {["stats", "master", "users", "demos", "discounts", "notifications", "logs"].map(tab => (
             <button key={tab} onClick={() => { setActiveTab(tab); if(tab==="logs") fetchLogs(); }}
               className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
                 activeTab === tab ? "text-amber-500 border-b-2 border-amber-500" : "text-zinc-600 hover:text-zinc-400"
@@ -205,6 +216,34 @@ export default function AdminPanel() {
               <div className="text-xs text-zinc-500 uppercase mb-2">System Status</div>
               <div className="text-xl text-white font-mono">{stats.system_status}</div>
               <div className="text-xs text-zinc-600 mt-1">Last Restart: {stats.last_restart}</div>
+            </div>
+          </div>
+        )}
+
+        {/* NOTIFICATIONS */}
+        {activeTab === "notifications" && (
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-zinc-900/30 p-6 rounded-xl border border-zinc-800">
+              <h3 className="text-amber-500 font-bold mb-6">DUYURU GÖNDER (BROADCAST)</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">BAŞLIK</label>
+                  <input className="w-full bg-black border border-zinc-700 p-3 text-white rounded focus:border-amber-500 outline-none" 
+                    value={notif.title} onChange={e => setNotif({...notif, title: e.target.value})} placeholder="Örn: Sistem Bakımı" />
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">MESAJ</label>
+                  <textarea className="w-full bg-black border border-zinc-700 p-3 text-white rounded h-32 focus:border-amber-500 outline-none resize-none" 
+                    value={notif.message} onChange={e => setNotif({...notif, message: e.target.value})} placeholder="Duyuru içeriği..." />
+                </div>
+                <button onClick={sendNotification} className="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-500 transition">
+                  TÜM KULLANICILARA GÖNDER
+                </button>
+              </div>
+            </div>
+            
+            <div className="bg-zinc-900/10 p-6 rounded-xl border border-zinc-800 flex items-center justify-center text-zinc-600 text-sm">
+              Burada geçmiş bildirimlerin logları listelenebilir.
             </div>
           </div>
         )}
@@ -351,9 +390,8 @@ export default function AdminPanel() {
         {/* DEMO REQUESTS */}
         {activeTab === "demos" && (
            <div className="bg-zinc-900/20 border border-zinc-800 rounded-xl overflow-hidden">
-             {/* Use existing demo request table logic here, simplified for brevity */}
              <div className="p-4 text-zinc-500 italic">
-               {demos.length} pending requests. (See previous implementation for full table)
+               {demos.length} pending requests.
              </div>
            </div>
         )}

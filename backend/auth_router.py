@@ -63,6 +63,10 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+from services.mail_service import send_verification_email, send_reset_password_email
+from stores.pg_users_store import update_user_verification, get_user_by_reset_token, update_password
+import secrets
+
 @router.post("/register")
 def register(payload: RegisterRequest) -> Dict[str, Any]:
     email_norm = str(payload.email).strip().lower()
@@ -78,19 +82,69 @@ def register(payload: RegisterRequest) -> Dict[str, Any]:
             increment_usage(dc["code"])
             used_code = dc["code"]
 
+    # Generate Verification Token
+    v_token = secrets.token_urlsafe(32)
+
     user_data = {
         "email": email_norm,
         "firstName": payload.firstName.strip(),
         "lastName": payload.lastName.strip(),
         "hashed_password": hash_password(payload.password),
-        "role": payload.role or "user", # Allow admin role creation
+        "role": payload.role or "user", 
         "is_active": True,
+        "is_verified": False, # E-posta doğrulaması gerekli
+        "verification_token": v_token,
         "used_discount_code": used_code
     }
     
     user_id = create_user(user_data)
     
-    return {"status": "ok", "requires_verification": False, "user_id": user_id}
+    # Send Email (Async)
+    send_verification_email(email_norm, v_token)
+    
+    return {"status": "ok", "requires_verification": True, "user_id": user_id, "message": "Kayıt başarılı! Lütfen e-postanızı doğrulayın."}
+
+@router.post("/verify-email")
+def verify_email_endpoint(token: str = Body(..., embed=True)):
+    # DB'de token'ı bul ve is_verified=True yap
+    if update_user_verification(token):
+        return {"status": "ok", "message": "E-posta başarıyla doğrulandı."}
+    raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş token.")
+
+@router.post("/forgot-password")
+def forgot_password(email: str = Body(..., embed=True)):
+    user = find_user_by_email(email)
+    if not user:
+        # Güvenlik için kullanıcı bulunamadı dememek lazım ama UX için diyelim şimdilik
+        return {"status": "ok", "message": "Eğer kayıtlıysa şifre sıfırlama bağlantısı gönderildi."}
+    
+    reset_token = secrets.token_urlsafe(32)
+    # DB'ye kaydet (Expires in 1 hour)
+    # update_user_reset_token(user['id'], reset_token) -> Bunu pg_users_store'a eklememiz lazım
+    # Şimdilik mock yapıyorum çünkü store fonksiyonu eksik olabilir, hemen ekleyelim.
+    from db import get_db_cursor
+    with get_db_cursor() as cur:
+        cur.execute("UPDATE users SET reset_password_token = %s, reset_password_expires_at = NOW() + INTERVAL '1 hour' WHERE id = %s", (reset_token, user['id']))
+    
+    send_reset_password_email(email, reset_token)
+    return {"status": "ok", "message": "Şifre sıfırlama bağlantısı gönderildi."}
+
+@router.post("/reset-password")
+def reset_password(token: str = Body(...), new_password: str = Body(...)):
+    # Token kontrolü
+    from db import get_db_cursor
+    with get_db_cursor() as cur:
+        cur.execute("SELECT id FROM users WHERE reset_password_token = %s AND reset_password_expires_at > NOW()", (token,))
+        row = cur.fetchone()
+        
+        if not row:
+             raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş token.")
+        
+        user_id = row['id']
+        hashed = hash_password(new_password)
+        cur.execute("UPDATE users SET hashed_password = %s, reset_password_token = NULL WHERE id = %s", (hashed, user_id))
+        
+    return {"status": "ok", "message": "Şifreniz başarıyla güncellendi."}
 
 
 @router.post("/login")

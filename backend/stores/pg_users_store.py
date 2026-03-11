@@ -244,6 +244,29 @@ def is_session_valid(refresh_hash: str) -> bool:
 
 # --- Audit Logs ---
 
+def update_user_verification(token: str) -> bool:
+    sql = """
+        UPDATE users 
+        SET is_verified = TRUE, verification_token = NULL 
+        WHERE verification_token = %s
+        RETURNING id
+    """
+    with get_db_cursor() as cur:
+        cur.execute(sql, (token,))
+        return cur.fetchone() is not None
+
+def get_user_by_reset_token(token: str) -> Optional[Dict[str, Any]]:
+    sql = "SELECT * FROM users WHERE reset_password_token = %s AND reset_password_expires_at > NOW()"
+    with get_db_cursor() as cur:
+        cur.execute(sql, (token,))
+        row = cur.fetchone()
+        return _row_to_user(row)
+
+def update_password(user_id: str, hashed_password: str):
+    sql = "UPDATE users SET password_hash = %s, reset_password_token = NULL, reset_password_expires_at = NULL WHERE id = %s"
+    with get_db_cursor() as cur:
+        cur.execute(sql, (hashed_password, user_id))
+
 def log_audit(user_id: Optional[str], action: str, resource: str = None, details: Dict = None, ip: str = None, ua: str = None):
     import json
     sql = """
@@ -251,4 +274,6 @@ def log_audit(user_id: Optional[str], action: str, resource: str = None, details
         VALUES (%s, %s, %s, %s, %s, %s)
     """
     with get_db_cursor() as cur:
-        cur.execute(sql, (user_id, action, resource, json.dumps(details) if details else None, ip, ua))
+        # details JSON serialization fix
+        d_json = json.dumps(details) if details else None
+        cur.execute(sql, (user_id, action, resource, d_json, ip, ua))
