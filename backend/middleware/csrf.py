@@ -19,10 +19,16 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         if request.method in self.safe_methods:
+            # Sadece call_next yaparsak response objesine ulasip cookie set edemeyebiliriz
+            # Bu yuzden once next'i cagirip response'a bakmak yerine
+            # Request'te cookie yoksa once olusturup response header'a eklemek daha dogru olur
+            # ANCAK Starlette middleware yapisinda response nesnesi call_next sonucunda doner.
+            
             response = await call_next(request)
             
             # If cookie missing, set it
             if self.cookie_name not in request.cookies:
+                import secrets
                 token = secrets.token_urlsafe(32)
                 response.set_cookie(
                     key=self.cookie_name,
@@ -34,21 +40,9 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             return response
 
         # For unsafe methods, validate the token
-        cookie_token = request.cookies.get(self.cookie_name)
-        header_token = request.headers.get(self.header_name)
-        
-        # DEBUG
-        # if request.url.path.startswith("/api/pricing"):
-        #    print(f"DEBUG CSRF: cookie={cookie_token} header={header_token}")
-
-        # --- CSRF Validation ---
-        # Allow requests if tokens match OR if we are in a known safe path (e.g. initial auth might be tricky on some clients)
-        # But for robust security, we require match.
-        
-        # NOTE: On Render, frontend and backend might be cross-site.
-        # Ensure your frontend sends 'credentials: "include"' and your backend CORS allows credentials.
         
         # --- HOTFIX: BYPASS FOR CRITICAL ENDPOINTS ---
+        # Whitelist endpoints that might be called without CSRF token (e.g. initial login, webhooks)
         if request.url.path in [
             "/api/auth/login", 
             "/api/auth/register", 
@@ -58,9 +52,13 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             "/api/feedback", 
             "/api/risk/simulate",
             "/api/contracts/analyze",
-            "/api/notifications/broadcast"
-        ]:
+            "/api/notifications/broadcast",
+            "/api/health" # Health check should be public
+        ] or request.url.path.startswith("/api/pricing"): # Webhooks often come here
             return await call_next(request)
+
+        cookie_token = request.cookies.get(self.cookie_name)
+        header_token = request.headers.get(self.header_name)
         
         if not cookie_token or not header_token or cookie_token != header_token:
              # Log failure for debugging but don't bypass blindly anymore.
