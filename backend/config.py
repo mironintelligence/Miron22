@@ -16,8 +16,6 @@ os.environ["DATABASE_URL"] = "postgresql://postgres.ffvdyjvmwmbtxqvqwhtt:Kerimay
 print(f"🔥 FORCE OVERRIDE: Using Pooler DB Connection (Port 6543, Mode: Transaction)")
 
 class Settings:
-
-class Settings:
     # 1) DB POOL CONFIG & READ/WRITE
     # Heuristic: CPU cores * 2 + 1 (SQLAlchemy recommendation)
     _cpu_count = multiprocessing.cpu_count()
