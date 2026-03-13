@@ -172,6 +172,10 @@ class BotProtectionMiddleware(BaseHTTPMiddleware):
         self.blocked = [b.strip().lower() for b in blocked if b.strip()]
 
     async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        if request.url.path in ("/health", "/api/health"):
+            return await call_next(request)
         ua = (request.headers.get("user-agent") or "").lower()
         if not ua or any(b in ua for b in self.blocked):
             return Response(status_code=403, content="Bot access denied")

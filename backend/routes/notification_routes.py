@@ -3,7 +3,8 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pydantic import BaseModel
 from db import get_db_cursor
-from admin_auth import require_admin, get_current_user
+from admin_auth import require_admin
+from user_auth import get_current_user
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 

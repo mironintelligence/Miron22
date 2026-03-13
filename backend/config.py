@@ -1,20 +1,6 @@
 import os
 import multiprocessing
 
-# --- HOTFIX: Use Supabase Transaction Pooler (Port 6543) with correct Mode ---
-# Port 5432 (Direct) failed due to network unreachable (IPv6 issues on Render).
-# Port 6543 (Pooler) failed due to "Tenant not found" (likely incorrect pool mode or user format).
-# We revert to Pooler (6543) but ensure 'transaction' mode is used correctly.
-# Format for Pooler: postgresql://[user.project]:[pass]@aws-0-eu-central-1.pooler.supabase.com:6543/[db]
-# NOTE: If user contains '.', use quotes or verify Supabase dashboard for "Connection String".
-# Trying standard pooler endpoint again with explicit IPv4 fallback if possible.
-
-# Update: Render Free tier often has issues with IPv6.
-# We will use the specific AWS Pooler Endpoint: aws-0-eu-central-1.pooler.supabase.com
-# User format: postgres.ffvdyjvmwmbtxqvqwhtt (User + Project Ref)
-os.environ["DATABASE_URL"] = "postgresql://postgres.ffvdyjvmwmbtxqvqwhtt:Kerimaydemir@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?sslmode=require"
-print(f"🔥 FORCE OVERRIDE: Using Pooler DB Connection (Port 6543, Mode: Transaction)")
-
 class Settings:
     # 1) DB POOL CONFIG & READ/WRITE
     # Heuristic: CPU cores * 2 + 1 (SQLAlchemy recommendation)

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 import os
 from typing import Dict, Any
 from db_async import db
-from admin_auth import get_current_user # To identify user
+from user_auth import get_current_user
 
 router = APIRouter(prefix="/api/billing", tags=["Billing"])
 

@@ -79,7 +79,9 @@ async def startup_event():
         "SUPABASE_URL",
         "SUPABASE_KEY",
         "OPENAI_API_KEY",
-        "SECRET_KEY"
+        "SECRET_KEY",
+        "DATABASE_URL",
+        "JWT_SECRET",
     ]
     missing = []
     print("--- STARTUP ENVIRONMENT CHECK ---")
@@ -89,12 +91,28 @@ async def startup_event():
             missing.append(var)
             print(f"❌ {var} is MISSING")
         else:
-            # Mask critical values in logs
-            if var in ["OPENAI_API_KEY", "SUPABASE_KEY", "SECRET_KEY"]:
-                 masked = val[:4] + "*" * 4 + val[-4:] if len(val) > 8 else "****"
+            if var in ["OPENAI_API_KEY", "SUPABASE_KEY", "SECRET_KEY", "JWT_SECRET"]:
+                masked = val[:4] + "*" * 4 + val[-4:] if len(val) > 8 else "****"
+                print(f"✅ {var} is set ({masked})")
+            elif var == "DATABASE_URL":
+                try:
+                    from urllib.parse import urlparse
+                    u = urlparse(val)
+                    host = u.hostname or ""
+                    port = u.port or ""
+                    user = u.username or ""
+                    safe = f"{u.scheme}://{user}@{host}:{port}{u.path}"
+                    print(f"✅ {var} is set ({safe})")
+                    try:
+                        sref = (os.getenv("SUPABASE_URL") or "").split("://", 1)[-1].split(".", 1)[0]
+                        if sref and sref not in val:
+                            print("⚠️ DATABASE_URL SUPABASE_URL ile aynı projeye işaret etmiyor olabilir.")
+                    except Exception:
+                        pass
+                except Exception:
+                    print(f"✅ {var} is set")
             else:
-                 masked = val
-            print(f"✅ {var} is set ({masked})")
+                print(f"✅ {var} is set ({val})")
     
     if missing:
         print(f"🔥 CRITICAL: Missing environment variables: {', '.join(missing)}")
@@ -173,6 +191,10 @@ app.add_middleware(LoggingMiddleware) # Outermost logger
 
 @app.get("/health")
 def health():
+    return {"ok": True}
+
+@app.get("/api/health")
+def api_health():
     return {"ok": True}
 # ---------------------------
 # ROUTER IMPORTS (opsiyonel)
