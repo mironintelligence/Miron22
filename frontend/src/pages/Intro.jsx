@@ -15,16 +15,24 @@ export default function Intro() {
     setMsg("");
     setSending(true);
     try {
-      // backend demo endpoint'in varsa POST eder; yoksa catch'e düşer ama kullanıcı bilgilendirilir
+      const fullName = (demo.name || "").trim();
+      const parts = fullName.split(/\s+/).filter(Boolean);
+      const firstName = parts[0] || "";
+      const lastName = parts.slice(1).join(" ") || "-";
+      const noteParts = [];
+      if (demo.city) noteParts.push(`Şehir: ${demo.city}`);
+      if (demo.office) noteParts.push(`Büro/Şirket: ${demo.office}`);
+      noteParts.push("Kaynak: Tanıtım sayfası demo formu");
+
       const res = await fetch(`${API}/api/demo-request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: demo.name,
           email: demo.email,
-          city: demo.city,
-          office: demo.office,
-          note: "Demo talebi - tanıtım sayfası",
+          firstName,
+          lastName,
+          phone: null,
+          note: noteParts.join("\n"),
         }),
       });
 
@@ -32,12 +40,11 @@ export default function Intro() {
         setMsg("✅ Demo talebiniz alındı. 24 saat içinde geri dönüş yapılacaktır.");
         setDemo({ name: "", email: "", city: "", office: "" });
       } else {
-        // backend yoksa veya hata dönmüşse yine kullanıcıya olumlu mesaj göster
-        setMsg("✅ Demo talebiniz alındı. (Backend yanıtı hatası olsa da kayıt görünecek.)");
+        const t = await res.json().catch(() => ({}));
+        setMsg(t.detail || "❌ Demo talebi gönderilemedi. Lütfen tekrar deneyin.");
       }
     } catch (err) {
-      // Eğer backend yoksa bile kullanıcıya güven verelim
-      setMsg("✅ Demo talebiniz alındı. 24 saat içinde geri dönüş yapılacaktır.");
+      setMsg("❌ Demo talebi gönderilemedi. Lütfen tekrar deneyin.");
     } finally {
       setSending(false);
     }

@@ -22,7 +22,7 @@ export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
 
-  const [mode, setMode] = useState("single"); // single | multi | admin
+  const [mode, setMode] = useState("single"); // single | demo
   const [city, setCity] = useState("");
   const [firm, setFirm] = useState("");
 
@@ -31,7 +31,6 @@ export default function Register() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState(""); // ✅ e-posta eklendi
   const [password, setPassword] = useState("");
-  const [adminKey, setAdminKey] = useState(""); // Secret key for admin creation
 
   // multi user
   const [personCount, setPersonCount] = useState(2);
@@ -113,22 +112,13 @@ export default function Register() {
   };
 
   const validSingle = useMemo(() => {
-    if (mode === "admin") {
-      return (
-        firstName.trim().length > 0 &&
-        lastName.trim().length > 0 &&
-        isValidEmail(email) &&
-        password.trim().length >= 8 &&
-        adminKey.trim().length > 0
-      );
-    }
     return (
       firstName.trim().length > 0 &&
       lastName.trim().length > 0 &&
       isValidEmail(email) &&
-      password.trim().length >= 8
+      password.trim().length >= 12
     );
-  }, [firstName, lastName, email, password, adminKey, mode]);
+  }, [firstName, lastName, email, password]);
 
   const validMulti = useMemo(() => {
     return (
@@ -141,7 +131,7 @@ export default function Register() {
   }, [firstName, lastName, email, password, personCount]);
 
   const acceptedAll = acceptedAgreement && acceptedPrivacy && acceptedTerms;
-  const disabled = (mode === "single" || mode === "admin") ? !validSingle || !acceptedAll : !validMulti || !acceptedAll;
+  const disabled = !validSingle || !acceptedAll;
 
   const updatePerson = (idx, key, value) => {
     setPersons((prev) => {
@@ -162,20 +152,12 @@ export default function Register() {
     setSubmitSuccess("");
     setSubmitting(true);
 
-    if (mode === "admin" && adminKey !== "MIRON_ADMIN_2026") {
-      setSubmitError("Geçersiz Admin Anahtarı");
-      setSubmitting(false);
-      return;
-    }
-
     const normalizedDiscount = (discountCode || "").trim().toUpperCase();
     
-    // For admin creation
-    const role = mode === "admin" ? "admin" : "user";
-    const modeToSend = mode === "admin" ? "single" : mode; // Backend expects 'single' or 'multi'
+    const modeToSend = mode === "demo" ? "demo" : "single";
 
     const payload =
-      (mode === "single" || mode === "admin")
+      (mode === "single" || mode === "demo")
         ? {
             mode: modeToSend,
             count: 1,
@@ -188,7 +170,6 @@ export default function Register() {
                 lastName: lastName.trim(),
                 email: email.trim(),
                 password: password,
-                role: role
               },
             ],
           }
@@ -203,7 +184,6 @@ export default function Register() {
               lastName: p.lastName.trim(),
               email: (p.email || "").trim(),
               password: p.password,
-              role: "user"
             })),
           };
 
@@ -218,7 +198,7 @@ export default function Register() {
           firstName: p.firstName,
           lastName: p.lastName,
           mode: payload.mode,
-          role: p.role 
+          discountCode: normalizedDiscount || undefined
         });
         if (res && res.requires_verification) {
           verificationNeeded = true;
@@ -226,12 +206,7 @@ export default function Register() {
       }
       setSubmitSuccess("Kayıt başarılı.");
       
-      // If admin, redirect to admin login/panel
-      if (mode === "admin") {
-         setTimeout(() => navigate("/admin"), 1500);
-      } else {
-         navigate("/pricing", { state: { ...payload, verificationNeeded } });
-      }
+      navigate("/pricing", { state: { ...payload, verificationNeeded } });
 
     } catch (e) {
       setSubmitError(e?.message || "Kayıt başarısız.");
@@ -240,7 +215,7 @@ export default function Register() {
     }
   };
 
-  const duplicatePw = mode === "multi" && duplicatePasswordsExist(persons);
+  const duplicatePw = false;
 
   const docTitle =
     activeDoc === "agreement"
@@ -481,12 +456,8 @@ export default function Register() {
               <span>Şahıs (tek kullanıcı)</span>
             </label>
             <label className="flex items-center gap-2 mt-2">
-              <input type="radio" name="mode" checked={mode === "multi"} onChange={() => setMode("multi")} />
-              <span>Çok kişili ofis</span>
-            </label>
-            <label className="flex items-center gap-2 mt-2 opacity-50 hover:opacity-100 transition-opacity">
-              <input type="radio" name="mode" checked={mode === "admin"} onChange={() => setMode("admin")} />
-              <span className="text-xs text-amber-500 font-mono">ADMIN ACCESS</span>
+              <input type="radio" name="mode" checked={mode === "demo"} onChange={() => setMode("demo")} />
+              <span>Demo (onaylı)</span>
             </label>
 
             <div className="mt-4">
@@ -511,7 +482,7 @@ export default function Register() {
           </div>
 
           <div className="md:col-span-2 glass p-4 rounded-xl">
-            {mode === "single" ? (
+            {mode === "single" || mode === "demo" ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm mb-1">
@@ -556,26 +527,13 @@ export default function Register() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-        placeholder="En az 8 karakter"
+                    placeholder="En az 12 karakter"
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white"
                   />
                   <div className="text-[12px] mt-2 text-subtle">
                     Güvenlik için güçlü bir şifre seçin. Aynı şifreyi başka kullanıcılarla paylaşmayın.
                   </div>
                 </div>
-
-                {mode === "admin" && (
-                  <div className="sm:col-span-2 mt-4 p-4 border border-amber-900/50 bg-amber-900/10 rounded-xl">
-                    <div className="text-sm mb-1 text-amber-500 font-bold">Admin Secret Key</div>
-                    <input
-                      type="password"
-                      value={adminKey}
-                      onChange={(e) => setAdminKey(e.target.value)}
-                      placeholder="Gizli Anahtar"
-                      className="w-full px-3 py-2 rounded-xl bg-black/40 border border-amber-900/50 text-white font-mono"
-                    />
-                  </div>
-                )}
               </div>
             ) : (
               <>

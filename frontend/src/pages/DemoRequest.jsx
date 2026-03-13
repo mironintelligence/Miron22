@@ -1,6 +1,6 @@
 // frontend/src/pages/DemoRequest.jsx
 import React, { useState } from "react";
-import axios from "axios";
+const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
 export default function DemoRequest() {
   const [form, setForm] = useState({
@@ -10,7 +10,6 @@ export default function DemoRequest() {
     phone: "",
     city: "",
     lawFirm: "",
-    password: "",
     message: "",
   });
 
@@ -31,9 +30,25 @@ export default function DemoRequest() {
 
     setStatus("loading");
     try {
-      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-      const res = await axios.post(`${base}/api/demo-request`, form);
-      if (res.data.status === "success") {
+      const noteParts = [];
+      if (form.city) noteParts.push(`Şehir: ${form.city}`);
+      if (form.lawFirm) noteParts.push(`Büro/Şirket: ${form.lawFirm}`);
+      if (form.message) noteParts.push(`Not: ${form.message}`);
+      const payload = {
+        email: form.email,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        phone: form.phone || null,
+        note: noteParts.join("\n") || null,
+      };
+
+      const r = await fetch(`${API_BASE}/api/demo-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok && data.status === "ok") {
         setStatus("success");
         setForm({
           firstName: "",
@@ -42,7 +57,6 @@ export default function DemoRequest() {
           phone: "",
           city: "",
           lawFirm: "",
-          password: "",
           message: "",
         });
       } else {
@@ -63,7 +77,7 @@ export default function DemoRequest() {
           Miron AI Demo Talep Formu
         </h1>
         <p className="text-center text-sm text-subtle mb-6">
-          Demo erişimi başvurunuz alınır. Değerlendirme sonrası demo hesabınız oluşturulur ve e-posta ile bilgilendirilirsiniz.
+          Demo erişimi başvurunuz alınır. Değerlendirme sonrası e-posta ile bilgilendirilirsiniz. Onaylandıktan sonra kayıt ekranında “Demo” seçeneğiyle hesabınızı oluşturabilirsiniz.
         </p>
 
         {status === "success" && (
@@ -103,10 +117,6 @@ export default function DemoRequest() {
               className="px-4 py-2 rounded-xl bg-black/40 border border-white/15 text-sm outline-none text-white focus:ring-2 focus:ring-[var(--miron-gold)]"
             />
           </div>
-
-          <input name="password" value={form.password} onChange={handleChange} placeholder="Demo hesabınız için şifre (opsiyonel)"
-            className="px-4 py-2 rounded-xl bg-black/40 border border-white/15 text-sm outline-none text-white focus:ring-2 focus:ring-[var(--miron-gold)]"
-          />
 
           <textarea name="message" value={form.message} onChange={handleChange} placeholder="Kısaca ofisinizden ve süreçlerinizden bahsedebilir misiniz? (opsiyonel)"
             rows={4}

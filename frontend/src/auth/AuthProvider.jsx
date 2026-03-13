@@ -58,8 +58,8 @@ export function AuthProvider({ children }) {
     return normalized;
   };
 
-  const register = async ({ email, password, firstName, lastName, mode, role }) => {
-    return apiRegister({ email, password, firstName, lastName, mode, role });
+  const register = async ({ email, password, firstName, lastName, mode, discountCode }) => {
+    return apiRegister({ email, password, firstName, lastName, mode, discountCode });
   };
 
   const logout = async () => {
