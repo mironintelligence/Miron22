@@ -50,6 +50,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             "/api/auth/forgot-password", 
             "/api/auth/reset-password",
             "/api/feedback", 
+            "/api/demo-request",
             "/api/risk/simulate",
             "/api/contracts/analyze",
             "/api/notifications/broadcast",
