@@ -176,13 +176,14 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ---------------------------
 
 _origins_env = os.getenv("FRONTEND_ORIGINS")
+_allowed_origins = [
+    "http://localhost:5173",
+    "https://miron22.vercel.app",
+]
 if _origins_env:
-    _allowed_origins = [o.strip() for o in _origins_env.split(",") if o.strip()]
-else:
-    _allowed_origins = [
-        "http://localhost:5173",
-        "https://miron22.vercel.app",
-    ]
+    for o in [x.strip() for x in _origins_env.split(",")]:
+        if o and o not in _allowed_origins:
+            _allowed_origins.append(o)
 
 app.add_middleware(
     CORSMiddleware,
