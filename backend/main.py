@@ -150,6 +150,12 @@ async def startup_event():
     except Exception as e:
         print(f"🔥 CRITICAL: Async DB Pool Init Failed: {e}")
 
+    try:
+        from schema import ensure_schema
+        ensure_schema()
+    except Exception as e:
+        raise RuntimeError(f"DB şeması hazırlanamadı: {e}")
+
 @app.on_event("shutdown")
 async def shutdown_event():
     close_pool()
