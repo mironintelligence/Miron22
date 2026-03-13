@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -24,14 +25,15 @@ def create_feedback(payload: Dict[str, Any] = Body(...)):
     if not name or not email or not subject or not message:
         raise HTTPException(status_code=400, detail="Ad, E-posta, Konu ve Mesaj alanları zorunludur.")
 
+    fid = str(uuid.uuid4())
     with get_db_cursor() as cur:
         cur.execute(
             """
-            INSERT INTO feedback_messages (name, email, subject, message, meta_data, status, created_at)
-            VALUES (%s, %s, %s, %s, %s, 'new', NOW())
+            INSERT INTO feedback_messages (id, name, email, subject, message, meta_data, status, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, 'new', NOW())
             RETURNING id
             """,
-            (name, email, subject, message, meta),
+            (fid, name, email, subject, message, meta),
         )
         row = cur.fetchone()
         return {"status": "ok", "id": str(row["id"]), "message": "Geri bildiriminiz başarıyla alındı."}

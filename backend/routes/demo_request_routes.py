@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Body, HTTPException
@@ -21,11 +22,12 @@ class DemoRequestIn(BaseModel):
 @router.post("/demo-request")
 def create_demo_request(payload: DemoRequestIn) -> Dict[str, Any]:
     email = str(payload.email).strip().lower()
+    rid = str(uuid.uuid4())
     with get_db_cursor() as cur:
         cur.execute(
             """
-            INSERT INTO demo_requests (email, first_name, last_name, phone, note, status, updated_at)
-            VALUES (%s, %s, %s, %s, %s, 'pending', NOW())
+            INSERT INTO demo_requests (id, email, first_name, last_name, phone, note, status, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, 'pending', NOW())
             ON CONFLICT (email) DO UPDATE SET
                 first_name = EXCLUDED.first_name,
                 last_name = EXCLUDED.last_name,
@@ -34,7 +36,7 @@ def create_demo_request(payload: DemoRequestIn) -> Dict[str, Any]:
                 updated_at = NOW()
             RETURNING id, status
             """,
-            (email, payload.firstName.strip(), payload.lastName.strip(), payload.phone, payload.note),
+            (rid, email, payload.firstName.strip(), payload.lastName.strip(), payload.phone, payload.note),
         )
         row = cur.fetchone()
         return {"status": "ok", "id": str(row["id"]), "demo_status": row["status"], "message": "Demo talebiniz alındı."}
@@ -56,4 +58,3 @@ def demo_request_status(email: str) -> Dict[str, Any]:
             "approved_until": row.get("approved_until"),
             "updated_at": row.get("updated_at"),
         }
-

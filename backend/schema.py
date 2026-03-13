@@ -3,10 +3,9 @@ from db import get_db_cursor
 
 def ensure_schema() -> None:
     statements = [
-        "CREATE EXTENSION IF NOT EXISTS pgcrypto;",
         """
         CREATE TABLE IF NOT EXISTS demo_requests (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            id UUID PRIMARY KEY,
             email TEXT UNIQUE NOT NULL,
             first_name TEXT,
             last_name TEXT,
@@ -26,7 +25,7 @@ def ensure_schema() -> None:
         "CREATE INDEX IF NOT EXISTS idx_users_subscription_plan ON users(subscription_plan);",
         """
         CREATE TABLE IF NOT EXISTS feedback_messages (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            id UUID PRIMARY KEY,
             name TEXT NOT NULL,
             email TEXT NOT NULL,
             subject TEXT NOT NULL,
