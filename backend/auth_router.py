@@ -44,7 +44,7 @@ class RegisterRequest(BaseModel):
     lastName: str = Field(min_length=1, max_length=64)
     mode: Optional[str] = Field(default="single", max_length=16)
     discountCode: Optional[str] = Field(default=None, max_length=64)
-    role: Optional[str] = Field(default="user", pattern="^(user|admin)$") # Allow setting role for admin creation
+    role: Optional[str] = Field(default="user", pattern="^(user)$")
 
     @validator('password')
     def validate_password_strength(cls, v):
@@ -90,11 +90,10 @@ def register(payload: RegisterRequest) -> Dict[str, Any]:
         "firstName": payload.firstName.strip(),
         "lastName": payload.lastName.strip(),
         "hashed_password": hash_password(payload.password),
-        "role": payload.role or "user", 
+        "role": "user",
         "is_active": True,
         "is_verified": False, # E-posta doğrulaması gerekli
         "verification_token": v_token,
-        "used_discount_code": used_code
     }
     
     user_id = create_user(user_data)
@@ -113,7 +112,8 @@ def verify_email_endpoint(token: str = Body(..., embed=True)):
 
 @router.post("/forgot-password")
 def forgot_password(email: str = Body(..., embed=True)):
-    user = find_user_by_email(email)
+    email_norm = (email or "").strip().lower()
+    user = find_user_by_email(email_norm)
     if not user:
         # Güvenlik için kullanıcı bulunamadı dememek lazım ama UX için diyelim şimdilik
         return {"status": "ok", "message": "Eğer kayıtlıysa şifre sıfırlama bağlantısı gönderildi."}
@@ -122,26 +122,33 @@ def forgot_password(email: str = Body(..., embed=True)):
     # DB'ye kaydet (Expires in 1 hour)
     from db import get_db_cursor
     with get_db_cursor() as cur:
-        cur.execute("UPDATE users SET reset_password_token = %s, reset_password_expires_at = NOW() + INTERVAL '1 hour' WHERE id = %s", (reset_token, user['id']))
+        cur.execute(
+            "UPDATE users SET reset_password_token = %s, reset_password_expires_at = NOW() + INTERVAL '1 hour' WHERE id = %s",
+            (reset_token, user["id"]),
+        )
     
     send_reset_password_email(email, reset_token)
     return {"status": "ok", "message": "Şifre sıfırlama bağlantısı gönderildi."}
 
 @router.post("/reset-password")
 def reset_password(token: str = Body(...), new_password: str = Body(...)):
-    # Token kontrolü
-    from db import get_db_cursor
-    with get_db_cursor() as cur:
-        cur.execute("SELECT id FROM users WHERE reset_password_token = %s AND reset_password_expires_at > NOW()", (token,))
-        row = cur.fetchone()
-        
-        if not row:
-             raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş token.")
-        
-        user_id = row['id']
-        hashed = hash_password(new_password)
-        cur.execute("UPDATE users SET hashed_password = %s, reset_password_token = NULL WHERE id = %s", (hashed, user_id))
-        
+    if not token:
+        raise HTTPException(status_code=400, detail="Token gerekli.")
+    new_password = (new_password or "").strip()
+    if not re.search(r"[A-Z]", new_password):
+        raise HTTPException(status_code=400, detail="Şifre en az bir büyük harf içermelidir.")
+    if not re.search(r"[a-z]", new_password):
+        raise HTTPException(status_code=400, detail="Şifre en az bir küçük harf içermelidir.")
+    if not re.search(r"\d", new_password):
+        raise HTTPException(status_code=400, detail="Şifre en az bir rakam içermelidir.")
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", new_password):
+        raise HTTPException(status_code=400, detail="Şifre en az bir özel karakter içermelidir.")
+
+    u = get_user_by_reset_token(token)
+    if not u:
+        raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş token.")
+
+    update_password(str(u["id"]), hash_password(new_password))
     return {"status": "ok", "message": "Şifreniz başarıyla güncellendi."}
 
 
@@ -149,39 +156,64 @@ def reset_password(token: str = Body(...), new_password: str = Body(...)):
 def login(payload: LoginRequest, request: Request, response: Response):
     email_norm = str(payload.email).strip().lower()
     ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
     
     user = find_user_by_email(email_norm)
 
-    # 2. Verify Credentials
-    if user and verify_password(payload.password, user.get("password_hash") or user.get("hashed_password")):
-        # Success
-        role = user.get("role", "user")
-        
-        # --- BASİT TOKEN GENERATION (Karmaşık Fingerprint/Session checkleri devre dışı) ---
-        # Login sorununu çözmek için en yalın haliyle token veriyoruz.
-        access_token = create_access_token({"sub": email_norm, "role": role, "uid": str(user["id"])})
-        refresh_token = create_refresh_token({"sub": email_norm, "role": role, "uid": str(user["id"])})
-        
-        # Çerez Ayarları (Daha gevşek güvenlik)
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,
-            secure=True, # Render HTTPS kullanıyor
-            samesite="none", # Cross-site cookie için gerekli (Frontend farklı domaindeyse)
-            max_age=604800,
-            path="/"
-        )
-        
-        return {
-            "status": "ok",
-            "message": "Giriş başarılı",
-            "access_token": access_token,
-            "user": sanitize_user_for_response(user),
-        }
-    
-    # Failure
-    raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
+    if not user:
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
+
+    if is_account_locked(email_norm):
+        raise HTTPException(status_code=423, detail="Hesap geçici olarak kilitli. Lütfen daha sonra tekrar deneyin.")
+
+    if user.get("is_active") is False:
+        raise HTTPException(status_code=403, detail="Hesap askıya alındı.")
+
+    if user.get("is_verified") is False:
+        raise HTTPException(status_code=403, detail="E-posta doğrulanmamış.")
+
+    if not verify_password(payload.password, user.get("password_hash") or user.get("hashed_password")):
+        increment_failed_login(email_norm)
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
+
+    reset_failed_login(str(user["id"]))
+
+    role = user.get("role", "user")
+    uid = str(user["id"])
+    tv = get_user_token_version(uid)
+    access_token = create_access_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
+    refresh_token = create_refresh_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
+
+    refresh_hash = hmac_hash(refresh_token, os.getenv("DATA_HASH_KEY", ""))
+    fingerprint = token_fingerprint(ua, ip)
+    update_user_login(uid, ip, refresh_hash)
+    create_session(
+        user_id=uid,
+        refresh_hash=refresh_hash,
+        fingerprint=fingerprint,
+        ip=ip,
+        ua=ua,
+        expires_at=_now_utc() + timedelta(days=7),
+    )
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=604800,
+        path="/",
+    )
+
+    return {
+        "status": "ok",
+        "message": "Giriş başarılı",
+        "access_token": access_token,
+        "user": sanitize_user_for_response(user),
+    }
 
 
 @router.post("/refresh")
@@ -195,13 +227,27 @@ def refresh(request: Request, response: Response):
     except Exception:
         raise HTTPException(status_code=401, detail="Geçersiz refresh token.")
     
-    # Basitleştirilmiş Refresh Mantığı
     email = str(payload.get("sub") or "").strip().lower()
     role = payload.get("role")
     user_id = payload.get("uid")
+    tv = payload.get("tv")
+    if payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Geçersiz refresh token.")
+    if not user_id or tv is None:
+        raise HTTPException(status_code=401, detail="Geçersiz refresh token.")
+
+    current_tv = get_user_token_version(str(user_id))
+    if int(tv) != int(current_tv):
+        response.delete_cookie("refresh_token", path="/")
+        raise HTTPException(status_code=401, detail="Oturum geçersiz.")
+
+    old_hash = hmac_hash(token, os.getenv("DATA_HASH_KEY", ""))
+    if not rotate_refresh_token_atomic(old_hash, reason="rotation"):
+        response.delete_cookie("refresh_token", path="/")
+        raise HTTPException(status_code=401, detail="Oturum geçersiz.")
     
-    new_access = create_access_token({"sub": email, "role": role, "uid": user_id})
-    new_refresh = create_refresh_token({"sub": email, "role": role, "uid": user_id})
+    new_access = create_access_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
+    new_refresh = create_refresh_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
     
     response.set_cookie(
         key="refresh_token",
@@ -211,6 +257,20 @@ def refresh(request: Request, response: Response):
         samesite="none",
         max_age=604800,
         path="/"
+    )
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
+    new_hash = hmac_hash(new_refresh, os.getenv("DATA_HASH_KEY", ""))
+    fingerprint = token_fingerprint(ua, ip)
+    create_session(
+        user_id=str(user_id),
+        refresh_hash=new_hash,
+        fingerprint=fingerprint,
+        ip=ip,
+        ua=ua,
+        expires_at=_now_utc() + timedelta(days=7),
     )
     return {"status": "ok", "access_token": new_access}
 

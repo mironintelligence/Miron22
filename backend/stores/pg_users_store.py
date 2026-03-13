@@ -21,22 +21,48 @@ def _row_to_user(row: Dict[str, Any]) -> Dict[str, Any]:
 # --- User Operations ---
 
 def create_user(user: Dict[str, Any]) -> str:
-    """Insert a new user and return ID"""
-    sql = """
-        INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, NOW())
-        RETURNING id;
-    """
-    params = (
+    cols = ["email", "password_hash", "first_name", "last_name", "role", "is_active", "created_at"]
+    vals = [
         _norm_email(user["email"]),
         user["hashed_password"],
         user.get("firstName"),
         user.get("lastName"),
         user.get("role", "user"),
-        user.get("is_active", True)
-    )
+        user.get("is_active", True),
+        "NOW()",
+    ]
+
+    optional_map = {
+        "is_verified": "is_verified",
+        "verification_token": "verification_token",
+        "reset_password_token": "reset_password_token",
+        "reset_password_expires_at": "reset_password_expires_at",
+        "enterprise_inquiry": "enterprise_inquiry",
+    }
+
     with get_db_cursor() as cur:
-        cur.execute(sql, params)
+        cur.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='users'"
+        )
+        existing = {r["column_name"] for r in cur.fetchall() or []}
+
+        for k, col in optional_map.items():
+            if k in user and col in existing:
+                cols.append(col)
+                vals.append(user.get(k))
+
+        col_sql = ", ".join(cols)
+        placeholders = []
+        params = []
+        for v in vals:
+            if isinstance(v, str) and v == "NOW()":
+                placeholders.append("NOW()")
+            else:
+                placeholders.append("%s")
+                params.append(v)
+
+        sql = f"INSERT INTO users ({col_sql}) VALUES ({', '.join(placeholders)}) RETURNING id;"
+        cur.execute(sql, tuple(params))
         row = cur.fetchone()
         return str(row["id"])
 

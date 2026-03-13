@@ -82,6 +82,8 @@ async def startup_event():
         "SECRET_KEY",
         "DATABASE_URL",
         "JWT_SECRET",
+        "DATA_HASH_KEY",
+        "DATA_ENCRYPTION_KEY",
     ]
     missing = []
     print("--- STARTUP ENVIRONMENT CHECK ---")
@@ -91,7 +93,7 @@ async def startup_event():
             missing.append(var)
             print(f"❌ {var} is MISSING")
         else:
-            if var in ["OPENAI_API_KEY", "SUPABASE_KEY", "SECRET_KEY", "JWT_SECRET"]:
+            if var in ["OPENAI_API_KEY", "SUPABASE_KEY", "SECRET_KEY", "JWT_SECRET", "DATA_HASH_KEY", "DATA_ENCRYPTION_KEY"]:
                 masked = val[:4] + "*" * 4 + val[-4:] if len(val) > 8 else "****"
                 print(f"✅ {var} is set ({masked})")
             elif var == "DATABASE_URL":
@@ -131,6 +133,8 @@ async def startup_event():
             "DATABASE_URL eski Seoul (ap-northeast-2) pooler’a işaret ediyor. "
             "Render’daki DATABASE_URL’yi aws-1-eu-central-1.pooler.supabase.com:6543 olacak şekilde güncelle."
         )
+    if "sslmode=" not in db_url:
+        raise RuntimeError("DATABASE_URL içine ?sslmode=require eklenmeli.")
 
     print("✅ All required environment variables are present and consistent.")
         
