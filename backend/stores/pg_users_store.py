@@ -1,7 +1,8 @@
+import os
 import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from db import get_db_cursor
+from db import get_db_cursor, get_pool_status
 from security import encrypt_value, decrypt_value, hmac_hash
 
 logger = logging.getLogger("miron_pg_store")
@@ -268,6 +269,11 @@ def update_password(user_id: str, hashed_password: str):
         cur.execute(sql, (hashed_password, user_id))
 
 def log_audit(user_id: Optional[str], action: str, resource: str = None, details: Dict = None, ip: str = None, ua: str = None):
+    if (os.getenv("AUDIT_LOG_ENABLED", "true") or "").lower() != "true":
+        return
+    status = get_pool_status()
+    if status.get("status") != "active":
+        return
     import json
     sql = """
         INSERT INTO audit_logs (user_id, action, resource, details, ip_address, user_agent)

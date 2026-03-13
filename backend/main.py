@@ -115,11 +115,24 @@ async def startup_event():
                 print(f"✅ {var} is set ({val})")
     
     if missing:
-        print(f"🔥 CRITICAL: Missing environment variables: {', '.join(missing)}")
-        # We can choose to raise exception here to crash explicitly in logs
-        # raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
-    else:
-        print("✅ All required environment variables are present.")
+        raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
+
+    db_url = os.getenv("DATABASE_URL") or ""
+    sb_url = (os.getenv("SUPABASE_URL") or "").strip()
+    sb_ref = sb_url.split("://", 1)[-1].split(".", 1)[0] if sb_url else ""
+    if sb_ref and sb_ref not in db_url:
+        raise RuntimeError(
+            "DATABASE_URL yanlış Supabase projesine/region’ına işaret ediyor. "
+            f"SUPABASE_URL ref={sb_ref} ama DATABASE_URL içinde bu ref yok. "
+            "Render’daki DATABASE_URL’yi Frankfurt (aws-1-eu-central-1) pooler string’i ile güncelle."
+        )
+    if "ap-northeast-2" in db_url:
+        raise RuntimeError(
+            "DATABASE_URL eski Seoul (ap-northeast-2) pooler’a işaret ediyor. "
+            "Render’daki DATABASE_URL’yi aws-1-eu-central-1.pooler.supabase.com:6543 olacak şekilde güncelle."
+        )
+
+    print("✅ All required environment variables are present and consistent.")
         
     # Init Sync DB Pool (Legacy)
     try:
@@ -174,6 +187,7 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
+    allow_origin_regex=os.getenv("FRONTEND_ORIGIN_REGEX", r"^https:\/\/.*\.vercel\.app$"),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
