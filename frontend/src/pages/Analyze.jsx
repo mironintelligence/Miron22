@@ -143,12 +143,25 @@ export default function Analyze() {
   const [analysisText, setAnalysisText] = useState("");
   const [summary, setSummary] = useState("");
   const [caseType, setCaseType] = useState("");
+  const [structured, setStructured] = useState(null);
 
   const [loading, setLoading] = useState(false);
 
   const fields = useMemo(() => {
+    if (structured && typeof structured === "object") {
+      return {
+        dosya_no: structured.dosya_no || "—",
+        evrak_no: structured.evrak_no || "—",
+        davaci: structured.davaci || "—",
+        davali: structured.davali || "—",
+        mahkeme: structured.mahkeme || "—",
+        esas: (structured.dosya_no || "").includes("E") ? structured.dosya_no : "—",
+        karar: structured.karar_no || structured.karar || "—",
+        konu: structured.konu_ozeti || "",
+      };
+    }
     return extractFields(analysisText || summary || "");
-  }, [analysisText, summary]);
+  }, [analysisText, summary, structured]);
 
   const handleAnalyze = async () => {
     if (!file) {
@@ -173,10 +186,12 @@ export default function Analyze() {
       setAnalysisText(data.analysis || data.text || data.raw_text || "");
       setSummary(data.summary || data.ozet || "");
       setCaseType(data.dava_turu || data.case_type || data.caseType || "");
+      setStructured(data.structured || null);
     } catch (e) {
       setAnalysisText("");
       setSummary("Sunucu hatası / bağlantı sorunu.");
       setCaseType("");
+      setStructured(null);
     } finally {
       setLoading(false);
     }
@@ -256,6 +271,17 @@ export default function Analyze() {
                 <div className="glass p-4 rounded-xl">
                   <div className="text-xs text-subtle mb-1">Mahkeme</div>
                   <div className="text-sm font-semibold text-fg">{fields.mahkeme}</div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="glass p-4 rounded-xl">
+                    <div className="text-xs text-subtle mb-1">Dosya No</div>
+                    <div className="text-sm font-semibold text-fg">{fields.dosya_no || "—"}</div>
+                  </div>
+                  <div className="glass p-4 rounded-xl">
+                    <div className="text-xs text-subtle mb-1">Evrak No</div>
+                    <div className="text-sm font-semibold text-fg">{fields.evrak_no || "—"}</div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

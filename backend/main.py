@@ -349,12 +349,7 @@ def smart_format(text: str, filename: str, dava_turu: str):
 """.strip()
             
             summary = structured_output.get('konu_ozeti', "Otomatik analiz tamamlandı.")
-            return formatted, summary
-            
-        except Exception as e:
-            print(f"AI Analysis Failed: {e}")
-            # Fallback to legacy method below
-            pass
+            return formatted, summary, structured_output
             
         except Exception as e:
             print(f"AI Analysis Failed: {e}")
@@ -433,7 +428,7 @@ Metinde açıkça yer almıyor; çıkarım yapılamadı.
 50
 """.strip()
 
-    return formatted, summary
+    return formatted, summary, None
 
 
 def extract_text(filename: str, data: bytes):
@@ -471,13 +466,14 @@ async def analyze_file(file: UploadFile = File(...)):
     else:
         dava_turu = "Genel Hukuk Dosyası"
 
-    formatted, summary = smart_format(text, file.filename, dava_turu)
+    formatted, summary, structured = smart_format(text, file.filename, dava_turu)
 
     return {
         "analysis": formatted,
         "formatted": formatted,
         "summary": summary,
         "dava_turu": dava_turu,
+        "structured": structured,
     }
 
 

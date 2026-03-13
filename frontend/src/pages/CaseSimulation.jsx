@@ -23,13 +23,19 @@ export default function CaseSimulation() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.case_description.trim() && !file) {
+      setError("Lütfen dava metni yazın veya dosya yükleyin (ya da ikisini birden).");
+      return;
+    }
     setLoading(true);
     setError("");
     setResult(null);
 
     try {
       const payload = new FormData();
-      payload.append("case_description", formData.case_description);
+      if (formData.case_description.trim()) {
+        payload.append("case_description", formData.case_description);
+      }
       payload.append("jurisdiction", formData.jurisdiction);
       payload.append("user_role", formData.user_role);
       if (file) {
@@ -126,7 +132,6 @@ export default function CaseSimulation() {
                 rows={8}
                 className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none transition resize-none"
                 placeholder="Olayın detaylarını, eldeki delilleri, karşı tarafın olası iddialarını ve hukuki süreci detaylıca anlatın..."
-                required
               />
               <p className="text-xs text-white/40 mt-2 text-right">
                 Ne kadar detay verirseniz simülasyon o kadar isabetli olur.

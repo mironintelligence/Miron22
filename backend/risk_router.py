@@ -22,7 +22,7 @@ SIMULATION_MODEL = "gpt-4o"
 
 @router.post("/simulate", response_model=dict)
 async def simulate_case(
-    case_description: str = Form(...),
+    case_description: Optional[str] = Form(None),
     jurisdiction: str = Form("Türkiye"),
     user_role: str = Form("Davacı"),
     file: Optional[UploadFile] = File(None)
@@ -53,7 +53,11 @@ async def simulate_case(
         except Exception as e:
             print(f"File read error in simulation: {e}")
 
-    full_text = case_description + file_content
+    text_part = (case_description or "").strip()
+    if not text_part and not file_content:
+        raise HTTPException(status_code=400, detail="Dava metni veya dosya gereklidir.")
+
+    full_text = (text_part + file_content).strip()
     clean_case = sanitize_text(full_text, 15000)
     
     det_risk = risk_engine.analyze_risk(clean_case)
@@ -83,10 +87,10 @@ async def simulate_case(
        - En Olası Sonuç: (Gerekçeli tahmin)
     4. Stratejik Tavsiye: Taktik, savunma, karşı-strateji ve uzlaşma planı üret.
     
-    MANDATORY STRUCTURAL LAYERS (Include these in JSON):
-    - procedural_risk: {{ "level": "High/Med/Low", "details": "..." }}
+    ZORUNLU YAPISAL KATMANLAR (JSON içinde mutlaka yer almalı):
+    - procedural_risk: {{ "level": "Yüksek/Orta/Düşük", "details": "..." }}
     - contradiction_analysis: {{ "internal": "...", "external": "..." }}
-    - missing_claims: [ "claim1", "claim2" ]
+    - missing_claims: [ "iddia1", "iddia2" ]
     - alternative_qualification: {{ "current": "...", "proposed": "...", "advantage": "..." }}
     
     ÇIKTI FORMATI (JSON):
@@ -120,7 +124,7 @@ async def simulate_case(
         completion = client.chat.completions.create(
             model=SIMULATION_MODEL,
             messages=[
-                {"role": "system", "content": "You are a senior legal strategist. Output valid JSON only. Do not fabricate facts."},
+                {"role": "system", "content": "Kıdemli bir stratejik hukuk danışmanısın. Sadece geçerli JSON üret. Uydurma yapma. Tüm metinler Türkçe olmalı."},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.2,
