@@ -15,8 +15,11 @@ except ImportError:
     from admin_auth import require_admin
 
 from services.pricing_service import (
-    _load_discounts, _save_discounts, find_valid_discount, increment_usage, 
-    create_discount, toggle_discount, _normalize_code
+    find_valid_discount,
+    create_discount,
+    toggle_discount,
+    _normalize_code,
+    list_discounts,
 )
 
 router = APIRouter()
@@ -184,7 +187,7 @@ def calculate_price(req: CalculateRequest):
 
 @router.get("/discount-codes", dependencies=[Depends(require_admin)])
 def list_discount_codes():
-    return _load_discounts()
+    return list_discounts()
 
 
 @router.post("/discount-codes", dependencies=[Depends(require_admin)])

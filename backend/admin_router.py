@@ -180,69 +180,56 @@ def admin_health():
     return {"ok": True, "ts": _iso(_now())}
 
 # ------------------------
-# Demo Requests (Keeping JSON for now)
+# Demo Requests (DB)
 # ------------------------
 @router.get("/demo-requests", dependencies=[Depends(require_admin)])
 def list_demo_requests():
-    arr = _load_json(DEMO_REQUESTS_FILE, [])
-    if not isinstance(arr, list):
-        arr = []
-    return arr
+    from db import get_db_cursor
+    with get_db_cursor() as cur:
+        cur.execute("SELECT * FROM demo_requests ORDER BY updated_at DESC LIMIT 200")
+        return cur.fetchall()
 
 @router.post("/demo-requests/{request_id}/approve", dependencies=[Depends(require_admin)])
 def approve_demo_request(request_id: str, req: Request):
-    reqs = _load_json(DEMO_REQUESTS_FILE, [])
-    if not isinstance(reqs, list):
-        reqs = []
-
-    req_data = next((r for r in reqs if str(r.get("id")) == request_id or str(r.get("email")) == request_id), None)
-    if not req_data:
-        raise HTTPException(status_code=404, detail="Demo request bulunamadı.")
-
-    email = (req_data.get("email") or "").strip().lower()
-    if not email:
-        raise HTTPException(status_code=400, detail="Request email boş.")
-
-    password = (req_data.get("password") or "").strip() or secrets.token_urlsafe(10)
-
-    # Create as Demo User in PG
-    # Check if exists
-    existing = find_user_by_email(email)
-    if existing:
-        # Update to demo? Or fail? Let's fail for now to be safe
-        # Or update role to demo
-        update_user_role(email, "demo")
-    else:
-        create_user({
-            "email": email,
-            "firstName": req_data.get("firstName") or "",
-            "lastName": req_data.get("lastName") or "",
-            "hashed_password": hash_password(password),
-            "role": "demo",
-            "is_active": True
-        })
-
-    # request’i sil
-    reqs = [r for r in reqs if not (str(r.get("id")) == request_id or str(r.get("email")) == request_id)]
-    _atomic_write_json(DEMO_REQUESTS_FILE, reqs)
+    from db import get_db_cursor
+    with get_db_cursor() as cur:
+        cur.execute(
+            """
+            UPDATE demo_requests
+            SET status = 'approved', approved_until = NOW() + INTERVAL '7 days', updated_at = NOW()
+            WHERE id::text = %s OR email = %s
+            RETURNING email, approved_until
+            """,
+            (request_id, request_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Demo talebi bulunamadı.")
 
     admin_info = req.state.admin if hasattr(req.state, "admin") else {}
-    log_audit(admin_info.get("admin_id"), "DEMO_APPROVE", email)
-    
-    return {"ok": True, "email": email}
+    log_audit(admin_info.get("admin_id"), "DEMO_APPROVE", row.get("email"), {"approved_until": str(row.get("approved_until"))})
+    return {"ok": True, "email": row.get("email"), "approved_until": row.get("approved_until")}
 
 @router.post("/demo-requests/{request_id}/reject", dependencies=[Depends(require_admin)])
 def reject_demo_request(request_id: str, req: Request):
-    reqs = _load_json(DEMO_REQUESTS_FILE, [])
-    before = len(reqs)
-    reqs = [r for r in reqs if not (str(r.get("id")) == request_id or str(r.get("email")) == request_id)]
-    if len(reqs) == before:
-        raise HTTPException(status_code=404, detail="Demo request bulunamadı.")
-    _atomic_write_json(DEMO_REQUESTS_FILE, reqs)
-    
+    from db import get_db_cursor
+    with get_db_cursor() as cur:
+        cur.execute(
+            """
+            UPDATE demo_requests
+            SET status = 'rejected', updated_at = NOW()
+            WHERE id::text = %s OR email = %s
+            RETURNING email
+            """,
+            (request_id, request_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Demo talebi bulunamadı.")
+
     admin_info = req.state.admin if hasattr(req.state, "admin") else {}
-    log_audit(admin_info.get("admin_id"), "DEMO_REJECT", request_id)
-    return {"ok": True}
+    log_audit(admin_info.get("admin_id"), "DEMO_REJECT", row.get("email"))
+    return {"ok": True, "email": row.get("email")}
 
 # ------------------------
 # User Management (PG)

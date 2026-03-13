@@ -38,6 +38,10 @@ def create_user(user: Dict[str, Any]) -> str:
         "reset_password_token": "reset_password_token",
         "reset_password_expires_at": "reset_password_expires_at",
         "enterprise_inquiry": "enterprise_inquiry",
+        "used_discount_code": "used_discount_code",
+        "demo_expires_at": "demo_expires_at",
+        "subscription_plan": "subscription_plan",
+        "subscription_status": "subscription_status",
     }
 
     with get_db_cursor() as cur:

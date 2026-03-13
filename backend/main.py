@@ -150,45 +150,6 @@ async def startup_event():
     except Exception as e:
         print(f"🔥 CRITICAL: Async DB Pool Init Failed: {e}")
 
-    if (os.getenv("BOOTSTRAP_MODE", "false") or "").lower() == "true":
-        b_email = (os.getenv("BOOTSTRAP_USER_EMAIL") or "").strip().lower()
-        b_pw = os.getenv("BOOTSTRAP_USER_PASSWORD") or ""
-        b_first = (os.getenv("BOOTSTRAP_USER_FIRST_NAME") or "").strip()
-        b_last = (os.getenv("BOOTSTRAP_USER_LAST_NAME") or "").strip()
-        missing_bootstrap = []
-        if not b_email:
-            missing_bootstrap.append("BOOTSTRAP_USER_EMAIL")
-        if not b_pw:
-            missing_bootstrap.append("BOOTSTRAP_USER_PASSWORD")
-        if not b_first:
-            missing_bootstrap.append("BOOTSTRAP_USER_FIRST_NAME")
-        if not b_last:
-            missing_bootstrap.append("BOOTSTRAP_USER_LAST_NAME")
-
-        if missing_bootstrap:
-            print(f"⚠️ BOOTSTRAP_MODE açık ama eksik: {', '.join(missing_bootstrap)}")
-        else:
-            try:
-                from stores.pg_users_store import find_user_by_email, create_user
-                from security import hash_password
-                if not find_user_by_email(b_email):
-                    uid = create_user(
-                        {
-                            "email": b_email,
-                            "firstName": b_first,
-                            "lastName": b_last,
-                            "hashed_password": hash_password(b_pw),
-                            "role": "user",
-                            "is_active": True,
-                            "is_verified": True,
-                        }
-                    )
-                    print(f"✅ BOOTSTRAP user created: {b_email} ({uid})")
-                else:
-                    print(f"✅ BOOTSTRAP user already exists: {b_email}")
-            except Exception as e:
-                print(f"🔥 CRITICAL: BOOTSTRAP user create failed: {e}")
-
 @app.on_event("shutdown")
 async def shutdown_event():
     close_pool()
@@ -283,6 +244,7 @@ billing_router   = _safe_import("routes.billing_routes", "router")
 feedback_router  = _safe_import("routes.feedback_routes", "router")
 analyze_router   = _safe_import("routes.analyze", "router")
 orchestrator_router = _safe_import("routers.orchestrator", "router")
+demo_request_router = _safe_import("routes.demo_request_routes", "router")
 admin_api_router = _safe_import("admin_router", "api_router")
 admin_router     = _safe_import("admin_router", "router")
 
@@ -654,6 +616,8 @@ if billing_router:  app.include_router(billing_router)
 if feedback_router: app.include_router(feedback_router)
 if analyze_router:  app.include_router(analyze_router)
 if orchestrator_router: app.include_router(orchestrator_router)
+if demo_request_router: app.include_router(demo_request_router)
+                    
                     
 
 # New Auth Router (Supabase)

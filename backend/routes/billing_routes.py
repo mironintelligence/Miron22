@@ -35,27 +35,30 @@ async def upgrade_account(
         # TODO: Integrate real payment gateway
         pass
 
-    # 2. Update User Role/Status in DB
+    # 2. Update User Subscription in DB
     try:
-        # Set role to 'pro_user' or just keep 'user' but update subscription status
-        # Let's assume 'pro' plan gives extended access
-        
-        # We might need a 'subscription_plan' column in users table, 
-        # or we just rely on 'role' if simple. Let's stick to role for now or add metadata.
-        
-        # Updating role to 'pro' if plan is pro
-        new_role = "pro" if req.plan_id in ["pro", "enterprise"] else "user"
-        
+        plan = (req.plan_id or "").strip().lower()
+        if plan not in ["starter", "pro", "enterprise"]:
+            raise HTTPException(status_code=400, detail="Geçersiz plan.")
+
         await db.execute(
-            "UPDATE users SET role = $1, demo_expires_at = NULL WHERE id = $2",
-            new_role, user_id
+            """
+            UPDATE users
+            SET subscription_plan = $1,
+                subscription_status = 'active',
+                demo_expires_at = NULL,
+                role = CASE WHEN role = 'demo' THEN 'user' ELSE role END,
+                token_version = token_version + 1
+            WHERE id = $2
+            """,
+            plan,
+            user_id,
         )
         
         return {
             "status": "success",
-            "message": "Hesabınız başarıyla yükseltildi.",
-            "plan": req.plan_id,
-            "new_role": new_role
+            "message": "Aboneliğiniz başarıyla güncellendi.",
+            "plan": plan,
         }
         
     except Exception as e:

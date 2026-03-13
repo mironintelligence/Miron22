@@ -42,7 +42,7 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=12, max_length=128)
     firstName: str = Field(min_length=1, max_length=64)
     lastName: str = Field(min_length=1, max_length=64)
-    mode: Optional[str] = Field(default="single", max_length=16)
+    mode: Optional[str] = Field(default="single", pattern="^(single|demo)$", max_length=16)
     discountCode: Optional[str] = Field(default=None, max_length=64)
     role: Optional[str] = Field(default="user", pattern="^(user)$")
 
@@ -82,6 +82,24 @@ def register(payload: RegisterRequest) -> Dict[str, Any]:
             increment_usage(dc["code"])
             used_code = dc["code"]
 
+    role = "user"
+    demo_expires_at = None
+    if payload.mode == "demo":
+        from db import get_db_cursor
+        with get_db_cursor() as cur:
+            cur.execute(
+                "SELECT status, approved_until FROM demo_requests WHERE email = %s LIMIT 1",
+                (email_norm,),
+            )
+            r = cur.fetchone()
+            if not r or r.get("status") != "approved":
+                raise HTTPException(status_code=403, detail="Demo hesabı için onay bekleniyor.")
+            approved_until = r.get("approved_until")
+            if not approved_until:
+                raise HTTPException(status_code=403, detail="Demo hesabı için süre tanımlanmamış.")
+            demo_expires_at = approved_until
+            role = "demo"
+
     # Generate Verification Token
     v_token = secrets.token_urlsafe(32)
 
@@ -94,7 +112,10 @@ def register(payload: RegisterRequest) -> Dict[str, Any]:
         "is_active": True,
         "is_verified": False, # E-posta doğrulaması gerekli
         "verification_token": v_token,
+        "used_discount_code": used_code,
+        "demo_expires_at": demo_expires_at,
     }
+    user_data["role"] = role
     
     user_id = create_user(user_data)
     
