@@ -55,7 +55,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             "/api/contracts/analyze",
             "/api/notifications/broadcast",
             "/api/health" # Health check should be public
-        ] or request.url.path.startswith("/api/pricing"): # Webhooks often come here
+        ] or request.url.path.startswith("/api/pricing") or request.url.path.startswith("/api/demo-request"):
             return await call_next(request)
 
         cookie_token = request.cookies.get(self.cookie_name)
