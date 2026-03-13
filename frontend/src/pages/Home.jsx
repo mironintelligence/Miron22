@@ -1,6 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useAuth } from "../auth/AuthProvider";
+import AdminPanel from "./AdminPanel.jsx";
 
 const tiles = [
   {
@@ -77,6 +79,10 @@ const tiles = [
 ];
 
 export default function Home() {
+  const { user } = useAuth();
+  if (user?.role === "admin") {
+    return <AdminPanel />;
+  }
   return (
     <div className="mt-24 pb-28">
       <div className="glass px-6 py-10">

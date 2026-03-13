@@ -1,35 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../auth/AuthProvider";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    // Check local storage for user info
-    const storedUser = localStorage.getItem("miron_user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error("User parse error", e);
-      }
-    }
-  }, []);
+  const { user, status, logout } = useAuth();
 
   const handleLogout = async () => {
-    try {
-        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-        await fetch(`${base}/api/auth/logout`, { method: "POST" });
-    } catch(e) {
-        console.log("Logout error", e);
-    }
-    localStorage.removeItem("miron_user");
-    localStorage.removeItem("miron_token");
-    setUser(null);
-    navigate("/login");
+    await logout();
+    navigate("/", { replace: true });
   };
 
   const navLinks = [
@@ -37,7 +18,7 @@ export default function Navbar() {
     { name: "Analiz", path: "/analyze" },
     { name: "Yargıtay", path: "/yargitay" },
     { name: "Mevzuat", path: "/mevzuat" },
-    { name: "Simülasyon", path: "/simulation" },
+    { name: "Dava Simülasyonu", path: "/case-simulation" },
     { name: "Sözleşmeler", path: "/contracts" }, // YENİ
   ];
 
@@ -47,7 +28,7 @@ export default function Navbar() {
   }
 
   // Public links if not logged in
-  if (!user) {
+  if (status !== "authed") {
     return (
       <nav className="fixed top-0 left-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -104,6 +85,9 @@ export default function Navbar() {
 
         {/* Right Side (User & Notifications) */}
         <div className="hidden md:flex items-center gap-6">
+          <Link to="/upgrade" className="text-sm font-semibold text-[var(--miron-gold)] hover:brightness-110 transition">
+            Hesabı Yükselt
+          </Link>
           <Link to="/notifications" className="relative group">
              <span className="text-xl">🔔</span>
              {/* Kırmızı nokta eklenebilir eğer okunmamış varsa */}

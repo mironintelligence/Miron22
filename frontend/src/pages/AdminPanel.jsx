@@ -150,20 +150,40 @@ export default function AdminPanel() {
     }
   };
 
+  const approveDemo = async (idOrEmail) => {
+    const res = await fetchWithAuth(`/admin/demo-requests/${encodeURIComponent(idOrEmail)}/approve`, { method: "POST" });
+    if (res?.ok) {
+      showMsg("Demo talebi onaylandı", "success");
+      fetchDemos();
+    } else {
+      showMsg("Demo talebi onaylanamadı", "error");
+    }
+  };
+
+  const rejectDemo = async (idOrEmail) => {
+    const res = await fetchWithAuth(`/admin/demo-requests/${encodeURIComponent(idOrEmail)}/reject`, { method: "POST" });
+    if (res?.ok) {
+      showMsg("Demo talebi reddedildi", "success");
+      fetchDemos();
+    } else {
+      showMsg("Demo talebi reddedilemedi", "error");
+    }
+  };
+
   if (!authed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-amber-500 font-mono">
         <div className="p-10 border border-amber-900/30 bg-black rounded-2xl shadow-2xl max-w-md w-full">
-          <h1 className="text-2xl font-bold mb-6 text-center tracking-widest">MIRON MASTER CONTROL</h1>
+          <h1 className="text-2xl font-bold mb-6 text-center tracking-widest">MIRON YÖNETİM PANELİ</h1>
           {msg && <div className="mb-4 text-sm text-red-500 text-center">{msg}</div>}
           <form onSubmit={handleLogin} className="space-y-4">
-            <input type="text" placeholder="First Name" className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none" 
+            <input type="text" placeholder="Ad" className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none" 
               value={cred.firstName} onChange={e => setCred({...cred, firstName: e.target.value})} />
-            <input type="text" placeholder="Last Name" className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none" 
+            <input type="text" placeholder="Soyad" className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none" 
               value={cred.lastName} onChange={e => setCred({...cred, lastName: e.target.value})} />
-            <input type="password" placeholder="Passcode" className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none" 
+            <input type="password" placeholder="Şifre" className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none" 
               value={cred.password} onChange={e => setCred({...cred, password: e.target.value})} />
-            <button className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition">ACCESS</button>
+            <button className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition">Giriş Yap</button>
           </form>
         </div>
       </div>
@@ -176,10 +196,10 @@ export default function AdminPanel() {
       <div className="fixed top-0 left-0 right-0 h-16 bg-black/90 backdrop-blur border-b border-amber-900/20 flex items-center justify-between px-6 z-50">
         <div className="flex items-center gap-4">
           <div className="text-amber-500 font-bold tracking-widest text-lg">MIRON <span className="text-white opacity-50">ADMIN</span></div>
-          {config?.maintenance_mode && <span className="bg-red-600 text-white text-xs px-2 py-1 rounded font-bold animate-pulse">EMERGENCY MODE ACTIVE</span>}
+          {config?.maintenance_mode && <span className="bg-red-600 text-white text-xs px-2 py-1 rounded font-bold animate-pulse">BAKIM MODU AKTİF</span>}
         </div>
         <div className="flex gap-4">
-          <button onClick={() => { setAuthed(false); setToken(""); }} className="text-xs text-red-500 hover:text-red-400 uppercase tracking-wide">Secure Logout</button>
+          <button onClick={() => { setAuthed(false); setToken(""); }} className="text-xs text-red-500 hover:text-red-400 uppercase tracking-wide">Çıkış</button>
         </div>
       </div>
 
@@ -192,7 +212,19 @@ export default function AdminPanel() {
                 activeTab === tab ? "text-amber-500 border-b-2 border-amber-500" : "text-zinc-600 hover:text-zinc-400"
               }`}
             >
-              {tab === "master" ? "Master Control" : tab}
+              {tab === "stats"
+                ? "İstatistik"
+                : tab === "master"
+                ? "Sistem"
+                : tab === "users"
+                ? "Kullanıcılar"
+                : tab === "demos"
+                ? "Demo Talepleri"
+                : tab === "discounts"
+                ? "İndirim Kodları"
+                : tab === "notifications"
+                ? "Duyurular"
+                : "Loglar"}
             </button>
           ))}
         </div>
@@ -213,7 +245,7 @@ export default function AdminPanel() {
             <StatCard label="Demo Users" value={stats.demo_users} color="text-blue-400" />
             <StatCard label="Pending Demos" value={stats.pending_requests} color="text-amber-400" />
             <div className="md:col-span-4 bg-zinc-900/30 p-6 rounded border border-zinc-800">
-              <div className="text-xs text-zinc-500 uppercase mb-2">System Status</div>
+              <div className="text-xs text-zinc-500 uppercase mb-2">Sistem Durumu</div>
               <div className="text-xl text-white font-mono">{stats.system_status}</div>
               <div className="text-xs text-zinc-600 mt-1">Last Restart: {stats.last_restart}</div>
             </div>
@@ -252,17 +284,17 @@ export default function AdminPanel() {
         {activeTab === "master" && (
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-red-900/5 border border-red-900/30 p-6 rounded-xl">
-              <h3 className="text-red-500 font-bold mb-4 tracking-widest">EMERGENCY PROTOCOLS</h3>
+              <h3 className="text-red-500 font-bold mb-4 tracking-widest">SİSTEM KONTROLLERİ</h3>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-white font-bold">System Lockdown</div>
-                  <div className="text-xs text-red-400">Disables all user access immediately.</div>
+                  <div className="text-white font-bold">Bakım Modu</div>
+                  <div className="text-xs text-red-400">Kullanıcı erişimini geçici olarak kapatır.</div>
                 </div>
                 <button 
                   onClick={() => toggleEmergency(!config?.maintenance_mode)}
                   className={`px-4 py-2 rounded font-bold text-sm ${config?.maintenance_mode ? "bg-green-600 text-white" : "bg-red-600 text-black"}`}
                 >
-                  {config?.maintenance_mode ? "RESTORE SYSTEM" : "INITIATE LOCKDOWN"}
+                  {config?.maintenance_mode ? "SİSTEMİ AÇ" : "SİSTEMİ KAPAT"}
                 </button>
               </div>
             </div>
@@ -271,11 +303,11 @@ export default function AdminPanel() {
               <h3 className="text-amber-500 font-bold mb-4 tracking-widest">SYSTEM CONFIG</h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                  <span className="text-zinc-400">Allow Registration</span>
-                  <span className="text-green-500 font-mono">ENABLED</span>
+                  <span className="text-zinc-400">Kayıt Olma</span>
+                  <span className="text-green-500 font-mono">AÇIK</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                  <span className="text-zinc-400">Max Tokens / User</span>
+                  <span className="text-zinc-400">Kullanıcı Token Limiti</span>
                   <span className="text-amber-500 font-mono">1000</span>
                 </div>
               </div>
@@ -316,7 +348,7 @@ export default function AdminPanel() {
                     </td>
                     <td className="p-4">
                       <span className={`text-xs px-2 py-1 rounded ${u.is_active !== false ? "bg-green-900/30 text-green-400" : "bg-red-900/30 text-red-400"}`}>
-                        {u.is_active !== false ? "ACTIVE" : "SUSPENDED"}
+                        {u.is_active !== false ? "AKTİF" : "ASKIDA"}
                       </span>
                     </td>
                     <td className="p-4 text-xs text-zinc-500">{u.created_at?.split("T")[0]}</td>
@@ -336,7 +368,7 @@ export default function AdminPanel() {
         {/* LOGS VIEWER */}
         {activeTab === "logs" && (
           <div className="bg-black border border-zinc-800 rounded-xl p-4 font-mono text-xs h-[600px] overflow-auto">
-            {logs.length === 0 ? <div className="text-zinc-600">No logs available.</div> : 
+            {logs.length === 0 ? <div className="text-zinc-600">Log bulunamadı.</div> : 
               logs.map((line, i) => (
                 <div key={i} className="mb-1 border-b border-zinc-900 pb-1 text-zinc-400 hover:text-white transition-colors">
                   {line}
@@ -351,33 +383,33 @@ export default function AdminPanel() {
           <div className="grid md:grid-cols-3 gap-8">
             <div className="md:col-span-1 space-y-4">
               <div className="bg-zinc-900/30 p-4 rounded border border-zinc-800">
-                <h3 className="text-amber-500 font-bold mb-4">CREATE CODE</h3>
-                <input className="w-full bg-black border border-zinc-700 p-2 mb-2 text-white rounded" placeholder="CODE (e.g. SUMMER25)" 
+                <h3 className="text-amber-500 font-bold mb-4">İNDİRİM KODU OLUŞTUR</h3>
+                <input className="w-full bg-black border border-zinc-700 p-2 mb-2 text-white rounded" placeholder="KOD (örn: BAHAR25)" 
                   value={newDiscount.code} onChange={e => setNewDiscount({...newDiscount, code: e.target.value})} />
                 <div className="flex gap-2 mb-2">
                   <select className="bg-black border border-zinc-700 p-2 text-white rounded flex-1"
                     value={newDiscount.type} onChange={e => setNewDiscount({...newDiscount, type: e.target.value})}>
-                    <option value="percent">% Percent</option>
-                    <option value="fixed">Fixed Amount</option>
+                    <option value="percent">% Yüzde</option>
+                    <option value="fixed">Sabit Tutar</option>
                   </select>
-                  <input type="number" className="bg-black border border-zinc-700 p-2 text-white rounded w-24" placeholder="Val"
+                  <input type="number" className="bg-black border border-zinc-700 p-2 text-white rounded w-24" placeholder="Değer"
                     value={newDiscount.value} onChange={e => setNewDiscount({...newDiscount, value: e.target.value})} />
                 </div>
-                <button onClick={createDiscount} className="w-full bg-amber-600 text-black font-bold py-2 rounded hover:bg-amber-500">CREATE</button>
+                <button onClick={createDiscount} className="w-full bg-amber-600 text-black font-bold py-2 rounded hover:bg-amber-500">Oluştur</button>
               </div>
             </div>
             <div className="md:col-span-2">
               <div className="bg-zinc-900/20 border border-zinc-800 rounded overflow-hidden">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-zinc-900/50 text-zinc-500 uppercase text-xs">
-                    <tr><th className="p-3">Code</th><th className="p-3">Value</th><th className="p-3">Status</th></tr>
+                    <tr><th className="p-3">Kod</th><th className="p-3">Değer</th><th className="p-3">Durum</th></tr>
                   </thead>
                   <tbody>
                     {discounts.map(d => (
                       <tr key={d.code} className="border-b border-zinc-800 hover:bg-zinc-900/30">
                         <td className="p-3 font-mono text-white">{d.code}</td>
                         <td className="p-3 text-amber-500">{d.value} {d.type === 'percent' ? '%' : 'TL'}</td>
-                        <td className="p-3"><span className={d.active ? "text-green-500" : "text-red-500"}>{d.active ? "ACTIVE" : "INACTIVE"}</span></td>
+                        <td className="p-3"><span className={d.active ? "text-green-500" : "text-red-500"}>{d.active ? "AKTİF" : "PASİF"}</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -389,11 +421,69 @@ export default function AdminPanel() {
 
         {/* DEMO REQUESTS */}
         {activeTab === "demos" && (
-           <div className="bg-zinc-900/20 border border-zinc-800 rounded-xl overflow-hidden">
-             <div className="p-4 text-zinc-500 italic">
-               {demos.length} pending requests.
-             </div>
-           </div>
+          <div className="bg-zinc-900/20 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="p-4 flex items-center justify-between border-b border-zinc-800">
+              <div className="text-zinc-400 text-sm">
+                Toplam: <span className="text-white font-bold">{demos.length}</span>
+              </div>
+              <button
+                onClick={fetchDemos}
+                className="text-xs border border-zinc-700 px-3 py-2 rounded hover:bg-white/5"
+              >
+                Yenile
+              </button>
+            </div>
+            <table className="w-full text-left text-sm">
+              <thead className="bg-zinc-900/50 text-zinc-500 uppercase text-xs">
+                <tr>
+                  <th className="p-3">Kişi</th>
+                  <th className="p-3">E-posta</th>
+                  <th className="p-3">Durum</th>
+                  <th className="p-3">Süre</th>
+                  <th className="p-3">İşlem</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {demos.map((d) => (
+                  <tr key={d.id || d.email} className="hover:bg-zinc-900/30 transition">
+                    <td className="p-3 text-white">
+                      {(d.first_name || "-") + " " + (d.last_name || "")}
+                    </td>
+                    <td className="p-3 text-zinc-300 font-mono">{d.email}</td>
+                    <td className="p-3">
+                      <span className={`text-xs px-2 py-1 rounded ${d.status === "approved" ? "bg-green-900/30 text-green-400" : d.status === "rejected" ? "bg-red-900/30 text-red-400" : "bg-amber-900/30 text-amber-400"}`}>
+                        {d.status === "approved" ? "ONAYLANDI" : d.status === "rejected" ? "RED" : "BEKLİYOR"}
+                      </span>
+                    </td>
+                    <td className="p-3 text-xs text-zinc-500">
+                      {d.approved_until ? String(d.approved_until).split("T")[0] : "—"}
+                    </td>
+                    <td className="p-3">
+                      {d.status === "pending" ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => approveDemo(d.id || d.email)}
+                            className="text-xs border border-green-900/40 px-2 py-1 rounded hover:bg-green-900/20 text-green-400"
+                          >
+                            Onayla
+                          </button>
+                          <button
+                            onClick={() => rejectDemo(d.id || d.email)}
+                            className="text-xs border border-red-900/40 px-2 py-1 rounded hover:bg-red-900/20 text-red-400"
+                          >
+                            Reddet
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-zinc-600">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {demos.length === 0 ? <div className="p-6 text-sm text-zinc-600">Demo talebi yok.</div> : null}
+          </div>
         )}
 
       </div>

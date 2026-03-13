@@ -53,17 +53,17 @@ export default function IntroLanding() {
         <div className="max-w-7xl mx-auto px-6 z-10 w-full pt-20">
           <motion.div variants={fadeUp} className="text-center mb-8">
             <span className="inline-block py-1 px-4 rounded-full bg-white/5 border border-white/10 text-xs font-bold tracking-[0.2em] text-[var(--miron-gold)] uppercase backdrop-blur-md">
-              Miron AI — Avukatlara Stratejik Güç
+              Miron AI — Avukatlar İçin Netlik
             </span>
           </motion.div>
           
           <motion.h1 variants={fadeUp} className="text-6xl sm:text-7xl md:text-9xl font-black tracking-tighter text-center leading-[0.9] mb-10 bg-gradient-to-b from-white via-white/90 to-white/40 bg-clip-text text-transparent">
-            Hukukun<br />Geleceği.
+            Dosyanızın<br />Kontrolü Sizde.
           </motion.h1>
           
           <motion.p variants={fadeUp} className="text-xl md:text-2xl text-white/50 text-center max-w-4xl mx-auto leading-relaxed font-light mb-12">
-            Davayı okumak, anlamlandırmak ve stratejiye çevirmek artık saatler değil dakikalar alır.
-            <span className="text-white/80"> Daha az risk, daha güçlü savunma, daha ikna edici dosya.</span>
+            Aynı evrakı defalarca okumak, eksik belge yüzünden gecikmek, son dakika dilekçesi yetiştirmek…
+            <span className="text-white/80"> Miron AI, bu baskıyı azaltmak için dosyayı hızla düzenler, eksikleri gösterir ve yol haritası çıkarır.</span>
           </motion.p>
 
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-6">
@@ -191,15 +191,11 @@ export default function IntroLanding() {
               Daire, yıl ve sonuç odaklı filtrelerle doğru içtihada hızlı erişin.
             </motion.p>
             
-            <motion.div variants={fadeUp} className="grid grid-cols-2 gap-8 border-t border-white/10 pt-8">
-              <div>
-                <div className="text-4xl font-bold text-white mb-2">{counters.decisions}+</div>
-                <div className="text-sm text-white/40 uppercase tracking-widest">Karar Kümeleri</div>
-              </div>
-              <div>
-                <div className="text-4xl font-bold text-white mb-2">%{counters.accuracy}</div>
-                <div className="text-sm text-white/40 uppercase tracking-widest">Eşleşme Tutarlılığı</div>
-              </div>
+            <motion.div variants={fadeUp} className="border-t border-white/10 pt-8">
+              <ul className="text-white/60 text-sm space-y-2">
+                <li>Doğru emsali bulmak için daire/yıl/konu filtreleri</li>
+                <li>Gerekçe özeti ve dosyanıza uygulanabilir argüman başlıkları</li>
+              </ul>
             </motion.div>
           </motion.div>
 

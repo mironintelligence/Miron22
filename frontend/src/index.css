@@ -21,16 +21,18 @@ body {
   @apply antialiased transition-colors duration-300;
   background: var(--miron-bg);
   color: var(--miron-text);
-  font-family: "Akzidenz-Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 h1, h2, h3, h4 {
-  font-family: "Abril Fatface", serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
   letter-spacing: -0.02em;
 }
 
 .subtitle, .section-title {
-  font-family: "Libre Baskerville", serif;
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   font-weight: 700;
 }
 
