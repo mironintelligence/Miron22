@@ -389,7 +389,7 @@ def get_template_by_key(key: str) -> Optional[Dict[str, Any]]:
     return None
 
 def build_prompt(tpl_obj: Dict[str, Any], req: PreviewRequest) -> str:
-    lang = "Turkish" if req.language == "TR" else "English"
+    lang = "Türkçe" if req.language == "TR" else "İngilizce"
 
     flags = []
     if req.include_statutes:
@@ -409,34 +409,34 @@ def build_prompt(tpl_obj: Dict[str, Any], req: PreviewRequest) -> str:
         return "\n".join(out) if out else "-"
 
     return f"""
-You are Libra AI Legal Writer. Produce formal legal petitions (dilekçe) conforming to Turkish legal style.
-Output must include these sections and ONLY these markers in order:
-#STRATEGIC_ASSESSMENT
-#HEADER
-#SUMMARY
-#LEGAL_BASIS
-#RESULT_REQUESTS
-#ATTACHMENTS
+Sen Miron AI Dilekçe Yazarı'sın. Türk hukukuna uygun, resmi ve profesyonel dilekçeler üret.
+Çıktı, aşağıdaki bölümleri ve SADECE bu işaretleri, verilen sırayla içermelidir:
+#STRATEJİK_DEĞERLENDİRME
+#BAŞLIK
+#ÖZET
+#HUKUKİ_DAYANAK
+#SONUÇ_İSTEM
+#EKLER
 
-#LANGUAGE: {lang}
-#CASE_TYPE: {tpl_obj["case_type"]}
-#POLICY: {tpl_obj["policy"]}
-#FLAGS: {flags_str}
+#DİL: {lang}
+#DAVA_TÜRÜ: {tpl_obj["case_type"]}
+#POLİTİKA: {tpl_obj["policy"]}
+#BAYRAKLAR: {flags_str}
 
-#FORM_VALUES
+#FORM_DEĞERLERİ
 {kvs(req.values)}
 
-#INSTRUCTIONS
-- Use formal tone; typical Turkish legal petition structure.
-- If ADD_STATUTES, cite relevant articles (HMK/TMK/TBK/İİK/CMK/4857/6502/5651/KVKK) where appropriate.
-- If ADD_CASELAW, mention 1-2 concise Yargıtay precedent hints (no long quotes).
-- RESULT_REQUESTS must include attorney fee + costs when appropriate.
-- #STRATEGIC_ASSESSMENT: Provide a brief strategic analysis BEFORE the petition. Include:
-  1. Argument Strength (Weak/Moderate/Strong) & why.
-  2. Opponent Simulation (Likely counter-arguments).
-  3. Risk Score (0-100% rejection risk).
-  4. Improvement Suggestion.
-  (This section is for the lawyer, not the court).
+#TALİMATLAR
+- Resmi üslup kullan; Türkiye'deki standart dilekçe yapısını takip et.
+- ADD_STATUTES varsa uygun yerde ilgili maddelere atıf yap (HMK/TMK/TBK/İİK/CMK/4857/6502/5651/KVKK).
+- ADD_CASELAW varsa 1-2 kısa Yargıtay içtihat yönlendirmesi ekle (uzun alıntı yapma).
+- SONUÇ_İSTEM bölümünde uygun olduğunda vekâlet ücreti ve yargılama giderlerini talep et.
+- #STRATEJİK_DEĞERLENDİRME: Dilekçeden ÖNCE kısa bir stratejik değerlendirme yaz. Şunları içersin:
+  1. Argüman Gücü (Zayıf/Orta/Güçlü) ve nedeni.
+  2. Karşı Taraf Simülasyonu (muhtemel karşı argümanlar).
+  3. Risk Skoru (0-100% reddedilme riski).
+  4. İyileştirme Önerisi.
+  (Bu bölüm mahkemeye değil, avukata yöneliktir.)
 """.strip()
 
 def parse_marked_text(text: str) -> Dict[str, str]:

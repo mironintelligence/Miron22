@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends, status, Header
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
 import json
@@ -8,7 +8,7 @@ import re
 try:
     from openai_client import get_openai_client
 except ImportError:
-    pass
+    from openai_client import get_openai_client
 
 try:
     from security import sanitize_text
@@ -32,44 +32,82 @@ class MevzuatSearchRequest(BaseModel):
     query: str
     law: Optional[str] = None
     article: Optional[str] = None
+    article_text: Optional[str] = None
 
-@router.post("/analyze")
-def analyze_mevzuat(payload: MevzuatSearchRequest):
-    """
-    Mevzuat Analizi (Simulated)
-    Girilen hukuki soruya veya maddeye göre ilgili kanun maddelerini ve riskleri analiz eder.
-    """
+@router.post("/search")
+def mevzuat_search(payload: MevzuatSearchRequest) -> Dict[str, Any]:
+    q = (payload.query or "").strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="empty_query")
+
+    try:
+        from services.search import search_engine
+        sres = search_engine.search(query=q, limit=10)
+    except Exception:
+        sres = {"results": []}
+
+    precedents: List[Dict[str, Any]] = []
+    for item in (sres.get("results") or [])[:5]:
+        if not isinstance(item, dict):
+            continue
+        precedents.append(
+            {
+                "id": item.get("id"),
+                "decision_number": item.get("decision_number"),
+                "case_number": item.get("case_number"),
+                "court": item.get("court"),
+                "chamber": item.get("chamber"),
+                "summary": item.get("summary"),
+            }
+        )
+
     client = get_openai_client()
     if not client:
-         return {"analysis": {"error": "AI servisi kullanılamıyor."}}
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY eksik/boş ya da client oluşturulamadı.")
 
     prompt = f"""
-    Sen uzman bir hukuk asistanısın. Aşağıdaki sorgu için Türk mevzuatını analiz et.
-    
-    SORGU: {payload.query}
-    KANUN (Varsa): {payload.law}
-    MADDE (Varsa): {payload.article}
-    
-    Lütfen şu formatta JSON döndür:
-    {{
-      "ilgili_maddeler": [
-        {{"kanun": "Örn: TBK", "madde": "Örn: 117", "aciklama": "Temerrüt şartları..."}}
-      ],
-      "risk_analizi": "Bu maddeye dayanırken dikkat edilmesi gereken riskler...",
-      "stratejik_ipucu": "Davada bu maddeyi kullanırken nelere dikkat edilmeli?",
-      "capraz_atiflar": ["Örn: HMK 200", "Örn: TTK 1530"]
-    }}
-    """
+Sen Türk hukukunda uzman bir avukat asistanısın.
+Kullanıcının olayı için mevzuat açısından en doğru yaklaşımı çıkar.
+Kanun/madde belirtilmişse buna dayan; belirtilmemişse olaya göre ilgili kanun ve maddeleri seç.
+
+Soru/Olay:
+{q}
+
+Kanun (opsiyonel): {payload.law or ""}
+Madde (opsiyonel): {payload.article or ""}
+Madde Metni (opsiyonel):
+{(payload.article_text or "")[:4000]}
+
+İlgili içtihat özetleri (referans, opsiyonel):
+{json.dumps(precedents, ensure_ascii=False)[:8000]}
+
+Sadece aşağıdaki JSON formatında döndür:
+{{
+  "madde_uygunlugu": "Kısa değerlendirme",
+  "yanlis_madde_riski": "Yanlış maddeye dayanma riskleri",
+  "ilgili_maddeler": [{{"kanun":"TBK","madde":"344","gerekce":"Kısa gerekçe"}}],
+  "capraz_atiflar": ["HMK 119", "TBK 26"],
+  "hiyerarsi_catisma": [],
+  "riskler": ["..."],
+  "gerekce": "Detaylı ama net gerekçe"
+}}
+"""
     
     try:
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "system", "content": "Çıktın SADECE geçerli bir JSON objesi olmalı. Markdown kullanma."}, {"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )
-        return json.loads(completion.choices[0].message.content)
+        analysis = json.loads(completion.choices[0].message.content)
+        return {"analysis": analysis, "precedents": precedents}
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail="mevzuat_analysis_failed")
+
+
+@router.post("/analyze")
+def analyze_mevzuat(payload: MevzuatSearchRequest) -> Dict[str, Any]:
+    return mevzuat_search(payload)
 
 @router.get("/laws")
 def get_laws():

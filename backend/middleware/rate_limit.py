@@ -11,8 +11,8 @@ logger = logging.getLogger("miron_ratelimit")
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
-    Enterprise Rate Limiting with Redis (Sliding Window)
-    Falls back to memory if Redis is unavailable.
+    Redis ile oran sınırlandırma (kayan pencere).
+    Redis yoksa bellek içi sınırlamaya düşer.
     """
     def __init__(self, app: ASGIApp):
         super().__init__(app)
@@ -24,9 +24,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 self.redis_client = redis.from_url(self.redis_url, decode_responses=True)
                 # Test connection
                 self.redis_client.ping()
-                logger.info(f"Rate Limiter connected to Redis: {self.redis_url}")
+                logger.info(f"Rate limiter Redis'e bağlandı: {self.redis_url}")
             except Exception as e:
-                logger.error(f"Redis connection failed: {e}. Falling back to memory.")
+                logger.error(f"Redis bağlantısı başarısız: {e}. Bellek içi moda geçiliyor.")
                 self.redis_client = None
         
         # Fallback memory storage

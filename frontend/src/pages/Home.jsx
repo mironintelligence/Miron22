@@ -68,7 +68,6 @@ const tiles = [
     disabled: false,
   },
 
-  // ✅ Yeni: Feedback (aktif)
   {
     title: "Geri Bildirim",
     desc: "Öneri, hata bildirimi ve isteklerini bize ilet.",

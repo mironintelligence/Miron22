@@ -33,7 +33,7 @@ def get_db_url(mode="write") -> str:
     return url
 
 def init_pool(min_conn=settings.DB_POOL_MIN_SIZE, max_conn=settings.DB_POOL_MAX_SIZE):
-    """Initialize the ThreadedConnectionPools with Enterprise Settings"""
+    """ThreadedConnectionPool başlatır"""
     global _pg_pool_write, _pg_pool_read
     
     # Write Pool
@@ -115,9 +115,9 @@ class InstrumentedRealDictCursor(RealDictCursor):
 @contextmanager
 def get_db_cursor(write: bool = True) -> Generator[RealDictCursor, None, None]:
     """
-    Context manager for database connection and cursor.
-    Uses Connection Pool with Strict Transaction Policy.
-    Implements Circuit Breaker, Retry, Deadlock Handling, and Read/Write Separation.
+    Veritabanı bağlantısı ve cursor için context manager.
+    Sıkı transaction politikası ile connection pool kullanır.
+    Circuit breaker, retry, deadlock yönetimi ve read/write ayrımı uygular.
     """
     global _pg_pool_write, _pg_pool_read
     

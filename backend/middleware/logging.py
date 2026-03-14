@@ -64,7 +64,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         method = request.method
         path = request.url.path
         
-        # Context for logging
+        # Loglama bağlamı
         log_context = {
             "request_id": request_id,
             "ip": ip,

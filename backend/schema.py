@@ -38,6 +38,36 @@ def ensure_schema() -> None:
         """,
         "CREATE INDEX IF NOT EXISTS idx_feedback_messages_status ON feedback_messages(status);",
         "CREATE INDEX IF NOT EXISTS idx_feedback_messages_created_at ON feedback_messages(created_at);",
+        """
+        CREATE TABLE IF NOT EXISTS discount_codes (
+            code TEXT PRIMARY KEY,
+            type TEXT NOT NULL,
+            value NUMERIC(10, 2) NOT NULL,
+            max_usage INT,
+            used_count INT DEFAULT 0,
+            expires_at TIMESTAMPTZ,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            description TEXT
+        );
+        """,
+        "ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS type TEXT;",
+        "ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS value NUMERIC(10, 2);",
+        "ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS max_usage INT;",
+        "ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS used_count INT DEFAULT 0;",
+        "ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;",
+        "ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;",
+        "ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();",
+        "ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS description TEXT;",
+        """
+        DO $$
+        BEGIN
+            ALTER TABLE discount_codes
+                ADD CONSTRAINT discount_codes_type_check CHECK (type IN ('percent', 'fixed'));
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+        """,
     ]
 
     with get_db_cursor() as cur:

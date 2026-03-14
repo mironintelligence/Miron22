@@ -112,9 +112,6 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
     setShowDownButton(!nearBottom);
   };
 
-  // -----------------------------
-  // Filter chats
-  // -----------------------------
   const filteredChats = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return chats;
@@ -125,9 +122,6 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
     });
   }, [chats, query]);
 
-  // -----------------------------
-  // Actions: new / rename / export / delete
-  // -----------------------------
   const createChat = () => {
     const nextIndex = chats.length + 1;
 

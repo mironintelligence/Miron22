@@ -6,7 +6,7 @@ import os
 sys.modules["openai"] = MagicMock()
 
 from services.search import YargitaySearchEngine
-from yargitay_search import router, search_decisions
+from routes.search_routes import router
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
 

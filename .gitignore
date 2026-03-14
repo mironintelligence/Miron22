@@ -7,8 +7,12 @@ backend/rag/__pycache__/
 backend/scripts/__pycache__/
 backend/tests/__pycache__/
 backend/diagnostics/
+backend/**/diagnostics/
 backend/storage/
+backend/data/
+backend/test_data/
 venv/
 .DS_Store
 node_modules
+frontend/dist/
 *.log

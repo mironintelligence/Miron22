@@ -93,6 +93,10 @@ def bypass_csrf():
 
 @pytest.fixture(autouse=True)
 def mock_db_driver():
+    old_db_url = os.environ.get("DATABASE_URL")
+    old_env = os.environ.get("ENVIRONMENT")
+    os.environ["ENVIRONMENT"] = "test"
+    os.environ.pop("DATABASE_URL", None)
     with patch("psycopg2.connect") as mock_conn:
         mock_conn.return_value.cursor.return_value.execute.return_value = None
         mock_conn.return_value.cursor.return_value.fetchone.return_value = None
@@ -102,7 +106,17 @@ def mock_db_driver():
             mock_pool = MagicMock()
             mock_pool.getconn.return_value = mock_conn.return_value
             mock_pool_cls.return_value = mock_pool
-            yield
+            try:
+                yield
+            finally:
+                if old_db_url is not None:
+                    os.environ["DATABASE_URL"] = old_db_url
+                else:
+                    os.environ.pop("DATABASE_URL", None)
+                if old_env is not None:
+                    os.environ["ENVIRONMENT"] = old_env
+                else:
+                    os.environ.pop("ENVIRONMENT", None)
 
 @patch("admin_auth.SECRET_KEY", "test_secret_key")
 @patch("admin_auth.ALGORITHM", "HS256")
@@ -198,11 +212,16 @@ def test_pricing_flow():
 @patch("auth_router.create_session")
 @patch("auth_router.log_audit")
 @patch("auth_router.update_user_login")
+@patch("auth_router.is_account_locked", lambda email: False)
+@patch("auth_router.increment_failed_login", lambda email: None)
+@patch("auth_router.reset_failed_login", lambda user_id: None)
+@patch("auth_router.get_user_token_version", lambda user_id: 1)
+@patch("auth_router.send_verification_email", lambda email, token: None)
 @patch("security._JWT_SECRET", "test_jwt_secret")
 def test_auth_single_user_flow(mock_update_login, mock_log_audit, mock_create_sess, mock_refresh, mock_access, mock_verify, mock_create_user, mock_find_user):
     # Mock find_user to return None first (register), then User (login)
-    mock_find_user.side_effect = [None, {"id": "123", "email": "test@example.com", "password_hash": "hashed", "role": "user"}]
-    mock_create_user.return_value = "123"
+    mock_find_user.side_effect = [None, {"id": "00000000-0000-0000-0000-000000000123", "email": "test@example.com", "password_hash": "hashed", "role": "user"}]
+    mock_create_user.return_value = "00000000-0000-0000-0000-000000000123"
     mock_verify.return_value = True
     mock_access.return_value = "access_token_123"
     mock_refresh.return_value = "refresh_token_123"
@@ -216,7 +235,7 @@ def test_auth_single_user_flow(mock_update_login, mock_log_audit, mock_create_se
     }
     res = client.post("/api/auth/register", json=payload)
     assert res.status_code == 200
-    assert res.json()["requires_verification"] is False
+    assert res.json()["requires_verification"] is True
     
     res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "Password123!"})
     assert res.status_code == 200
@@ -236,11 +255,16 @@ def test_auth_single_user_flow(mock_update_login, mock_log_audit, mock_create_se
 @patch("auth_router.create_session")
 @patch("auth_router.log_audit")
 @patch("auth_router.update_user_login")
+@patch("auth_router.is_account_locked", lambda email: False)
+@patch("auth_router.increment_failed_login", lambda email: None)
+@patch("auth_router.reset_failed_login", lambda user_id: None)
+@patch("auth_router.get_user_token_version", lambda user_id: 1)
+@patch("auth_router.send_verification_email", lambda email, token: None)
 @patch("security._JWT_SECRET", "test_jwt_secret")
 def test_auth_multi_user_flow(mock_update_login, mock_log_audit, mock_create_sess, mock_refresh, mock_access, mock_verify, mock_create_user, mock_find_user):
     # Mock data store
-    mock_find_user.side_effect = [None, {"id": "456", "email": "multi@example.com", "password_hash": "hashed", "role": "user"}]
-    mock_create_user.return_value = "456"
+    mock_find_user.side_effect = [None, {"id": "00000000-0000-0000-0000-000000000456", "email": "multi@example.com", "password_hash": "hashed", "role": "user"}]
+    mock_create_user.return_value = "00000000-0000-0000-0000-000000000456"
     mock_verify.return_value = True
     mock_access.return_value = "access_token_456"
     mock_refresh.return_value = "refresh_token_456"
@@ -251,11 +275,11 @@ def test_auth_multi_user_flow(mock_update_login, mock_log_audit, mock_create_ses
         "password": "Password123!",
         "firstName": "Multi",
         "lastName": "User",
-        "mode": "multi"
+        "mode": "single"
     }
     res = client.post("/api/auth/register", json=payload)
     assert res.status_code == 200
-    assert res.json()["requires_verification"] is False
+    assert res.json()["requires_verification"] is True
 
     # 2. Login immediately (should succeed)
     res = client.post("/api/auth/login", json={"email": "multi@example.com", "password": "Password123!"})

@@ -70,7 +70,7 @@ export default function Upgrade() {
         <div className="card p-6 mt-6">
           <div className="text-sm text-white/60 mb-3">Plan Seç</div>
           <div className="grid md:grid-cols-2 gap-3">
-            {(plans.length ? plans : [{ id: "pro", name: "Pro" }, { id: "enterprise", name: "Enterprise" }]).map((p) => (
+            {(plans.length ? plans : [{ id: "pro", name: "Profesyonel" }, { id: "enterprise", name: "Kurumsal" }]).map((p) => (
               <button
                 key={p.id}
                 onClick={() => setSelected(p.id)}
@@ -111,4 +111,3 @@ export default function Upgrade() {
     </div>
   );
 }
-

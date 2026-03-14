@@ -34,29 +34,29 @@ class RAGPipeline:
         top_docs = await self.reranker.rerank(query, docs, top_k=5)
         logger.info(f"Reranked top {len(top_docs)} docs.")
         
-        # 3. Context Construction
+        # 3. Bağlam oluşturma
         context = ""
         for i, doc in enumerate(top_docs):
             context += f"Decision ID: {doc.get('decision_id')}\nText: {doc.get('chunk_text')}\n---\n"
             
         # 4. LLM Generation
-        system_prompt = """You are an expert Turkish legal assistant. Use the provided context to answer the user's question.
-        Structure your answer as follows:
-        1. Issue
-        2. Relevant Law
-        3. Precedent
-        4. Analysis
-        5. Conclusion
-        
-        Cite decision IDs where relevant. If the answer is not in the context, state that you don't know based on the available information.
-        Do not hallucinate."""
+        system_prompt = """Sen Türk hukukunda uzman bir yapay zeka asistanısın. Verilen bağlamı kullanarak kullanıcının sorusunu yanıtla.
+Yanıtını şu başlıklarla yapılandır:
+1. Hukuki Sorun
+2. İlgili Mevzuat
+3. Emsal/İçtihat
+4. Değerlendirme
+5. Sonuç
+
+Uygun yerlerde decision_id değerlerini kaynak olarak belirt. Yanıt bağlamda yoksa, mevcut bilgiye göre bilmediğini söyle.
+Uydurma yapma."""
         
         try:
             resp = await self.aclient.chat.completions.create(
                 model="gpt-4-turbo-preview",
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"}
+                    {"role": "user", "content": f"Bağlam:\n{context}\n\nSoru: {query}"}
                 ],
                 temperature=0.0
             )

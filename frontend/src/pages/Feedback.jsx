@@ -52,14 +52,14 @@ export default function Feedback() {
         throw new Error(msg);
       }
 
-      alert("Feedback gönderildi. Teşekkürler.");
+      alert("Geri bildirim gönderildi. Teşekkürler.");
       setName("");
       setEmail("");
       setSubject("");
       setMessage("");
     } catch (err) {
       console.error(err);
-      alert(`Feedback gönderilemedi: ${err?.message || "Bilinmeyen hata"}`);
+      alert(`Geri bildirim gönderilemedi: ${err?.message || "Bilinmeyen hata"}`);
     } finally {
       setSending(false);
     }

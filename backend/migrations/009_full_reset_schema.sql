@@ -1,5 +1,5 @@
 -- 009_full_reset_schema.sql
--- Enterprise Grade Legal Schema
+-- Kurumsal Düzey Hukuk Şeması
 
 -- 1. Reset
 DROP TABLE IF EXISTS decisions CASCADE;
@@ -26,19 +26,19 @@ CREATE TABLE decisions (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Optimizations
--- GIN Index for Full Text Search (Turkish)
+-- 3. İyileştirmeler
+-- Tam metin arama için GIN indexi (Türkçe)
 CREATE INDEX idx_decisions_fts ON decisions USING GIN(to_tsvector('turkish', full_text));
 
--- BTree Indexes for Filtering
+-- Filtreleme için BTree indexleri
 CREATE INDEX idx_decisions_court ON decisions(court);
 CREATE INDEX idx_decisions_date ON decisions(decision_date);
 CREATE INDEX idx_decisions_source ON decisions(source);
 CREATE INDEX idx_decisions_hash ON decisions(hash);
 
--- Composite Index for Unique Case Lookup (Court + File + Decision)
--- Note: Decision No might be null for some interim decisions, but usually present.
+-- Benzersiz dosya araması için birleşik index (Mahkeme + Esas + Karar)
+-- Not: Karar no bazı ara kararlarda boş olabilir.
 CREATE INDEX idx_decisions_case_lookup ON decisions(court, file_no, decision_no);
 
--- 4. Partitioning Concept (Not implemented yet as table is empty, but prepared via simple table first)
--- If we reach > 1M rows, we will partition by decision_date YEAR.
+-- 4. Bölümleme yaklaşımı (şimdilik uygulanmadı)
+-- Satır sayısı çok artarsa decision_date yılına göre bölümleme yapılır.

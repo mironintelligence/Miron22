@@ -19,10 +19,9 @@ export default function Navbar() {
     { name: "Yargıtay", path: "/yargitay" },
     { name: "Mevzuat", path: "/mevzuat" },
     { name: "Dava Simülasyonu", path: "/case-simulation" },
-    { name: "Sözleşmeler", path: "/contracts" }, // YENİ
+    { name: "Sözleşmeler", path: "/contracts" },
   ];
 
-  // Admin link only for admins
   if (user?.role === "admin") {
     navLinks.push({ name: "Admin Panel", path: "/admin" });
   }
@@ -62,13 +61,11 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-[#050505]/90 backdrop-blur-xl border-b border-white/5">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        {/* Logo */}
         <Link to="/home" className="flex items-center gap-2">
           <div className="w-8 h-8 bg-[var(--miron-gold)] rounded-lg flex items-center justify-center font-bold text-black text-xl">M</div>
           <span className="text-xl font-bold tracking-tight text-white">Miron AI</span>
         </Link>
 
-        {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
             <Link
@@ -83,14 +80,12 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Right Side (User & Notifications) */}
         <div className="hidden md:flex items-center gap-6">
           <Link to="/upgrade" className="text-sm font-semibold text-[var(--miron-gold)] hover:brightness-110 transition">
             Hesabı Yükselt
           </Link>
           <Link to="/notifications" className="relative group">
              <span className="text-xl">🔔</span>
-             {/* Kırmızı nokta eklenebilir eğer okunmamış varsa */}
              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </Link>
           
@@ -105,7 +100,6 @@ export default function Navbar() {
               </div>
             </button>
             
-            {/* Dropdown */}
             <div className="absolute right-0 top-full mt-2 w-48 bg-[#111] border border-white/10 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top-right">
               <Link to="/settings" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">Ayarlar</Link>
               <Link to="/feedback" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">Geri Bildirim</Link>
@@ -115,13 +109,11 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Menu Button */}
         <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-white text-2xl">
           {menuOpen ? "✕" : "☰"}
         </button>
       </div>
 
-      {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-[#050505] border-t border-white/10 p-6 absolute w-full left-0 top-20">
           <div className="flex flex-col gap-4">

@@ -4,7 +4,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen px-6 sm:px-10 md:px-16 py-16">
       <header className="flex items-center justify-between mb-12">
-        <div className="text-xl font-bold text-accent">Miron AI — Legal Intelligence Suite</div>
+        <div className="text-xl font-bold text-accent">Miron AI — Hukuk Odaklı Yapay Zekâ</div>
         <div className="flex gap-3">
           <Link to="/login" className="px-4 py-2 rounded-lg glass hover:bg-white/10">Giriş Yap</Link>
           <Link to="/register" className="px-4 py-2 rounded-lg btn-primary">
@@ -43,7 +43,7 @@ export default function Landing() {
             <li className="glass p-3 rounded-xl">📊 Raporlama & Olasılık</li>
           </ul>
           <div className="mt-5 text-xs text-subtle">
-            Premium deneyim: animasyonlar, cam efektli modern arayüz, hızlı raporlar.
+            Üst seviye deneyim: animasyonlar, cam efektli modern arayüz, hızlı raporlar.
           </div>
         </div>
       </section>

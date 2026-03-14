@@ -144,7 +144,7 @@ async def startup_event():
     except Exception as e:
         print(f"🔥 CRITICAL: Sync DB Pool Init Failed: {e}")
         
-    # Init Async DB Pool (Enterprise)
+    # Async DB Pool init
     try:
         await async_db.init_pools()
     except Exception as e:
@@ -251,6 +251,7 @@ feedback_router  = _safe_import("routes.feedback_routes", "router")
 analyze_router   = _safe_import("routes.analyze", "router")
 orchestrator_router = _safe_import("routers.orchestrator", "router")
 demo_request_router = _safe_import("routes.demo_request_routes", "router")
+search_router    = _safe_import("routes.search_routes", "router")
 admin_api_router = _safe_import("admin_router", "api_router")
 admin_router     = _safe_import("admin_router", "router")
 
@@ -612,6 +613,7 @@ if reports_router:  app.include_router(reports_router)
 if yargitay_router: app.include_router(yargitay_router)
 if mevzuat_router:  app.include_router(mevzuat_router)
 if uyap_udf_router: app.include_router(uyap_udf_router)
+if search_router:   app.include_router(search_router)
 if contract_router: app.include_router(contract_router)
 if notification_router: app.include_router(notification_router)
 if billing_router:  app.include_router(billing_router)
@@ -628,7 +630,7 @@ try:
 except ImportError:
     from auth_router import router as auth_router_new
 
-app.include_router(auth_router_new, prefix="/api/auth", tags=["Authentication"])
+app.include_router(auth_router_new, prefix="/api/auth", tags=["Kimlik Doğrulama"])
 
 # Pricing Router
 try:

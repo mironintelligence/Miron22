@@ -80,15 +80,13 @@ class YargitaySearchEngine:
         if not q:
             return {"query": "", "results": [], "message": "empty_query"}
         
+        embedding = None
+        vector = None
         try:
             embedding = get_embedding(q)
+            vector = _vector_literal(embedding)
         except Exception as e:
-             # Fallback: if embedding fails (e.g. OpenAI down), return empty or handle gracefully
-             # For now, let's just return empty results to avoid 500
-             print(f"[ERROR] Embedding generation failed: {e}")
-             return {"query": q, "results": [], "message": "embedding_failed"}
-
-        vector = _vector_literal(embedding)
+            print(f"[UYARI] Embedding üretimi başarısız, sadece anahtar kelime araması yapılacak: {e}")
         filter_sql, params = self._build_filters(year, court, chamber)
         
         try:
@@ -105,7 +103,9 @@ class YargitaySearchEngine:
                 # raise RuntimeError("pgvector extension missing")
                 print("[WARN] pgvector extension missing or not visible")
 
-            semantic = self._semantic_search(cur, vector, filter_sql, params, limit)
+            semantic = {}
+            if vector:
+                semantic = self._semantic_search(cur, vector, filter_sql, params, limit)
             keyword = self._keyword_search(cur, q, filter_sql, params, limit)
             merged: Dict[str, Dict[str, Any]] = {}
             all_ids = set(semantic.keys()) | set(keyword.keys())
@@ -126,7 +126,10 @@ class YargitaySearchEngine:
                     base.update(keyword[row_id])
                     kw_score = float(keyword[row_id].get("keyword_rank") or 0.0)
                 kw_norm = 0.0 if max_kw <= 0 else kw_score / max_kw
-                final_score = (sem_score * 0.65) + (kw_norm * 0.35)
+                if vector:
+                    final_score = (sem_score * 0.65) + (kw_norm * 0.35)
+                else:
+                    final_score = kw_norm
                 base["semantic_score"] = sem_score
                 base["keyword_rank"] = kw_norm
                 base["final_score"] = final_score

@@ -431,7 +431,7 @@ export default function Register() {
       <div className="glass p-6 sm:p-8 rounded-2xl">
         <div className="text-center mb-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-accent">
-            Miron AI – Legal Intelligence Suite
+            Miron AI – Hukuk Odaklı Yapay Zekâ Paketi
           </h2>
           <p className="text-sm text-subtle mt-1">
             Türkiye’nin en akıllı hukuk otomasyon platformuna erişim için bilgilerinizi girin.
@@ -443,7 +443,7 @@ export default function Register() {
                }}
                className="border border-white/20 text-white text-xs font-bold py-2 px-4 rounded-xl hover:bg-white/5 transition-all"
              >
-               🏢 Enterprise (Kurumsal) İletişim
+               🏢 Kurumsal İletişim
              </button>
           </div>
         </div>

@@ -78,9 +78,10 @@ def register(payload: RegisterRequest) -> Dict[str, Any]:
     used_code = None
     if payload.discountCode:
         dc = find_valid_discount(payload.discountCode)
-        if dc:
-            increment_usage(dc["code"])
-            used_code = dc["code"]
+        if not dc:
+            raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş indirim kodu.")
+        increment_usage(dc["code"])
+        used_code = dc["code"]
 
     role = "user"
     demo_expires_at = None

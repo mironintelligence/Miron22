@@ -1,7 +1,7 @@
--- Enable pgvector extension
+-- pgvector eklentisini etkinleştir
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- Create decisions table
+-- decisions tablosunu oluştur
 CREATE TABLE IF NOT EXISTS decisions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     court VARCHAR NOT NULL,
@@ -17,9 +17,9 @@ CREATE TABLE IF NOT EXISTS decisions (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create indexes
--- Vector index (IVFFlat) for cosine similarity
+-- Indexleri oluştur
+-- Kosinüs benzerliği için vektör indexi (IVFFlat)
 CREATE INDEX IF NOT EXISTS idx_embedding ON decisions USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
--- Full-text search index (GIN) for Turkish text
+-- Türkçe metin için tam metin arama indexi (GIN)
 CREATE INDEX IF NOT EXISTS idx_fulltext ON decisions USING GIN(to_tsvector('turkish', clean_text));

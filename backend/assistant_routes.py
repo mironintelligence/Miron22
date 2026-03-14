@@ -20,11 +20,11 @@ async def assistant_chat(req: AssistantReq):
     if not msg:
         raise HTTPException(status_code=422, detail="message boş olamaz")
 
-    # Use RAG Pipeline for intelligent retrieval and answering
+    # RAG ile bağlama dayalı yanıt
     try:
         from rag.pipeline import rag_pipeline
         
-        # If context is provided by frontend, prepend it to query for better retrieval context
+        # Frontend bağlam gönderirse sorguya ekle
         query = msg
         if req.context:
             query = f"{req.context}\n\n{msg}"
@@ -32,7 +32,6 @@ async def assistant_chat(req: AssistantReq):
         result = await rag_pipeline.run(query)
         
         if "error" in result:
-            # Fallback to simple chat if RAG fails (e.g. simulation mode check inside pipeline handles this, but just in case)
             raise Exception(result["error"])
             
         return {
@@ -42,13 +41,12 @@ async def assistant_chat(req: AssistantReq):
         }
 
     except Exception as e:
-        # Fallback to legacy behavior if RAG completely fails or is not initialized
-        print(f"RAG Failed, falling back to legacy chat: {e}")
+        print(f"RAG başarısız, klasik sohbet moduna dönülüyor: {e}")
         try:
             client = get_openai_client()
             system = (
-                "You are Libra Assistant. You help with Turkish law oriented analysis and strategy. "
-                "Do not reveal secrets. Be concise and structured."
+                "Sen Miron Asistanısın. Türk hukuku odaklı analiz ve strateji önerileri sunarsın. "
+                "Gizli bilgileri asla açıklama. Kısa, net ve yapılandırılmış yaz."
             )
             
             r = client.chat.completions.create(
@@ -62,4 +60,4 @@ async def assistant_chat(req: AssistantReq):
             reply = (r.choices[0].message.content or "").strip()
             return {"reply": reply or "⚠️ Yanıt alınamadı.", "sources": [], "fallback": True}
         except Exception as fallback_err:
-            raise HTTPException(status_code=500, detail=f"Assistant error: {e} | Fallback error: {fallback_err}")
+            raise HTTPException(status_code=500, detail="Asistan hatası oluştu.")

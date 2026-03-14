@@ -321,11 +321,11 @@ export default function AdminPanel() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-zinc-900/50 text-xs uppercase text-zinc-500 border-b border-zinc-800">
-                  <th className="p-4">User</th>
-                  <th className="p-4">Role</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Joined</th>
-                  <th className="p-4">Actions</th>
+                  <th className="p-4">Kullanıcı</th>
+                  <th className="p-4">Rol</th>
+                  <th className="p-4">Durum</th>
+                  <th className="p-4">Kayıt Tarihi</th>
+                  <th className="p-4">İşlemler</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
@@ -341,9 +341,9 @@ export default function AdminPanel() {
                         onChange={(e) => updateUserRole(u.email, e.target.value)}
                         className="bg-black border border-zinc-700 text-xs rounded p-1 text-zinc-300 outline-none focus:border-amber-500"
                       >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                        <option value="viewer">Viewer</option>
+                        <option value="user">Kullanıcı</option>
+                        <option value="admin">Yönetici</option>
+                        <option value="viewer">Görüntüleyici</option>
                       </select>
                     </td>
                     <td className="p-4">
@@ -355,7 +355,7 @@ export default function AdminPanel() {
                     <td className="p-4 flex gap-2">
                       <button onClick={() => toggleUserSuspend(u.email, !(u.is_active !== false))} 
                         className="text-xs border border-zinc-700 px-2 py-1 rounded hover:bg-white/5">
-                        {u.is_active !== false ? "Suspend" : "Activate"}
+                        {u.is_active !== false ? "Askıya Al" : "Aktifleştir"}
                       </button>
                     </td>
                   </tr>

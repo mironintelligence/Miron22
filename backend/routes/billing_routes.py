@@ -20,9 +20,9 @@ async def upgrade_account(
     user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
-    Upgrade user account from Demo/Free to Paid.
-    In a real app, this would verify payment with Stripe/Iyzico.
-    Here, it simulates a successful payment.
+    Kullanıcı hesabını Demo/Ücretsiz plandan ücretli plana yükseltir.
+    Gerçek sistemde Stripe/Iyzico gibi ödeme doğrulaması yapılır.
+    Burada başarılı ödeme simüle edilir.
     """
     user_id = user.get("id")
     if not user_id:
@@ -61,8 +61,10 @@ async def upgrade_account(
             "plan": plan,
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Upgrade failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Yükseltme başarısız.")
 
 @router.get("/plans")
 def get_plans():

@@ -370,7 +370,7 @@ export default function IntroLanding() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
           <div>
             <div className="text-2xl font-bold mb-2">Miron AI</div>
-            <p className="text-white/40 text-sm">Advanced Legal Intelligence Infrastructure</p>
+            <p className="text-white/40 text-sm">Hukuk Odaklı Yapay Zekâ Altyapısı</p>
           </div>
           <div className="flex gap-8 text-sm text-white/60">
             <Link to="/privacy" className="hover:text-white">Gizlilik</Link>

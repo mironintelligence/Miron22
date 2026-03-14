@@ -7,8 +7,10 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Body, Query, Depends
 from admin_auth import require_admin # Use centralized admin auth
 from db import get_db_cursor
+import json
+from psycopg2.extras import Json
 
-router = APIRouter(prefix="/api/feedback", tags=["Feedback"])
+router = APIRouter(prefix="/api/feedback", tags=["Geri Bildirim"])
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -21,6 +23,12 @@ def create_feedback(payload: Dict[str, Any] = Body(...)):
     subject = str(payload.get("subject", "")).strip()
     message = str(payload.get("message", "")).strip()
     meta = payload.get("meta")
+    meta_param = None
+    if meta is not None:
+        try:
+            meta_param = Json(meta, dumps=lambda obj: json.dumps(obj, ensure_ascii=False, default=str))
+        except TypeError:
+            raise HTTPException(status_code=400, detail="Meta alanı geçerli bir JSON olmalıdır.")
 
     if not name or not email or not subject or not message:
         raise HTTPException(status_code=400, detail="Ad, E-posta, Konu ve Mesaj alanları zorunludur.")
@@ -33,7 +41,7 @@ def create_feedback(payload: Dict[str, Any] = Body(...)):
             VALUES (%s, %s, %s, %s, %s, %s, 'new', NOW())
             RETURNING id
             """,
-            (fid, name, email, subject, message, meta),
+            (fid, name, email, subject, message, meta_param),
         )
         row = cur.fetchone()
         return {"status": "ok", "id": str(row["id"]), "message": "Geri bildiriminiz başarıyla alındı."}
@@ -63,7 +71,7 @@ def admin_set_feedback_status(
         )
         row = cur.fetchone()
         if not row:
-            raise HTTPException(status_code=404, detail="Feedback bulunamadı.")
+            raise HTTPException(status_code=404, detail="Geri bildirim bulunamadı.")
         return {"status": "ok"}
 
 
@@ -74,5 +82,5 @@ def admin_delete_feedback(fb_id: str):
         cur.execute("DELETE FROM feedback_messages WHERE id = %s RETURNING id", (fb_id,))
         row = cur.fetchone()
         if not row:
-            raise HTTPException(status_code=404, detail="Feedback bulunamadı.")
+            raise HTTPException(status_code=404, detail="Geri bildirim bulunamadı.")
         return {"status": "ok"}

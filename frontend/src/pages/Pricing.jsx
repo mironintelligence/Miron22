@@ -43,7 +43,7 @@ export default function Pricing() {
       }
     }
     fetchPrice();
-  }, [count]);
+  }, [count, discountCode]);
 
   const showCrossed = pricingData?.is_discounted;
   const rawTotal = pricingData?.raw_total || 0;
@@ -56,7 +56,7 @@ export default function Pricing() {
       <div className="glass p-6 sm:px-8 rounded-2xl">
         <div className="text-center mb-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-accent">
-            Miron AI – Legal Intelligence Suite
+            Miron AI – Hukuk Odaklı Yapay Zekâ Paketi
           </h2>
           <p className="text-sm text-subtle mt-1">
             Lisansınızı etkinleştirin ve tüm modüllere erişin.
@@ -172,7 +172,7 @@ export default function Pricing() {
               }}
               className="mt-3 w-full border border-white/20 text-white font-bold py-3 rounded-xl hover:bg-white/5 transition-all"
             >
-              Enterprise (Kurumsal) İletişim
+              Kurumsal İletişim
             </button>
 
             <div className="text-[11px] text-subtle mt-3">
