@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Body, status
+from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pydantic import BaseModel
@@ -6,7 +6,7 @@ from db import get_db_cursor
 from admin_auth import require_admin
 from user_auth import get_current_user
 
-router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
+router = APIRouter(prefix="/api/notifications", tags=["Bildirimler"])
 
 class NotificationCreate(BaseModel):
     user_id: Optional[str] = None # If None, system-wide or specific target logic needed
@@ -20,6 +20,31 @@ class NotificationCreate(BaseModel):
 def get_my_notifications(user: Dict[str, Any] = Depends(get_current_user)):
     """Kullanıcının kendi bildirimlerini listele"""
     user_id = user.get("id")
+    with get_db_cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, title, details, due_at
+            FROM case_reminders
+            WHERE user_id = %s
+              AND notified_at IS NULL
+              AND due_at <= NOW()
+            ORDER BY due_at ASC
+            LIMIT 50
+            """,
+            (user_id,),
+        )
+        due = cur.fetchall() or []
+        for r in due:
+            title = str(r.get("title") or "Dava Hatırlatıcı")
+            details = str(r.get("details") or "").strip()
+            due_at = r.get("due_at")
+            msg = f"{details}\n\nTarih/Saat: {due_at}" if details else f"Tarih/Saat: {due_at}"
+            cur.execute(
+                "INSERT INTO notifications (user_id, type, title, message) VALUES (%s, %s, %s, %s)",
+                (user_id, "case_reminder", title, msg),
+            )
+            cur.execute("UPDATE case_reminders SET notified_at = NOW() WHERE id = %s", (r.get("id"),))
+
     sql = """
         SELECT * FROM notifications 
         WHERE user_id = %s 

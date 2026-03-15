@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import AdminPanel from "./AdminPanel.jsx";
 
-const tiles = [
+const baseTiles = [
   {
     title: "Evrak Analizi",
     desc: "PDF/DOCX/TXT/UDF/RTF/UYAP/ODT yükle, AI analiz etsin.",
@@ -31,6 +31,21 @@ const tiles = [
     desc: "Faiz, vekalet, harç, KDV ve icra hesapları.",
     to: "/calculators",
     icon: "🧮",
+    disabled: false,
+  },
+
+  {
+    title: "Sözleşme Analizi",
+    desc: "Sözleşmeni yapıştır, riskleri ve açıkları gör.",
+    to: "/contracts?tab=analyze",
+    icon: "🧾",
+    disabled: false,
+  },
+  {
+    title: "Sözleşme Oluşturucu",
+    desc: "Şablon seç, alanları doldur, sözleşmeyi üret.",
+    to: "/contracts?tab=create",
+    icon: "✍️",
     disabled: false,
   },
  
@@ -69,6 +84,14 @@ const tiles = [
   },
 
   {
+    title: "Dava Hatırlatıcı",
+    desc: "Dava tarihlerini kaydet, uygulama içi bildirim al.",
+    to: "/reminders",
+    icon: "⏰",
+    disabled: false,
+  },
+
+  {
     title: "Geri Bildirim",
     desc: "Öneri, hata bildirimi ve isteklerini bize ilet.",
     to: "/feedback",
@@ -79,8 +102,15 @@ const tiles = [
 
 export default function Home() {
   const { user } = useAuth();
+  const tiles = [...baseTiles];
   if (user?.role === "admin") {
-    return <AdminPanel />;
+    tiles.unshift({
+      title: "Admin Panel",
+      desc: "Kullanıcılar, demo talepleri ve sistem ayarları.",
+      to: "/admin",
+      icon: "🛡️",
+      disabled: false,
+    });
   }
   return (
     <div className="mt-24 pb-28">

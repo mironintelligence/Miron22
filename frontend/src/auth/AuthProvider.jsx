@@ -40,8 +40,16 @@ export function AuthProvider({ children }) {
       email: meta?.email || email,
       firstName: meta?.first_name || meta?.firstName || meta?.user_metadata?.first_name || "",
       lastName: meta?.last_name || meta?.lastName || meta?.user_metadata?.last_name || "",
-      role: meta?.role || "user"
+      role: meta?.role || "user",
+      subscriptionPlan: meta?.subscription_plan || meta?.subscriptionPlan || null,
+      subscriptionStatus: meta?.subscription_status || meta?.subscriptionStatus || null,
+      demoExpiresAt: meta?.demo_expires_at || meta?.demoExpiresAt || null,
     };
+    normalized.isDemo =
+      normalized.subscriptionStatus === "demo" ||
+      normalized.subscriptionPlan === "demo" ||
+      !!normalized.demoExpiresAt ||
+      normalized.role === "demo";
 
     const accessToken = data?.access_token || "";
     setStoredAuth(accessToken, normalized);

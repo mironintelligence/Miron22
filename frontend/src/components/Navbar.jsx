@@ -81,9 +81,11 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/upgrade" className="text-sm font-semibold text-[var(--miron-gold)] hover:brightness-110 transition">
-            Hesabı Yükselt
-          </Link>
+          {user?.isDemo && (
+            <Link to="/upgrade" className="text-sm font-semibold text-[var(--miron-gold)] hover:brightness-110 transition">
+              Hesabı Yükselt
+            </Link>
+          )}
           <Link to="/notifications" className="relative group">
              <span className="text-xl">🔔</span>
              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -130,6 +132,11 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="h-px bg-white/10 my-2"></div>
+            {user?.isDemo && (
+              <Link to="/upgrade" onClick={() => setMenuOpen(false)} className="text-lg text-[var(--miron-gold)]">
+                Hesabı Yükselt
+              </Link>
+            )}
             <Link to="/notifications" onClick={() => setMenuOpen(false)} className="text-lg text-white/70">Bildirimler</Link>
             <button onClick={handleLogout} className="text-lg text-red-400 text-left">Çıkış Yap</button>
           </div>

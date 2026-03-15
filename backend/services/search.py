@@ -40,11 +40,11 @@ class YargitaySearchEngine:
             filters.append("EXTRACT(YEAR FROM decision_date) = %s")
             params.append(year)
         if court:
-            filters.append("court = %s")
-            params.append(court)
+            filters.append("court ILIKE %s")
+            params.append(f"%{court}%")
         if chamber:
-            filters.append("chamber = %s")
-            params.append(chamber)
+            filters.append("chamber ILIKE %s")
+            params.append(f"%{chamber}%")
         if not filters:
             return "", params
         return " AND " + " AND ".join(filters), params
@@ -73,6 +73,20 @@ class YargitaySearchEngine:
             LIMIT %s
         """
         cur.execute(sql, [query, query] + params + [limit])
+        return {row["id"]: dict(row) for row in cur.fetchall()}
+
+    def _ilike_search(self, cur, query: str, filter_sql: str, params: List[Any], limit: int):
+        q = f"%{query}%"
+        sql = f"""
+            SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
+                0.0 AS keyword_rank
+            FROM decisions
+            WHERE clean_text ILIKE %s
+            {filter_sql}
+            ORDER BY decision_date DESC NULLS LAST
+            LIMIT %s
+        """
+        cur.execute(sql, [q] + params + [limit])
         return {row["id"]: dict(row) for row in cur.fetchall()}
 
     def search(self, query: str, year: Optional[int] = None, court: Optional[str] = None, chamber: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
@@ -107,6 +121,8 @@ class YargitaySearchEngine:
             if vector:
                 semantic = self._semantic_search(cur, vector, filter_sql, params, limit)
             keyword = self._keyword_search(cur, q, filter_sql, params, limit)
+            if not keyword:
+                keyword = self._ilike_search(cur, q, filter_sql, params, limit)
             merged: Dict[str, Dict[str, Any]] = {}
             all_ids = set(semantic.keys()) | set(keyword.keys())
             max_kw = 0.0
@@ -136,16 +152,18 @@ class YargitaySearchEngine:
                 merged[row_id] = base
             sorted_results = sorted(merged.values(), key=lambda x: x.get("final_score", 0.0), reverse=True)
             if not sorted_results:
-                semantic_only = self._semantic_search(cur, vector, filter_sql, params, 10)
-                semantic_sorted = sorted(
-                    semantic_only.values(),
-                    key=lambda x: x.get("semantic_score", 0.0),
-                    reverse=True,
-                )
-                for item in semantic_sorted:
-                    item["keyword_rank"] = 0.0
-                    item["final_score"] = float(item.get("semantic_score") or 0.0)
-                return {"query": q, "results": semantic_sorted[:10], "message": "semantic_fallback" if semantic_sorted else "no_results"}
+                if vector:
+                    semantic_only = self._semantic_search(cur, vector, filter_sql, params, 10)
+                    semantic_sorted = sorted(
+                        semantic_only.values(),
+                        key=lambda x: x.get("semantic_score", 0.0),
+                        reverse=True,
+                    )
+                    for item in semantic_sorted:
+                        item["keyword_rank"] = 0.0
+                        item["final_score"] = float(item.get("semantic_score") or 0.0)
+                    return {"query": q, "results": semantic_sorted[:10], "message": "semantic_fallback" if semantic_sorted else "no_results"}
+                return {"query": q, "results": [], "message": "no_results"}
             return {"query": q, "results": sorted_results[:10]}
         except Exception as e:
             print(f"[ERROR] Search query failed: {e}")

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "internet_konut_kira_1",
+    "title": "Konut Kira Sözleşmesi (Temel)",
+    "category": "Kira",
+    "description": "Konut kiralamalarında temel hükümler (TBK çerçevesi).",
+    "content": "KONUT KİRA SÖZLEŞMESİ\n\n1) TARAFLAR\nKiraya Veren: {{kiraya_veren_ad_soyad}} (T.C. No: {{kiraya_veren_tc}})\nKiracı: {{kiraci_ad_soyad}} (T.C. No: {{kiraci_tc}})\n\n2) KİRALANAN\nAdres: {{kiralanan_adres}}\n\n3) SÜRE\nBaşlangıç: {{baslangic_tarihi}}\nSüre: {{sure_ay}} ay\n\n4) KİRA BEDELİ\nAylık kira bedeli: {{aylik_kira}} TL\nÖdeme günü: {{odeme_gunu}}\n\n5) DEPOZİTO\nDepozito: {{depozito}} TL\n\n6) ARTIRIM\nKira artışı: {{artis_orani}} (TBK hükümleri saklıdır.)\n\n7) İMZA\nKiraya Veren İmza: __________________\nKiracı İmza: __________________\n"
+  },
+  {
+    "id": "internet_nda_1",
+    "title": "Gizlilik Sözleşmesi (NDA)",
+    "category": "Ticari",
+    "description": "Taraflar arası gizli bilgilerin korunması için temel NDA.",
+    "content": "GİZLİLİK SÖZLEŞMESİ (NDA)\n\nTaraf A: {{taraf_a_unvan}} (Vergi No: {{taraf_a_vergi}})\nTaraf B: {{taraf_b_unvan}} (Vergi No: {{taraf_b_vergi}})\n\n1) GİZLİ BİLGİ TANIMI\nGizli bilgi; taraflar arasında paylaşılan, ticari sır niteliğindeki her türlü yazılı/sözlü bilgiyi kapsar.\n\n2) YÜKÜMLÜLÜKLER\nTaraflar; gizli bilgiyi üçüncü kişilere açıklamamayı, sadece sözleşme amacı için kullanmayı kabul eder.\n\n3) SÜRE\nGizlilik yükümlülüğü {{gizlilik_suresi_yil}} yıl süreyle geçerlidir.\n\n4) YETKİLİ MAHKEME\n{{yetkili_mahkeme}} ve İcra Daireleri yetkilidir.\n\nİMZALAR\nTaraf A: __________________\nTaraf B: __________________\n"
+  }
+]

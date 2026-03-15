@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Body, Request
+from fastapi import APIRouter, Depends, HTTPException, Body, Request, Header
 from pydantic import BaseModel, EmailStr, Field
 
 from admin_auth import require_admin, issue_admin_token
@@ -114,6 +114,33 @@ def _bootstrap_default_admin() -> None:
             "is_active": True
         })
         log_audit(None, "ADMIN_BOOTSTRAP", "system", {"email": default_email})
+
+
+@router.post("/bootstrap/promote")
+def bootstrap_promote_admin(
+    email: str = Body(..., embed=True),
+    x_bootstrap_token: Optional[str] = Header(default=None),
+):
+    if (os.getenv("BOOTSTRAP_MODE", "false") or "").lower() != "true":
+        raise HTTPException(status_code=403, detail="Bootstrap modu kapalı.")
+    token = (os.getenv("BOOTSTRAP_TOKEN") or "").strip()
+    if not token:
+        raise HTTPException(status_code=500, detail="BOOTSTRAP_TOKEN eksik.")
+    if (x_bootstrap_token or "").strip() != token:
+        raise HTTPException(status_code=401, detail="Geçersiz bootstrap token.")
+
+    target = str(email or "").strip().lower()
+    if not target:
+        raise HTTPException(status_code=400, detail="E-posta gerekli.")
+    user = find_user_by_email(target)
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
+
+    ok = update_user_role(target, "admin")
+    if not ok:
+        raise HTTPException(status_code=500, detail="Rol güncellenemedi.")
+    log_audit(str(user.get("id")), "ADMIN_BOOTSTRAP_PROMOTE", "system", {"email": target})
+    return {"ok": True, "email": target, "role": "admin"}
 
 @router.post("/login")
 def admin_login(body: AdminLoginIn, request: Request):

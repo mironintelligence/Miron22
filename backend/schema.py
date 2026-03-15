@@ -24,6 +24,54 @@ def ensure_schema() -> None:
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS used_discount_code TEXT;",
         "CREATE INDEX IF NOT EXISTS idx_users_subscription_plan ON users(subscription_plan);",
         """
+        CREATE TABLE IF NOT EXISTS notifications (
+            id SERIAL PRIMARY KEY,
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            type VARCHAR(50) NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            message TEXT NOT NULL,
+            is_read BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);",
+        "CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);",
+        """
+        CREATE TABLE IF NOT EXISTS case_reminders (
+            id UUID PRIMARY KEY,
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            details TEXT,
+            due_at TIMESTAMPTZ NOT NULL,
+            notified_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_case_reminders_user_due ON case_reminders(user_id, due_at);",
+        "CREATE INDEX IF NOT EXISTS idx_case_reminders_notified_at ON case_reminders(notified_at);",
+        """
+        CREATE TABLE IF NOT EXISTS contract_templates (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            category VARCHAR(100) NOT NULL,
+            content TEXT NOT NULL,
+            description TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_contract_templates_category ON contract_templates(category);",
+        """
+        CREATE TABLE IF NOT EXISTS user_contracts (
+            id SERIAL PRIMARY KEY,
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            title VARCHAR(255) NOT NULL,
+            original_content TEXT,
+            analysis_result JSONB,
+            generated_content TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """,
+        """
         CREATE TABLE IF NOT EXISTS feedback_messages (
             id UUID PRIMARY KEY,
             name TEXT NOT NULL,

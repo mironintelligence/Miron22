@@ -1,23 +1,39 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useMemo, useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 export default function Contracts() {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("templates"); // 'templates' | 'analyze'
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialTab = useMemo(() => {
+    const t = new URLSearchParams(location.search).get("tab");
+    if (t === "analyze" || t === "create" || t === "templates") return t;
+    return "templates";
+  }, [location.search]);
+  const [activeTab, setActiveTab] = useState(initialTab); // 'templates' | 'analyze' | 'create'
   const [analysisText, setAnalysisText] = useState("");
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [templateDetail, setTemplateDetail] = useState(null);
+  const [fieldValues, setFieldValues] = useState({});
+  const [generating, setGenerating] = useState(false);
+  const [generatedText, setGeneratedText] = useState("");
 
   useEffect(() => {
     fetchTemplates();
   }, []);
 
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
   const fetchTemplates = async () => {
     try {
       const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
       const token = localStorage.getItem("miron_token");
-      const res = await fetch(`${base}/api/contracts/templates`, {
+      const res = await fetch(`${base}/api/contracts/templates?include_remote=true`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -55,24 +71,95 @@ export default function Contracts() {
     }
   };
 
+  const setTab = (tab) => {
+    navigate(`/contracts?tab=${tab}`);
+  };
+
+  const extractPlaceholders = (text) => {
+    const out = new Set();
+    const re = /{{\s*([^}]+?)\s*}}/g;
+    let m;
+    while ((m = re.exec(text || ""))) {
+      const key = String(m[1] || "").trim();
+      if (key) out.add(key);
+    }
+    return Array.from(out);
+  };
+
+  const placeholders = useMemo(() => extractPlaceholders(templateDetail?.content || ""), [templateDetail]);
+
+  const loadTemplate = async (templateId) => {
+    setSelectedTemplateId(String(templateId || ""));
+    setTemplateDetail(null);
+    setGeneratedText("");
+    setFieldValues({});
+    try {
+      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+      const token = localStorage.getItem("miron_token");
+      const res = await fetch(`${base}/api/contracts/templates/${encodeURIComponent(String(templateId))}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTemplateDetail(data);
+      }
+    } catch (e) {
+      console.error("Template detail error:", e);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedTemplateId) return;
+    setGenerating(true);
+    setGeneratedText("");
+    try {
+      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+      const token = localStorage.getItem("miron_token");
+      const res = await fetch(`${base}/api/contracts/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ template_id: String(selectedTemplateId), values: fieldValues })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || "Sözleşme oluşturulamadı.");
+      }
+      setGeneratedText(data.generated || "");
+    } catch (e) {
+      console.error("Generate error:", e);
+      alert(e.message || "Sözleşme oluşturulamadı.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#050505] text-white pt-24 px-6">
       <div className="max-w-7xl mx-auto">
         <header className="mb-10">
           <h1 className="text-4xl font-bold mb-2">Sözleşme Merkezi</h1>
-          <p className="text-white/50">Şablonları kullanın veya mevcut sözleşmeleri AI ile analiz edin.</p>
+          <p className="text-white/50">Şablonları kullanın, sözleşme oluşturun veya mevcut sözleşmeleri AI ile analiz edin.</p>
         </header>
 
         {/* Tabs */}
         <div className="flex gap-4 border-b border-white/10 mb-8">
           <button 
-            onClick={() => setActiveTab("templates")}
+            onClick={() => setTab("templates")}
             className={`pb-4 px-2 font-medium transition-colors ${activeTab === "templates" ? "text-[var(--miron-gold)] border-b-2 border-[var(--miron-gold)]" : "text-white/50 hover:text-white"}`}
           >
             Şablonlar
           </button>
           <button 
-            onClick={() => setActiveTab("analyze")}
+            onClick={() => setTab("create")}
+            className={`pb-4 px-2 font-medium transition-colors ${activeTab === "create" ? "text-[var(--miron-gold)] border-b-2 border-[var(--miron-gold)]" : "text-white/50 hover:text-white"}`}
+          >
+            Sözleşme Oluştur
+          </button>
+          <button 
+            onClick={() => setTab("analyze")}
             className={`pb-4 px-2 font-medium transition-colors ${activeTab === "analyze" ? "text-[var(--miron-gold)] border-b-2 border-[var(--miron-gold)]" : "text-white/50 hover:text-white"}`}
           >
             AI Analizi
@@ -91,12 +178,85 @@ export default function Contracts() {
                   <div className="text-xs font-bold text-[var(--miron-gold)] uppercase tracking-wider mb-2">{t.category}</div>
                   <h3 className="text-xl font-bold mb-3 group-hover:text-[var(--miron-gold)] transition-colors">{t.title}</h3>
                   <p className="text-white/60 text-sm mb-6 line-clamp-3">{t.description}</p>
-                  <button className="w-full py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition font-medium">
+                  <button
+                    onClick={() => {
+                      setTab("create");
+                      loadTemplate(t.id);
+                    }}
+                    className="w-full py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition font-medium"
+                  >
                     Şablonu Kullan
                   </button>
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {activeTab === "create" && (
+          <div className="grid lg:grid-cols-2 gap-10">
+            <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="text-lg font-bold">Şablon Seç</div>
+                <Link to="/contracts?tab=templates" className="text-xs text-[var(--miron-gold)] underline">
+                  Şablonlara dön
+                </Link>
+              </div>
+              <select
+                value={selectedTemplateId || ""}
+                onChange={(e) => loadTemplate(e.target.value)}
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm"
+              >
+                <option value="">Şablon seçin</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.category} — {t.title}
+                  </option>
+                ))}
+              </select>
+
+              <div className="mt-6">
+                <div className="text-sm font-semibold mb-2">Alanlar</div>
+                {!templateDetail ? (
+                  <div className="text-xs text-white/40">Şablon seçince alanlar burada görünecek.</div>
+                ) : placeholders.length === 0 ? (
+                  <div className="text-xs text-white/40">Bu şablonda doldurulabilir alan bulunamadı.</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {placeholders.map((k) => (
+                      <input
+                        key={k}
+                        className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm"
+                        placeholder={k}
+                        value={fieldValues[k] || ""}
+                        onChange={(e) => setFieldValues((p) => ({ ...p, [k]: e.target.value }))}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleGenerate}
+                disabled={generating || !selectedTemplateId}
+                className="mt-6 w-full py-4 bg-[var(--miron-gold)] text-black font-bold rounded-xl hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generating ? "Oluşturuluyor..." : "Sözleşmeyi Oluştur"}
+              </button>
+            </div>
+
+            <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
+              <div className="text-lg font-bold mb-4">Oluşturulan Metin</div>
+              {!generatedText ? (
+                <div className="text-xs text-white/40">Henüz sözleşme oluşturulmadı.</div>
+              ) : (
+                <textarea
+                  value={generatedText}
+                  onChange={(e) => setGeneratedText(e.target.value)}
+                  className="w-full h-[520px] bg-black/60 border border-white/15 rounded-2xl p-4 text-sm text-white/80 outline-none resize-none"
+                />
+              )}
+            </div>
           </div>
         )}
 
