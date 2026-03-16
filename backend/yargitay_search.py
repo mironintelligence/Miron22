@@ -88,30 +88,6 @@ def search_decisions(
             "metin": r.get("content")
         })
         
-    # --- IF NO RESULTS (DB EMPTY or NOT READY) ---
-    # Fallback to AI Generation for Demo Continuity
-    if not formatted_results:
-         client = get_openai_client()
-         if client:
-            try:
-                prompt = f"Yargıtay'ın '{q}' konusundaki yerleşik içtihadını özetleyen, sanki gerçek bir karar özetiymiş gibi kısa bir paragraf yaz. Daire ve Esas/Karar numarası uydur."
-                completion = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                ai_summary = completion.choices[0].message.content
-                formatted_results.append({
-                    "id": "ai-gen-1",
-                    "dairesi": "Yargıtay (AI Tahmini)",
-                    "esas_no": "---",
-                    "karar_no": "---",
-                    "tarih": "Güncel",
-                    "ozet": ai_summary,
-                    "metin": ai_summary
-                })
-            except:
-                pass
-
     return formatted_results
 
 class AiAnalysisRequest(BaseModel):
@@ -150,4 +126,3 @@ def analyze_decision(payload: AiAnalysisRequest):
         return {"analysis": completion.choices[0].message.content}
     except Exception as e:
         return {"analysis": f"Hata oluştu: {str(e)}"}
-

@@ -19,7 +19,7 @@ os.environ["ADMIN_TOKEN"] = "secret_admin_token"
 os.environ["DATA_DIR"] = "test_data"
 os.environ["SUPABASE_URL"] = "https://test.supabase.co"
 os.environ["SUPABASE_KEY"] = "test_key"
-os.environ["JWT_SECRET"] = "test_jwt_secret"
+os.environ["JWT_SECRET"] = "test_jwt_secret_32_bytes_long_123456"
 os.environ["DATA_HASH_KEY"] = "test_hash_key"
 from cryptography.fernet import Fernet
 os.environ["DATA_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
@@ -27,7 +27,7 @@ os.environ["DATA_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
 from fastapi.testclient import TestClient
 from main import app
 import security
-security._JWT_SECRET = "test_jwt_secret"
+security._JWT_SECRET = "test_jwt_secret_32_bytes_long_123456"
 from auth_router import router
 
 client = TestClient(app)
@@ -118,9 +118,9 @@ def mock_db_driver():
                 else:
                     os.environ.pop("ENVIRONMENT", None)
 
-@patch("admin_auth.SECRET_KEY", "test_secret_key")
+@patch("admin_auth.SECRET_KEY", "test_secret_key_32_bytes_long_1234567890")
 @patch("admin_auth.ALGORITHM", "HS256")
-@patch("security._JWT_SECRET", "test_jwt_secret")
+@patch("security._JWT_SECRET", "test_jwt_secret_32_bytes_long_123456")
 def test_pricing_flow():
     import jwt
     from datetime import datetime, timedelta, timezone
@@ -130,7 +130,7 @@ def test_pricing_flow():
             "role": "admin",
             "exp": datetime.now(timezone.utc) + timedelta(hours=1),
         },
-        "test_secret_key",
+        "test_secret_key_32_bytes_long_1234567890",
         algorithm="HS256",
     )
     res = client.post("/api/pricing/calculate", json={"count": 1})
@@ -217,7 +217,7 @@ def test_pricing_flow():
 @patch("auth_router.reset_failed_login", lambda user_id: None)
 @patch("auth_router.get_user_token_version", lambda user_id: 1)
 @patch("auth_router.send_verification_email", lambda email, token: None)
-@patch("security._JWT_SECRET", "test_jwt_secret")
+@patch("security._JWT_SECRET", "test_jwt_secret_32_bytes_long_123456")
 def test_auth_single_user_flow(mock_update_login, mock_log_audit, mock_create_sess, mock_refresh, mock_access, mock_verify, mock_create_user, mock_find_user):
     # Mock find_user to return None first (register), then User (login)
     mock_find_user.side_effect = [None, {"id": "00000000-0000-0000-0000-000000000123", "email": "test@example.com", "password_hash": "hashed", "role": "user"}]
@@ -260,7 +260,7 @@ def test_auth_single_user_flow(mock_update_login, mock_log_audit, mock_create_se
 @patch("auth_router.reset_failed_login", lambda user_id: None)
 @patch("auth_router.get_user_token_version", lambda user_id: 1)
 @patch("auth_router.send_verification_email", lambda email, token: None)
-@patch("security._JWT_SECRET", "test_jwt_secret")
+@patch("security._JWT_SECRET", "test_jwt_secret_32_bytes_long_123456")
 def test_auth_multi_user_flow(mock_update_login, mock_log_audit, mock_create_sess, mock_refresh, mock_access, mock_verify, mock_create_user, mock_find_user):
     # Mock data store
     mock_find_user.side_effect = [None, {"id": "00000000-0000-0000-0000-000000000456", "email": "multi@example.com", "password_hash": "hashed", "role": "user"}]

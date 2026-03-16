@@ -61,9 +61,20 @@ export async function logout() {
 
 export async function authFetch(path, options = {}) {
   const token = localStorage.getItem("miron_token") || "";
+  const method = String(options.method || "GET").toUpperCase();
+  const unsafe = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
+  const csrf =
+    typeof document !== "undefined"
+      ? String(document.cookie || "")
+          .split(";")
+          .map((c) => c.trim())
+          .find((c) => c.startsWith("csrf_token="))
+      : null;
+  const csrfToken = csrf ? decodeURIComponent(csrf.split("=", 2)[1] || "") : "";
   const headers = {
     ...(options.headers || {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(unsafe && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
   };
   return fetch(`${API}${path}`, {
     ...options,

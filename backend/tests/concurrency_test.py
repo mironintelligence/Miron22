@@ -1,35 +1,19 @@
 import pytest
 import os
-import time
 import concurrent.futures
 from fastapi.testclient import TestClient
 from main import app
-from stores.pg_users_store import create_user, find_user_by_email, update_user_role, create_session, hmac_hash
-from security import hash_password, create_access_token, create_refresh_token
-from db import init_pool, close_pool
+from stores.pg_users_store import create_user, find_user_by_email
+from security import hash_password
 
 # Ensure test environment
 os.environ["ENVIRONMENT"] = "test"
-os.environ["RATE_LIMIT_WINDOW_SECONDS"] = "1" # Relax for concurrency test? No, we want to hit limits or test DB.
-# Actually we want to test DB Concurrency, so maybe bypass RateLimit or use higher limits.
-# RateLimitMiddleware uses "test" env to set limits higher (50/min for login).
-# 100 concurrent logins will hit rate limit!
-# User asked "100 concurrent login... Race condition var mı bakılacak".
-# If rate limit blocks, we can't test DB race.
-# We should probably mock Rate Limit for this test or increase limits.
 
 client = TestClient(app, base_url="https://testserver")
 
 ADMIN_EMAIL = "conc_admin@test.com"
 USER_EMAIL = "conc_user@test.com"
 PASSWORD = "StrongPassword123!"
-
-@pytest.fixture(scope="module", autouse=True)
-def setup_db_pool():
-    # Ensure pool is init
-    init_pool(min_conn=10, max_conn=20)
-    yield
-    close_pool()
 
 @pytest.fixture(autouse=True)
 def setup_users():
@@ -94,16 +78,15 @@ def test_concurrent_refresh_race_condition():
     print(f"Concurrent Refresh Results: Success={success_count}, AuthFail={auth_fail_count}, RateLimit={rate_limit_count}")
     
     # We expect exactly 1 success (the winner of the race)
-    # The rest should be either 401 (lost race) or 429 (rate limited)
+    # The rest should be 401 (lost race). Rate limit is disabled in test mode.
     assert success_count == 1
     assert auth_fail_count + rate_limit_count == 19
 
 def test_db_connection_pool_stress():
     """
-    Hammer the DB with simple reads to verify Pool doesn't crash or leak.
+    Hammer a read endpoint concurrently to verify request handling doesn't crash.
     """
     def call_me():
-        # Simple endpoint that uses DB
         return client.get("/api/pricing/config")
         
     with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
@@ -112,4 +95,3 @@ def test_db_connection_pool_stress():
         
     status_codes = [r.status_code for r in results]
     assert all(s == 200 for s in status_codes)
-

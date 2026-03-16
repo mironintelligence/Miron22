@@ -13,7 +13,7 @@ def simhash(text: str) -> str:
     
     for t in tokens:
         # Hash token
-        h = int(hashlib.md5(t.encode('utf-8')).hexdigest(), 16)
+        h = int(hashlib.sha256(t.encode("utf-8")).hexdigest()[:16], 16)
         
         for i in range(width):
             if h & (1 << i):

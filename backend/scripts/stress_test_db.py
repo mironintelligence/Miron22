@@ -6,11 +6,11 @@ import random
 import time
 
 # Adjust path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend", ".env"))
 
-from db_async import db
+from backend.db_async import db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("stress_test")

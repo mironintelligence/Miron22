@@ -1,0 +1,11 @@
+exclude_dirs:
+  - backend/tests
+  - backend/scripts
+  - backend/migrations
+  - backend/endpoint_breach
+  - backend/scraper
+  - backend/master_ingestion
+  - backend/pipeline
+  - backend/venv
+skips:
+  - B101

@@ -46,7 +46,7 @@ def get_current_user(authorization: Optional[str] = Header(default=None)) -> Dic
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Oturum geçersiz.")
 
         return {"id": str(uid), "email": email, "role": u.get("role")}
-    except Exception:
+    except HTTPException:
         raise
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token doğrulanamadı.")

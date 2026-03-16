@@ -11,7 +11,7 @@ sys.modules["openai"] = MagicMock()
 # Set env vars BEFORE importing app
 from cryptography.fernet import Fernet
 os.environ["DATA_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
-os.environ["JWT_SECRET"] = "test_jwt_secret"
+os.environ["JWT_SECRET"] = "test_jwt_secret_32_bytes_long_123456"
 os.environ["DATA_HASH_KEY"] = "test_hash_key"
 
 import pytest

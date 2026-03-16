@@ -1,8 +1,11 @@
 import os
 import secrets
+import logging
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+
+logger = logging.getLogger("miron_csrf")
 
 class CSRFProtectionMiddleware(BaseHTTPMiddleware):
     """
@@ -62,8 +65,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         header_token = request.headers.get(self.header_name)
         
         if not cookie_token or not header_token or cookie_token != header_token:
-             # Log failure for debugging but don't bypass blindly anymore.
-             print(f"DEBUG CSRF FAIL: cookie={cookie_token} header={header_token} path={request.url.path}")
+             logger.info("CSRF validation failed", extra={"path": request.url.path})
              return Response(status_code=403, content="CSRF validation failed")
 
         return await call_next(request)

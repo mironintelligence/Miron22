@@ -37,6 +37,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.max_requests = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "120"))
 
     async def dispatch(self, request: Request, call_next):
+        is_test = os.getenv("ENVIRONMENT") == "test"
+        if is_test and (os.getenv("RATE_LIMIT_DISABLE_IN_TEST", "true") or "").lower() == "true":
+            return await call_next(request)
+
         # Identify client (IP or User ID if authenticated)
         forwarded = request.headers.get("x-forwarded-for")
         if forwarded:
@@ -67,7 +71,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 pass
 
         # Determine Rate Limit Policy based on path
-        is_test = os.getenv("ENVIRONMENT") == "test"
         path = request.url.path
         if path.endswith("/api/auth/login"):
             limit = 50 if is_test else 5

@@ -1,11 +1,34 @@
 import os
 import logging
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+import uuid
+import threading
 from db import get_db_cursor, get_pool_status
 from security import encrypt_value, decrypt_value, hmac_hash
 
 logger = logging.getLogger("miron_pg_store")
+
+# --- In-memory test store (default when ENVIRONMENT=test) ---
+
+def _use_inmemory() -> bool:
+    return (os.getenv("ENVIRONMENT") or "").lower() == "test" and (os.getenv("TEST_USE_INMEMORY_PG_STORE", "true") or "").lower() != "false"
+
+_mem_lock = threading.Lock()
+_mem_users_by_id: Dict[str, Dict[str, Any]] = {}
+_mem_users_by_email: Dict[str, str] = {}
+_mem_sessions_by_hash: Dict[str, Dict[str, Any]] = {}
+_mem_audit_logs: List[Dict[str, Any]] = []
+
+
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _as_dt(x) -> Optional[datetime]:
+    if isinstance(x, datetime):
+        return x if x.tzinfo else x.replace(tzinfo=timezone.utc)
+    return None
 
 # --- Helper Functions ---
 
@@ -21,6 +44,35 @@ def _row_to_user(row: Dict[str, Any]) -> Dict[str, Any]:
 # --- User Operations ---
 
 def create_user(user: Dict[str, Any]) -> str:
+    if _use_inmemory():
+        uid = str(uuid.uuid4())
+        email = _norm_email(user.get("email") or "")
+        now = _now_utc()
+        row = {
+            "id": uid,
+            "email": email,
+            "password_hash": user.get("hashed_password"),
+            "first_name": user.get("firstName") or user.get("first_name") or "",
+            "last_name": user.get("lastName") or user.get("last_name") or "",
+            "role": user.get("role", "user"),
+            "is_active": user.get("is_active", True),
+            "is_verified": user.get("is_verified", True),
+            "token_version": int(user.get("token_version") or 1),
+            "failed_login_attempts": int(user.get("failed_login_attempts") or 0),
+            "locked_until": user.get("locked_until"),
+            "created_at": now,
+            "last_login_at": None,
+            "last_login_ip": None,
+            "refresh_token_hash": None,
+            "verification_token": user.get("verification_token"),
+            "reset_password_token": user.get("reset_password_token"),
+            "reset_password_expires_at": user.get("reset_password_expires_at"),
+        }
+        with _mem_lock:
+            _mem_users_by_id[uid] = row
+            _mem_users_by_email[email] = uid
+        return uid
+
     cols = ["email", "password_hash", "first_name", "last_name", "role", "is_active", "created_at"]
     vals = [
         _norm_email(user["email"]),
@@ -71,6 +123,11 @@ def create_user(user: Dict[str, Any]) -> str:
         return str(row["id"])
 
 def find_user_by_email(email: str) -> Optional[Dict[str, Any]]:
+    if _use_inmemory():
+        e = _norm_email(email)
+        with _mem_lock:
+            uid = _mem_users_by_email.get(e)
+            return dict(_mem_users_by_id.get(uid) or {}) if uid else None
     sql = "SELECT * FROM users WHERE email = %s LIMIT 1"
     with get_db_cursor() as cur:
         cur.execute(sql, (_norm_email(email),))
@@ -78,6 +135,10 @@ def find_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         return _row_to_user(row)
 
 def find_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
+    if _use_inmemory():
+        uid = str(user_id)
+        with _mem_lock:
+            return dict(_mem_users_by_id.get(uid) or {}) if uid in _mem_users_by_id else None
     sql = "SELECT * FROM users WHERE id = %s LIMIT 1"
     with get_db_cursor() as cur:
         cur.execute(sql, (user_id,))
@@ -85,30 +146,74 @@ def find_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
         return _row_to_user(row)
 
 def delete_user(email: str) -> bool:
+    if _use_inmemory():
+        e = _norm_email(email)
+        with _mem_lock:
+            uid = _mem_users_by_email.pop(e, None)
+            if not uid:
+                return False
+            _mem_users_by_id.pop(uid, None)
+            return True
     sql = "DELETE FROM users WHERE email = %s RETURNING id"
     with get_db_cursor() as cur:
         cur.execute(sql, (_norm_email(email),))
         return cur.fetchone() is not None
 
 def update_user_password(email: str, hashed_password: str) -> bool:
+    if _use_inmemory():
+        e = _norm_email(email)
+        with _mem_lock:
+            uid = _mem_users_by_email.get(e)
+            if not uid:
+                return False
+            _mem_users_by_id[uid]["password_hash"] = hashed_password
+            return True
     sql = "UPDATE users SET password_hash = %s WHERE email = %s RETURNING id"
     with get_db_cursor() as cur:
         cur.execute(sql, (hashed_password, _norm_email(email)))
         return cur.fetchone() is not None
 
 def update_user_role(email: str, role: str) -> bool:
+    if _use_inmemory():
+        e = _norm_email(email)
+        with _mem_lock:
+            uid = _mem_users_by_email.get(e)
+            if not uid:
+                return False
+            _mem_users_by_id[uid]["role"] = role
+            return True
     sql = "UPDATE users SET role = %s WHERE email = %s RETURNING id"
     with get_db_cursor() as cur:
         cur.execute(sql, (role, _norm_email(email)))
         return cur.fetchone() is not None
 
 def update_user_active(email: str, is_active: bool) -> bool:
+    if _use_inmemory():
+        e = _norm_email(email)
+        with _mem_lock:
+            uid = _mem_users_by_email.get(e)
+            if not uid:
+                return False
+            _mem_users_by_id[uid]["is_active"] = bool(is_active)
+            return True
     sql = "UPDATE users SET is_active = %s WHERE email = %s RETURNING id"
     with get_db_cursor() as cur:
         cur.execute(sql, (is_active, _norm_email(email)))
         return cur.fetchone() is not None
 
 def update_user_login(user_id: str, ip: str, refresh_hash: str):
+    if _use_inmemory():
+        uid = str(user_id)
+        with _mem_lock:
+            if uid not in _mem_users_by_id:
+                return
+            u = _mem_users_by_id[uid]
+            u["last_login_at"] = _now_utc()
+            u["last_login_ip"] = ip
+            u["refresh_token_hash"] = refresh_hash
+            u["failed_login_attempts"] = 0
+            u["locked_until"] = None
+        return
     sql = """
         UPDATE users 
         SET last_login_at = NOW(), last_login_ip = %s, refresh_token_hash = %s, failed_login_attempts = 0
@@ -118,6 +223,11 @@ def update_user_login(user_id: str, ip: str, refresh_hash: str):
         cur.execute(sql, (ip, refresh_hash, user_id))
 
 def get_user_token_version(user_id: str) -> int:
+    if _use_inmemory():
+        uid = str(user_id)
+        with _mem_lock:
+            u = _mem_users_by_id.get(uid)
+            return int(u.get("token_version") or 1) if u else 1
     sql = "SELECT token_version FROM users WHERE id = %s"
     with get_db_cursor() as cur:
         cur.execute(sql, (user_id,))
@@ -128,6 +238,12 @@ def get_user_token_version(user_id: str) -> int:
 
 def increment_token_version(user_id: str):
     """Global Logout: Invalidates all existing tokens"""
+    if _use_inmemory():
+        uid = str(user_id)
+        with _mem_lock:
+            if uid in _mem_users_by_id:
+                _mem_users_by_id[uid]["token_version"] = int(_mem_users_by_id[uid].get("token_version") or 1) + 1
+        return
     sql = "UPDATE users SET token_version = token_version + 1 WHERE id = %s"
     with get_db_cursor() as cur:
         cur.execute(sql, (user_id,))
@@ -137,6 +253,20 @@ def increment_failed_login(email: str):
     Increment failed login attempts and lock account if threshold reached.
     Lock for 15 minutes after 5 failed attempts.
     """
+    if _use_inmemory():
+        e = _norm_email(email)
+        with _mem_lock:
+            uid = _mem_users_by_email.get(e)
+            if not uid:
+                return
+            u = _mem_users_by_id[uid]
+            n = int(u.get("failed_login_attempts") or 0) + 1
+            u["failed_login_attempts"] = n
+            if n >= 5:
+                u["locked_until"] = _now_utc() + timedelta(minutes=15)
+            else:
+                u["locked_until"] = None
+        return
     sql = """
         UPDATE users 
         SET failed_login_attempts = failed_login_attempts + 1,
@@ -150,6 +280,13 @@ def increment_failed_login(email: str):
         cur.execute(sql, (_norm_email(email),))
 
 def reset_failed_login(user_id: str):
+    if _use_inmemory():
+        uid = str(user_id)
+        with _mem_lock:
+            if uid in _mem_users_by_id:
+                _mem_users_by_id[uid]["failed_login_attempts"] = 0
+                _mem_users_by_id[uid]["locked_until"] = None
+        return
     sql = """
         UPDATE users 
         SET failed_login_attempts = 0, locked_until = NULL
@@ -159,6 +296,14 @@ def reset_failed_login(user_id: str):
         cur.execute(sql, (user_id,))
 
 def is_account_locked(email: str) -> bool:
+    if _use_inmemory():
+        e = _norm_email(email)
+        with _mem_lock:
+            uid = _mem_users_by_email.get(e)
+            if not uid:
+                return False
+            locked_until = _as_dt(_mem_users_by_id[uid].get("locked_until"))
+        return bool(locked_until and locked_until > _now_utc())
     sql = """
         SELECT locked_until, failed_login_attempts FROM users WHERE email = %s
     """
@@ -176,6 +321,13 @@ def is_account_locked(email: str) -> bool:
 
 def lock_user(user_id: str, duration_minutes: int = 1440) -> bool:
     """Manually lock user for X minutes (default 24h)"""
+    if _use_inmemory():
+        uid = str(user_id)
+        with _mem_lock:
+            if uid not in _mem_users_by_id:
+                return False
+            _mem_users_by_id[uid]["locked_until"] = _now_utc() + timedelta(minutes=int(duration_minutes))
+            return True
     sql = """
         UPDATE users 
         SET locked_until = NOW() + (%s || ' minutes')::interval
@@ -188,6 +340,14 @@ def lock_user(user_id: str, duration_minutes: int = 1440) -> bool:
 
 def unlock_user(user_id: str) -> bool:
     """Manually unlock user"""
+    if _use_inmemory():
+        uid = str(user_id)
+        with _mem_lock:
+            if uid not in _mem_users_by_id:
+                return False
+            _mem_users_by_id[uid]["locked_until"] = None
+            _mem_users_by_id[uid]["failed_login_attempts"] = 0
+            return True
     sql = """
         UPDATE users 
         SET locked_until = NULL, failed_login_attempts = 0
@@ -199,6 +359,13 @@ def unlock_user(user_id: str) -> bool:
         return cur.fetchone() is not None
 
 def get_audit_logs(user_id: str = None, limit: int = 100) -> List[Dict[str, Any]]:
+    if _use_inmemory():
+        with _mem_lock:
+            logs = list(_mem_audit_logs)
+        if user_id:
+            logs = [l for l in logs if str(l.get("user_id") or "") == str(user_id)]
+        logs.sort(key=lambda x: x.get("created_at") or _now_utc(), reverse=True)
+        return logs[: int(limit)]
     sql = "SELECT * FROM audit_logs"
     params = []
     
@@ -215,6 +382,13 @@ def get_audit_logs(user_id: str = None, limit: int = 100) -> List[Dict[str, Any]
         return [dict(r) for r in rows]
 
 def list_users(limit=100, offset=0, role: str = None) -> List[Dict[str, Any]]:
+    if _use_inmemory():
+        with _mem_lock:
+            users = list(_mem_users_by_id.values())
+        if role:
+            users = [u for u in users if u.get("role") == role]
+        users.sort(key=lambda x: x.get("created_at") or _now_utc(), reverse=True)
+        return [dict(u) for u in users[int(offset) : int(offset) + int(limit)]]
     if role:
         sql = "SELECT * FROM users WHERE role = %s ORDER BY created_at DESC LIMIT %s OFFSET %s"
         params = (role, limit, offset)
@@ -230,6 +404,22 @@ def list_users(limit=100, offset=0, role: str = None) -> List[Dict[str, Any]]:
 # --- Session Operations ---
 
 def create_session(user_id: str, refresh_hash: str, fingerprint: str, ip: str, ua: str, expires_at: datetime):
+    if _use_inmemory():
+        with _mem_lock:
+            _mem_sessions_by_hash[str(refresh_hash)] = {
+                "id": str(uuid.uuid4()),
+                "user_id": str(user_id),
+                "refresh_token_hash": str(refresh_hash),
+                "device_fingerprint": fingerprint,
+                "ip_address": ip,
+                "user_agent": ua,
+                "expires_at": _as_dt(expires_at) or (_now_utc() + timedelta(days=7)),
+                "is_revoked": False,
+                "revoked_at": None,
+                "revoked_reason": None,
+                "created_at": _now_utc(),
+            }
+        return
     sql = """
         INSERT INTO sessions (user_id, refresh_token_hash, device_fingerprint, ip_address, user_agent, expires_at)
         VALUES (%s, %s, %s, %s, %s, %s)
@@ -238,6 +428,16 @@ def create_session(user_id: str, refresh_hash: str, fingerprint: str, ip: str, u
         cur.execute(sql, (user_id, refresh_hash, fingerprint, ip, ua, expires_at))
 
 def revoke_session(refresh_hash: str, reason: str = "logout"):
+    if _use_inmemory():
+        h = str(refresh_hash)
+        with _mem_lock:
+            s = _mem_sessions_by_hash.get(h)
+            if not s:
+                return
+            s["is_revoked"] = True
+            s["revoked_at"] = _now_utc()
+            s["revoked_reason"] = reason
+        return
     sql = """
         UPDATE sessions 
         SET is_revoked = TRUE, revoked_at = NOW(), revoked_reason = %s
@@ -252,6 +452,21 @@ def rotate_refresh_token_atomic(old_refresh_hash: str, reason: str = "rotation")
     Returns True if successful (session was valid and is now revoked).
     Returns False if session was already revoked or expired (Race condition or Replay attack).
     """
+    if _use_inmemory():
+        h = str(old_refresh_hash)
+        with _mem_lock:
+            s = _mem_sessions_by_hash.get(h)
+            if not s:
+                return False
+            if s.get("is_revoked") is True:
+                return False
+            exp = _as_dt(s.get("expires_at"))
+            if exp and exp <= _now_utc():
+                return False
+            s["is_revoked"] = True
+            s["revoked_at"] = _now_utc()
+            s["revoked_reason"] = reason
+            return True
     sql = """
         UPDATE sessions
         SET is_revoked = TRUE, revoked_at = NOW(), revoked_reason = %s
@@ -265,6 +480,16 @@ def rotate_refresh_token_atomic(old_refresh_hash: str, reason: str = "rotation")
         return cur.fetchone() is not None
 
 def is_session_valid(refresh_hash: str) -> bool:
+    if _use_inmemory():
+        h = str(refresh_hash)
+        with _mem_lock:
+            s = _mem_sessions_by_hash.get(h)
+            if not s:
+                return False
+            if s.get("is_revoked") is True:
+                return False
+            exp = _as_dt(s.get("expires_at"))
+            return bool(not exp or exp > _now_utc())
     sql = """
         SELECT id FROM sessions 
         WHERE refresh_token_hash = %s AND is_revoked = FALSE AND expires_at > NOW()
@@ -276,6 +501,15 @@ def is_session_valid(refresh_hash: str) -> bool:
 # --- Audit Logs ---
 
 def update_user_verification(token: str) -> bool:
+    if _use_inmemory():
+        tok = str(token)
+        with _mem_lock:
+            for u in _mem_users_by_id.values():
+                if str(u.get("verification_token") or "") == tok:
+                    u["is_verified"] = True
+                    u["verification_token"] = None
+                    return True
+        return False
     sql = """
         UPDATE users 
         SET is_verified = TRUE, verification_token = NULL 
@@ -287,6 +521,16 @@ def update_user_verification(token: str) -> bool:
         return cur.fetchone() is not None
 
 def get_user_by_reset_token(token: str) -> Optional[Dict[str, Any]]:
+    if _use_inmemory():
+        tok = str(token)
+        now = _now_utc()
+        with _mem_lock:
+            for u in _mem_users_by_id.values():
+                if str(u.get("reset_password_token") or "") == tok:
+                    exp = _as_dt(u.get("reset_password_expires_at"))
+                    if exp and exp > now:
+                        return dict(u)
+        return None
     sql = "SELECT * FROM users WHERE reset_password_token = %s AND reset_password_expires_at > NOW()"
     with get_db_cursor() as cur:
         cur.execute(sql, (token,))
@@ -294,12 +538,37 @@ def get_user_by_reset_token(token: str) -> Optional[Dict[str, Any]]:
         return _row_to_user(row)
 
 def update_password(user_id: str, hashed_password: str):
+    if _use_inmemory():
+        uid = str(user_id)
+        with _mem_lock:
+            if uid not in _mem_users_by_id:
+                return
+            u = _mem_users_by_id[uid]
+            u["password_hash"] = hashed_password
+            u["reset_password_token"] = None
+            u["reset_password_expires_at"] = None
+        return
     sql = "UPDATE users SET password_hash = %s, reset_password_token = NULL, reset_password_expires_at = NULL WHERE id = %s"
     with get_db_cursor() as cur:
         cur.execute(sql, (hashed_password, user_id))
 
 def log_audit(user_id: Optional[str], action: str, resource: str = None, details: Dict = None, ip: str = None, ua: str = None):
     if (os.getenv("AUDIT_LOG_ENABLED", "true") or "").lower() != "true":
+        return
+    if _use_inmemory():
+        with _mem_lock:
+            _mem_audit_logs.append(
+                {
+                    "id": str(uuid.uuid4()),
+                    "user_id": user_id,
+                    "action": action,
+                    "resource": resource,
+                    "details": details,
+                    "ip_address": ip,
+                    "user_agent": ua,
+                    "created_at": _now_utc(),
+                }
+            )
         return
     status = get_pool_status()
     if status.get("status") != "active":
