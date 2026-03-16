@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import io
+import hashlib
 from datetime import datetime
 from typing import Dict, Any, Optional, Literal, List
 
 from fastapi import APIRouter, HTTPException
+from fastapi import Depends
 from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel
 from uyap_udf import _build_udf, _safe_filename
@@ -14,6 +16,7 @@ from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from openai_client import get_openai_client
+from user_auth import get_current_user
 
 writer_router = APIRouter(prefix="/writer", tags=["Dilekçe Oluşturucu"])
 
@@ -377,9 +380,10 @@ class PreviewRequest(BaseModel):
     include_statutes: bool = True
     include_case_law: bool = True
     mask_pii: bool = True
+    ai_note: Optional[str] = None
 
 class ExportRequest(PreviewRequest):
-    format: Literal["docx", "uyap", "udf"] = "docx"
+    format: Literal["docx", "pdf", "uyap", "udf"] = "docx"
 # ---------------- Helpers ---------------- #
 def get_template_by_key(key: str) -> Optional[Dict[str, Any]]:
     for cat_items in CATALOG.values():
@@ -408,6 +412,9 @@ def build_prompt(tpl_obj: Dict[str, Any], req: PreviewRequest) -> str:
             out.append(f"- {k}: {v}")
         return "\n".join(out) if out else "-"
 
+    note = (req.ai_note or "").strip()
+    note_block = note if note else "-"
+
     return f"""
 Sen Miron AI Dilekçe Yazarı'sın. Türk hukukuna uygun, resmi ve profesyonel dilekçeler üret.
 Çıktı, aşağıdaki bölümleri ve SADECE bu işaretleri, verilen sırayla içermelidir:
@@ -426,11 +433,15 @@ Sen Miron AI Dilekçe Yazarı'sın. Türk hukukuna uygun, resmi ve profesyonel d
 #FORM_DEĞERLERİ
 {kvs(req.values)}
 
+#AI_NOTLAR
+{note_block}
+
 #TALİMATLAR
 - Resmi üslup kullan; Türkiye'deki standart dilekçe yapısını takip et.
 - ADD_STATUTES varsa uygun yerde ilgili maddelere atıf yap (HMK/TMK/TBK/İİK/CMK/4857/6502/5651/KVKK).
 - ADD_CASELAW varsa 1-2 kısa Yargıtay içtihat yönlendirmesi ekle (uzun alıntı yapma).
 - SONUÇ_İSTEM bölümünde uygun olduğunda vekâlet ücreti ve yargılama giderlerini talep et.
+- AI_NOTLAR alanındaki kullanıcı notlarını mümkün olduğunca uygula; hukuka aykırı veya çelişkili isteklerde kısa uyarı düş.
 - #STRATEJİK_DEĞERLENDİRME: Dilekçeden ÖNCE kısa bir stratejik değerlendirme yaz. Şunları içersin:
   1. Argüman Gücü (Zayıf/Orta/Güçlü) ve nedeni.
   2. Karşı Taraf Simülasyonu (muhtemel karşı argümanlar).
@@ -470,7 +481,7 @@ def parse_marked_text(text: str) -> Dict[str, str]:
 
 # ---------------- Routes ---------------- #
 @writer_router.get("/catalog")
-def get_catalog():
+def get_catalog(user: Dict[str, Any] = Depends(get_current_user)):
     # Sadece liste görünümü: fields yok
     data = []
     for cat, items in CATALOG.items():
@@ -481,14 +492,14 @@ def get_catalog():
     return data
 
 @writer_router.get("/fields/{template_key}")
-def get_fields(template_key: str):
+def get_fields(template_key: str, user: Dict[str, Any] = Depends(get_current_user)):
     tpl_obj = get_template_by_key(template_key)
     if not tpl_obj:
         raise HTTPException(status_code=404, detail="Şablon bulunamadı")
     return {"key": tpl_obj["key"], "title": tpl_obj["title"], "fields": tpl_obj["fields"]}
 
 @writer_router.post("/preview")
-async def preview(req: PreviewRequest):
+async def preview(req: PreviewRequest, user: Dict[str, Any] = Depends(get_current_user)):
     tpl_obj = get_template_by_key(req.template_key)
     if not tpl_obj:
         raise HTTPException(status_code=400, detail="Geçersiz template_key")
@@ -510,8 +521,6 @@ async def preview(req: PreviewRequest):
                 if context_data:
                     prompt += f"\n\n#RELEVANT_PRECEDENTS_FROM_RAG\n{context_data}\n\n#INSTRUCTION_UPDATE\nUse the above precedents to strengthen the LEGAL_BASIS section if applicable."
     except Exception as e:
-        print(f"RAG Enrichment failed for writer: {e}")
-        # Continue without RAG
         pass
 
     if client is None:
@@ -531,7 +540,7 @@ async def preview(req: PreviewRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LLM/Preview: {e}")
 @writer_router.post("/export")
-def export_doc(req: ExportRequest):
+def export_doc(req: ExportRequest, user: Dict[str, Any] = Depends(get_current_user)):
     tpl_obj = get_template_by_key(req.template_key)
     if not tpl_obj:
         raise HTTPException(status_code=400, detail="Geçersiz template_key")
@@ -554,26 +563,69 @@ def export_doc(req: ExportRequest):
         final_text = resp.choices[0].message.content or ""
         sections = parse_marked_text(final_text)
 
-        # ✅ UYAP / UDF: düz metin indir
-        if fmt in ("uyap", "udf"):
-            text_out = "\n\n".join([
+        text_out = "\n\n".join(
+            [
                 sections.get("header", "").strip(),
                 sections.get("summary", "").strip(),
                 "HUKUKİ SEBEPLER:\n" + sections.get("legal_basis", "").strip(),
                 "SONUÇ VE İSTEM:\n" + sections.get("result_requests", "").strip(),
                 "EKLER:\n" + sections.get("attachments", "").strip(),
-            ]).strip()
+            ]
+        ).strip()
 
-            stream = io.BytesIO(text_out.encode("utf-8"))
-            filename = f"dilekce_{tpl_obj['key']}{datetime.now().strftime('%Y%m%d%H%M')}.{fmt}"
-
-            return StreamingResponse(
-                stream,
+        if fmt == "udf":
+            udf_text = _build_udf(tpl_obj.get("title") or "Dilekçe", text_out, None)
+            data = udf_text.encode("utf-8")
+            filename = f"dilekce_{tpl_obj['key']}{datetime.now().strftime('%Y%m%d%H%M')}.udf"
+            sha = hashlib.sha256(data).hexdigest()
+            return Response(
+                content=data,
                 media_type="application/octet-stream",
-                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+                headers={"Content-Disposition": f'attachment; filename="{filename}"', "X-File-SHA256": sha},
             )
 
-        # ✅ DOCX: aynı eski mantık
+        if fmt == "uyap":
+            data = text_out.encode("utf-8")
+            filename = f"dilekce_{tpl_obj['key']}{datetime.now().strftime('%Y%m%d%H%M')}.uyap"
+            sha = hashlib.sha256(data).hexdigest()
+            return Response(
+                content=data,
+                media_type="application/octet-stream",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"', "X-File-SHA256": sha},
+            )
+
+        if fmt == "pdf":
+            try:
+                from reportlab.lib.pagesizes import A4
+                from reportlab.pdfgen import canvas
+                from reportlab.lib.units import mm
+            except Exception:
+                raise HTTPException(status_code=501, detail="PDF export devre dışı.")
+
+            buf = io.BytesIO()
+            c = canvas.Canvas(buf, pagesize=A4)
+            w, h = A4
+            x = 15 * mm
+            y = h - 20 * mm
+            c.setFont("Helvetica", 10)
+            for line in (text_out or "").splitlines():
+                if y < 20 * mm:
+                    c.showPage()
+                    c.setFont("Helvetica", 10)
+                    y = h - 20 * mm
+                c.drawString(x, y, line[:150])
+                y -= 5 * mm
+            c.save()
+            data = buf.getvalue()
+            filename = f"dilekce_{tpl_obj['key']}{datetime.now().strftime('%Y%m%d%H%M')}.pdf"
+            sha = hashlib.sha256(data).hexdigest()
+            return Response(
+                content=data,
+                media_type="application/pdf",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"', "X-File-SHA256": sha},
+            )
+
+        # ✅ DOCX
         doc = Document()
         style = doc.styles["Normal"]
         style.font.name = "Calibri"
@@ -601,13 +653,13 @@ def export_doc(req: ExportRequest):
 
         stream = io.BytesIO()
         doc.save(stream)
-        stream.seek(0)
-
+        data = stream.getvalue()
         filename = f"dilekce_{tpl_obj['key']}{datetime.now().strftime('%Y%m%d%H%M')}.docx"
-        return StreamingResponse(
-            stream,
+        sha = hashlib.sha256(data).hexdigest()
+        return Response(
+            content=data,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            headers={"Content-Disposition": f'attachment; filename="{filename}"', "X-File-SHA256": sha},
         )
 
     except Exception:

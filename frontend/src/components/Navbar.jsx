@@ -20,10 +20,11 @@ export default function Navbar() {
     { name: "Mevzuat", path: "/mevzuat" },
     { name: "Dava Simülasyonu", path: "/case-simulation" },
     { name: "Sözleşmeler", path: "/contracts" },
+    { name: "Yardım", path: "/help" },
   ];
 
   if (user?.role === "admin") {
-    navLinks.push({ name: "Admin Panel", path: "/admin" });
+    navLinks.splice(1, 0, { name: "🛡️ Admin Paneli", path: "/admin", prominent: true });
   }
 
   // Public links if not logged in
@@ -72,7 +73,11 @@ export default function Navbar() {
               key={link.path}
               to={link.path}
               className={`text-sm font-medium transition-colors ${
-                location.pathname === link.path ? "text-[var(--miron-gold)]" : "text-white/60 hover:text-white"
+                link.prominent
+                  ? "px-3 py-2 rounded-xl bg-[var(--miron-gold)] text-black hover:brightness-110"
+                  : location.pathname === link.path
+                    ? "text-[var(--miron-gold)]"
+                    : "text-white/60 hover:text-white"
               }`}
             >
               {link.name}
@@ -125,7 +130,11 @@ export default function Navbar() {
                 to={link.path}
                 onClick={() => setMenuOpen(false)}
                 className={`text-lg font-medium ${
-                  location.pathname === link.path ? "text-[var(--miron-gold)]" : "text-white/70"
+                  link.prominent
+                    ? "text-black bg-[var(--miron-gold)] px-3 py-2 rounded-xl"
+                    : location.pathname === link.path
+                      ? "text-[var(--miron-gold)]"
+                      : "text-white/70"
                 }`}
               >
                 {link.name}

@@ -23,12 +23,19 @@ body {
   color: var(--miron-text);
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  font-size: 16px;
+  line-height: 1.55;
+  letter-spacing: 0.005em;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+  font-feature-settings: "kern" 1, "liga" 1;
 }
 
 h1, h2, h3, h4 {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
   letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .subtitle, .section-title {
@@ -76,7 +83,7 @@ h1, h2, h3, h4 {
 }
 
 /* ---------- Markdown Okunabilirliği ---------- */
-.prose-invert { color: #ffffff; line-height: 1.7; word-wrap: break-word; overflow-wrap: break-word; }
+.prose-invert { color: #ffffff; line-height: 1.75; word-wrap: break-word; overflow-wrap: break-word; }
 .prose-invert h2, .prose-invert h3 { color: var(--miron-gold); font-weight: 700; }
 .prose-invert ul { list-style-type: disc; margin-left: 1.5rem; }
 .prose-invert strong { color: var(--miron-gold); }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { authFetch } from "../auth/api";
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
@@ -10,11 +11,7 @@ export default function Notifications() {
 
   const fetchNotifications = async () => {
     try {
-      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-      const token = localStorage.getItem("miron_token");
-      const res = await fetch(`${base}/api/notifications`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
+      const res = await authFetch("/api/notifications");
       if (res.ok) {
         setNotifications(await res.json());
       }
@@ -27,12 +24,7 @@ export default function Notifications() {
 
   const markRead = async (id) => {
     try {
-      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-      const token = localStorage.getItem("miron_token");
-      await fetch(`${base}/api/notifications/${id}/read`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
+      await authFetch(`/api/notifications/${id}/read`, { method: "POST" });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     } catch (e) {
       console.error("Read error:", e);

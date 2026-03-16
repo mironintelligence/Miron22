@@ -98,6 +98,13 @@ const baseTiles = [
     icon: "📝",
     disabled: false,
   },
+  {
+    title: "Yardım",
+    desc: "Modüller, kullanım adımları ve sık sorulanlar.",
+    to: "/help",
+    icon: "❓",
+    disabled: false,
+  },
 ];
 
 export default function Home() {

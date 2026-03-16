@@ -24,6 +24,8 @@ export default function AdminPanel() {
     code: "", type: "percent", value: 0, max_usage: "", expires_at: "", description: ""
   });
   const [notif, setNotif] = useState({ title: "", message: "", type: "admin" });
+  const [notifMode, setNotifMode] = useState("broadcast");
+  const [notifUserId, setNotifUserId] = useState("");
 
   useEffect(() => {
     if (token) checkAuth();
@@ -138,6 +140,19 @@ export default function AdminPanel() {
 
   const sendNotification = async () => {
     if (!notif.title || !notif.message) return showMsg("Başlık ve mesaj gerekli", "error");
+    if (notifMode === "user") {
+      if (!notifUserId) return showMsg("Kullanıcı seçiniz", "error");
+      const res = await fetchWithAuth("/api/notifications/send", {
+        method: "POST",
+        body: JSON.stringify({ ...notif, user_id: notifUserId })
+      });
+      if (res?.status === "ok") {
+        showMsg("✅ Duyuru gönderildi", "success");
+        setNotif({ title: "", message: "", type: "admin" });
+        return;
+      }
+      return showMsg("❌ Gönderim hatası", "error");
+    }
     const res = await fetchWithAuth("/api/notifications/broadcast", {
       method: "POST",
       body: JSON.stringify(notif)
@@ -256,8 +271,36 @@ export default function AdminPanel() {
         {activeTab === "notifications" && (
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-zinc-900/30 p-6 rounded-xl border border-zinc-800">
-              <h3 className="text-amber-500 font-bold mb-6">DUYURU GÖNDER (BROADCAST)</h3>
+              <h3 className="text-amber-500 font-bold mb-6">DUYURU GÖNDER</h3>
               <div className="space-y-4">
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">HEDEF</label>
+                  <select
+                    value={notifMode}
+                    onChange={(e) => setNotifMode(e.target.value)}
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded focus:border-amber-500 outline-none"
+                  >
+                    <option value="broadcast">Tüm kullanıcılar</option>
+                    <option value="user">Tek kullanıcı</option>
+                  </select>
+                </div>
+                {notifMode === "user" && (
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">KULLANICI</label>
+                    <select
+                      value={notifUserId}
+                      onChange={(e) => setNotifUserId(e.target.value)}
+                      className="w-full bg-black border border-zinc-700 p-3 text-white rounded focus:border-amber-500 outline-none"
+                    >
+                      <option value="">Seçiniz</option>
+                      {users.map((u) => (
+                        <option key={u.id || u.email} value={u.id}>
+                          {u.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs text-zinc-500 mb-1">BAŞLIK</label>
                   <input className="w-full bg-black border border-zinc-700 p-3 text-white rounded focus:border-amber-500 outline-none" 
@@ -269,7 +312,7 @@ export default function AdminPanel() {
                     value={notif.message} onChange={e => setNotif({...notif, message: e.target.value})} placeholder="Duyuru içeriği..." />
                 </div>
                 <button onClick={sendNotification} className="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-500 transition">
-                  TÜM KULLANICILARA GÖNDER
+                  {notifMode === "broadcast" ? "TÜM KULLANICILARA GÖNDER" : "KULLANICIYA GÖNDER"}
                 </button>
               </div>
             </div>
