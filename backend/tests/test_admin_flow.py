@@ -47,8 +47,9 @@ def admin_headers():
     os.environ["ADMIN_TOKEN"] = ADMIN_TOKEN
     import admin_auth
     from admin_auth import require_admin as require_admin_backend
-    app.dependency_overrides[admin_auth.require_admin] = lambda: None
-    app.dependency_overrides[require_admin_backend] = lambda: None
+    fake_admin = {"admin_id": "test-admin", "role": "admin", "jti": "test-jti"}
+    app.dependency_overrides[admin_auth.require_admin] = lambda: fake_admin
+    app.dependency_overrides[require_admin_backend] = lambda: fake_admin
     try:
         res = client.get("/")
         token = client.cookies.get("csrf_token")

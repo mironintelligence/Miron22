@@ -5,7 +5,8 @@ const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
 export default function AdminPanel() {
   const [token, setToken] = useState(localStorage.getItem("adminToken") || "");
-  const [cred, setCred] = useState({ firstName: "", lastName: "", password: "" });
+  const [cred, setCred] = useState({ email: "", password: "", otp: "" });
+  const [mfaSetup, setMfaSetup] = useState(null);
   const [authed, setAuthed] = useState(false);
   const [activeTab, setActiveTab] = useState("stats");
   const [msg, setMsg] = useState("");
@@ -15,6 +16,14 @@ export default function AdminPanel() {
   const [stats, setStats] = useState(null);
   const [config, setConfig] = useState(null);
   const [users, setUsers] = useState([]);
+  const [userFilters, setUserFilters] = useState({ search: "", role: "", active: "" });
+  const [selectedEmails, setSelectedEmails] = useState({});
+  const [newUser, setNewUser] = useState({ username: "", email: "", password: "", role: "user", is_active: true });
+  const [bulk, setBulk] = useState({ action: "set_role", role: "user", password: "" });
+  const [importText, setImportText] = useState("");
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditUserId, setAuditUserId] = useState("");
+  const [sessions, setSessions] = useState([]);
   const [demos, setDemos] = useState([]);
   const [logs, setLogs] = useState([]);
   const [discounts, setDiscounts] = useState([]);
@@ -72,7 +81,14 @@ export default function AdminPanel() {
 
   const fetchStats = async () => setStats(await fetchWithAuth("/admin/stats"));
   const fetchConfig = async () => setConfig(await fetchWithAuth("/admin/config"));
-  const fetchUsers = async () => setUsers(await fetchWithAuth("/admin/users") || []);
+  const fetchUsers = async () => {
+    const qs = new URLSearchParams();
+    if (userFilters.search) qs.set("search", userFilters.search);
+    if (userFilters.role) qs.set("role", userFilters.role);
+    if (userFilters.active !== "") qs.set("active", userFilters.active === "true" ? "true" : "false");
+    const path = `/admin/users${qs.toString() ? `?${qs.toString()}` : ""}`;
+    setUsers((await fetchWithAuth(path)) || []);
+  };
   const fetchDemos = async () => setDemos(await fetchWithAuth("/admin/demo-requests") || []);
   const fetchDiscounts = async () => setDiscounts(await fetchWithAuth("/api/pricing/discount-codes") || []);
   const fetchLogs = async () => {
@@ -80,20 +96,64 @@ export default function AdminPanel() {
     if (data?.logs) setLogs(data.logs);
   };
 
+  const fetchAudit = async () => {
+    const qs = new URLSearchParams();
+    qs.set("limit", "200");
+    if (auditUserId) qs.set("user_id", auditUserId);
+    const data = await fetchWithAuth(`/admin/audit-logs?${qs.toString()}`);
+    setAuditLogs(Array.isArray(data) ? data : []);
+  };
+
+  const fetchSessions = async () => {
+    const data = await fetchWithAuth("/admin/sessions?limit=200");
+    setSessions(Array.isArray(data?.sessions) ? data.sessions : []);
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const res = await fetch(`${API_BASE}/admin/login`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cred)
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cred.email, password: cred.password, otp: cred.otp || undefined })
       });
-      if (!res.ok) throw new Error("Giriş başarısız");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Giriş başarısız");
+      if (data?.mfa_setup_required) {
+        setMfaSetup({ secret: data.secret, otpauth_url: data.otpauth_url });
+        showMsg("2FA kurulumu gerekli. Authenticator uygulamanıza ekleyip kodu girin.", "error");
+        return;
+      }
       setToken(data.token);
       localStorage.setItem("adminToken", data.token);
       setAuthed(true);
+      setMfaSetup(null);
       showMsg("✅ Giriş başarılı", "success");
       refreshAll();
-    } catch (e) { showMsg("❌ Giriş hatası", "error"); }
+    } catch (e) {
+      showMsg(e.message || "❌ Giriş hatası", "error");
+    }
+  };
+
+  const confirmMfa = async () => {
+    if (!mfaSetup?.secret) return;
+    try {
+      const res = await fetch(`${API_BASE}/admin/2fa/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cred.email, password: cred.password, secret: mfaSetup.secret, otp: cred.otp }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "2FA doğrulanamadı");
+      setToken(data.token);
+      localStorage.setItem("adminToken", data.token);
+      setAuthed(true);
+      setMfaSetup(null);
+      showMsg("✅ 2FA aktif edildi ve giriş tamamlandı", "success");
+      refreshAll();
+    } catch (e) {
+      showMsg(e.message || "2FA doğrulanamadı", "error");
+    }
   };
 
   const toggleEmergency = async (val) => {
@@ -106,7 +166,7 @@ export default function AdminPanel() {
   };
 
   const toggleUserSuspend = async (email, active) => {
-    const res = await fetchWithAuth(`/admin/users/${email}/suspend`, { method: "PUT", body: JSON.stringify({ active }) });
+    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/suspend`, { method: "PUT", body: JSON.stringify({ active }) });
     if (res?.ok) {
       showMsg(`Kullanıcı ${active ? "aktif edildi" : "askıya alındı"}`, "success");
       fetchUsers();
@@ -114,7 +174,7 @@ export default function AdminPanel() {
   };
 
   const updateUserRole = async (email, newRole) => {
-    const res = await fetchWithAuth(`/admin/users/${email}/role`, { method: "PUT", body: JSON.stringify({ role: newRole }) });
+    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/role`, { method: "PUT", body: JSON.stringify({ role: newRole }) });
     if (res?.ok) {
       showMsg(`Rol güncellendi: ${newRole}`, "success");
       fetchUsers();
@@ -185,6 +245,108 @@ export default function AdminPanel() {
     }
   };
 
+  const logoutAdmin = async () => {
+    try {
+      await fetchWithAuth("/admin/logout", { method: "POST", body: JSON.stringify({}) });
+    } catch (e) {
+      return;
+    } finally {
+      setAuthed(false);
+      setToken("");
+      localStorage.removeItem("adminToken");
+    }
+  };
+
+  const createUser = async () => {
+    if (!newUser.email || !newUser.password) return showMsg("E-posta ve şifre gerekli", "error");
+    const res = await fetchWithAuth("/admin/users", { method: "POST", body: JSON.stringify(newUser) });
+    if (res?.ok) {
+      showMsg("✅ Kullanıcı oluşturuldu", "success");
+      setNewUser({ username: "", email: "", password: "", role: "user", is_active: true });
+      fetchUsers();
+    } else {
+      showMsg("❌ Kullanıcı oluşturulamadı", "error");
+    }
+  };
+
+  const deleteUserByEmail = async (email) => {
+    if (!window.confirm(`${email} silinsin mi?`)) return;
+    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}`, { method: "DELETE" });
+    if (res?.ok) {
+      showMsg("✅ Kullanıcı silindi", "success");
+      fetchUsers();
+    } else {
+      showMsg("❌ Silme hatası", "error");
+    }
+  };
+
+  const setPassword = async (email) => {
+    const pw = window.prompt("Yeni şifre:");
+    if (!pw) return;
+    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/set-password`, {
+      method: "POST",
+      body: JSON.stringify({ password: pw }),
+    });
+    if (res?.ok) showMsg("✅ Şifre güncellendi", "success");
+    else showMsg("❌ Şifre güncellenemedi", "error");
+  };
+
+  const applyBulk = async () => {
+    const emails = Object.keys(selectedEmails).filter((k) => selectedEmails[k]);
+    if (!emails.length) return showMsg("Seçili kullanıcı yok", "error");
+    const payload = { action: bulk.action, emails };
+    if (bulk.action === "set_role") payload.role = bulk.role;
+    if (bulk.action === "set_password") payload.password = bulk.password;
+    const res = await fetchWithAuth("/admin/users/bulk", { method: "POST", body: JSON.stringify(payload) });
+    if (res?.ok) {
+      showMsg(`✅ Toplu işlem tamam: ${res.updated} güncellendi, ${res.deleted} silindi`, "success");
+      setSelectedEmails({});
+      fetchUsers();
+    } else {
+      showMsg("❌ Toplu işlem hatası", "error");
+    }
+  };
+
+  const exportUsers = async (format) => {
+    try {
+      const qs = new URLSearchParams();
+      qs.set("format", format);
+      const res = await fetch(`${API_BASE}/admin/users/export?${qs.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Export başarısız");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = format === "json" ? "users.json" : "users.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      showMsg("❌ Export başarısız", "error");
+    }
+  };
+
+  const importUsers = async () => {
+    try {
+      const parsed = JSON.parse(importText || "[]");
+      if (!Array.isArray(parsed) || parsed.length === 0) return showMsg("Import için JSON array gerekli", "error");
+      const res = await fetchWithAuth("/admin/users/import", {
+        method: "POST",
+        body: JSON.stringify({ mode: "upsert", users: parsed }),
+      });
+      if (res?.ok) {
+        showMsg(`✅ Import: ${res.created} oluşturuldu, ${res.updated} güncellendi`, "success");
+        setImportText("");
+        fetchUsers();
+      } else {
+        showMsg("❌ Import başarısız", "error");
+      }
+    } catch (e) {
+      showMsg("❌ Geçersiz JSON", "error");
+    }
+  };
+
   if (!authed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-amber-500 font-mono">
@@ -192,13 +354,51 @@ export default function AdminPanel() {
           <h1 className="text-2xl font-bold mb-6 text-center tracking-widest">MIRON YÖNETİM PANELİ</h1>
           {msg && <div className="mb-4 text-sm text-red-500 text-center">{msg}</div>}
           <form onSubmit={handleLogin} className="space-y-4">
-            <input type="text" placeholder="Ad" className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none" 
-              value={cred.firstName} onChange={e => setCred({...cred, firstName: e.target.value})} />
-            <input type="text" placeholder="Soyad" className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none" 
-              value={cred.lastName} onChange={e => setCred({...cred, lastName: e.target.value})} />
-            <input type="password" placeholder="Şifre" className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none" 
-              value={cred.password} onChange={e => setCred({...cred, password: e.target.value})} />
-            <button className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition">Giriş Yap</button>
+            <input
+              type="email"
+              placeholder="E-posta"
+              className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none"
+              value={cred.email}
+              onChange={(e) => setCred({ ...cred, email: e.target.value })}
+            />
+            <input
+              type="password"
+              placeholder="Şifre"
+              className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none"
+              value={cred.password}
+              onChange={(e) => setCred({ ...cred, password: e.target.value })}
+            />
+
+            {mfaSetup?.secret && (
+              <div className="border border-amber-900/30 rounded-xl p-4 bg-amber-900/5 text-xs text-amber-200/80 space-y-2">
+                <div className="font-bold text-amber-400">2FA Kurulumu</div>
+                <div>Authenticator uygulamanıza ekleyin:</div>
+                <div className="font-mono break-all">{mfaSetup.otpauth_url}</div>
+                <div className="font-mono">Secret: {mfaSetup.secret}</div>
+              </div>
+            )}
+
+            <input
+              type="text"
+              placeholder="2FA Kodu (6 hane)"
+              className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none"
+              value={cred.otp}
+              onChange={(e) => setCred({ ...cred, otp: e.target.value })}
+            />
+
+            {mfaSetup?.secret ? (
+              <button
+                type="button"
+                onClick={confirmMfa}
+                className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition"
+              >
+                2FA Doğrula ve Giriş
+              </button>
+            ) : (
+              <button className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition">
+                Giriş Yap
+              </button>
+            )}
           </form>
         </div>
       </div>
@@ -214,31 +414,43 @@ export default function AdminPanel() {
           {config?.maintenance_mode && <span className="bg-red-600 text-white text-xs px-2 py-1 rounded font-bold animate-pulse">BAKIM MODU AKTİF</span>}
         </div>
         <div className="flex gap-4">
-          <button onClick={() => { setAuthed(false); setToken(""); }} className="text-xs text-red-500 hover:text-red-400 uppercase tracking-wide">Çıkış</button>
+          <button onClick={logoutAdmin} className="text-xs text-red-500 hover:text-red-400 uppercase tracking-wide">Çıkış</button>
         </div>
       </div>
 
       <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto">
         {/* Navigation */}
         <div className="flex flex-wrap gap-2 mb-8 border-b border-zinc-800 pb-1">
-          {["stats", "master", "users", "demos", "discounts", "notifications", "logs"].map(tab => (
-            <button key={tab} onClick={() => { setActiveTab(tab); if(tab==="logs") fetchLogs(); }}
+          {["stats", "users", "demos", "notifications", "audit", "sessions", "master", "logs", "discounts"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => {
+                setActiveTab(tab);
+                if (tab === "logs") fetchLogs();
+                if (tab === "audit") fetchAudit();
+                if (tab === "sessions") fetchSessions();
+                if (tab === "users") fetchUsers();
+              }}
               className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
                 activeTab === tab ? "text-amber-500 border-b-2 border-amber-500" : "text-zinc-600 hover:text-zinc-400"
               }`}
             >
               {tab === "stats"
                 ? "İstatistik"
-                : tab === "master"
-                ? "Sistem"
                 : tab === "users"
                 ? "Kullanıcılar"
                 : tab === "demos"
                 ? "Demo Talepleri"
-                : tab === "discounts"
-                ? "İndirim Kodları"
                 : tab === "notifications"
                 ? "Duyurular"
+                : tab === "audit"
+                ? "Aktivite"
+                : tab === "sessions"
+                ? "Oturumlar"
+                : tab === "master"
+                ? "Sistem"
+                : tab === "discounts"
+                ? "İndirim Kodları"
                 : "Loglar"}
             </button>
           ))}
@@ -360,51 +572,349 @@ export default function AdminPanel() {
 
         {/* USERS MANAGEMENT */}
         {activeTab === "users" && (
-          <div className="bg-zinc-900/20 border border-zinc-800 rounded-xl overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-zinc-900/50 text-xs uppercase text-zinc-500 border-b border-zinc-800">
-                  <th className="p-4">Kullanıcı</th>
-                  <th className="p-4">Rol</th>
-                  <th className="p-4">Durum</th>
-                  <th className="p-4">Kayıt Tarihi</th>
-                  <th className="p-4">İşlemler</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800">
-                {users.map(u => (
-                  <tr key={u.email} className="hover:bg-zinc-900/30 transition">
-                    <td className="p-4">
-                      <div className="font-bold text-white">{u.firstName} {u.lastName}</div>
-                      <div className="text-xs text-zinc-500">{u.email}</div>
-                    </td>
-                    <td className="p-4">
-                      <select 
-                        value={u.role || "user"} 
-                        onChange={(e) => updateUserRole(u.email, e.target.value)}
-                        className="bg-black border border-zinc-700 text-xs rounded p-1 text-zinc-300 outline-none focus:border-amber-500"
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-xl">
+                <div className="text-amber-500 font-bold mb-4 tracking-widest">KULLANICI OLUŞTUR</div>
+                <div className="space-y-3">
+                  <input
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    placeholder="Kullanıcı Adı (Ad Soyad)"
+                    value={newUser.username}
+                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                  />
+                  <input
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    placeholder="E-posta"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  />
+                  <input
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    placeholder="Şifre"
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      className="bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                      value={newUser.role}
+                      onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                    >
+                      <option value="user">Normal User</option>
+                      <option value="demo">Demo User</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <select
+                      className="bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                      value={newUser.is_active ? "true" : "false"}
+                      onChange={(e) => setNewUser({ ...newUser, is_active: e.target.value === "true" })}
+                    >
+                      <option value="true">Aktif</option>
+                      <option value="false">Pasif</option>
+                    </select>
+                  </div>
+                  <button onClick={createUser} className="w-full bg-amber-600 text-black font-bold py-3 rounded hover:bg-amber-500 transition">
+                    Oluştur
+                  </button>
+                  <div className="pt-4 border-t border-zinc-800">
+                    <div className="text-xs text-zinc-500 mb-2">IMPORT (JSON)</div>
+                    <textarea
+                      className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500 h-28 resize-none text-xs font-mono"
+                      placeholder='[{"email":"a@b.com","password":"...","role":"user","is_active":true,"username":"Ad Soyad"}]'
+                      value={importText}
+                      onChange={(e) => setImportText(e.target.value)}
+                    />
+                    <button onClick={importUsers} className="w-full mt-2 bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-500 transition text-sm">
+                      Import Et
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2 bg-zinc-900/20 border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="p-4 border-b border-zinc-800 flex flex-col lg:flex-row lg:items-center gap-3">
+                  <div className="flex-1 flex flex-col sm:flex-row gap-2">
+                    <input
+                      className="flex-1 bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                      placeholder="Ara (email / ad / soyad)"
+                      value={userFilters.search}
+                      onChange={(e) => setUserFilters({ ...userFilters, search: e.target.value })}
+                    />
+                    <select
+                      className="bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                      value={userFilters.role}
+                      onChange={(e) => setUserFilters({ ...userFilters, role: e.target.value })}
+                    >
+                      <option value="">Tüm Roller</option>
+                      <option value="user">User</option>
+                      <option value="demo">Demo</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <select
+                      className="bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                      value={userFilters.active}
+                      onChange={(e) => setUserFilters({ ...userFilters, active: e.target.value })}
+                    >
+                      <option value="">Tümü</option>
+                      <option value="true">Aktif</option>
+                      <option value="false">Pasif</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={fetchUsers} className="text-xs border border-zinc-700 px-3 py-2 rounded hover:bg-white/5">
+                      Yenile
+                    </button>
+                    <button onClick={() => exportUsers("csv")} className="text-xs border border-zinc-700 px-3 py-2 rounded hover:bg-white/5">
+                      CSV Export
+                    </button>
+                    <button onClick={() => exportUsers("json")} className="text-xs border border-zinc-700 px-3 py-2 rounded hover:bg-white/5">
+                      JSON Export
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-4 border-b border-zinc-800 flex flex-col md:flex-row md:items-center gap-3">
+                  <div className="text-xs text-zinc-500">
+                    Seçili: <span className="text-white font-bold">{Object.keys(selectedEmails).filter((k) => selectedEmails[k]).length}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 flex-1">
+                    <select
+                      className="bg-black border border-zinc-700 p-2 text-white rounded outline-none focus:border-amber-500 text-sm"
+                      value={bulk.action}
+                      onChange={(e) => setBulk({ ...bulk, action: e.target.value })}
+                    >
+                      <option value="activate">Toplu Aktifleştir</option>
+                      <option value="suspend">Toplu Pasifleştir</option>
+                      <option value="set_role">Toplu Rol Ata</option>
+                      <option value="set_password">Toplu Şifre Ata</option>
+                      <option value="delete">Toplu Sil</option>
+                    </select>
+                    {bulk.action === "set_role" && (
+                      <select
+                        className="bg-black border border-zinc-700 p-2 text-white rounded outline-none focus:border-amber-500 text-sm"
+                        value={bulk.role}
+                        onChange={(e) => setBulk({ ...bulk, role: e.target.value })}
                       >
-                        <option value="user">Kullanıcı</option>
-                        <option value="admin">Yönetici</option>
-                        <option value="viewer">Görüntüleyici</option>
+                        <option value="user">User</option>
+                        <option value="demo">Demo</option>
+                        <option value="admin">Admin</option>
                       </select>
-                    </td>
-                    <td className="p-4">
-                      <span className={`text-xs px-2 py-1 rounded ${u.is_active !== false ? "bg-green-900/30 text-green-400" : "bg-red-900/30 text-red-400"}`}>
-                        {u.is_active !== false ? "AKTİF" : "ASKIDA"}
-                      </span>
-                    </td>
-                    <td className="p-4 text-xs text-zinc-500">{u.created_at?.split("T")[0]}</td>
-                    <td className="p-4 flex gap-2">
-                      <button onClick={() => toggleUserSuspend(u.email, !(u.is_active !== false))} 
-                        className="text-xs border border-zinc-700 px-2 py-1 rounded hover:bg-white/5">
-                        {u.is_active !== false ? "Askıya Al" : "Aktifleştir"}
-                      </button>
-                    </td>
-                  </tr>
+                    )}
+                    {bulk.action === "set_password" && (
+                      <input
+                        className="bg-black border border-zinc-700 p-2 text-white rounded outline-none focus:border-amber-500 text-sm"
+                        placeholder="Yeni şifre"
+                        value={bulk.password}
+                        onChange={(e) => setBulk({ ...bulk, password: e.target.value })}
+                      />
+                    )}
+                    <button onClick={applyBulk} className="bg-blue-600 text-white font-bold px-4 py-2 rounded hover:bg-blue-500 transition text-sm">
+                      Uygula
+                    </button>
+                  </div>
+                </div>
+
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-zinc-900/50 text-xs uppercase text-zinc-500 border-b border-zinc-800">
+                      <th className="p-4 w-10">
+                        <input
+                          type="checkbox"
+                          checked={users.length > 0 && users.every((u) => selectedEmails[u.email])}
+                          onChange={(e) => {
+                            const next = {};
+                            if (e.target.checked) users.forEach((u) => (next[u.email] = true));
+                            setSelectedEmails(next);
+                          }}
+                        />
+                      </th>
+                      <th className="p-4">Kullanıcı</th>
+                      <th className="p-4">Rol</th>
+                      <th className="p-4">Durum</th>
+                      <th className="p-4">Kayıt</th>
+                      <th className="p-4">İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {users.map((u) => (
+                      <tr key={u.email} className="hover:bg-zinc-900/30 transition">
+                        <td className="p-4">
+                          <input
+                            type="checkbox"
+                            checked={!!selectedEmails[u.email]}
+                            onChange={(e) => setSelectedEmails((p) => ({ ...p, [u.email]: e.target.checked }))}
+                          />
+                        </td>
+                        <td className="p-4">
+                          <div className="font-bold text-white">
+                            {(u.first_name || "-") + " " + (u.last_name || "")}
+                          </div>
+                          <div className="text-xs text-zinc-500">{u.email}</div>
+                        </td>
+                        <td className="p-4">
+                          <select
+                            value={u.role || "user"}
+                            onChange={(e) => updateUserRole(u.email, e.target.value)}
+                            className="bg-black border border-zinc-700 text-xs rounded p-2 text-zinc-300 outline-none focus:border-amber-500"
+                          >
+                            <option value="user">User</option>
+                            <option value="demo">Demo</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </td>
+                        <td className="p-4">
+                          <span
+                            className={`text-xs px-2 py-1 rounded ${
+                              u.is_active !== false ? "bg-green-900/30 text-green-400" : "bg-red-900/30 text-red-400"
+                            }`}
+                          >
+                            {u.is_active !== false ? "AKTİF" : "PASİF"}
+                          </span>
+                        </td>
+                        <td className="p-4 text-xs text-zinc-500">{u.created_at?.split("T")[0]}</td>
+                        <td className="p-4 flex flex-wrap gap-2">
+                          <button
+                            onClick={() => toggleUserSuspend(u.email, !(u.is_active !== false))}
+                            className="text-xs border border-zinc-700 px-2 py-1 rounded hover:bg-white/5"
+                          >
+                            {u.is_active !== false ? "Pasifleştir" : "Aktifleştir"}
+                          </button>
+                          <button
+                            onClick={() => setPassword(u.email)}
+                            className="text-xs border border-zinc-700 px-2 py-1 rounded hover:bg-white/5"
+                          >
+                            Şifre
+                          </button>
+                          <button
+                            onClick={() => deleteUserByEmail(u.email)}
+                            className="text-xs border border-red-900/40 px-2 py-1 rounded hover:bg-red-900/20 text-red-400"
+                          >
+                            Sil
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {users.length === 0 ? <div className="p-6 text-sm text-zinc-600">Kullanıcı bulunamadı.</div> : null}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AUDIT LOGS */}
+        {activeTab === "audit" && (
+          <div className="bg-zinc-900/20 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-zinc-800 flex flex-col md:flex-row md:items-center gap-3">
+              <div className="text-amber-500 font-bold tracking-widest">AKTİVİTE LOGLARI</div>
+              <div className="flex-1" />
+              <select
+                value={auditUserId}
+                onChange={(e) => setAuditUserId(e.target.value)}
+                className="bg-black border border-zinc-700 p-2 text-white rounded outline-none focus:border-amber-500 text-sm"
+              >
+                <option value="">Tüm kullanıcılar</option>
+                {users.map((u) => (
+                  <option key={u.id || u.email} value={u.id}>
+                    {u.email}
+                  </option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+              <button onClick={fetchAudit} className="text-xs border border-zinc-700 px-3 py-2 rounded hover:bg-white/5">
+                Yenile
+              </button>
+            </div>
+            <div className="overflow-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-zinc-900/50 text-zinc-500 uppercase text-xs">
+                  <tr>
+                    <th className="p-3">Zaman</th>
+                    <th className="p-3">Kullanıcı</th>
+                    <th className="p-3">Aksiyon</th>
+                    <th className="p-3">Kaynak</th>
+                    <th className="p-3">Detay</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {auditLogs.map((l, idx) => (
+                    <tr key={l.id || idx} className="hover:bg-zinc-900/30">
+                      <td className="p-3 text-xs text-zinc-500">{String(l.created_at || "").replace("T", " ").slice(0, 19)}</td>
+                      <td className="p-3 text-xs text-zinc-400 font-mono">{l.user_id || "-"}</td>
+                      <td className="p-3 text-white">{l.action || "-"}</td>
+                      <td className="p-3 text-zinc-400">{l.resource || "-"}</td>
+                      <td className="p-3 text-xs text-zinc-500">
+                        <span className="font-mono break-all">{l.details ? JSON.stringify(l.details) : "-"}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {auditLogs.length === 0 ? <div className="p-6 text-sm text-zinc-600">Log bulunamadı.</div> : null}
+            </div>
+          </div>
+        )}
+
+        {/* SESSIONS */}
+        {activeTab === "sessions" && (
+          <div className="bg-zinc-900/20 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-zinc-800 flex items-center justify-between gap-3">
+              <div className="text-amber-500 font-bold tracking-widest">ADMIN OTURUMLARI</div>
+              <button onClick={fetchSessions} className="text-xs border border-zinc-700 px-3 py-2 rounded hover:bg-white/5">
+                Yenile
+              </button>
+            </div>
+            <div className="overflow-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-zinc-900/50 text-zinc-500 uppercase text-xs">
+                  <tr>
+                    <th className="p-3">Oluşturma</th>
+                    <th className="p-3">Son Görülme</th>
+                    <th className="p-3">Admin</th>
+                    <th className="p-3">IP</th>
+                    <th className="p-3">Durum</th>
+                    <th className="p-3">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {sessions.map((s, idx) => (
+                    <tr key={s.jti || idx} className="hover:bg-zinc-900/30">
+                      <td className="p-3 text-xs text-zinc-500">{String(s.created_at || "").replace("T", " ").slice(0, 19)}</td>
+                      <td className="p-3 text-xs text-zinc-500">{String(s.last_seen_at || "").replace("T", " ").slice(0, 19)}</td>
+                      <td className="p-3 text-xs text-zinc-400 font-mono">{s.admin_id}</td>
+                      <td className="p-3 text-xs text-zinc-400 font-mono">{s.ip || "-"}</td>
+                      <td className="p-3">
+                        <span className={`text-xs px-2 py-1 rounded ${s.revoked ? "bg-red-900/30 text-red-400" : "bg-green-900/30 text-green-400"}`}>
+                          {s.revoked ? "REVOKE" : "AKTİF"}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        {!s.revoked ? (
+                          <button
+                            onClick={async () => {
+                              const r = await fetchWithAuth(`/admin/sessions/${encodeURIComponent(s.jti)}/revoke`, { method: "POST", body: JSON.stringify({}) });
+                              if (r?.ok) {
+                                showMsg("✅ Oturum iptal edildi", "success");
+                                fetchSessions();
+                              } else {
+                                showMsg("❌ Oturum iptal edilemedi", "error");
+                              }
+                            }}
+                            className="text-xs border border-red-900/40 px-2 py-1 rounded hover:bg-red-900/20 text-red-400"
+                          >
+                            Revoke
+                          </button>
+                        ) : (
+                          <span className="text-xs text-zinc-600">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {sessions.length === 0 ? <div className="p-6 text-sm text-zinc-600">Oturum yok.</div> : null}
+            </div>
           </div>
         )}
 

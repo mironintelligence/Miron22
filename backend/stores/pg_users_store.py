@@ -67,6 +67,8 @@ def create_user(user: Dict[str, Any]) -> str:
             "verification_token": user.get("verification_token"),
             "reset_password_token": user.get("reset_password_token"),
             "reset_password_expires_at": user.get("reset_password_expires_at"),
+            "mfa_enabled": bool(user.get("mfa_enabled") or False),
+            "mfa_secret": user.get("mfa_secret") or "",
         }
         with _mem_lock:
             _mem_users_by_id[uid] = row
@@ -94,6 +96,8 @@ def create_user(user: Dict[str, Any]) -> str:
         "demo_expires_at": "demo_expires_at",
         "subscription_plan": "subscription_plan",
         "subscription_status": "subscription_status",
+        "mfa_enabled": "mfa_enabled",
+        "mfa_secret": "mfa_secret",
     }
 
     with get_db_cursor() as cur:
@@ -381,25 +385,95 @@ def get_audit_logs(user_id: str = None, limit: int = 100) -> List[Dict[str, Any]
         rows = cur.fetchall()
         return [dict(r) for r in rows]
 
-def list_users(limit=100, offset=0, role: str = None) -> List[Dict[str, Any]]:
+def list_users(limit=100, offset=0, role: str = None, search: str = None, is_active: Optional[bool] = None) -> List[Dict[str, Any]]:
     if _use_inmemory():
         with _mem_lock:
             users = list(_mem_users_by_id.values())
         if role:
             users = [u for u in users if u.get("role") == role]
+        if is_active is not None:
+            users = [u for u in users if bool(u.get("is_active", True)) == bool(is_active)]
+        q = (search or "").strip().lower()
+        if q:
+            users = [
+                u
+                for u in users
+                if q in str(u.get("email") or "").lower()
+                or q in str(u.get("first_name") or "").lower()
+                or q in str(u.get("last_name") or "").lower()
+            ]
         users.sort(key=lambda x: x.get("created_at") or _now_utc(), reverse=True)
         return [dict(u) for u in users[int(offset) : int(offset) + int(limit)]]
+    sql = "SELECT * FROM users"
+    where = []
+    params = []
     if role:
-        sql = "SELECT * FROM users WHERE role = %s ORDER BY created_at DESC LIMIT %s OFFSET %s"
-        params = (role, limit, offset)
-    else:
-        sql = "SELECT * FROM users ORDER BY created_at DESC LIMIT %s OFFSET %s"
-        params = (limit, offset)
+        where.append("role = %s")
+        params.append(role)
+    if is_active is not None:
+        where.append("is_active = %s")
+        params.append(bool(is_active))
+    q = (search or "").strip().lower()
+    if q:
+        where.append("(LOWER(email) LIKE %s OR LOWER(COALESCE(first_name,'')) LIKE %s OR LOWER(COALESCE(last_name,'')) LIKE %s)")
+        like = f"%{q}%"
+        params.extend([like, like, like])
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
+    params.extend([limit, offset])
         
     with get_db_cursor() as cur:
-        cur.execute(sql, params)
+        cur.execute(sql, tuple(params))
         rows = cur.fetchall()
         return [_row_to_user(r) for r in rows]
+
+
+def update_user_profile(
+    email: str,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+    role: Optional[str] = None,
+    is_active: Optional[bool] = None,
+) -> bool:
+    if _use_inmemory():
+        e = _norm_email(email)
+        with _mem_lock:
+            uid = _mem_users_by_email.get(e)
+            if not uid:
+                return False
+            u = _mem_users_by_id[uid]
+            if first_name is not None:
+                u["first_name"] = str(first_name or "")
+            if last_name is not None:
+                u["last_name"] = str(last_name or "")
+            if role is not None:
+                u["role"] = str(role)
+            if is_active is not None:
+                u["is_active"] = bool(is_active)
+            return True
+
+    sets = []
+    params = []
+    if first_name is not None:
+        sets.append("first_name = %s")
+        params.append(str(first_name or ""))
+    if last_name is not None:
+        sets.append("last_name = %s")
+        params.append(str(last_name or ""))
+    if role is not None:
+        sets.append("role = %s")
+        params.append(str(role))
+    if is_active is not None:
+        sets.append("is_active = %s")
+        params.append(bool(is_active))
+    if not sets:
+        return True
+    params.append(_norm_email(email))
+    sql = f"UPDATE users SET {', '.join(sets)} WHERE email = %s RETURNING id"
+    with get_db_cursor() as cur:
+        cur.execute(sql, tuple(params))
+        return cur.fetchone() is not None
 
 # --- Session Operations ---
 
@@ -551,6 +625,81 @@ def update_password(user_id: str, hashed_password: str):
     sql = "UPDATE users SET password_hash = %s, reset_password_token = NULL, reset_password_expires_at = NULL WHERE id = %s"
     with get_db_cursor() as cur:
         cur.execute(sql, (hashed_password, user_id))
+
+
+def get_user_mfa(user_id: Optional[str] = None, email: Optional[str] = None) -> Dict[str, Any]:
+    if not user_id and not email:
+        return {"enabled": False, "secret": ""}
+    if _use_inmemory():
+        with _mem_lock:
+            uid = str(user_id) if user_id else _mem_users_by_email.get(_norm_email(email or ""))
+            u = _mem_users_by_id.get(uid) if uid else None
+            return {"enabled": bool(u.get("mfa_enabled")) if u else False, "secret": str(u.get("mfa_secret") or "") if u else ""}
+
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                "SELECT mfa_enabled, mfa_secret FROM users WHERE id = %s LIMIT 1" if user_id else "SELECT mfa_enabled, mfa_secret FROM users WHERE email = %s LIMIT 1",
+                (str(user_id) if user_id else _norm_email(email or ""),),
+            )
+            row = cur.fetchone() or {}
+    except Exception:
+        return {"enabled": False, "secret": ""}
+
+    enabled = bool(row.get("mfa_enabled") or False)
+    raw = str(row.get("mfa_secret") or "")
+    if not raw:
+        return {"enabled": enabled, "secret": ""}
+    try:
+        return {"enabled": enabled, "secret": decrypt_value(raw)}
+    except Exception:
+        return {"enabled": enabled, "secret": raw}
+
+
+def set_user_mfa(user_id: str, secret: str, enabled: bool = True) -> bool:
+    uid = str(user_id)
+    if _use_inmemory():
+        with _mem_lock:
+            if uid not in _mem_users_by_id:
+                return False
+            _mem_users_by_id[uid]["mfa_enabled"] = bool(enabled)
+            _mem_users_by_id[uid]["mfa_secret"] = str(secret or "")
+            return True
+
+    try:
+        enc = encrypt_value(secret or "")
+    except Exception:
+        enc = str(secret or "")
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                "UPDATE users SET mfa_enabled = %s, mfa_secret = %s WHERE id = %s RETURNING id",
+                (bool(enabled), enc, uid),
+            )
+            return cur.fetchone() is not None
+    except Exception:
+        return False
+
+
+def disable_user_mfa(user_id: str) -> bool:
+    uid = str(user_id)
+    if _use_inmemory():
+        with _mem_lock:
+            if uid not in _mem_users_by_id:
+                return False
+            _mem_users_by_id[uid]["mfa_enabled"] = False
+            _mem_users_by_id[uid]["mfa_secret"] = ""
+            return True
+
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                "UPDATE users SET mfa_enabled = FALSE, mfa_secret = NULL WHERE id = %s RETURNING id",
+                (uid,),
+            )
+            return cur.fetchone() is not None
+    except Exception:
+        return False
 
 def log_audit(user_id: Optional[str], action: str, resource: str = None, details: Dict = None, ip: str = None, ua: str = None):
     if (os.getenv("AUDIT_LOG_ENABLED", "true") or "").lower() != "true":
