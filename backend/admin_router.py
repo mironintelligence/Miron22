@@ -20,6 +20,7 @@ from stores.demo_users_store import read_demo_users, write_demo_users, purge_exp
 from services.mail_service import send_reset_password_email
 from utils.totp import generate_base32_secret, verify_totp
 from admin_auth import get_admin_sessions, revoke_admin_session
+from user_auth import get_current_user
 
 # ------------------------
 # Storage (JSON files for temp data)
@@ -110,6 +111,15 @@ class SystemConfigIn(BaseModel):
 # Router
 # ------------------------
 router = APIRouter(tags=["admin"])
+
+
+class AdminExchangeIn(BaseModel):
+    otp: Optional[str] = Field(default=None, max_length=12)
+
+
+class AdminMfaSetupIn(BaseModel):
+    secret: str = Field(min_length=10, max_length=128)
+    otp: str = Field(min_length=6, max_length=12)
 
 # ------------------------
 # Admin Accounts & Login
@@ -251,6 +261,59 @@ def admin_mfa_confirm(body: AdminMfaConfirmIn, request: Request):
     token = issue_admin_token(admin_id=str(user["id"]), ip=ip, ua=ua)
     log_audit(str(user["id"]), "ADMIN_MFA_ENABLED", "auth", None, ip, ua)
     return {"ok": True, "token": token, "admin": sanitize_user_for_response(user)}
+
+
+@router.post("/exchange")
+def admin_exchange(body: AdminExchangeIn, request: Request, user: Dict[str, Any] = Depends(get_current_user)):
+    if (user.get("role") or "") != "admin":
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
+
+    mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "true") or "").lower() == "true"
+    mfa = get_user_mfa(user_id=str(user.get("id")))
+
+    if mfa_required and not bool(mfa.get("enabled")):
+        secret = generate_base32_secret()
+        issuer = (os.getenv("MFA_ISSUER") or "Miron AI").strip()
+        email = (user.get("email") or "").strip().lower()
+        label = f"{issuer}:{email or 'admin'}"
+        otpauth_url = f"otpauth://totp/{label}?secret={secret}&issuer={issuer}"
+        log_audit(str(user.get("id")), "ADMIN_MFA_SETUP_REQUIRED", "auth", {"via": "exchange"}, ip, ua)
+        return {"ok": False, "mfa_setup_required": True, "secret": secret, "otpauth_url": otpauth_url}
+
+    if bool(mfa.get("enabled")):
+        if not body.otp or not verify_totp(str(mfa.get("secret") or ""), str(body.otp or "")):
+            log_audit(str(user.get("id")), "ADMIN_MFA_FAILED", "auth", {"via": "exchange"}, ip, ua)
+            raise HTTPException(status_code=401, detail="2FA doğrulaması gerekli.")
+
+    token = issue_admin_token(admin_id=str(user.get("id")), ip=ip, ua=ua)
+    log_audit(str(user.get("id")), "ADMIN_EXCHANGE_SUCCESS", "auth", None, ip, ua)
+    return {"ok": True, "token": token}
+
+
+@router.post("/2fa/setup")
+def admin_mfa_setup(body: AdminMfaSetupIn, request: Request, user: Dict[str, Any] = Depends(get_current_user)):
+    if (user.get("role") or "") != "admin":
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
+
+    secret = str(body.secret or "").strip()
+    if not verify_totp(secret, str(body.otp or "")):
+        log_audit(str(user.get("id")), "ADMIN_MFA_CONFIRM_FAILED", "auth", {"via": "exchange"}, ip, ua)
+        raise HTTPException(status_code=401, detail="Geçersiz doğrulama kodu.")
+
+    if not set_user_mfa(str(user.get("id")), secret, enabled=True):
+        raise HTTPException(status_code=500, detail="2FA kaydedilemedi.")
+    log_audit(str(user.get("id")), "ADMIN_MFA_ENABLED", "auth", {"via": "exchange"}, ip, ua)
+    return {"ok": True}
 
 
 @router.post("/2fa/disable")

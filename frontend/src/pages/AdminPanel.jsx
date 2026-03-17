@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useAuth } from "../auth/AuthProvider";
+import { authFetch } from "../auth/api";
 
 const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
 export default function AdminPanel() {
+  const { status, user } = useAuth();
   const [token, setToken] = useState(localStorage.getItem("adminToken") || "");
-  const [cred, setCred] = useState({ email: "", password: "", otp: "" });
+  const [otp, setOtp] = useState("");
   const [mfaSetup, setMfaSetup] = useState(null);
   const [authed, setAuthed] = useState(false);
   const [activeTab, setActiveTab] = useState("stats");
@@ -37,18 +40,32 @@ export default function AdminPanel() {
   const [notifUserId, setNotifUserId] = useState("");
 
   useEffect(() => {
-    if (token) checkAuth();
-  }, []);
+    if (status !== "authed") return;
+    if (user?.role !== "admin") return;
+    bootstrap();
+  }, [status, user?.role]);
 
-  const checkAuth = async () => {
+  const bootstrap = async () => {
+    if (token) {
+      const ok = await checkAuth(token);
+      if (ok) return;
+      localStorage.removeItem("adminToken");
+      setToken("");
+    }
+    await exchangeAdminToken("");
+  };
+
+  const checkAuth = async (t) => {
     try {
-      const res = await fetch(`${API_BASE}/admin/health`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE}/admin/health`, { headers: { Authorization: `Bearer ${t}` } });
       if (res.ok) {
         setAuthed(true);
-        localStorage.setItem("adminToken", token);
+        localStorage.setItem("adminToken", t);
         refreshAll();
+        return true;
       }
     } catch (e) { console.error(e); }
+    return false;
   };
 
   const refreshAll = () => {
@@ -109,48 +126,50 @@ export default function AdminPanel() {
     setSessions(Array.isArray(data?.sessions) ? data.sessions : []);
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const exchangeAdminToken = async (otpValue) => {
     try {
-      const res = await fetch(`${API_BASE}/admin/login`, {
+      const res = await authFetch("/admin/exchange", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: cred.email, password: cred.password, otp: cred.otp || undefined })
+        body: JSON.stringify({ otp: otpValue || undefined }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Giriş başarısız");
-      if (data?.mfa_setup_required) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.ok && data?.token) {
+        setToken(data.token);
+        localStorage.setItem("adminToken", data.token);
+        setAuthed(true);
+        setMfaSetup(null);
+        setOtp("");
+        refreshAll();
+        return;
+      }
+      if (res.ok && data?.mfa_setup_required) {
         setMfaSetup({ secret: data.secret, otpauth_url: data.otpauth_url });
         showMsg("2FA kurulumu gerekli. Authenticator uygulamanıza ekleyip kodu girin.", "error");
         return;
       }
-      setToken(data.token);
-      localStorage.setItem("adminToken", data.token);
-      setAuthed(true);
-      setMfaSetup(null);
-      showMsg("✅ Giriş başarılı", "success");
-      refreshAll();
+      if (res.status === 401) {
+        showMsg("2FA kodu gerekli veya hatalı.", "error");
+        return;
+      }
+      showMsg(data?.detail || "Yetkisiz erişim", "error");
     } catch (e) {
-      showMsg(e.message || "❌ Giriş hatası", "error");
+      showMsg("Bağlantı hatası", "error");
     }
   };
 
-  const confirmMfa = async () => {
-    if (!mfaSetup?.secret) return;
+  const confirmMfaSetup = async () => {
+    if (!mfaSetup?.secret || !otp) return showMsg("2FA kodu gerekli", "error");
     try {
-      const res = await fetch(`${API_BASE}/admin/2fa/confirm`, {
+      const res = await authFetch("/admin/2fa/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: cred.email, password: cred.password, secret: mfaSetup.secret, otp: cred.otp }),
+        body: JSON.stringify({ secret: mfaSetup.secret, otp }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || "2FA doğrulanamadı");
-      setToken(data.token);
-      localStorage.setItem("adminToken", data.token);
-      setAuthed(true);
-      setMfaSetup(null);
-      showMsg("✅ 2FA aktif edildi ve giriş tamamlandı", "success");
-      refreshAll();
+      showMsg("✅ 2FA aktif edildi", "success");
+      await exchangeAdminToken(otp);
     } catch (e) {
       showMsg(e.message || "2FA doğrulanamadı", "error");
     }
@@ -347,59 +366,57 @@ export default function AdminPanel() {
     }
   };
 
+  if (status === "loading") return null;
+  if (status !== "authed") return null;
+  if (user?.role !== "admin") return null;
+
   if (!authed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-amber-500 font-mono">
         <div className="p-10 border border-amber-900/30 bg-black rounded-2xl shadow-2xl max-w-md w-full">
-          <h1 className="text-2xl font-bold mb-6 text-center tracking-widest">MIRON YÖNETİM PANELİ</h1>
+          <h1 className="text-2xl font-bold mb-3 text-center tracking-widest">ADMIN PANELİ</h1>
+          <div className="text-xs text-zinc-500 text-center mb-6">
+            Oturumunuz açık. Admin doğrulaması için 2FA kodu gerekebilir.
+          </div>
+
           {msg && <div className="mb-4 text-sm text-red-500 text-center">{msg}</div>}
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input
-              type="email"
-              placeholder="E-posta"
-              className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none"
-              value={cred.email}
-              onChange={(e) => setCred({ ...cred, email: e.target.value })}
-            />
-            <input
-              type="password"
-              placeholder="Şifre"
-              className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none"
-              value={cred.password}
-              onChange={(e) => setCred({ ...cred, password: e.target.value })}
-            />
 
-            {mfaSetup?.secret && (
-              <div className="border border-amber-900/30 rounded-xl p-4 bg-amber-900/5 text-xs text-amber-200/80 space-y-2">
-                <div className="font-bold text-amber-400">2FA Kurulumu</div>
-                <div>Authenticator uygulamanıza ekleyin:</div>
-                <div className="font-mono break-all">{mfaSetup.otpauth_url}</div>
-                <div className="font-mono">Secret: {mfaSetup.secret}</div>
-              </div>
-            )}
+          {mfaSetup?.secret && (
+            <div className="border border-amber-900/30 rounded-xl p-4 bg-amber-900/5 text-xs text-amber-200/80 space-y-2 mb-4">
+              <div className="font-bold text-amber-400">2FA Kurulumu</div>
+              <div>Authenticator uygulamanıza ekleyin:</div>
+              <div className="font-mono break-all">{mfaSetup.otpauth_url}</div>
+              <div className="font-mono">Secret: {mfaSetup.secret}</div>
+            </div>
+          )}
 
+          <div className="space-y-3">
             <input
               type="text"
               placeholder="2FA Kodu (6 hane)"
               className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none"
-              value={cred.otp}
-              onChange={(e) => setCred({ ...cred, otp: e.target.value })}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
             />
 
             {mfaSetup?.secret ? (
               <button
                 type="button"
-                onClick={confirmMfa}
+                onClick={confirmMfaSetup}
                 className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition"
               >
-                2FA Doğrula ve Giriş
+                2FA Kur ve Devam Et
               </button>
             ) : (
-              <button className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition">
-                Giriş Yap
+              <button
+                type="button"
+                onClick={() => exchangeAdminToken(otp)}
+                className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition"
+              >
+                Admin Paneline Gir
               </button>
             )}
-          </form>
+          </div>
         </div>
       </div>
     );

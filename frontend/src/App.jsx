@@ -35,6 +35,7 @@ import About from "./pages/About.jsx"; // YENİ
 import Upgrade from "./pages/Upgrade.jsx";
 import Reminders from "./pages/Reminders.jsx";
 import Help from "./pages/Help.jsx";
+import Unauthorized from "./pages/Unauthorized.jsx";
 
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
@@ -274,6 +275,14 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/about" element={<About />} />
+          <Route
+            path="/unauthorized"
+            element={
+              <ProtectedRoute>
+                <Unauthorized />
+              </ProtectedRoute>
+            }
+          />
 
 
          

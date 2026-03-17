@@ -108,6 +108,11 @@ export default function Navbar() {
             </button>
             
             <div className="absolute right-0 top-full mt-2 w-48 bg-[#111] border border-white/10 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top-right">
+              {user?.role === "admin" && (
+                <Link to="/admin" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
+                  🛡️ Admin Paneli
+                </Link>
+              )}
               <Link to="/settings" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">Ayarlar</Link>
               <Link to="/feedback" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">Geri Bildirim</Link>
               <div className="h-px bg-white/10 my-2"></div>

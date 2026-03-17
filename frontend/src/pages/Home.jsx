@@ -2,7 +2,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
-import AdminPanel from "./AdminPanel.jsx";
 
 const baseTiles = [
   {
@@ -112,7 +111,7 @@ export default function Home() {
   const tiles = [...baseTiles];
   if (user?.role === "admin") {
     tiles.unshift({
-      title: "Admin Panel",
+      title: "Admin Paneli",
       desc: "Kullanıcılar, demo talepleri ve sistem ayarları.",
       to: "/admin",
       icon: "🛡️",
