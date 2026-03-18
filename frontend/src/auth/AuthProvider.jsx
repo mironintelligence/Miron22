@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { login as apiLogin, register as apiRegister, refresh as apiRefresh, logout as apiLogout } from "./api";
+import { login as apiLogin, register as apiRegister, refresh as apiRefresh, logout as apiLogout, me as apiMe } from "./api";
 import { clearStoredAuth, getStoredAuth, setStoredAuth } from "../utils/auth";
 
 const AuthContext = createContext(null);
@@ -16,6 +16,30 @@ export function AuthProvider({ children }) {
       setToken(stored.token);
       setUser(stored.user || null);
       setStatus("authed");
+      if (!stored.user) {
+        apiMe()
+          .then((data) => {
+            const meta = data?.user || {};
+            const normalized = {
+              id: meta?.id || meta?.user_id || null,
+              email: meta?.email || "",
+              firstName: meta?.first_name || meta?.firstName || "",
+              lastName: meta?.last_name || meta?.lastName || "",
+              role: meta?.role || "user",
+              subscriptionPlan: meta?.subscription_plan || meta?.subscriptionPlan || null,
+              subscriptionStatus: meta?.subscription_status || meta?.subscriptionStatus || null,
+              demoExpiresAt: meta?.demo_expires_at || meta?.demoExpiresAt || null,
+            };
+            normalized.isDemo =
+              normalized.subscriptionStatus === "demo" ||
+              normalized.subscriptionPlan === "demo" ||
+              !!normalized.demoExpiresAt ||
+              normalized.role === "demo";
+            setStoredAuth(stored.token, normalized);
+            setUser(normalized);
+          })
+          .catch(() => null);
+      }
       return;
     }
     apiRefresh()
@@ -25,6 +49,28 @@ export function AuthProvider({ children }) {
           setStoredAuth(newToken, stored?.user || null);
           setToken(newToken);
           setStatus("authed");
+          apiMe()
+            .then((d) => {
+              const meta = d?.user || {};
+              const normalized = {
+                id: meta?.id || meta?.user_id || null,
+                email: meta?.email || "",
+                firstName: meta?.first_name || meta?.firstName || "",
+                lastName: meta?.last_name || meta?.lastName || "",
+                role: meta?.role || "user",
+                subscriptionPlan: meta?.subscription_plan || meta?.subscriptionPlan || null,
+                subscriptionStatus: meta?.subscription_status || meta?.subscriptionStatus || null,
+                demoExpiresAt: meta?.demo_expires_at || meta?.demoExpiresAt || null,
+              };
+              normalized.isDemo =
+                normalized.subscriptionStatus === "demo" ||
+                normalized.subscriptionPlan === "demo" ||
+                !!normalized.demoExpiresAt ||
+                normalized.role === "demo";
+              setStoredAuth(newToken, normalized);
+              setUser(normalized);
+            })
+            .catch(() => null);
         } else {
           setStatus("guest");
         }

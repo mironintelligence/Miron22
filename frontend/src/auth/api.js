@@ -59,6 +59,15 @@ export async function logout() {
   return r.json();
 }
 
+export async function me() {
+  const r = await authFetch("/api/auth/me", { method: "GET" });
+  if (!r.ok) {
+    const t = await r.json().catch(() => ({}));
+    throw new Error(t.detail || "Me failed");
+  }
+  return r.json();
+}
+
 export async function authFetch(path, options = {}) {
   const token = localStorage.getItem("miron_token") || "";
   const method = String(options.method || "GET").toUpperCase();

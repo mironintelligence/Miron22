@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, status, Request, Response, Body
+from fastapi import APIRouter, HTTPException, status, Request, Response, Body, Depends
 from pydantic import BaseModel, EmailStr, Field, validator
 
 from stores.pg_users_store import (
@@ -21,6 +21,8 @@ from security import (
     token_fingerprint, hmac_hash, hash_password, verify_password, 
     sanitize_user_for_response
 )
+from user_auth import get_current_user
+from stores.pg_users_store import find_user_by_id
 
 try:
     from services.pricing_service import find_valid_discount, increment_usage
@@ -295,6 +297,14 @@ def refresh(request: Request, response: Response):
         expires_at=_now_utc() + timedelta(days=7),
     )
     return {"status": "ok", "access_token": new_access}
+
+
+@router.get("/me")
+def me(user: Dict[str, Any] = Depends(get_current_user)):
+    u = find_user_by_id(str(user.get("id")))
+    if not u:
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
+    return {"status": "ok", "user": sanitize_user_for_response(u)}
 
 
 @router.post("/logout-all")
