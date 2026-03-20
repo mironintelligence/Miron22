@@ -84,9 +84,24 @@ export default function AdminPanel() {
 
   const fetchWithAuth = async (url, options = {}) => {
     try {
+      const method = String(options.method || "GET").toUpperCase();
+      const unsafe = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
+      const csrf =
+        typeof document !== "undefined"
+          ? String(document.cookie || "")
+              .split(";")
+              .map((c) => c.trim())
+              .find((c) => c.startsWith("csrf_token="))
+          : null;
+      const csrfToken = csrf ? decodeURIComponent(csrf.split("=", 2)[1] || "") : "";
       const res = await fetch(`${API_BASE}${url}`, {
         ...options,
-        headers: { ...options.headers, Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+        headers: {
+          ...options.headers,
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          ...(unsafe && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+        }
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();

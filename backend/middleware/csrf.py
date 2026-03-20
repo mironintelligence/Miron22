@@ -33,12 +33,16 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             if self.cookie_name not in request.cookies:
                 import secrets
                 token = secrets.token_urlsafe(32)
+                env = (os.getenv("ENVIRONMENT") or "").lower()
+                secure_cookie = (os.getenv("COOKIE_SECURE") or "").lower() == "true"
+                if os.getenv("COOKIE_SECURE") is None:
+                    secure_cookie = env not in {"test", "dev", "development", "local"}
                 response.set_cookie(
                     key=self.cookie_name,
                     value=token,
                     httponly=False,  # JS needs to read this to send X-CSRF-Token header
                     samesite="lax",  # Strict blocks navigation from external sites (e.g. email links)
-                    secure=True      # HTTPS only
+                    secure=secure_cookie
                 )
             return response
 
@@ -52,6 +56,8 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             "/api/auth/refresh", 
             "/api/auth/forgot-password", 
             "/api/auth/reset-password",
+            "/admin/login",
+            "/admin/2fa/confirm",
             "/api/feedback", 
             "/api/demo-request",
             "/api/risk/simulate",

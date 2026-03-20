@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import uuid
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 
-from db import get_db_cursor
+from stores.demo_requests_store import create_or_update_demo_request, get_demo_request_status
 
 router = APIRouter(prefix="/api", tags=["Demo"])
 
@@ -22,24 +21,14 @@ class DemoRequestIn(BaseModel):
 @router.post("/demo-request")
 def create_demo_request(payload: DemoRequestIn) -> Dict[str, Any]:
     email = str(payload.email).strip().lower()
-    rid = str(uuid.uuid4())
-    with get_db_cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO demo_requests (id, email, first_name, last_name, phone, note, status, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, 'pending', NOW())
-            ON CONFLICT (email) DO UPDATE SET
-                first_name = EXCLUDED.first_name,
-                last_name = EXCLUDED.last_name,
-                phone = EXCLUDED.phone,
-                note = EXCLUDED.note,
-                updated_at = NOW()
-            RETURNING id, status
-            """,
-            (rid, email, payload.firstName.strip(), payload.lastName.strip(), payload.phone, payload.note),
-        )
-        row = cur.fetchone()
-        return {"status": "ok", "id": str(row["id"]), "demo_status": row["status"], "message": "Demo talebiniz alındı."}
+    row = create_or_update_demo_request(
+        email=email,
+        first_name=payload.firstName.strip(),
+        last_name=payload.lastName.strip(),
+        phone=payload.phone,
+        note=payload.note,
+    )
+    return {"status": "ok", "id": str(row.get("id")), "demo_status": row.get("status"), "message": "Demo talebiniz alındı."}
 
 
 @router.get("/demo-request/status")
@@ -47,14 +36,12 @@ def demo_request_status(email: str) -> Dict[str, Any]:
     email_norm = (email or "").strip().lower()
     if not email_norm:
         raise HTTPException(status_code=400, detail="Email gerekli.")
-    with get_db_cursor() as cur:
-        cur.execute("SELECT status, approved_until, updated_at FROM demo_requests WHERE email = %s LIMIT 1", (email_norm,))
-        row = cur.fetchone()
-        if not row:
-            return {"status": "ok", "demo_status": "none"}
-        return {
-            "status": "ok",
-            "demo_status": row.get("status"),
-            "approved_until": row.get("approved_until"),
-            "updated_at": row.get("updated_at"),
-        }
+    row = get_demo_request_status(email_norm)
+    if not row:
+        return {"status": "ok", "demo_status": "none"}
+    return {
+        "status": "ok",
+        "demo_status": row.get("status"),
+        "approved_until": row.get("approved_until"),
+        "updated_at": row.get("updated_at"),
+    }

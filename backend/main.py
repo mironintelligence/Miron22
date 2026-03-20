@@ -75,6 +75,11 @@ async def startup_event():
     Runtime validation of environment variables.
     Fails clearly if critical keys are missing.
     """
+    env = (os.getenv("ENVIRONMENT") or "").lower()
+    if (os.getenv("SKIP_STARTUP_CHECKS", "false") or "").lower() == "true" or env in {"test", "dev", "development", "local"}:
+        print(f"--- STARTUP ENVIRONMENT CHECK (skipped for ENVIRONMENT={env}) ---")
+        return
+
     required_vars = [
         "SUPABASE_URL",
         "SUPABASE_KEY",
@@ -188,6 +193,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 _origins_env = os.getenv("FRONTEND_ORIGINS")
 _allowed_origins = [
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "https://miron22.vercel.app",
 ]
 if _origins_env:

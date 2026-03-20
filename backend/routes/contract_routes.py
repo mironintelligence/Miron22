@@ -786,15 +786,17 @@ def list_templates(
         sql += " WHERE category = %s"
         params = (category,)
 
-    with get_db_cursor() as cur:
-        cur.execute(sql, params)
-        rows = cur.fetchall() or []
-        for r in rows:
-            row = dict(r)
-            row["id"] = str(row.get("id"))
-            if "fields" not in row:
-                row["fields"] = _infer_fields_from_content(str(row.get("content") or ""))
-            templates.append(row)
+    use_remote_db = (os.getenv("TEST_USE_REMOTE_DB", "false") or "").lower() == "true"
+    if (os.getenv("ENVIRONMENT") or "").lower() != "test" or use_remote_db:
+        with get_db_cursor() as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall() or []
+            for r in rows:
+                row = dict(r)
+                row["id"] = str(row.get("id"))
+                if "fields" not in row:
+                    row["fields"] = _infer_fields_from_content(str(row.get("content") or ""))
+                templates.append(row)
 
     if include_remote and (os.getenv("ENVIRONMENT") or "").lower() != "test":
         for r in _fetch_remote_templates():

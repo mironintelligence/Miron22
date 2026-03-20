@@ -17,6 +17,7 @@ from stores.pg_users_store import (
     log_audit, update_user_profile, get_user_mfa, set_user_mfa, disable_user_mfa
 )
 from stores.demo_users_store import read_demo_users, write_demo_users, purge_expired_demo_users # Keep for demo requests mostly
+from stores.demo_requests_store import list_demo_requests as store_list_demo_requests, approve_demo_request as store_approve_demo_request, reject_demo_request as store_reject_demo_request
 from services.mail_service import send_reset_password_email
 from utils.totp import generate_base32_secret, verify_totp
 from admin_auth import get_admin_sessions, revoke_admin_session
@@ -356,27 +357,14 @@ def admin_health():
 # ------------------------
 @router.get("/demo-requests", dependencies=[Depends(require_admin)])
 def list_demo_requests():
-    from db import get_db_cursor
-    with get_db_cursor() as cur:
-        cur.execute("SELECT * FROM demo_requests ORDER BY updated_at DESC LIMIT 200")
-        return cur.fetchall()
+    rows = store_list_demo_requests()
+    return rows[:200]
 
 @router.post("/demo-requests/{request_id}/approve")
 def approve_demo_request(request_id: str, admin: Dict[str, Any] = Depends(require_admin)):
-    from db import get_db_cursor
-    with get_db_cursor() as cur:
-        cur.execute(
-            """
-            UPDATE demo_requests
-            SET status = 'approved', approved_until = NOW() + INTERVAL '7 days', updated_at = NOW()
-            WHERE id::text = %s OR email = %s
-            RETURNING email, approved_until
-            """,
-            (request_id, request_id),
-        )
-        row = cur.fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="Demo talebi bulunamadı.")
+    row = store_approve_demo_request(request_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Demo talebi bulunamadı.")
 
     email = str(row.get("email") or "").strip().lower()
     approved_until = row.get("approved_until")
@@ -416,27 +404,17 @@ def approve_demo_request(request_id: str, admin: Dict[str, Any] = Depends(requir
             log_audit(str(admin.get("admin_id")), "DEMO_USER_CREATED", email, {"new_user_id": uid})
 
     log_audit(str(admin.get("admin_id")), "DEMO_APPROVE", email, {"approved_until": str(approved_until)})
-    return {"ok": True, "email": row.get("email"), "approved_until": row.get("approved_until")}
+    return {"ok": True, "email": email, "approved_until": approved_until}
 
 @router.post("/demo-requests/{request_id}/reject")
 def reject_demo_request(request_id: str, admin: Dict[str, Any] = Depends(require_admin)):
-    from db import get_db_cursor
-    with get_db_cursor() as cur:
-        cur.execute(
-            """
-            UPDATE demo_requests
-            SET status = 'rejected', updated_at = NOW()
-            WHERE id::text = %s OR email = %s
-            RETURNING email
-            """,
-            (request_id, request_id),
-        )
-        row = cur.fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="Demo talebi bulunamadı.")
+    row = store_reject_demo_request(request_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Demo talebi bulunamadı.")
 
-    log_audit(str(admin.get("admin_id")), "DEMO_REJECT", row.get("email"))
-    return {"ok": True, "email": row.get("email")}
+    email = row.get("email")
+    log_audit(str(admin.get("admin_id")), "DEMO_REJECT", email)
+    return {"ok": True, "email": email}
 
 # ------------------------
 # User Management (PG)
@@ -808,14 +786,8 @@ def get_admin_stats():
     users = list_users(limit=10000) # Get all roughly
     active_users = sum(1 for u in users if u.get("is_active", True))
     demo_users = sum(1 for u in users if u.get("role") == "demo")
-    pending_requests = 0
     try:
-        from db import get_db_cursor
-
-        with get_db_cursor() as cur:
-            cur.execute("SELECT COUNT(*) AS c FROM demo_requests WHERE status = 'pending'")
-            row = cur.fetchone() or {}
-            pending_requests = int(row.get("c") or 0)
+        pending_requests = len([r for r in store_list_demo_requests(status="pending")])
     except Exception:
         pending_requests = 0
     

@@ -24,7 +24,7 @@ def _ensure_schema_ready() -> None:
     _SCHEMA_READY = True
 
 def _use_test_memory() -> bool:
-    return os.getenv("ENVIRONMENT") == "test" and not os.getenv("DATABASE_URL")
+    return (os.getenv("ENVIRONMENT") or "").lower() == "test" and (os.getenv("TEST_USE_REMOTE_DB", "false") or "").lower() != "true"
 
 def list_discounts() -> List[Dict[str, Any]]:
     if _use_test_memory():
