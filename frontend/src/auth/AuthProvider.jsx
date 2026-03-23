@@ -1,107 +1,88 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { login as apiLogin, register as apiRegister, refresh as apiRefresh, logout as apiLogout, me as apiMe } from "./api";
-import { clearStoredAuth, getStoredAuth, setStoredAuth } from "../utils/auth";
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import {
+  login as apiLogin,
+  register as apiRegister,
+  refresh as apiRefresh,
+  logout as apiLogout,
+  me as apiMe,
+  registerAccessTokenGetter,
+} from "./api";
+import { purgeLegacyTokenStorage } from "../utils/auth";
+import { emitToast } from "../utils/toastBus";
 
 const AuthContext = createContext(null);
+
+function normalizeUser(meta) {
+  const m = meta || {};
+  const normalized = {
+    id: m.id || m.user_id || null,
+    email: m.email || "",
+    firstName: m.first_name || m.firstName || "",
+    lastName: m.last_name || m.lastName || "",
+    role: m.role || "user",
+    subscriptionPlan: m.subscription_plan || m.subscriptionPlan || null,
+    subscriptionStatus: m.subscription_status || m.subscriptionStatus || null,
+    demoExpiresAt: m.demo_expires_at || m.demoExpiresAt || null,
+    paymentCardOnFile: !!m.payment_card_on_file,
+    trialEndsAt: m.trial_ends_at || m.trialEndsAt || null,
+    permissions: Array.isArray(m.permissions) ? m.permissions : [],
+  };
+  normalized.isDemo =
+    normalized.subscriptionStatus === "demo" ||
+    normalized.subscriptionPlan === "demo" ||
+    !!normalized.demoExpiresAt ||
+    normalized.role === "demo";
+  return normalized;
+}
 
 export function AuthProvider({ children }) {
   const [status, setStatus] = useState("loading");
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
+  const [accessToken, setAccessToken] = useState(null);
   const [lastLoginMeta, setLastLoginMeta] = useState(null);
 
   useEffect(() => {
-    const stored = getStoredAuth();
-    if (stored?.token) {
-      setToken(stored.token);
-      setUser(stored.user || null);
+    registerAccessTokenGetter(() => accessToken);
+  }, [accessToken]);
+
+  const bootstrap = useCallback(async () => {
+    purgeLegacyTokenStorage();
+    try {
+      const ref = await apiRefresh();
+      const tok = ref?.access_token || "";
+      if (tok) setAccessToken(tok);
+      const d = await apiMe();
+      const nu = normalizeUser(d?.user);
+      setUser(nu);
       setStatus("authed");
-      if (!stored.user) {
-        apiMe()
-          .then((data) => {
-            const meta = data?.user || {};
-            const normalized = {
-              id: meta?.id || meta?.user_id || null,
-              email: meta?.email || "",
-              firstName: meta?.first_name || meta?.firstName || "",
-              lastName: meta?.last_name || meta?.lastName || "",
-              role: meta?.role || "user",
-              subscriptionPlan: meta?.subscription_plan || meta?.subscriptionPlan || null,
-              subscriptionStatus: meta?.subscription_status || meta?.subscriptionStatus || null,
-              demoExpiresAt: meta?.demo_expires_at || meta?.demoExpiresAt || null,
-            };
-            normalized.isDemo =
-              normalized.subscriptionStatus === "demo" ||
-              normalized.subscriptionPlan === "demo" ||
-              !!normalized.demoExpiresAt ||
-              normalized.role === "demo";
-            setStoredAuth(stored.token, normalized);
-            setUser(normalized);
-          })
-          .catch(() => null);
+    } catch (e) {
+      setAccessToken(null);
+      setUser(null);
+      setStatus("guest");
+      if (e?.message && !String(e.message).includes("401")) {
+        emitToast(String(e.message || "Oturum başlatılamadı"), "error");
       }
-      return;
     }
-    apiRefresh()
-      .then((data) => {
-        const newToken = data?.access_token || "";
-        if (newToken) {
-          setStoredAuth(newToken, stored?.user || null);
-          setToken(newToken);
-          setStatus("authed");
-          apiMe()
-            .then((d) => {
-              const meta = d?.user || {};
-              const normalized = {
-                id: meta?.id || meta?.user_id || null,
-                email: meta?.email || "",
-                firstName: meta?.first_name || meta?.firstName || "",
-                lastName: meta?.last_name || meta?.lastName || "",
-                role: meta?.role || "user",
-                subscriptionPlan: meta?.subscription_plan || meta?.subscriptionPlan || null,
-                subscriptionStatus: meta?.subscription_status || meta?.subscriptionStatus || null,
-                demoExpiresAt: meta?.demo_expires_at || meta?.demoExpiresAt || null,
-              };
-              normalized.isDemo =
-                normalized.subscriptionStatus === "demo" ||
-                normalized.subscriptionPlan === "demo" ||
-                !!normalized.demoExpiresAt ||
-                normalized.role === "demo";
-              setStoredAuth(newToken, normalized);
-              setUser(normalized);
-            })
-            .catch(() => null);
-        } else {
-          setStatus("guest");
-        }
-      })
-      .catch(() => setStatus("guest"));
   }, []);
+
+  useEffect(() => {
+    bootstrap();
+  }, [bootstrap]);
 
   const login = async (email, password) => {
     const data = await apiLogin(email, password);
+    const tok = data?.access_token || "";
+    if (tok) setAccessToken(tok);
     const meta = data?.user || {};
-    const normalized = {
-      id: meta?.id || meta?.user_id || null,
-      email: meta?.email || email,
-      firstName: meta?.first_name || meta?.firstName || meta?.user_metadata?.first_name || "",
-      lastName: meta?.last_name || meta?.lastName || meta?.user_metadata?.last_name || "",
-      role: meta?.role || "user",
-      subscriptionPlan: meta?.subscription_plan || meta?.subscriptionPlan || null,
-      subscriptionStatus: meta?.subscription_status || meta?.subscriptionStatus || null,
-      demoExpiresAt: meta?.demo_expires_at || meta?.demoExpiresAt || null,
-    };
-    normalized.isDemo =
-      normalized.subscriptionStatus === "demo" ||
-      normalized.subscriptionPlan === "demo" ||
-      !!normalized.demoExpiresAt ||
-      normalized.role === "demo";
-
-    const accessToken = data?.access_token || "";
-    setStoredAuth(accessToken, normalized);
-    setToken(accessToken);
+    const normalized = normalizeUser({ ...meta, permissions: meta.permissions });
     setUser(normalized);
     setStatus("authed");
+    try {
+      const fresh = await apiMe();
+      setUser(normalizeUser(fresh?.user));
+    } catch (e) {
+      emitToast(e?.message || "Profil bilgisi alınamadı", "error");
+    }
     setLastLoginMeta({
       at: Date.now(),
       name:
@@ -112,21 +93,30 @@ export function AuthProvider({ children }) {
     return normalized;
   };
 
-  const register = async ({ email, password, firstName, lastName, mode, discountCode }) => {
-    return apiRegister({ email, password, firstName, lastName, mode, discountCode });
+  const register = async (payload) => {
+    return apiRegister(payload);
   };
 
   const logout = async () => {
     try {
       await apiLogout();
-    } catch {
-      null;
+    } catch (e) {
+      emitToast(e?.message || "Çıkış isteği tamamlanamadı", "error");
     }
-    clearStoredAuth();
-    setToken(null);
+    setAccessToken(null);
     setUser(null);
     setStatus("guest");
     setLastLoginMeta(null);
+    purgeLegacyTokenStorage();
+  };
+
+  const refreshUser = async () => {
+    try {
+      const d = await apiMe();
+      setUser(normalizeUser(d?.user));
+    } catch (e) {
+      emitToast(e?.message || "Profil yenilenemedi", "error");
+    }
   };
 
   const consumeLastLoginMeta = () => {
@@ -137,8 +127,18 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ status, user, token, login, logout, register, lastLoginMeta, consumeLastLoginMeta }),
-    [status, user, token, lastLoginMeta]
+    () => ({
+      status,
+      user,
+      token: accessToken,
+      login,
+      logout,
+      register,
+      refreshUser,
+      lastLoginMeta,
+      consumeLastLoginMeta,
+    }),
+    [status, user, accessToken, lastLoginMeta]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,57 +1,41 @@
-const TOKEN_KEY = "miron_token";
-const USER_KEY = "miron_user";
-const LEGACY_CURRENT = "miron_current_user";
-const LEGACY_LIBRA = "libraUser";
-const LEGACY_AUTH = "authUser";
+/**
+ * Erişim jetonu localStorage'da TUTULMAZ (XSS riski).
+ * İsteğe bağlı: yalnızca UI tercihleri (sessionStorage, hassas değil).
+ */
+const PREF_KEY = "miron_ui_prefs";
 
-export const getStoredAuth = () => {
-  let token = localStorage.getItem(TOKEN_KEY);
-  let user = null;
+export function getUiPrefs() {
   try {
-    user = JSON.parse(localStorage.getItem(USER_KEY) || "null");
+    return JSON.parse(sessionStorage.getItem(PREF_KEY) || "{}");
   } catch {
-    user = null;
+    return {};
   }
-  if (!token) token = localStorage.getItem("token") || null;
-  if (!user) {
+}
+
+export function setUiPrefs(prefs) {
+  try {
+    sessionStorage.setItem(PREF_KEY, JSON.stringify({ ...getUiPrefs(), ...prefs }));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Eski sürümlerden kalma anahtarları temizle */
+export function purgeLegacyTokenStorage() {
+  const keys = [
+    "miron_token",
+    "miron_user",
+    "token",
+    "user",
+    "miron_current_user",
+    "libraUser",
+    "authUser",
+  ];
+  keys.forEach((k) => {
     try {
-      user = JSON.parse(localStorage.getItem(LEGACY_CURRENT) || "null");
+      localStorage.removeItem(k);
     } catch {
-      user = null;
+      /* ignore */
     }
-  }
-  return { token, user };
-};
-
-export const setStoredAuth = (token, user) => {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  if (user) {
-    const raw = JSON.stringify(user);
-    localStorage.setItem(USER_KEY, raw);
-    localStorage.setItem(LEGACY_CURRENT, raw);
-    localStorage.setItem(LEGACY_LIBRA, raw);
-    localStorage.setItem(LEGACY_AUTH, raw);
-  }
-};
-
-export const clearStoredAuth = () => {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  localStorage.removeItem(LEGACY_CURRENT);
-  localStorage.removeItem(LEGACY_LIBRA);
-  localStorage.removeItem(LEGACY_AUTH);
-};
-
-export const isAuthenticated = () => {
-  return !!localStorage.getItem(TOKEN_KEY);
-};
-
-export const getUserData = () => {
-  try {
-    return JSON.parse(localStorage.getItem(USER_KEY) || "null");
-  } catch {
-    return null;
-  }
-};
+  });
+}

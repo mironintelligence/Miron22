@@ -30,6 +30,7 @@ load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 # OpenAI client (tek kaynak)
 # ---------------------------
 from openai_client import get_openai_client, get_openai_api_key
+from llm_gateway import chat_completions_create
 try:
     from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
     from middleware.rate_limit import RateLimitMiddleware
@@ -309,7 +310,8 @@ def smart_format(text: str, filename: str, dava_turu: str):
             {text[:20000]}
             """
             
-            completion = client.chat.completions.create(
+            completion = chat_completions_create(
+                client,
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "Sen Türk hukukunda uzman bir yapay zeka asistanısın. Çıktın SADECE geçerli bir JSON objesi olmalı. Markdown formatı kullanma."},
@@ -545,20 +547,7 @@ def _sanitize_chat_id(chat_id: str) -> str:
     return chat_id[:80]
 
 def _run_llm(messages):
-    # model fallback
-    models = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-4o"]
-    last_err = None
-    for m in models:
-        try:
-            return client.chat.completions.create(
-                model=m,
-                temperature=0.2,
-                messages=messages,
-            )
-        except (BadRequestError, APIStatusError) as e:
-            last_err = e
-            continue
-    raise last_err or Exception("OpenAI call failed (unknown)")
+    return chat_completions_create(client, temperature=0.2, messages=messages)
 
 @app.post("/assistant-chat")
 def assistant_chat(req: ChatRequest = Body(...)):

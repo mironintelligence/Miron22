@@ -116,6 +116,19 @@ def ensure_schema() -> None:
             NULL;
         END $$;
         """,
+        """
+        CREATE TABLE IF NOT EXISTS legal_consents (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            ip_address TEXT,
+            agreed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            agreement_type TEXT NOT NULL CHECK (agreement_type IN ('SaaS', 'MSS', 'PREINFO', 'KVKK')),
+            document_version_hash TEXT NOT NULL
+        );
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_legal_consents_user ON legal_consents(user_id);",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS payment_card_on_file BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;",
     ]
 
     with get_db_cursor() as cur:

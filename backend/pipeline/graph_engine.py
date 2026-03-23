@@ -1,7 +1,8 @@
 import networkx as nx
 import json
 import logging
-from typing import List, Dict, Any
+import os
+from typing import List, Dict, Any, Optional
 
 class GraphEngine:
     def __init__(self):
@@ -33,15 +34,17 @@ class GraphEngine:
                 self.graph.add_node(cited, type="decision_ref")
                 self.graph.add_edge(decision_id, cited, relation="cites")
 
-    def export_metrics(self, filepath: str):
+    def export_metrics(self, filepath: Optional[str] = None) -> Dict[str, Any]:
         metrics = {
             "total_nodes": self.graph.number_of_nodes(),
             "total_edges": self.graph.number_of_edges(),
             "most_cited_decisions": sorted(self.graph.in_degree, key=lambda x: x[1], reverse=True)[:10],
             "most_referenced_articles": [n for n in sorted(self.graph.in_degree, key=lambda x: x[1], reverse=True) if "Madde" in str(n[0])][:10]
         }
-        with open(filepath, "w") as f:
-            json.dump(metrics, f, indent=2, default=str)
+        if filepath and (os.getenv("PIPELINE_WRITE_DIAG_FILES", "").lower() == "true"):
+            with open(filepath, "w") as f:
+                json.dump(metrics, f, indent=2, default=str)
+        return metrics
 
 class AuthorityScorer:
     def __init__(self, graph: nx.DiGraph):

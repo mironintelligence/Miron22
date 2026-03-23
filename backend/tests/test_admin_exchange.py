@@ -11,6 +11,8 @@ sys.modules["openai"] = MagicMock()
 
 os.environ["ENVIRONMENT"] = "test"
 os.environ["JWT_SECRET"] = "test_jwt_secret_32_bytes_long_123456"
+os.environ["SECRET_KEY"] = "test_secret_key_32_bytes_long_1234567890"
+os.environ["ADMIN_PANEL_PASSWORD"] = "test_panel_password"
 os.environ["DATA_HASH_KEY"] = "test_hash_key"
 os.environ["ADMIN_MFA_REQUIRED"] = "true"
 
@@ -32,6 +34,16 @@ def _csrf_headers() -> dict:
         pass
     token = client.cookies.get("csrf_token")
     return {"X-CSRF-Token": token} if token else {}
+
+
+def _unlock_admin_panel(access_token: str) -> None:
+    csrf = _csrf_headers()
+    res = client.post(
+        "/admin/panel-unlock",
+        json={"password": "test_panel_password"},
+        headers={"Authorization": f"Bearer {access_token}", **csrf},
+    )
+    assert res.status_code == 200
 
 
 def _login(email: str, password: str) -> str:
@@ -84,6 +96,7 @@ def test_admin_exchange_rejects_non_admin(user_access_token):
 
 
 def test_admin_exchange_requires_mfa_setup_first(admin_ctx):
+    _unlock_admin_panel(admin_ctx["token"])
     csrf = _csrf_headers()
     res = client.post(
         "/admin/exchange",
@@ -98,6 +111,7 @@ def test_admin_exchange_requires_mfa_setup_first(admin_ctx):
 
 
 def test_admin_exchange_after_mfa_setup(admin_ctx):
+    _unlock_admin_panel(admin_ctx["token"])
     csrf = _csrf_headers()
     secret = "JBSWY3DPEHPK3PXP"
     set_user_mfa(str(admin_ctx["id"]), secret, enabled=True)

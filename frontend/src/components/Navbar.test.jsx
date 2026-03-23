@@ -14,16 +14,25 @@ vi.mock("../auth/AuthProvider", () => ({
 }));
 
 describe("Navbar", () => {
-  it("demo değilse Hesabı Yükselt göstermez", () => {
+  it("user rolünde Admin Panel linki DOM'da yok", () => {
     render(
       <MemoryRouter initialEntries={["/home"]}>
         <Navbar />
       </MemoryRouter>
     );
-    expect(screen.queryByText("Hesabı Yükselt")).toBeNull();
+    expect(screen.queryByText(/Admin Panel/i)).toBeNull();
   });
 
-  it("demo ise Hesabı Yükselt gösterir", async () => {
+  it("oturum açıkken Premium CTA görünür", () => {
+    render(
+      <MemoryRouter initialEntries={["/home"]}>
+        <Navbar />
+      </MemoryRouter>
+    );
+    expect(screen.getAllByText("Premium").length).toBeGreaterThan(0);
+  });
+
+  it("demo kullanıcıda da Premium CTA görünür", async () => {
     vi.resetModules();
     vi.doMock("../auth/AuthProvider", () => ({
       useAuth: () => ({
@@ -40,7 +49,7 @@ describe("Navbar", () => {
         <DemoNavbar />
       </MemoryRouter>
     );
-    expect(screen.getAllByText("Hesabı Yükselt").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Premium").length).toBeGreaterThan(0);
   });
 
   it("admin rolünde Admin Panel linkini gösterir", async () => {

@@ -16,6 +16,7 @@ from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from openai_client import get_openai_client
+from llm_gateway import chat_completions_create
 from user_auth import get_current_user
 
 writer_router = APIRouter(prefix="/writer", tags=["Dilekçe Oluşturucu"])
@@ -527,7 +528,7 @@ async def preview(req: PreviewRequest, user: Dict[str, Any] = Depends(get_curren
         raise HTTPException(status_code=500, detail="OpenAI client yok. OPENAI_API_KEY kontrol et ve restart at.")
 
     try:
-        resp = client.chat.completions.create(
+        resp = chat_completions_create(client,
             model="gpt-4o-mini",
             temperature=0.2,
             messages=[
@@ -552,7 +553,7 @@ def export_doc(req: ExportRequest, user: Dict[str, Any] = Depends(get_current_us
 
     prompt = build_prompt(tpl_obj, req)
     try:
-        resp = client.chat.completions.create(
+        resp = chat_completions_create(client,
             model="gpt-4o-mini",
             temperature=0.2,
             messages=[

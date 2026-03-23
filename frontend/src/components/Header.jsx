@@ -19,10 +19,9 @@ export default function Header({ onOpenLogin }) {
         { to: "/assistant", label: "Asistan" },
         { to: "/calculators", label: "Hesaplama Araçları" },
       ];
-      // Admin linkini herkes görsün (geliştirme aşamasında kolaylık için)
-      // veya user.role === 'admin' kontrolüyle sadece adminlere gösterilebilir.
-      // Şimdilik admin değilse bile menüde görünsün, tıklandığında admin login ekranı gelir.
-      list.push({ to: "/admin", label: "Admin Paneli" });
+      if (user?.role === "admin") {
+        list.push({ to: "/admin", label: "Admin Paneli" });
+      }
       
       return list;
     }
@@ -32,7 +31,7 @@ export default function Header({ onOpenLogin }) {
       { to: "/privacy", label: "Gizlilik" },
       { to: "/user-agreement", label: "Kullanıcı Sözleşmesi" },
     ];
-  }, [authed]);
+  }, [authed, user?.role]);
 
   const onLogout = () => {
     setMenuOpen(false);

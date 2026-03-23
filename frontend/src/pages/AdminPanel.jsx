@@ -11,6 +11,10 @@ export default function AdminPanel() {
   const [otp, setOtp] = useState("");
   const [mfaSetup, setMfaSetup] = useState(null);
   const [authed, setAuthed] = useState(false);
+  /** Admin panel password gate (server-side cookie + ADMIN_PANEL_PASSWORD) */
+  const [panelGate, setPanelGate] = useState({ phase: "loading", configured: true });
+  const [panelPassword, setPanelPassword] = useState("");
+  const [panelGateError, setPanelGateError] = useState("");
   const [activeTab, setActiveTab] = useState("stats");
   const [msg, setMsg] = useState("");
   const [msgType, setMsgType] = useState("info");
@@ -30,6 +34,29 @@ export default function AdminPanel() {
   const [demos, setDemos] = useState([]);
   const [logs, setLogs] = useState([]);
   const [discounts, setDiscounts] = useState([]);
+
+  // Content / Templates
+  const [templates, setTemplates] = useState([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templatesFilters, setTemplatesFilters] = useState({ search: "", category: "" });
+  const [templateDraft, setTemplateDraft] = useState({
+    id: null,
+    title: "",
+    category: "",
+    content: "",
+    description: "",
+  });
+
+  // Reporting + Pricing config
+  const [reports, setReports] = useState(null);
+  const [pricingConfig, setPricingConfig] = useState(null);
+  const [allowRegistration, setAllowRegistration] = useState(true);
+  const [maxTokensPerUser, setMaxTokensPerUser] = useState(1000);
+  const [pricingDraft, setPricingDraft] = useState({
+    base_price: 8000.0,
+    discount_rate: 20.0,
+    bulk_threshold: 3,
+  });
   
   // Forms
   const [newDiscount, setNewDiscount] = useState({
@@ -40,10 +67,58 @@ export default function AdminPanel() {
   const [notifUserId, setNotifUserId] = useState("");
 
   useEffect(() => {
+    if (status !== "authed" || user?.role !== "admin") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authFetch("/admin/panel-unlock/status", { method: "GET" });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        const configured = data.configured !== false;
+        if (!configured) {
+          setPanelGate({ phase: "ready", configured: false });
+          return;
+        }
+        if (data.unlocked) {
+          setPanelGate({ phase: "ready", configured: true });
+        } else {
+          setPanelGate({ phase: "need_password", configured: true });
+        }
+      } catch {
+        if (!cancelled) setPanelGate({ phase: "need_password", configured: true });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [status, user?.role]);
+
+  useEffect(() => {
     if (status !== "authed") return;
     if (user?.role !== "admin") return;
+    if (panelGate.phase !== "ready") return;
     bootstrap();
-  }, [status, user?.role]);
+  }, [status, user?.role, panelGate.phase]);
+
+  const submitPanelPassword = async () => {
+    setPanelGateError("");
+    try {
+      const res = await authFetch("/admin/panel-unlock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: panelPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPanelGateError(data?.detail || "Şifre doğrulanamadı.");
+        return;
+      }
+      setPanelPassword("");
+      setPanelGate({ phase: "ready", configured: true });
+    } catch {
+      setPanelGateError("Bağlantı hatası.");
+    }
+  };
 
   const bootstrap = async () => {
     if (token) {
@@ -74,6 +149,9 @@ export default function AdminPanel() {
     fetchUsers();
     fetchDemos();
     fetchDiscounts();
+    fetchTemplates();
+    fetchReports();
+    fetchPricingConfig();
   };
 
   const showMsg = (text, type = "info") => {
@@ -112,7 +190,13 @@ export default function AdminPanel() {
   };
 
   const fetchStats = async () => setStats(await fetchWithAuth("/admin/stats"));
-  const fetchConfig = async () => setConfig(await fetchWithAuth("/admin/config"));
+  const fetchConfig = async () => {
+    const data = await fetchWithAuth("/admin/config");
+    setConfig(data);
+    setAllowRegistration(!!data?.allow_registration);
+    const mtpu = Number(data?.max_tokens_per_user);
+    setMaxTokensPerUser(Number.isFinite(mtpu) ? mtpu : 1000);
+  };
   const fetchUsers = async () => {
     const qs = new URLSearchParams();
     if (userFilters.search) qs.set("search", userFilters.search);
@@ -123,6 +207,100 @@ export default function AdminPanel() {
   };
   const fetchDemos = async () => setDemos(await fetchWithAuth("/admin/demo-requests") || []);
   const fetchDiscounts = async () => setDiscounts(await fetchWithAuth("/api/pricing/discount-codes") || []);
+
+  const fetchPricingConfig = async () => {
+    const data = await fetchWithAuth("/api/pricing/config");
+    setPricingConfig(data);
+    setPricingDraft({
+      base_price: Number(data?.base_price ?? 8000),
+      discount_rate: Number(data?.discount_rate ?? 20),
+      bulk_threshold: Number(data?.bulk_threshold ?? 3),
+    });
+  };
+
+  const fetchReports = async () => setReports(await fetchWithAuth("/reports/overview") || null);
+
+  const fetchTemplates = async () => {
+    setTemplatesLoading(true);
+    try {
+      const res = await authFetch("/api/contracts/templates?catalog=false&include_seed=false&include_remote=false", {
+        method: "GET",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json().catch(() => []);
+      setTemplates(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error("/api/contracts/templates fetch failed", e);
+      setTemplates([]);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  const resetTemplateDraft = () => {
+    setTemplateDraft({
+      id: null,
+      title: "",
+      category: "",
+      content: "",
+      description: "",
+    });
+  };
+
+  const saveTemplate = async () => {
+    if (!templateDraft.title.trim() || !templateDraft.category.trim() || !templateDraft.content.trim()) {
+      showMsg("Şablon: title, category ve content gerekli", "error");
+      return;
+    }
+
+    const payload = {
+      title: templateDraft.title.trim(),
+      category: templateDraft.category.trim(),
+      content: templateDraft.content,
+      description: templateDraft.description?.trim() ? templateDraft.description.trim() : null,
+    };
+
+    if (templateDraft.id) {
+      const res = await fetchWithAuth(`/api/contracts/templates/${encodeURIComponent(String(templateDraft.id))}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      if (res?.ok) {
+        showMsg("✅ Şablon güncellendi", "success");
+        resetTemplateDraft();
+        fetchTemplates();
+      } else {
+        showMsg("❌ Şablon güncellenemedi", "error");
+      }
+    } else {
+      const res = await fetchWithAuth("/api/contracts/templates", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      if (res?.id || res?.ok) {
+        showMsg("✅ Şablon oluşturuldu", "success");
+        resetTemplateDraft();
+        fetchTemplates();
+      } else {
+        showMsg("❌ Şablon oluşturulamadı", "error");
+      }
+    }
+  };
+
+  const deleteTemplateById = async (templateId) => {
+    if (!templateId) return;
+    if (!window.confirm(`${templateId} numaralı şablon silinsin mi?`)) return;
+
+    const res = await fetchWithAuth(`/api/contracts/templates/${encodeURIComponent(String(templateId))}`, { method: "DELETE" });
+    if (res?.ok) {
+      showMsg("✅ Şablon silindi", "success");
+      if (String(templateDraft.id || "") === String(templateId)) resetTemplateDraft();
+      fetchTemplates();
+    } else {
+      showMsg("❌ Şablon silinemedi", "error");
+    }
+  };
+
   const fetchLogs = async () => {
     const data = await fetchWithAuth("/admin/logs/system?lines=100");
     if (data?.logs) setLogs(data.logs);
@@ -199,6 +377,54 @@ export default function AdminPanel() {
     }
   };
 
+  const saveSystemConfig = async () => {
+    const payload = {
+      maintenance_mode: !!config?.maintenance_mode,
+      allow_registration: !!allowRegistration,
+      max_tokens_per_user: Number(maxTokensPerUser),
+    };
+
+    if (!Number.isFinite(payload.max_tokens_per_user)) {
+      showMsg("Kullanıcı token limiti sayısal olmalı", "error");
+      return;
+    }
+
+    const res = await fetchWithAuth("/admin/config", { method: "POST", body: JSON.stringify(payload) });
+    if (res?.ok) {
+      showMsg("✅ Sistem ayarları güncellendi", "success");
+      setConfig((prev) => ({ ...(prev || {}), ...(res?.config || payload) }));
+    } else {
+      showMsg("❌ Sistem ayarları güncellenemedi", "error");
+    }
+  };
+
+  const savePricingConfig = async () => {
+    const payload = {
+      base_price: Number(pricingDraft?.base_price),
+      discount_rate: Number(pricingDraft?.discount_rate),
+      bulk_threshold: Number(pricingDraft?.bulk_threshold),
+    };
+
+    if (!Number.isFinite(payload.base_price) || !Number.isFinite(payload.discount_rate) || !Number.isFinite(payload.bulk_threshold)) {
+      showMsg("Fiyat/indirim/limit sayısal olmalı", "error");
+      return;
+    }
+
+    const res = await fetchWithAuth("/api/pricing/config", { method: "POST", body: JSON.stringify(payload) });
+    if (res?.status === "ok" || res?.config) {
+      const next = res?.config || payload;
+      showMsg("✅ Pricing ayarları güncellendi", "success");
+      setPricingConfig(next);
+      setPricingDraft({
+        base_price: Number(next?.base_price ?? payload.base_price),
+        discount_rate: Number(next?.discount_rate ?? payload.discount_rate),
+        bulk_threshold: Number(next?.bulk_threshold ?? payload.bulk_threshold),
+      });
+    } else {
+      showMsg("❌ Pricing ayarları güncellenemedi", "error");
+    }
+  };
+
   const toggleUserSuspend = async (email, active) => {
     const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/suspend`, { method: "PUT", body: JSON.stringify({ active }) });
     if (res?.ok) {
@@ -230,6 +456,24 @@ export default function AdminPanel() {
       fetchDiscounts();
       setNewDiscount({ code: "", type: "percent", value: 0, max_usage: "", expires_at: "", description: "" });
     } else showMsg("❌ Kod oluşturulamadı", "error");
+  };
+
+  const toggleDiscount = async (code, active) => {
+    if (!code) return;
+    const next = !active;
+    if (!window.confirm(`${code} için ${next ? "AKTİF" : "PASİF"} durumu uygulanacak. Devam edilsin mi?`)) return;
+
+    const res = await fetchWithAuth(`/api/pricing/discount-codes/${encodeURIComponent(code)}/toggle`, {
+      method: "POST",
+      body: JSON.stringify({ active: next }),
+    });
+
+    if (res?.ok) {
+      showMsg("✅ İndirim kodu güncellendi", "success");
+      fetchDiscounts();
+    } else {
+      showMsg("❌ İndirim kodu güncellenemedi", "error");
+    }
   };
 
   const sendNotification = async () => {
@@ -325,6 +569,28 @@ export default function AdminPanel() {
     else showMsg("❌ Şifre güncellenemedi", "error");
   };
 
+  const lockUserById = async (userId) => {
+    if (!userId) return showMsg("Kullanıcı id gerekli", "error");
+    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(userId)}/lock`, { method: "POST" });
+    if (res?.ok) {
+      showMsg("✅ Kullanıcı kilitlendi", "success");
+      fetchUsers();
+    } else {
+      showMsg("❌ Kullanıcı kilitlenemedi", "error");
+    }
+  };
+
+  const unlockUserById = async (userId) => {
+    if (!userId) return showMsg("Kullanıcı id gerekli", "error");
+    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(userId)}/unlock`, { method: "POST" });
+    if (res?.ok) {
+      showMsg("✅ Kullanıcı kilidi açıldı", "success");
+      fetchUsers();
+    } else {
+      showMsg("❌ Kullanıcı kilidi açılamadı", "error");
+    }
+  };
+
   const applyBulk = async () => {
     const emails = Object.keys(selectedEmails).filter((k) => selectedEmails[k]);
     if (!emails.length) return showMsg("Seçili kullanıcı yok", "error");
@@ -384,6 +650,46 @@ export default function AdminPanel() {
   if (status === "loading") return null;
   if (status !== "authed") return null;
   if (user?.role !== "admin") return null;
+
+  if (panelGate.phase === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-zinc-500">
+        Yükleniyor…
+      </div>
+    );
+  }
+
+  if (panelGate.phase === "need_password") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-amber-500 font-mono px-4">
+        <div className="p-10 border border-amber-900/30 bg-black rounded-2xl shadow-2xl max-w-md w-full">
+          <h1 className="text-2xl font-bold mb-3 text-center tracking-widest">ADMIN ERİŞİM</h1>
+          <p className="text-xs text-zinc-500 text-center mb-6">
+            Devam etmek için yönetici paneli şifresini girin. Doğrulama sunucuda yapılır.
+          </p>
+          {panelGateError ? <div className="mb-4 text-sm text-red-500 text-center">{panelGateError}</div> : null}
+          <input
+            type="password"
+            autoComplete="off"
+            className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none mb-4"
+            placeholder="Panel şifresi"
+            value={panelPassword}
+            onChange={(e) => setPanelPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submitPanelPassword();
+            }}
+          />
+          <button
+            type="button"
+            onClick={submitPanelPassword}
+            className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition"
+          >
+            Doğrula
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!authed) {
     return (
@@ -453,7 +759,7 @@ export default function AdminPanel() {
       <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto">
         {/* Navigation */}
         <div className="flex flex-wrap gap-2 mb-8 border-b border-zinc-800 pb-1">
-          {["stats", "users", "demos", "notifications", "audit", "sessions", "master", "logs", "discounts"].map((tab) => (
+          {["stats", "reports", "users", "demos", "templates", "notifications", "audit", "sessions", "master", "logs", "discounts"].map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -462,6 +768,9 @@ export default function AdminPanel() {
                 if (tab === "audit") fetchAudit();
                 if (tab === "sessions") fetchSessions();
                 if (tab === "users") fetchUsers();
+                if (tab === "templates") fetchTemplates();
+                if (tab === "reports") fetchReports();
+                if (tab === "discounts") fetchDiscounts();
               }}
               className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
                 activeTab === tab ? "text-amber-500 border-b-2 border-amber-500" : "text-zinc-600 hover:text-zinc-400"
@@ -469,10 +778,14 @@ export default function AdminPanel() {
             >
               {tab === "stats"
                 ? "İstatistik"
+                : tab === "reports"
+                ? "Raporlar"
                 : tab === "users"
                 ? "Kullanıcılar"
                 : tab === "demos"
                 ? "Demo Talepleri"
+                : tab === "templates"
+                ? "İçerik Yönetimi"
                 : tab === "notifications"
                 ? "Duyurular"
                 : tab === "audit"
@@ -507,6 +820,37 @@ export default function AdminPanel() {
               <div className="text-xs text-zinc-500 uppercase mb-2">Sistem Durumu</div>
               <div className="text-xl text-white font-mono">{stats.system_status}</div>
               <div className="text-xs text-zinc-600 mt-1">Last Restart: {stats.last_restart}</div>
+            </div>
+          </div>
+        )}
+
+        {/* REPORTS OVERVIEW */}
+        {activeTab === "reports" && reports && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <StatCard label="Total Cases" value={reports.total_cases ?? 0} />
+            <StatCard
+              label="Total Collected"
+              value={typeof reports.total_collected === "number" ? reports.total_collected.toFixed(2) : reports.total_collected ?? 0}
+              color="text-green-400"
+            />
+            <StatCard label="ICRA" value={reports.by_type?.icra ?? 0} color="text-blue-400" />
+            <StatCard label="DAVA" value={reports.by_type?.dava ?? 0} color="text-amber-400" />
+            <div className="md:col-span-4 bg-zinc-900/30 p-6 rounded border border-zinc-800">
+              <div className="text-xs text-zinc-500 uppercase mb-3">Bölüm Dağılımı</div>
+              <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                <div className="p-3 rounded border border-zinc-800 bg-black/20">
+                  <div className="text-zinc-500 text-xs uppercase">icra</div>
+                  <div className="font-bold text-white">{reports.by_type?.icra ?? 0}</div>
+                </div>
+                <div className="p-3 rounded border border-zinc-800 bg-black/20">
+                  <div className="text-zinc-500 text-xs uppercase">dava</div>
+                  <div className="font-bold text-white">{reports.by_type?.dava ?? 0}</div>
+                </div>
+                <div className="p-3 rounded border border-zinc-800 bg-black/20">
+                  <div className="text-zinc-500 text-xs uppercase">danismanlik</div>
+                  <div className="font-bold text-white">{reports.by_type?.danismanlik ?? 0}</div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -589,14 +933,79 @@ export default function AdminPanel() {
             <div className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-xl">
               <h3 className="text-amber-500 font-bold mb-4 tracking-widest">SYSTEM CONFIG</h3>
               <div className="space-y-4">
-                <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
+                <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
                   <span className="text-zinc-400">Kayıt Olma</span>
-                  <span className="text-green-500 font-mono">AÇIK</span>
+                  <select
+                    className="bg-black border border-zinc-700 p-2 text-white rounded outline-none focus:border-amber-500"
+                    value={allowRegistration ? "true" : "false"}
+                    onChange={(e) => setAllowRegistration(e.target.value === "true")}
+                  >
+                    <option value="true">AÇIK</option>
+                    <option value="false">KAPALI</option>
+                  </select>
                 </div>
-                <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                  <span className="text-zinc-400">Kullanıcı Token Limiti</span>
-                  <span className="text-amber-500 font-mono">1000</span>
+
+                <div className="border-b border-zinc-800 pb-3">
+                  <div className="text-zinc-400 text-sm mb-2">Kullanıcı Token Limiti</div>
+                  <input
+                    type="number"
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    value={maxTokensPerUser}
+                    onChange={(e) => setMaxTokensPerUser(e.target.value)}
+                  />
+                  <div className="text-xs text-zinc-600 mt-1">Kullanıcı başına maksimum token limiti.</div>
                 </div>
+
+                <button
+                  onClick={saveSystemConfig}
+                  className="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-500 transition text-sm"
+                >
+                  Kaydet
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-zinc-900/20 border border-zinc-800 p-6 rounded-xl md:col-span-2">
+              <h3 className="text-amber-500 font-bold mb-4 tracking-widest">PRICING CONFIG</h3>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <div className="text-zinc-400 text-xs uppercase tracking-wider mb-2">Base Price</div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    value={pricingDraft?.base_price ?? 8000}
+                    onChange={(e) => setPricingDraft((p) => ({ ...(p || {}), base_price: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <div className="text-zinc-400 text-xs uppercase tracking-wider mb-2">Discount Rate (%)</div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    value={pricingDraft?.discount_rate ?? 20}
+                    onChange={(e) => setPricingDraft((p) => ({ ...(p || {}), discount_rate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <div className="text-zinc-400 text-xs uppercase tracking-wider mb-2">Bulk Threshold</div>
+                  <input
+                    type="number"
+                    step="1"
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    value={pricingDraft?.bulk_threshold ?? 3}
+                    onChange={(e) => setPricingDraft((p) => ({ ...(p || {}), bulk_threshold: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="mt-5 flex justify-end">
+                <button
+                  onClick={savePricingConfig}
+                  className="bg-amber-600 text-black font-bold px-6 py-3 rounded hover:bg-amber-500 transition text-sm"
+                >
+                  Kaydet
+                </button>
               </div>
             </div>
           </div>
@@ -820,6 +1229,18 @@ export default function AdminPanel() {
                             Şifre
                           </button>
                           <button
+                            onClick={() =>
+                              isLockedUntil(u.locked_until)
+                                ? unlockUserById(u.id)
+                                : lockUserById(u.id)
+                            }
+                            className={`text-xs px-2 py-1 rounded hover:bg-white/5 border ${
+                              isLockedUntil(u.locked_until) ? "border-emerald-900/40 text-emerald-300" : "border-red-900/40 text-red-300"
+                            }`}
+                          >
+                            {isLockedUntil(u.locked_until) ? "Kilidi Aç" : "Kilitle"}
+                          </button>
+                          <button
                             onClick={() => deleteUserByEmail(u.email)}
                             className="text-xs border border-red-900/40 px-2 py-1 rounded hover:bg-red-900/20 text-red-400"
                           >
@@ -831,6 +1252,154 @@ export default function AdminPanel() {
                   </tbody>
                 </table>
                 {users.length === 0 ? <div className="p-6 text-sm text-zinc-600">Kullanıcı bulunamadı.</div> : null}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CONTENT / TEMPLATES MANAGEMENT */}
+        {activeTab === "templates" && (
+          <div className="space-y-6">
+            <div className="grid lg:grid-cols-5 gap-8">
+              <div className="lg:col-span-2 bg-zinc-900/30 border border-zinc-800 p-6 rounded-xl">
+                <div className="text-amber-500 font-bold mb-4 tracking-widest">
+                  {templateDraft.id ? "Şablon Güncelle" : "Şablon Oluştur"}
+                </div>
+
+                <div className="space-y-3">
+                  <input
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    placeholder="Title"
+                    value={templateDraft.title}
+                    onChange={(e) => setTemplateDraft((p) => ({ ...p, title: e.target.value }))}
+                  />
+
+                  <input
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    placeholder="Category"
+                    value={templateDraft.category}
+                    onChange={(e) => setTemplateDraft((p) => ({ ...p, category: e.target.value }))}
+                  />
+
+                  <input
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    placeholder="Description (opsiyonel)"
+                    value={templateDraft.description}
+                    onChange={(e) => setTemplateDraft((p) => ({ ...p, description: e.target.value }))}
+                  />
+
+                  <textarea
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500 h-64 resize-none font-mono text-xs"
+                    placeholder="Template content (örn: madde şablonu)"
+                    value={templateDraft.content}
+                    onChange={(e) => setTemplateDraft((p) => ({ ...p, content: e.target.value }))}
+                  />
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={saveTemplate}
+                      className="flex-1 bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-500 transition text-sm"
+                    >
+                      {templateDraft.id ? "Güncelle" : "Oluştur"}
+                    </button>
+                    <button
+                      onClick={resetTemplateDraft}
+                      className="flex-1 bg-zinc-900 text-white/80 border border-zinc-700 font-bold py-3 rounded hover:bg-white/5 transition text-sm"
+                    >
+                      İptal
+                    </button>
+                  </div>
+
+                  {templatesLoading && <div className="text-xs text-zinc-600 pt-1">Şablonlar yükleniyor...</div>}
+                </div>
+              </div>
+
+              <div className="lg:col-span-3 bg-zinc-900/20 border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="p-4 border-b border-zinc-800 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <input
+                    className="w-full bg-black border border-zinc-700 p-2 text-white rounded outline-none focus:border-amber-500 text-sm"
+                    placeholder="Ara (title / category / içeriğin başlangıcı)"
+                    value={templatesFilters.search}
+                    onChange={(e) => setTemplatesFilters((p) => ({ ...p, search: e.target.value }))}
+                  />
+                  <div className="text-xs text-zinc-500 sm:ml-auto">
+                    Toplam: <span className="text-white font-bold">{templates.length}</span>
+                  </div>
+                </div>
+
+                <div className="overflow-auto max-h-[650px]">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-zinc-900/50 text-zinc-500 uppercase text-xs">
+                      <tr>
+                        <th className="p-3 w-16">ID</th>
+                        <th className="p-3">Title</th>
+                        <th className="p-3 w-32">Category</th>
+                        <th className="p-3">İçerik</th>
+                        <th className="p-3 w-36">İşlem</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {templates
+                        .filter((t) => {
+                          const q = String(templatesFilters.search || "").trim().toLowerCase();
+                          if (!q) return true;
+                          return (
+                            String(t?.title || "").toLowerCase().includes(q) ||
+                            String(t?.category || "").toLowerCase().includes(q) ||
+                            String(t?.description || "").toLowerCase().includes(q) ||
+                            String(t?.content || "").toLowerCase().includes(q)
+                          );
+                        })
+                        .map((t) => (
+                          <tr key={t.id || `${t.title}-${t.created_at || ""}`} className="hover:bg-zinc-900/30 transition">
+                            <td className="p-3 text-xs text-zinc-400 font-mono">{t.id}</td>
+                            <td className="p-3">
+                              <div className="font-bold text-white">{t.title || "-"}</div>
+                              <div className="text-xs text-zinc-500">{t.created_at ? String(t.created_at).split("T")[0] : "—"}</div>
+                            </td>
+                            <td className="p-3 text-xs text-zinc-400">{t.category || "-"}</td>
+                            <td className="p-3">
+                              <div className="text-xs text-zinc-300 font-mono break-words">
+                                {(t.content || "").replace(/\s+/g, " ").slice(0, 120)}
+                                {(t.content || "").length > 120 ? "..." : ""}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  onClick={() =>
+                                    setTemplateDraft({
+                                      id: t.id,
+                                      title: t.title || "",
+                                      category: t.category || "",
+                                      content: t.content || "",
+                                      description: t.description || "",
+                                    })
+                                  }
+                                  className="text-xs border border-zinc-700 px-2 py-1 rounded hover:bg-white/5"
+                                >
+                                  Düzenle
+                                </button>
+                                <button
+                                  onClick={() => deleteTemplateById(t.id)}
+                                  className="text-xs border border-red-900/40 px-2 py-1 rounded hover:bg-red-900/20 text-red-300"
+                                >
+                                  Sil
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      {templates.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-6 text-sm text-zinc-600">
+                            Şablon bulunamadı.
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -987,7 +1556,12 @@ export default function AdminPanel() {
               <div className="bg-zinc-900/20 border border-zinc-800 rounded overflow-hidden">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-zinc-900/50 text-zinc-500 uppercase text-xs">
-                    <tr><th className="p-3">Kod</th><th className="p-3">Değer</th><th className="p-3">Durum</th></tr>
+                    <tr>
+                      <th className="p-3">Kod</th>
+                      <th className="p-3">Değer</th>
+                      <th className="p-3">Durum</th>
+                      <th className="p-3">İşlem</th>
+                    </tr>
                   </thead>
                   <tbody>
                     {discounts.map(d => (
@@ -995,6 +1569,16 @@ export default function AdminPanel() {
                         <td className="p-3 font-mono text-white">{d.code}</td>
                         <td className="p-3 text-amber-500">{d.value} {d.type === 'percent' ? '%' : 'TL'}</td>
                         <td className="p-3"><span className={d.active ? "text-green-500" : "text-red-500"}>{d.active ? "AKTİF" : "PASİF"}</span></td>
+                        <td className="p-3">
+                          <button
+                            onClick={() => toggleDiscount(d.code, !!d.active)}
+                            className={`text-xs px-2 py-1 rounded border transition ${
+                              d.active ? "border-red-900/40 text-red-300 hover:bg-red-900/20" : "border-emerald-900/40 text-emerald-300 hover:bg-emerald-900/20"
+                            }`}
+                          >
+                            {d.active ? "Pasifleştir" : "Aktifleştir"}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1074,6 +1658,12 @@ export default function AdminPanel() {
       </div>
     </div>
   );
+}
+
+function isLockedUntil(lockedUntil) {
+  if (!lockedUntil) return false;
+  const ms = Date.parse(String(lockedUntil));
+  return Number.isFinite(ms) && ms > Date.now();
 }
 
 function StatCard({ label, value, color = "text-white" }) {

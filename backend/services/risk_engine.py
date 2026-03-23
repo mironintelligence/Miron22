@@ -7,8 +7,10 @@ from pydantic import BaseModel, Field, ValidationError
 
 try:
     from openai_client import get_openai_client
+    from llm_gateway import chat_completions_create
 except ImportError:
     from openai_client import get_openai_client
+    from llm_gateway import chat_completions_create
 
 logger = logging.getLogger("miron.risk_engine")
 
@@ -53,8 +55,9 @@ class RiskEngine:
         prompt = self._build_prompt(text)
 
         try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",  # Using 4o-mini for speed/cost balance, upgrade to 4o if needed
+            response = chat_completions_create(
+                client,
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "Sen kıdemli bir Türk Hukuku stratejistisin. Görevin davayı analiz edip riskleri, stratejileri ve kazanma ihtimalini belirlemektir. Asla halüsinasyon görme. Sadece metindeki verilere dayan."},
                     {"role": "user", "content": prompt}

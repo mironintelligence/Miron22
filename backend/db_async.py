@@ -215,6 +215,25 @@ class AsyncDatabase:
                 return await conn.fetch(query, *args, timeout=timeout)
         return await self.safe_db_execute(_op)
 
+    async def fetch_page(
+        self,
+        base_sql: str,
+        limit: int,
+        offset: int,
+        *args,
+        timeout: float = 120.0,
+    ):
+        """
+        LIMIT/OFFSET ile sayfalı okuma (OOM önleme). base_sql içinde ORDER BY olmalı.
+        Placeholder'lar $1..$N ise, LIMIT $N+1 OFFSET $N+2 eklenir.
+        """
+        q = base_sql.strip().rstrip(";")
+        n = len(args)
+        lim_ph = f"${n + 1}"
+        off_ph = f"${n + 2}"
+        sql = f"{q} LIMIT {lim_ph} OFFSET {off_ph}"
+        return await self.fetch_all(sql, *args, limit, offset, timeout=timeout)
+
     async def execute(self, query: str, *args, timeout: float = 60.0):
         async def _op():
             if not self._write_pool: await self.init_pools()

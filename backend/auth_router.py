@@ -9,11 +9,11 @@ from fastapi import APIRouter, HTTPException, status, Request, Response, Body, D
 from pydantic import BaseModel, EmailStr, Field, validator
 
 from stores.pg_users_store import (
-    create_user, find_user_by_email, update_user_login, 
+    create_user, find_user_by_email, update_user_login,
     increment_failed_login, is_account_locked, reset_failed_login,
     create_session, revoke_session, is_session_valid,
     get_user_token_version, increment_token_version, log_audit,
-    rotate_refresh_token_atomic
+    rotate_refresh_token_atomic,
 )
 
 from security import (
@@ -23,6 +23,7 @@ from security import (
 )
 from user_auth import get_current_user
 from stores.pg_users_store import find_user_by_id
+from legal_compliance import document_version_hash, luhn_valid, card_last_four
 
 try:
     from services.pricing_service import find_valid_discount, increment_usage
@@ -39,6 +40,20 @@ router = APIRouter()
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
+class ConsentPayload(BaseModel):
+    saas: bool = False
+    mss: bool = False
+    preinfo: bool = False
+    kvkk: bool = False
+
+
+class CardPayload(BaseModel):
+    number: str = Field(default="", max_length=32)
+    exp_month: str = Field(default="", max_length=2)
+    exp_year: str = Field(default="", max_length=4)
+    cvc: str = Field(default="", max_length=4)
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=12, max_length=128)
@@ -47,6 +62,8 @@ class RegisterRequest(BaseModel):
     mode: Optional[str] = Field(default="single", pattern="^(single|demo)$", max_length=16)
     discountCode: Optional[str] = Field(default=None, max_length=64)
     role: Optional[str] = Field(default="user", pattern="^(user)$")
+    consents: Optional[ConsentPayload] = None
+    card: Optional[CardPayload] = None
 
     @validator('password')
     def validate_password_strength(cls, v):
@@ -68,15 +85,55 @@ class LoginRequest(BaseModel):
 from services.mail_service import send_verification_email, send_reset_password_email
 from stores.pg_users_store import update_user_verification, get_user_by_reset_token, update_password
 import secrets
+from db import get_db_cursor
+
+
+def _permissions_for_user_row(u: Dict[str, Any]) -> list:
+    role = (u.get("role") or "user").lower()
+    perms = ["app.use"]
+    if role == "admin":
+        perms.extend(["admin.all", "admin.export", "app.billing"])
+    else:
+        perms.append("app.billing")
+    if not u.get("payment_card_on_file"):
+        perms.append("gate.payment_card")
+    return list(dict.fromkeys(perms))
+
+
+def _insert_legal_consents(user_id: str, ip: str) -> None:
+    if (os.getenv("ENVIRONMENT") or "").lower() == "test" and (
+        os.getenv("TEST_USE_INMEMORY_PG_STORE", "true") or ""
+    ).lower() != "false":
+        return
+    with get_db_cursor() as cur:
+        for t in ("SaaS", "MSS", "PREINFO", "KVKK"):
+            cur.execute(
+                """
+                INSERT INTO legal_consents (user_id, ip_address, agreement_type, document_version_hash)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (user_id, ip, t, document_version_hash(t)),
+            )
+
 
 @router.post("/register")
-def register(payload: RegisterRequest) -> Dict[str, Any]:
+def register(payload: RegisterRequest, request: Request) -> Dict[str, Any]:
     email_norm = str(payload.email).strip().lower()
-    
-    # Check existing
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+
     if find_user_by_email(email_norm):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email zaten kayıtlı.")
-    
+
+    cp = payload.consents
+    if not cp or not (cp.saas and cp.mss and cp.preinfo and cp.kvkk):
+        raise HTTPException(status_code=400, detail="Dört yasal onay kutusu da işaretlenmelidir.")
+
+    skip_card = (os.getenv("ENVIRONMENT") or "").lower() == "test" and (
+        os.getenv("SKIP_PAYMENT_CARD_FOR_REGISTER", "true") or ""
+    ).lower() == "true"
+
     used_code = None
     if payload.discountCode:
         dc = find_valid_discount(payload.discountCode)
@@ -88,7 +145,6 @@ def register(payload: RegisterRequest) -> Dict[str, Any]:
     role = "user"
     demo_expires_at = None
     if payload.mode == "demo":
-        from db import get_db_cursor
         with get_db_cursor() as cur:
             cur.execute(
                 "SELECT status, approved_until FROM demo_requests WHERE email = %s LIMIT 1",
@@ -103,7 +159,10 @@ def register(payload: RegisterRequest) -> Dict[str, Any]:
             demo_expires_at = approved_until
             role = "demo"
 
-    # Generate Verification Token
+    if payload.mode == "single" and not skip_card:
+        if not payload.card or not luhn_valid(payload.card.number):
+            raise HTTPException(status_code=400, detail="Geçerli kart numarası gerekli (15 gün ücret alınmaz).")
+
     v_token = secrets.token_urlsafe(32)
 
     user_data = {
@@ -113,19 +172,77 @@ def register(payload: RegisterRequest) -> Dict[str, Any]:
         "hashed_password": hash_password(payload.password),
         "role": "user",
         "is_active": True,
-        "is_verified": False, # E-posta doğrulaması gerekli
+        "is_verified": False,
         "verification_token": v_token,
         "used_discount_code": used_code,
         "demo_expires_at": demo_expires_at,
     }
     user_data["role"] = role
-    
+
     user_id = create_user(user_data)
-    
-    # Send Email (Async)
+
+    _insert_legal_consents(str(user_id), ip)
+
+    if payload.mode == "single" and (skip_card or (payload.card and luhn_valid(payload.card.number))):
+        if (os.getenv("ENVIRONMENT") or "").lower() != "test" or (
+            os.getenv("TEST_USE_INMEMORY_PG_STORE", "true") or ""
+        ).lower() == "false":
+            with get_db_cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE users SET payment_card_on_file = TRUE,
+                    trial_ends_at = NOW() + interval '15 days'
+                    WHERE id = %s
+                    """,
+                    (user_id,),
+                )
+    try:
+        log_audit(
+            str(user_id),
+            "REGISTER_LEGAL_CONSENTS",
+            "legal",
+            {"card_last4": card_last_four(payload.card.number) if payload.card else None},
+            ip,
+            request.headers.get("user-agent", "unknown"),
+        )
+    except Exception:
+        pass
+
     send_verification_email(email_norm, v_token)
-    
+
     return {"status": "ok", "requires_verification": True, "user_id": user_id, "message": "Kayıt başarılı! Lütfen e-postanızı doğrulayın."}
+
+
+class AttachPaymentIn(BaseModel):
+    card: CardPayload
+
+
+@router.post("/attach-payment")
+def attach_payment(body: AttachPaymentIn, request: Request, user: Dict[str, Any] = Depends(get_current_user)):
+    if not body.card or not luhn_valid(body.card.number):
+        raise HTTPException(status_code=400, detail="Geçersiz kart.")
+    uid = str(user.get("id"))
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
+    if (os.getenv("ENVIRONMENT") or "").lower() != "test" or (
+        os.getenv("TEST_USE_INMEMORY_PG_STORE", "true") or ""
+    ).lower() == "false":
+        with get_db_cursor() as cur:
+            cur.execute(
+                """
+                UPDATE users SET payment_card_on_file = TRUE,
+                trial_ends_at = COALESCE(trial_ends_at, NOW() + interval '15 days')
+                WHERE id = %s
+                """,
+                (uid,),
+            )
+    try:
+        log_audit(uid, "ATTACH_PAYMENT_CARD", "billing", {"last4": card_last_four(body.card.number)}, ip, ua)
+    except Exception:
+        pass
+    return {"status": "ok", "message": "Kart kaydedildi. 15 gün ücret alınmaz."}
 
 @router.post("/verify-email")
 def verify_email_endpoint(token: str = Body(..., embed=True)):
@@ -304,7 +421,9 @@ def me(user: Dict[str, Any] = Depends(get_current_user)):
     u = find_user_by_id(str(user.get("id")))
     if not u:
         raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
-    return {"status": "ok", "user": sanitize_user_for_response(u)}
+    su = sanitize_user_for_response(u)
+    su["permissions"] = _permissions_for_user_row(u)
+    return {"status": "ok", "user": su}
 
 
 @router.post("/logout-all")

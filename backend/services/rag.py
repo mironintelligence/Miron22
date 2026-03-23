@@ -3,6 +3,7 @@ from typing import List, Optional
 from openai import OpenAI
 from dotenv import load_dotenv
 from .search import HybridSearchEngine
+from llm_gateway import chat_completions_create
 
 load_dotenv()
 
@@ -33,7 +34,8 @@ class RAGPipeline:
         """
 
         client = _get_client()
-        response = client.chat.completions.create(
+        response = chat_completions_create(
+            client,
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "Sen kıdemli bir hukuk asistanısın. Yanıtların net, hukuki terminolojiye uygun ve güvenilir olmalı."},

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Body, Request, Header
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field
 
 from admin_auth import require_admin, issue_admin_token
@@ -22,6 +23,12 @@ from services.mail_service import send_reset_password_email
 from utils.totp import generate_base32_secret, verify_totp
 from admin_auth import get_admin_sessions, revoke_admin_session
 from user_auth import get_current_user
+from admin_panel_gate import (
+    COOKIE_NAME as ADMIN_PANEL_GATE_COOKIE,
+    issue_admin_panel_gate_jwt,
+    verify_admin_panel_gate,
+    require_admin_panel_gate,
+)
 
 # ------------------------
 # Storage (JSON files for temp data)
@@ -121,6 +128,70 @@ class AdminExchangeIn(BaseModel):
 class AdminMfaSetupIn(BaseModel):
     secret: str = Field(min_length=10, max_length=128)
     otp: str = Field(min_length=6, max_length=12)
+
+
+class AdminPanelUnlockIn(BaseModel):
+    password: str = Field(min_length=1, max_length=256)
+
+
+# ------------------------
+# Admin panel password gate (httpOnly cookie; ADMIN_PANEL_PASSWORD env)
+# ------------------------
+
+
+@router.get("/panel-unlock/status")
+def admin_panel_unlock_status(request: Request, user: Dict[str, Any] = Depends(get_current_user)):
+    if (user.get("role") or "") != "admin":
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+    configured = bool((os.getenv("ADMIN_PANEL_PASSWORD") or "").strip())
+    if not configured:
+        return {"unlocked": True, "configured": False}
+    uid = str(user.get("id"))
+    return {"unlocked": verify_admin_panel_gate(request, uid), "configured": True}
+
+
+@router.post("/panel-unlock")
+def admin_panel_unlock(body: AdminPanelUnlockIn, request: Request, user: Dict[str, Any] = Depends(get_current_user)):
+    if (user.get("role") or "") != "admin":
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+    expected = (os.getenv("ADMIN_PANEL_PASSWORD") or "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="ADMIN_PANEL_PASSWORD sunucuda ayarlı değil.")
+
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
+
+    if not secrets.compare_digest(body.password, expected):
+        log_audit(str(user.get("id")), "ADMIN_PANEL_GATE_FAIL", "auth", {"reason": "invalid_password"}, ip, ua)
+        raise HTTPException(status_code=401, detail="Geçersiz şifre.")
+
+    token = issue_admin_panel_gate_jwt(str(user.get("id")))
+    log_audit(str(user.get("id")), "ADMIN_PANEL_GATE_OK", "auth", None, ip, ua)
+    resp = JSONResponse({"ok": True})
+    secure = request.url.scheme == "https"
+    resp.set_cookie(
+        key=ADMIN_PANEL_GATE_COOKIE,
+        value=token,
+        httponly=True,
+        secure=secure,
+        samesite="none" if secure else "lax",
+        max_age=8 * 3600,
+        path="/",
+    )
+    return resp
+
+
+@router.post("/panel-unlock/logout")
+def admin_panel_unlock_logout(request: Request, user: Dict[str, Any] = Depends(get_current_user)):
+    if (user.get("role") or "") != "admin":
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+    resp = JSONResponse({"ok": True})
+    secure = request.url.scheme == "https"
+    resp.delete_cookie(key=ADMIN_PANEL_GATE_COOKIE, path="/", samesite="none" if secure else "lax", secure=secure)
+    return resp
+
 
 # ------------------------
 # Admin Accounts & Login
@@ -265,7 +336,7 @@ def admin_mfa_confirm(body: AdminMfaConfirmIn, request: Request):
 
 
 @router.post("/exchange")
-def admin_exchange(body: AdminExchangeIn, request: Request, user: Dict[str, Any] = Depends(get_current_user)):
+def admin_exchange(body: AdminExchangeIn, request: Request, user: Dict[str, Any] = Depends(require_admin_panel_gate)):
     if (user.get("role") or "") != "admin":
         raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
 
@@ -297,7 +368,7 @@ def admin_exchange(body: AdminExchangeIn, request: Request, user: Dict[str, Any]
 
 
 @router.post("/2fa/setup")
-def admin_mfa_setup(body: AdminMfaSetupIn, request: Request, user: Dict[str, Any] = Depends(get_current_user)):
+def admin_mfa_setup(body: AdminMfaSetupIn, request: Request, user: Dict[str, Any] = Depends(require_admin_panel_gate)):
     if (user.get("role") or "") != "admin":
         raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
 
@@ -644,6 +715,63 @@ def admin_export_users(
     return Response(content=data, media_type="text/csv; charset=utf-8", headers={"Content-Disposition": "attachment; filename=users.csv"})
 
 
+@router.get("/export-consents/{user_id}")
+def admin_export_legal_consents_csv(
+    user_id: str,
+    admin: Dict[str, Any] = Depends(require_admin),
+):
+    """Kullanıcıya ait yasal onay kayıtlarını CSV olarak dışa aktarır (KVKK / denetim)."""
+    from fastapi.responses import Response
+    import csv
+    import io
+
+    from db import get_db_cursor
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["user_id", "agreement_type", "agreed_at", "ip_address", "document_version_hash"])
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                """
+                SELECT user_id::text, agreement_type, agreed_at, COALESCE(ip_address, ''), document_version_hash
+                FROM legal_consents
+                WHERE user_id = %s::uuid
+                ORDER BY agreed_at ASC
+                """,
+                (user_id,),
+            )
+            rows = cur.fetchall()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Veritabanı hatası: {e}")
+
+    for row in rows:
+        agreed = row.get("agreed_at")
+        agreed_s = agreed.isoformat() if hasattr(agreed, "isoformat") else str(agreed or "")
+        w.writerow(
+            [
+                row.get("user_id"),
+                row.get("agreement_type"),
+                agreed_s,
+                row.get("ip_address") or "",
+                row.get("document_version_hash") or "",
+            ]
+        )
+
+    data = buf.getvalue().encode("utf-8")
+    log_audit(
+        str(admin.get("admin_id")),
+        "LEGAL_CONSENTS_EXPORT",
+        "legal",
+        {"user_id": user_id, "rows": len(rows)},
+    )
+    return Response(
+        content=data,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename=legal_consents_{user_id}.csv"},
+    )
+
+
 @router.post("/users/import")
 def admin_import_users(body: ImportUsersIn, admin: Dict[str, Any] = Depends(require_admin)):
     mode = (body.mode or "skip").strip().lower()
@@ -762,7 +890,10 @@ def get_system_logs(lines: int = 200):
 
 @router.get("/config", dependencies=[Depends(require_admin)])
 def get_system_config():
-    return _load_json(SYSTEM_CONFIG_FILE, {"maintenance_mode": False, "allow_registration": True})
+    return _load_json(
+        SYSTEM_CONFIG_FILE,
+        {"maintenance_mode": False, "allow_registration": True, "max_tokens_per_user": 1000},
+    )
 
 @router.post("/config")
 def update_system_config(cfg: SystemConfigIn, admin: Dict[str, Any] = Depends(require_admin)):

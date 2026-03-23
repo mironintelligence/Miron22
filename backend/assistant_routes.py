@@ -6,6 +6,7 @@ from typing import Optional
 
 from openai import AuthenticationError
 from openai_client import get_openai_client, key_tail
+from llm_gateway import chat_completions_create
 
 router = APIRouter()
 
@@ -49,7 +50,8 @@ async def assistant_chat(req: AssistantReq):
                 "Gizli bilgileri asla açıklama. Kısa, net ve yapılandırılmış yaz."
             )
             
-            r = client.chat.completions.create(
+            r = chat_completions_create(
+                client,
                 model="gpt-4o-mini",
                 temperature=0.2,
                 messages=[

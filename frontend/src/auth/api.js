@@ -1,5 +1,25 @@
 const API = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
+function detailMessage(t) {
+  const d = t?.detail;
+  if (typeof d === "string") return d;
+  if (Array.isArray(d)) {
+    return d
+      .map((x) => (typeof x === "string" ? x : x?.msg || x?.message || JSON.stringify(x)))
+      .filter(Boolean)
+      .join("; ");
+  }
+  if (d && typeof d === "object") return d.message || JSON.stringify(d);
+  return "İstek başarısız";
+}
+
+/** Bellekte tutulan access token getter (HttpOnly çerez yoksa Bearer yedek). */
+let _getAccessToken = () => null;
+
+export function registerAccessTokenGetter(fn) {
+  _getAccessToken = typeof fn === "function" ? fn : () => null;
+}
+
 export async function login(email, password) {
   const r = await fetch(`${API}/api/auth/login`, {
     method: "POST",
@@ -9,12 +29,12 @@ export async function login(email, password) {
   });
   if (!r.ok) {
     const t = await r.json().catch(() => ({}));
-    throw new Error(t.detail || "Login failed");
+    throw new Error(detailMessage(t) || "Giriş başarısız");
   }
   return r.json();
 }
 
-export async function register({ email, password, firstName, lastName, mode, discountCode }) {
+export async function register({ email, password, firstName, lastName, mode, discountCode, consents, card }) {
   const r = await fetch(`${API}/api/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -24,13 +44,15 @@ export async function register({ email, password, firstName, lastName, mode, dis
       firstName,
       lastName,
       mode,
-      discountCode
+      discountCode: discountCode || null,
+      consents: consents || null,
+      card: card || null,
     }),
     credentials: "include",
   });
   if (!r.ok) {
     const t = await r.json().catch(() => ({}));
-    throw new Error(t.detail || "Register failed");
+    throw new Error(detailMessage(t) || "Kayıt başarısız");
   }
   return r.json();
 }
@@ -42,7 +64,7 @@ export async function refresh() {
   });
   if (!r.ok) {
     const t = await r.json().catch(() => ({}));
-    throw new Error(t.detail || "Refresh failed");
+    throw new Error(detailMessage(t) || "Oturum yenilenemedi");
   }
   return r.json();
 }
@@ -54,7 +76,20 @@ export async function logout() {
   });
   if (!r.ok) {
     const t = await r.json().catch(() => ({}));
-    throw new Error(t.detail || "Logout failed");
+    throw new Error(detailMessage(t) || "Çıkış başarısız");
+  }
+  return r.json();
+}
+
+export async function attachPayment(card) {
+  const r = await authFetch("/api/auth/attach-payment", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ card }),
+  });
+  if (!r.ok) {
+    const t = await r.json().catch(() => ({}));
+    throw new Error(detailMessage(t) || "Ödeme kaydı başarısız");
   }
   return r.json();
 }
@@ -63,13 +98,13 @@ export async function me() {
   const r = await authFetch("/api/auth/me", { method: "GET" });
   if (!r.ok) {
     const t = await r.json().catch(() => ({}));
-    throw new Error(t.detail || "Me failed");
+    throw new Error(detailMessage(t) || "Profil alınamadı");
   }
   return r.json();
 }
 
 export async function authFetch(path, options = {}) {
-  const token = localStorage.getItem("miron_token") || "";
+  const token = (_getAccessToken && _getAccessToken()) || "";
   const method = String(options.method || "GET").toUpperCase();
   const unsafe = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
   const csrf =

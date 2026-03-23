@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 from openai_client import get_openai_client
 from services.search import search_engine
 from security import sanitize_text
+from llm_gateway import chat_completions_create
 
 
 def _extract_json(text: str) -> Dict[str, Any]:
@@ -56,21 +57,14 @@ def analyze_case_risk(case_description: str) -> Dict[str, Any]:
         },
     ]
 
-    try:
-        completion = client.chat.completions.create(
-            model="gpt-4o",
-            temperature=0.2,
-            messages=messages,
-            response_format={"type": "json_object"},
-        )
-        raw = (completion.choices[0].message.content or "").strip()
-    except Exception:
-        completion = client.chat.completions.create(
-            model="gpt-4o",
-            temperature=0.2,
-            messages=messages,
-        )
-        raw = (completion.choices[0].message.content or "").strip()
+    completion = chat_completions_create(
+        client,
+        model="gpt-4o-mini",
+        temperature=0.2,
+        messages=messages,
+        response_format={"type": "json_object"},
+    )
+    raw = (completion.choices[0].message.content or "").strip()
 
     parsed = _extract_json(raw)
     out = {

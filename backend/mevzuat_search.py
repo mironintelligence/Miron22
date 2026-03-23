@@ -7,8 +7,10 @@ import re
 
 try:
     from openai_client import get_openai_client
+    from llm_gateway import chat_completions_create
 except ImportError:
     from openai_client import get_openai_client
+    from llm_gateway import chat_completions_create
 
 try:
     from security import sanitize_text
@@ -94,7 +96,7 @@ Sadece aşağıdaki JSON formatında döndür:
 """
     
     try:
-        completion = client.chat.completions.create(
+        completion = chat_completions_create(client,
             model="gpt-4o-mini",
             messages=[{"role": "system", "content": "Çıktın SADECE geçerli bir JSON objesi olmalı. Markdown kullanma."}, {"role": "user", "content": prompt}],
             response_format={"type": "json_object"}

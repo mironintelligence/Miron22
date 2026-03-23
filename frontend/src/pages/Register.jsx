@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
+import { luhnCheck } from "../utils/luhn";
+import { emitToast } from "../utils/toastBus";
+import { passwordMeetsPolicy } from "../utils/passwordPolicy";
 
 /**
  * Register.jsx
@@ -43,10 +46,15 @@ export default function Register() {
   const [termsOpen, setTermsOpen] = useState(false);
   const [activeDoc, setActiveDoc] = useState("agreement"); // agreement | privacy | terms
 
-  // accept checkboxes
-  const [acceptedAgreement, setAcceptedAgreement] = useState(false);
-  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [consentSaas, setConsentSaas] = useState(false);
+  const [consentMss, setConsentMss] = useState(false);
+  const [consentPreinfo, setConsentPreinfo] = useState(false);
+  const [consentKvkk, setConsentKvkk] = useState(false);
+
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpMonth, setCardExpMonth] = useState("");
+  const [cardExpYear, setCardExpYear] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -116,9 +124,18 @@ export default function Register() {
       firstName.trim().length > 0 &&
       lastName.trim().length > 0 &&
       isValidEmail(email) &&
-      password.trim().length >= 12
+      passwordMeetsPolicy(password)
     );
   }, [firstName, lastName, email, password]);
+
+  const cardOk = useMemo(() => {
+    return (
+      luhnCheck(cardNumber) &&
+      /^\d{2}$/.test(cardExpMonth) &&
+      /^\d{4}$/.test(cardExpYear) &&
+      /^\d{3,4}$/.test(cardCvc)
+    );
+  }, [cardNumber, cardExpMonth, cardExpYear, cardCvc]);
 
   const validMulti = useMemo(() => {
     return (
@@ -130,8 +147,9 @@ export default function Register() {
     );
   }, [firstName, lastName, email, password, personCount]);
 
-  const acceptedAll = acceptedAgreement && acceptedPrivacy && acceptedTerms;
-  const disabled = !validSingle || !acceptedAll;
+  const acceptedAll = consentSaas && consentMss && consentPreinfo && consentKvkk;
+  const needsCard = mode === "single";
+  const disabled = !validSingle || !acceptedAll || (needsCard && !cardOk);
 
   const updatePerson = (idx, key, value) => {
     setPersons((prev) => {
@@ -191,6 +209,22 @@ export default function Register() {
       const list = payload.persons || [];
       let verificationNeeded = false;
       
+      const consents = {
+        saas: true,
+        mss: true,
+        preinfo: true,
+        kvkk: true,
+      };
+      const cardPayload =
+        payload.mode === "single"
+          ? {
+              number: cardNumber.replace(/\s/g, ""),
+              exp_month: cardExpMonth,
+              exp_year: cardExpYear,
+              cvc: cardCvc,
+            }
+          : null;
+
       for (const p of list) {
         const res = await register({
           email: p.email,
@@ -198,18 +232,23 @@ export default function Register() {
           firstName: p.firstName,
           lastName: p.lastName,
           mode: payload.mode,
-          discountCode: normalizedDiscount || undefined
+          discountCode: normalizedDiscount || undefined,
+          consents,
+          card: cardPayload,
         });
         if (res && res.requires_verification) {
           verificationNeeded = true;
         }
       }
       setSubmitSuccess("Kayıt başarılı.");
+      emitToast("Kayıt alındı. E-posta doğrulamasını tamamlayın.", "success");
       
       navigate("/pricing", { state: { ...payload, verificationNeeded } });
 
     } catch (e) {
-      setSubmitError(e?.message || "Kayıt başarısız.");
+      const msg = e?.message || "Kayıt başarısız.";
+      setSubmitError(msg);
+      emitToast(msg, "error");
     } finally {
       setSubmitting(false);
     }
@@ -527,13 +566,66 @@ export default function Register() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="En az 12 karakter"
+                    placeholder="En az 12 karakter, büyük/küçük harf, rakam, özel karakter"
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white"
                   />
                   <div className="text-[12px] mt-2 text-subtle">
-                    Güvenlik için güçlü bir şifre seçin. Aynı şifreyi başka kullanıcılarla paylaşmayın.
+                    En az 12 karakter; büyük harf, küçük harf, rakam ve özel karakter (!@#$… vb.) gerekir.
                   </div>
                 </div>
+
+                {mode === "single" && (
+                  <div className="sm:col-span-2 mt-4 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                    <div className="text-sm font-semibold text-amber-200/90">
+                      15 gün ücretsiz deneme — kart bilgisi (çekim yapılmaz)
+                    </div>
+                    <p className="text-xs text-white/50">
+                      Deneme süresince ücret tahsil edilmez. Deneme bitiminde iptal edebilirsiniz.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs text-subtle mb-1">Kart numarası</label>
+                        <input
+                          value={cardNumber}
+                          onChange={(e) => setCardNumber(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 font-mono"
+                          placeholder="4242 4242 4242 4242"
+                          autoComplete="cc-number"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-subtle mb-1">Ay (AA)</label>
+                        <input
+                          value={cardExpMonth}
+                          onChange={(e) => setCardExpMonth(e.target.value.replace(/\D/g, "").slice(0, 2))}
+                          className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15"
+                          placeholder="MM"
+                          maxLength={2}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-subtle mb-1">Yıl (YYYY)</label>
+                        <input
+                          value={cardExpYear}
+                          onChange={(e) => setCardExpYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                          className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15"
+                          placeholder="YYYY"
+                          maxLength={4}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-subtle mb-1">CVC</label>
+                        <input
+                          value={cardCvc}
+                          onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                          className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15"
+                          placeholder="123"
+                          autoComplete="cc-csc"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -673,63 +765,75 @@ export default function Register() {
 
             {/* Sözleşme onayı ve uyarılar */}
             <div className="mt-6 flex flex-col gap-3">
+              <p className="text-xs text-subtle uppercase tracking-wider">Yasal onaylar (zorunlu — clickwrap)</p>
+
               <label className="flex items-start gap-3">
                 <input
                   type="checkbox"
-                  checked={acceptedAgreement}
-                  onChange={(e) => setAcceptedAgreement(e.target.checked)}
+                  checked={consentSaas}
+                  onChange={(e) => setConsentSaas(e.target.checked)}
                 />
                 <div className="text-sm">
-                  <span
-                    className="font-medium cursor-pointer text-accent underline"
+                  <button
+                    type="button"
+                    className="font-medium text-accent underline text-left"
                     onClick={() => openDoc("agreement")}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && openDoc("agreement")}
                   >
-                    Kullanıcı Sözleşmesi
-                  </span>{" "}
-                  <span className="font-medium">okudum ve kabul ediyorum.</span>
+                    SaaS / Hizmet sözleşmesi
+                  </button>{" "}
+                  <span className="font-medium">metnini okudum ve kabul ediyorum.</span>
                 </div>
               </label>
 
               <label className="flex items-start gap-3">
                 <input
                   type="checkbox"
-                  checked={acceptedPrivacy}
-                  onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                  checked={consentMss}
+                  onChange={(e) => setConsentMss(e.target.checked)}
                 />
                 <div className="text-sm">
-                  <span
-                    className="font-medium cursor-pointer text-accent underline"
-                    onClick={() => openDoc("privacy")}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && openDoc("privacy")}
-                  >
-                    Gizlilik Politikası
-                  </span>{" "}
-                  <span className="font-medium">okudum ve kabul ediyorum.</span>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={acceptedTerms}
-                  onChange={(e) => setAcceptedTerms(e.target.checked)}
-                />
-                <div className="text-sm">
-                  <span
-                    className="font-medium cursor-pointer text-accent underline"
+                  <button
+                    type="button"
+                    className="font-medium text-accent underline text-left"
                     onClick={() => openDoc("terms")}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && openDoc("terms")}
                   >
-                    Kullanım Şartları
-                  </span>{" "}
-                  <span className="font-medium">okudum ve kabul ediyorum.</span>
+                    Mesafeli satış sözleşmesi
+                  </button>{" "}
+                  <span className="font-medium">hükümlerini okudum ve kabul ediyorum.</span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={consentPreinfo}
+                  onChange={(e) => setConsentPreinfo(e.target.checked)}
+                />
+                <div className="text-sm">
+                  <button
+                    type="button"
+                    className="font-medium text-accent underline text-left"
+                    onClick={() => openDoc("terms")}
+                  >
+                    Ön bilgilendirme formu
+                  </button>{" "}
+                  <span className="font-medium">içeriğini okudum ve kabul ediyorum.</span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={consentKvkk}
+                  onChange={(e) => setConsentKvkk(e.target.checked)}
+                />
+                <div className="text-sm">
+                  <Link to="/privacy" className="font-medium text-accent underline">
+                    KVKK / Gizlilik
+                  </Link>{" "}
+                  <span className="font-medium">
+                    kapsamında kişisel verilerimin işlenmesine açık rıza veriyorum.
+                  </span>
                 </div>
               </label>
 

@@ -1,9 +1,8 @@
 import React, { useRef, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 
 export default function IntroLanding() {
-  const navigate = useNavigate();
   const containerRef = useRef(null);
   const [counters, setCounters] = useState({ timeSaved: 0, accuracy: 0, decisions: 0 });
   
@@ -61,19 +60,44 @@ export default function IntroLanding() {
             Dosyanızın<br />Kontrolü Sizde.
           </motion.h1>
           
-          <motion.p variants={fadeUp} className="text-xl md:text-2xl text-white/50 text-center max-w-4xl mx-auto leading-relaxed font-light mb-12">
+          <motion.p variants={fadeUp} className="text-xl md:text-2xl text-white/50 text-center max-w-4xl mx-auto leading-relaxed font-light mb-8">
             Aynı evrakı defalarca okumak, eksik belge yüzünden gecikmek, son dakika dilekçesi yetiştirmek…
             <span className="text-white/80"> Miron AI, bu baskıyı azaltmak için dosyayı hızla düzenler, eksikleri gösterir ve yol haritası çıkarır.</span>
           </motion.p>
 
+          <motion.div
+            variants={fadeUp}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-10 text-left text-sm"
+          >
+            <div className="rounded-2xl border border-red-500/25 bg-red-950/20 p-5">
+              <div className="text-xs font-bold text-red-300/90 uppercase tracking-widest mb-2">Cehennem</div>
+              <p className="text-white/60">
+                Gece yarısı Word arşivi, dağınık PDF&apos;ler, kaçan süreler ve &quot;bir daha okuyayım&quot; döngüsü.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
+              <div className="text-xs font-bold text-amber-200 uppercase tracking-widest mb-2">Cennet</div>
+              <p className="text-white/80">
+                Tek panelde özet, risk, emsal yönü ve net bir yapılacaklar sırası —{" "}
+                <span className="text-[var(--miron-gold)] font-semibold">15 gün ücretsiz deneme</span> ile başlayın.
+              </p>
+            </div>
+          </motion.div>
+
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <Link to="/register" className="group relative px-10 py-5 bg-white text-black font-bold rounded-full overflow-hidden hover:scale-105 transition-transform duration-300">
-              <span className="relative z-10">Ücretsiz Başlayın</span>
+            <Link
+              to="/register"
+              className="group relative px-10 py-5 bg-white text-black font-bold rounded-full overflow-hidden hover:scale-105 transition-transform duration-300"
+            >
+              <span className="relative z-10">15 Gün Ücretsiz Başla</span>
               <div className="absolute inset-0 bg-[var(--miron-gold)] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
             </Link>
-            <button onClick={() => navigate("/demo-request")} className="px-10 py-5 bg-transparent border border-white/10 text-white font-bold rounded-full hover:bg-white/5 transition-all hover:border-white/30">
-              Demo Talep Edin
-            </button>
+            <Link
+              to="/pricing"
+              className="px-10 py-5 bg-transparent border border-white/10 text-white font-bold rounded-full hover:bg-white/5 transition-all hover:border-white/30"
+            >
+              Fiyatları Gör
+            </Link>
           </motion.div>
         </div>
 

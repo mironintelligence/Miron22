@@ -7,10 +7,12 @@ try:
     from openai_client import get_openai_client
     from services.risk_engine import risk_engine
     from security import sanitize_text
+    from llm_gateway import chat_completions_create
 except ImportError:
     from openai_client import get_openai_client
     from services.risk_engine import risk_engine
     from security import sanitize_text
+    from llm_gateway import chat_completions_create
 
 import pdfplumber
 from docx import Document
@@ -121,7 +123,7 @@ async def simulate_case(
     """
     
     try:
-        completion = client.chat.completions.create(
+        completion = chat_completions_create(client,
             model=SIMULATION_MODEL,
             messages=[
                 {"role": "system", "content": "Kıdemli bir stratejik hukuk danışmanısın. Sadece geçerli JSON üret. Uydurma yapma. Tüm metinler Türkçe olmalı."},

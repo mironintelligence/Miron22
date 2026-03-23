@@ -6,6 +6,7 @@ from db import get_db_cursor
 from admin_auth import require_admin
 from user_auth import get_current_user
 from openai_client import get_openai_client
+from llm_gateway import chat_completions_create
 import json
 import os
 import time
@@ -620,6 +621,12 @@ class TemplateCreate(BaseModel):
     content: str
     description: Optional[str] = None
 
+class TemplateUpdate(BaseModel):
+    title: str
+    category: str
+    content: str
+    description: Optional[str] = None
+
 class ContractGenerateRequest(BaseModel):
     template_id: str
     values: Dict[str, Any] = {}
@@ -953,7 +960,7 @@ ALAN DEĞERLERİ (JSON):
 """
 
     try:
-        completion = client.chat.completions.create(
+        completion = chat_completions_create(client,
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "Çıktı sadece sözleşme metni olsun. Markdown kod bloğu kullanma."},
@@ -1030,7 +1037,7 @@ METİN:
 """
     
     try:
-        completion = client.chat.completions.create(
+        completion = chat_completions_create(client,
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "Sen Türk hukukuna hakim, titiz bir sözleşme analistisin."},
@@ -1114,7 +1121,7 @@ Sadece JSON üret:
 }}
 """
     try:
-        completion = client.chat.completions.create(
+        completion = chat_completions_create(client,
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "Sadece JSON döndür."},
@@ -1155,7 +1162,7 @@ BAĞLAM (varsa sözleşme taslağı / ilgili bölüm):
 {ctx[:8000]}
 """
     try:
-        completion = client.chat.completions.create(
+        completion = chat_completions_create(client,
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "Çıktı sadece madde metni olsun. Markdown kod bloğu kullanma."},
@@ -1389,3 +1396,56 @@ def create_template(payload: TemplateCreate):
     with get_db_cursor() as cur:
         cur.execute(sql, (payload.title, payload.category, payload.content, payload.description))
         return {"id": cur.fetchone()['id'], "message": "Şablon oluşturuldu."}
+
+
+@router.put("/templates/{template_id}", dependencies=[Depends(require_admin)])
+def update_template(template_id: str, payload: TemplateUpdate):
+    """Admin: Sözleşme şablonunu güncelle"""
+    tid = str(template_id).strip()
+    if not tid.isdigit():
+        raise HTTPException(status_code=400, detail="Geçersiz template id.")
+
+    sql = """
+        UPDATE contract_templates
+        SET title = %s,
+            category = %s,
+            content = %s,
+            description = %s
+        WHERE id = %s
+        RETURNING id
+    """
+    with get_db_cursor() as cur:
+        cur.execute(
+            sql,
+            (
+                payload.title,
+                payload.category,
+                payload.content,
+                payload.description,
+                int(tid),
+            ),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Şablon bulunamadı.")
+        return {"ok": True, "id": str(row.get("id")), "message": "Şablon güncellendi."}
+
+
+@router.delete("/templates/{template_id}", dependencies=[Depends(require_admin)])
+def delete_template(template_id: str):
+    """Admin: Sözleşme şablonunu sil"""
+    tid = str(template_id).strip()
+    if not tid.isdigit():
+        raise HTTPException(status_code=400, detail="Geçersiz template id.")
+
+    sql = """
+        DELETE FROM contract_templates
+        WHERE id = %s
+        RETURNING id
+    """
+    with get_db_cursor() as cur:
+        cur.execute(sql, (int(tid),))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Şablon bulunamadı.")
+        return {"ok": True, "id": str(row.get("id")), "message": "Şablon silindi."}

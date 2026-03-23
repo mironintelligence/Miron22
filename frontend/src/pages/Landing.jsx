@@ -23,14 +23,14 @@ export default function Landing() {
             Avukat odaklı tek panel deneyimi.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link to="/demo-request" className="px-5 py-2 rounded-lg btn-primary">
-              Demo İste
+            <Link to="/register" className="px-5 py-2 rounded-lg btn-primary">
+              15 Gün Ücretsiz Dene
             </Link>
             <Link to="/login" className="px-5 py-2 rounded-lg glass hover:bg-white/10">
               Hemen Giriş Yap
             </Link>
           </div>
-          <p className="text-xs text-subtle mt-3">Demo taleplerine 24 saat içinde dönüş yapılır.</p>
+          <p className="text-xs text-subtle mt-3">Kart bilgisi ile başlatılır; 15 gün boyunca ücret tahsil edilmez.</p>
         </div>
 
         <div className="glass p-6 rounded-2xl">

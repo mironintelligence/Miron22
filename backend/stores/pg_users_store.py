@@ -69,6 +69,8 @@ def create_user(user: Dict[str, Any]) -> str:
             "reset_password_expires_at": user.get("reset_password_expires_at"),
             "mfa_enabled": bool(user.get("mfa_enabled") or False),
             "mfa_secret": user.get("mfa_secret") or "",
+            "payment_card_on_file": bool(user.get("payment_card_on_file") or False),
+            "trial_ends_at": user.get("trial_ends_at"),
         }
         with _mem_lock:
             _mem_users_by_id[uid] = row
@@ -98,6 +100,8 @@ def create_user(user: Dict[str, Any]) -> str:
         "subscription_status": "subscription_status",
         "mfa_enabled": "mfa_enabled",
         "mfa_secret": "mfa_secret",
+        "payment_card_on_file": "payment_card_on_file",
+        "trial_ends_at": "trial_ends_at",
     }
 
     with get_db_cursor() as cur:

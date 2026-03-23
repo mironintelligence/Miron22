@@ -11,6 +11,8 @@ sys.modules["openai"] = MagicMock()
 
 os.environ["ENVIRONMENT"] = "test"
 os.environ["JWT_SECRET"] = "test_jwt_secret_32_bytes_long_123456"
+os.environ["SECRET_KEY"] = "test_secret_key_32_bytes_long_1234567890"
+os.environ["ADMIN_PANEL_PASSWORD"] = "test_panel_password"
 os.environ["DATA_HASH_KEY"] = "test_hash_key"
 os.environ["ADMIN_MFA_REQUIRED"] = "true"
 
@@ -31,6 +33,16 @@ def _csrf_headers() -> dict:
     client.get("/api/health")
     token = client.cookies.get("csrf_token")
     return {"X-CSRF-Token": token} if token else {}
+
+
+def _unlock_admin_panel(access_token: str) -> None:
+    csrf = _csrf_headers()
+    res = client.post(
+        "/admin/panel-unlock",
+        json={"password": "test_panel_password"},
+        headers={"Authorization": f"Bearer {access_token}", **csrf},
+    )
+    assert res.status_code == 200
 
 
 def _login(email: str, password: str) -> str:
@@ -54,6 +66,7 @@ def admin_token():
     )
     set_user_mfa(uid, "JBSWY3DPEHPK3PXP", enabled=True)
     access = _login("admin-crud@example.com", "StrongPassword123!")
+    _unlock_admin_panel(access)
     csrf = _csrf_headers()
     otp = totp_code("JBSWY3DPEHPK3PXP")
     res = client.post("/admin/exchange", json={"otp": otp}, headers={"Authorization": f"Bearer {access}", **csrf})

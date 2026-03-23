@@ -5,6 +5,7 @@ import os
 import logging
 from db import get_db_cursor
 from openai_client import get_openai_client
+from llm_gateway import chat_completions_create
 
 router = APIRouter(prefix="/api/yargitay", tags=["Yargıtay Search & RAG"])
 
@@ -119,7 +120,7 @@ def analyze_decision(payload: AiAnalysisRequest):
     """
     
     try:
-        completion = client.chat.completions.create(
+        completion = chat_completions_create(client,
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}]
         )

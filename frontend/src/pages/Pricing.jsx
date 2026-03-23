@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 function tl(n) {
   return n.toLocaleString("tr-TR") + " TL";
@@ -7,14 +7,10 @@ function tl(n) {
 
 export default function Pricing() {
   const { state } = useLocation();
-  const navigate = useNavigate();
 
   const [pricingData, setPricingData] = useState(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
 
-  useEffect(() => {
-    if (!state) navigate("/register");
-  }, [state]);
 
   const count = state?.count || 1;
   const isMulti = state?.mode === "multi";
@@ -53,6 +49,53 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen mt-12 px-6 sm:px-10 md:px-16 pb-12 bg-black text-white">
+      <section className="max-w-6xl mx-auto mb-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="glass p-6 rounded-2xl border border-white/10 flex flex-col">
+          <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-2">Profesyonel</div>
+          <div className="text-3xl font-black text-white mb-1">
+            8.000 TL<span className="text-lg font-semibold text-white/50"> + KDV</span>
+          </div>
+          <div className="text-sm text-subtle mb-4">/ ay • tek kullanıcı</div>
+          <ul className="text-sm text-white/70 space-y-2 flex-1 mb-6">
+            <li>✓ Tüm çekirdek modüller</li>
+            <li>✓ E-posta destek</li>
+          </ul>
+          <a href="mailto:hello@mironintelligence.com?subject=Miron%20AI%20Abonelik" className="btn-primary text-center block">
+            Satın Al
+          </a>
+        </div>
+        <div className="glass p-6 rounded-2xl border-2 border-amber-500/50 relative flex flex-col scale-[1.02] shadow-xl shadow-amber-900/20">
+          <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-amber-500 text-black px-3 py-1 rounded-full">
+            EN AVANTAJLI
+          </span>
+          <div className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2">Yıllık</div>
+          <div className="text-3xl font-black text-amber-300 mb-1">85.000 TL + KDV</div>
+          <div className="text-sm text-subtle mb-4">/ yıl • tek kullanıcı</div>
+          <ul className="text-sm text-white/80 space-y-2 flex-1 mb-6">
+            <li>✓ Aylık plana göre önemli tasarruf</li>
+            <li>✓ Öncelikli erişim</li>
+          </ul>
+          <a href="mailto:hello@mironintelligence.com?subject=Miron%20AI%20Yillik%20Lisans" className="btn-primary text-center block">
+            Yıllık Teklif Al
+          </a>
+        </div>
+        <div className="glass p-6 rounded-2xl border border-white/10 flex flex-col">
+          <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-2">Enterprise</div>
+          <div className="text-xl font-bold text-white mb-2">Özel entegrasyon</div>
+          <div className="text-sm text-subtle mb-4">Çoklu kullanıcı, kurumsal iç güvenlik</div>
+          <ul className="text-sm text-white/70 space-y-2 flex-1 mb-6">
+            <li>✓ Özel SLA</li>
+            <li>✓ Kurumsal faturalama</li>
+          </ul>
+          <a
+            href="mailto:info@mironintelligence.com?subject=Miron%20AI%20Enterprise"
+            className="w-full py-3 rounded-xl border border-white/20 text-white font-bold text-center hover:bg-white/5"
+          >
+            İletişim
+          </a>
+        </div>
+      </section>
+
       <div className="glass p-6 sm:px-8 rounded-2xl">
         <div className="text-center mb-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-accent">

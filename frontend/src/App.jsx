@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-
 import Navbar from "./components/Navbar.jsx";
 import LoginModal from "./components/LoginModal.jsx";
 import NotificationToasts from "./components/NotificationToasts.jsx";
+import GlobalToast from "./components/GlobalToast.jsx";
+import PaymentGate from "./pages/PaymentGate.jsx";
 import Home from "./pages/Home.jsx";
 import Analyze from "./pages/Analyze.jsx";
 import LibraAssistant from "./components/LibraAssistant.jsx";
@@ -34,7 +36,6 @@ import Notifications from "./pages/Notifications.jsx"; // YENİ
 import About from "./pages/About.jsx"; // YENİ
 import Upgrade from "./pages/Upgrade.jsx";
 import Reminders from "./pages/Reminders.jsx";
-import Help from "./pages/Help.jsx";
 import Unauthorized from "./pages/Unauthorized.jsx";
 
 import ForgotPassword from "./pages/ForgotPassword.jsx";
@@ -61,6 +62,7 @@ export default function App() {
     <div className="min-h-screen bg-black text-white">
       <Navbar /> {/* Header yerine Navbar */}
       <NotificationToasts />
+      <GlobalToast />
       <LoginModal
         open={loginOpen}
         onClose={() => {
@@ -117,14 +119,6 @@ export default function App() {
             }
           />
           <Route
-            path="/help"
-            element={
-              <ProtectedRoute>
-                <Help />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/reminders"
             element={
               <ProtectedRoute>
@@ -137,6 +131,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Welcome />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/complete-payment"
+            element={
+              <ProtectedRoute>
+                <PaymentGate />
               </ProtectedRoute>
             }
           />

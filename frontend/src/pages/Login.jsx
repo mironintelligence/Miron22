@@ -1,73 +1,52 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { setStoredAuth } from '../utils/auth';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthProvider";
+import { purgeLegacyTokenStorage } from "../utils/auth";
 
 const Login = () => {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  // Check for verified query param
   React.useEffect(() => {
+    purgeLegacyTokenStorage();
     const params = new URLSearchParams(window.location.search);
-    if (params.get('verified') === '1') {
-      setSuccess('E-posta başarıyla doğrulandı. Giriş yapabilirsiniz.');
+    if (params.get("verified") === "1") {
+      setSuccess("E-posta başarıyla doğrulandı. Giriş yapabilirsiniz.");
     }
   }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     if (loading) return;
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
-      setError('Tüm alanlar zorunludur.');
+      setError("Tüm alanlar zorunludur.");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('Lütfen geçerli bir e-posta adresi girin.');
+      setError("Lütfen geçerli bir e-posta adresi girin.");
       return;
     }
     if (password.length < 8) {
-      setError('Şifre en az 8 karakter olmalıdır.');
+      setError("Şifre en az 8 karakter olmalıdır.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-      const response = await fetch(`${base}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        const msg = data?.detail || data?.message || 'Giriş başarısız oldu.';
-        throw new Error(msg);
-      }
-
-      localStorage.setItem('miron_token', data.access_token);
-      localStorage.setItem('miron_user', JSON.stringify(data.user));
-      const user = data?.user || {};
-      setStoredAuth(data.access_token, {
-        id: user?.id,
-        email: user?.email,
-        firstName: user?.user_metadata?.first_name || user?.user_metadata?.firstName || '',
-        lastName: user?.user_metadata?.last_name || user?.user_metadata?.lastName || '',
-      });
-
-      navigate('/welcome', { replace: true });
+      purgeLegacyTokenStorage();
+      await login(email.trim(), password);
+      navigate("/welcome", { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -78,20 +57,14 @@ const Login = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-black text-white px-4">
       <div className="w-full max-w-md p-8 glass">
-        <h2 className="text-3xl font-bold text-center mb-8 text-accent">
-          Giriş
-        </h2>
+        <h2 className="text-3xl font-bold text-center mb-8 text-accent">Giriş</h2>
 
         {success && (
-          <div className="mb-4 p-3 bg-green-900/30 border border-green-500/50 rounded text-green-200 text-sm">
-            {success}
-          </div>
+          <div className="mb-4 p-3 bg-green-900/30 border border-green-500/50 rounded text-green-200 text-sm">{success}</div>
         )}
 
         {error && (
-          <div className="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded text-red-200 text-sm">
-            {error}
-          </div>
+          <div className="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded text-red-200 text-sm">{error}</div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-5">
@@ -141,12 +114,8 @@ const Login = () => {
               placeholder="••••••••"
             />
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full btn-primary"
-          >
-            {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+          <button type="submit" disabled={loading} className="w-full btn-primary">
+            {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>
         </form>
       </div>
