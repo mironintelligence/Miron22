@@ -32,6 +32,7 @@ import Welcome from "./pages/Welcome.jsx";
 import CaseSimulation from "./pages/CaseSimulation.jsx";
 import Contracts from "./pages/Contracts.jsx"; // YENİ
 import AdminRoute from "./components/AdminRoute.jsx";
+import DashboardGate from "./components/DashboardGate.jsx";
 import Notifications from "./pages/Notifications.jsx"; // YENİ
 import About from "./pages/About.jsx"; // YENİ
 import Upgrade from "./pages/Upgrade.jsx";
@@ -110,7 +111,15 @@ export default function App() {
             path="/contracts"
             element={
               <ProtectedRoute>
-                <Contracts />
+                <Contracts pageMode="builder" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contracts/builder"
+            element={
+              <ProtectedRoute>
+                <Contracts pageMode="builder" />
               </ProtectedRoute>
             }
           />
@@ -118,7 +127,7 @@ export default function App() {
             path="/contracts/templates"
             element={
               <ProtectedRoute>
-                <Contracts forcedTab="templates" />
+                <Navigate to="/contracts/builder" replace />
               </ProtectedRoute>
             }
           />
@@ -126,7 +135,7 @@ export default function App() {
             path="/contracts/analysis"
             element={
               <ProtectedRoute>
-                <Contracts forcedTab="analyze" />
+                <Contracts pageMode="analysis" />
               </ProtectedRoute>
             }
           />
@@ -174,7 +183,9 @@ export default function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <DashboardGate>
+                  <Dashboard />
+                </DashboardGate>
               </ProtectedRoute>
             }
           />

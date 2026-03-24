@@ -452,16 +452,6 @@ export default function Register() {
           <p className="text-sm text-subtle mt-1">
             Türkiye’nin en akıllı hukuk otomasyon platformuna erişim için bilgilerinizi girin.
           </p>
-          <div className="mt-4 flex justify-center gap-4">
-             <button
-               onClick={() => {
-                 window.location.href = "mailto:info@mironintelligence.com?subject=Miron%20AI%20Enterprise%20Talebi";
-               }}
-               className="border border-white/20 text-white text-xs font-bold py-2 px-4 rounded-xl hover:bg-white/5 transition-all"
-             >
-               🏢 Kurumsal İletişim
-             </button>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

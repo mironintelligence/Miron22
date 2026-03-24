@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 from datetime import datetime, timezone, timedelta
@@ -371,13 +372,23 @@ def login(payload: LoginRequest, request: Request, response: Response):
         "status": "ok",
         "message": "Giriş başarılı",
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "user": sanitize_user_for_response(user),
     }
 
 
 @router.post("/refresh")
-def refresh(request: Request, response: Response):
-    token = request.cookies.get("refresh_token", "")
+async def refresh(request: Request, response: Response):
+    token = (request.cookies.get("refresh_token") or "").strip()
+    if not token:
+        try:
+            raw = await request.body()
+            if raw:
+                j = json.loads(raw.decode("utf-8"))
+                if isinstance(j, dict) and j.get("refresh_token"):
+                    token = str(j.get("refresh_token") or "").strip()
+        except Exception:
+            pass
     if not token:
         raise HTTPException(status_code=401, detail="Refresh token gerekli.")
     
@@ -423,7 +434,7 @@ def refresh(request: Request, response: Response):
         ua=ua,
         expires_at=_now_utc() + timedelta(days=7),
     )
-    return {"status": "ok", "access_token": new_access}
+    return {"status": "ok", "access_token": new_access, "refresh_token": new_refresh}
 
 
 @router.get("/me")

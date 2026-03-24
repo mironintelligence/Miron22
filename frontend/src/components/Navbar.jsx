@@ -1,7 +1,16 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Bell } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { authFetch } from "../auth/api";
+
+function BetaBadge() {
+  return (
+    <span className="ml-1.5 align-middle text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/40 font-bold tracking-wide">
+      BETA
+    </span>
+  );
+}
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -9,15 +18,16 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, status, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-  const isDemoUser = user?.role === "demo" || user?.isDemo || user?.subscriptionStatus === "demo" || user?.subscriptionStatus === "trial";
+  const isDemoUser =
+    user?.role === "demo" || user?.isDemo || user?.subscriptionStatus === "demo" || user?.subscriptionStatus === "trial";
 
   const baseNavLinks = [
     { name: "Ana Sayfa", path: "/home" },
     { name: "Analiz", path: "/analyze" },
-    { name: "Yargıtay", path: "/yargitay", beta: true },
-    { name: "Mevzuat", path: "/mevzuat", beta: true },
+    { name: "Yargıtay Karar Arama", path: "/yargitay", beta: true },
+    { name: "Mevzuat Analizi", path: "/mevzuat", beta: true },
     { name: "Dava Simülasyonu", path: "/case-simulation" },
-    { name: "Sözleşmeler", path: "/contracts" },
+    { name: "Sözleşmeler", path: "/contracts/builder" },
   ];
 
   const navLinks = baseNavLinks;
@@ -54,8 +64,8 @@ export default function Navbar() {
     return (
       <nav className="fixed top-0 left-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link to="/" className="text-2xl font-bold tracking-tighter text-white">
-            Miron<span className="text-[var(--miron-gold)]">.AI</span>
+          <Link to="/" className="text-xl font-bold tracking-tight text-white">
+            Miron AI
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -84,14 +94,12 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            {isDemoUser ? (
-              <Link
-                to="/pricing"
-                className="hidden sm:inline px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-700 text-black hover:brightness-110 transition"
-              >
-                Premium
-              </Link>
-            ) : null}
+            <Link
+              to="/register"
+              className="hidden sm:inline px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-700 text-black hover:brightness-110 transition"
+            >
+              Kaydol
+            </Link>
             <Link to="/login" className="text-white/70 hover:text-white transition">
               Giriş Yap
             </Link>
@@ -111,7 +119,7 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 w-full z-50 bg-[#050505]/90 backdrop-blur-xl border-b border-white/5">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <Link to="/home" className="text-xl font-bold tracking-tight text-white">
-          Miron<span className="text-[var(--miron-gold)]"> AI</span>
+          Miron AI
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
@@ -128,6 +136,7 @@ export default function Navbar() {
               }`}
             >
               <span>{link.name}</span>
+              {link.beta ? <BetaBadge /> : null}
             </Link>
           ))}
         </div>
@@ -138,13 +147,16 @@ export default function Navbar() {
               to="/upgrade"
               className="text-sm font-bold px-4 py-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-700 text-black hover:brightness-110 transition shadow-lg shadow-amber-900/30"
             >
-              Premium
+              Hesabı Yükselt
             </Link>
           ) : null}
-          <Link to="/notifications" className="relative group">
-            <span className={`text-xl transition ${unreadCount > 0 ? "text-white" : "text-white/35"}`}>🔔</span>
+          <Link to="/notifications" className="relative group p-1" aria-label="Bildirimler">
+            <Bell
+              className={`h-6 w-6 transition-colors ${unreadCount > 0 ? "text-amber-400" : "text-white/30"}`}
+              strokeWidth={unreadCount > 0 ? 2.25 : 1.5}
+            />
             {unreadCount > 0 ? (
-              <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
+              <span className="absolute -top-0.5 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center font-bold border-2 border-[#050505]">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             ) : null}
@@ -170,11 +182,8 @@ export default function Navbar() {
               <Link to="/upgrade" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
                 Abonelik
               </Link>
-              <Link to="/feedback" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
-                Geri Bildirim
-              </Link>
               <div className="h-px bg-white/10 my-2" />
-              <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-300 hover:bg-white/5">
+              <button type="button" onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-300 hover:bg-white/5">
                 Çıkış Yap
               </button>
             </div>
@@ -195,7 +204,7 @@ export default function Navbar() {
                 onClick={() => setMenuOpen(false)}
                 className="text-lg font-bold text-center py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-700 text-black"
               >
-                Premium
+                Hesabı Yükselt
               </Link>
             ) : null}
             {navLinks.map((link) => (
@@ -212,6 +221,7 @@ export default function Navbar() {
                 }`}
               >
                 <span>{link.name}</span>
+                {link.beta ? <BetaBadge /> : null}
               </Link>
             ))}
             <div className="h-px bg-white/10 my-2" />
@@ -221,7 +231,9 @@ export default function Navbar() {
             <Link to="/upgrade" onClick={() => setMenuOpen(false)} className="text-lg text-white/70">
               Abonelik
             </Link>
-            <button onClick={handleLogout} className="text-left text-red-300">Çıkış Yap</button>
+            <button type="button" onClick={handleLogout} className="text-left text-red-300">
+              Çıkış Yap
+            </button>
           </div>
         </div>
       )}

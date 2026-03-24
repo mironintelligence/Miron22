@@ -2,6 +2,25 @@ import axios from "axios";
 
 const API = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
+const REFRESH_STORAGE_KEY = "miron_refresh_token";
+
+function readStoredRefresh() {
+  try {
+    return sessionStorage.getItem(REFRESH_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function writeStoredRefresh(tok) {
+  try {
+    if (tok) sessionStorage.setItem(REFRESH_STORAGE_KEY, tok);
+    else sessionStorage.removeItem(REFRESH_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 function detailMessage(t) {
   const d = t?.detail;
   if (typeof d === "string") return d;
@@ -58,9 +77,12 @@ let _refreshChain = null;
 export async function refreshSession() {
   if (!_refreshChain) {
     _refreshChain = (async () => {
+      const stored = readStoredRefresh();
       const r = await fetch(`${API}/api/auth/refresh`, {
         method: "POST",
         credentials: "include",
+        headers: stored ? { "Content-Type": "application/json" } : {},
+        body: stored ? JSON.stringify({ refresh_token: stored }) : undefined,
       });
       if (!r.ok) {
         const t = await r.json().catch(() => ({}));
@@ -69,6 +91,8 @@ export async function refreshSession() {
       const j = await r.json();
       const tok = j?.access_token || "";
       if (tok) _setAccessToken(tok);
+      const rt = j?.refresh_token || "";
+      if (rt) writeStoredRefresh(rt);
       return j;
     })().finally(() => {
       _refreshChain = null;
@@ -100,6 +124,8 @@ export async function login(email, password) {
   const data = await r.json();
   const tok = data?.access_token || "";
   if (tok) _setAccessToken(tok);
+  const rt = data?.refresh_token || "";
+  if (rt) writeStoredRefresh(rt);
   return data;
 }
 
@@ -135,6 +161,7 @@ export async function logout() {
     method: "POST",
     credentials: "include",
   });
+  writeStoredRefresh("");
   if (!r.ok) {
     const t = await r.json().catch(() => ({}));
     throw new Error(detailMessage(t) || "Çıkış başarısız");

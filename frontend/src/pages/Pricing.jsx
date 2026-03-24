@@ -38,7 +38,7 @@ export default function Pricing() {
     async function fetchSettings() {
       try {
         const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-        const res = await fetch(`${base}/api/admin/pricing-settings`, { credentials: "include" });
+        const res = await fetch(`${base}/api/pricing/public-settings`);
         if (res.ok) {
           const data = await res.json();
           setSettings({
@@ -68,7 +68,8 @@ export default function Pricing() {
         <div className="glass p-6 rounded-2xl border border-white/10 flex flex-col">
           <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-2">Aylık</div>
           <div className="text-3xl font-black text-white mb-1">
-            8.000 TL<span className="text-lg font-semibold text-white/50"> + KDV</span>
+            {tl(Number(settings.base_price || 7999))}
+            <span className="text-lg font-semibold text-white/50"> + KDV</span>
           </div>
           <div className="text-sm text-subtle mb-4">/ ay • tek kullanıcı</div>
           <ul className="text-sm text-white/70 space-y-2 flex-1 mb-6">

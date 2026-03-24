@@ -231,20 +231,36 @@ export default function YargitaySearch() {
           ))}
         </div>
 
-        <aside className="hidden lg:block bg-white/5 border border-white/10 rounded-2xl p-4 overflow-hidden">
-          <h3 className="text-sm font-semibold text-white/80 mb-3">Örnek Yargıtay Kararları</h3>
-          <div className="relative h-[70vh] overflow-hidden">
-            <div className="absolute inset-0 [animation:marqueeUp_30s_linear_infinite] space-y-3">
-              {[...sampleSnippets, ...sampleSnippets, ...sampleSnippets].map((s, i) => (
-                <div key={`${i}-${s.slice(0, 12)}`} className="rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-white/70">
-                  {s}
+        <aside className="hidden lg:block bg-white/5 border border-white/10 rounded-2xl p-3 overflow-hidden">
+          <h3 className="text-sm font-semibold text-white/80 mb-3 px-1">Örnek karar özeti</h3>
+          <div className="grid grid-cols-3 gap-2 h-[70vh]">
+            {[0, 1, 2].map((col) => (
+              <div key={col} className="relative overflow-hidden rounded-xl border border-white/10 bg-black/30">
+                <div
+                  className="absolute inset-x-0 top-0 flex flex-col gap-2 px-1 py-1"
+                  style={{
+                    animation: `marqueeUp${col} ${26 + col * 4}s linear infinite`,
+                  }}
+                >
+                  {[...sampleSnippets, ...sampleSnippets, ...sampleSnippets].map((s, i) => (
+                    <div
+                      key={`${col}-${i}-${s.slice(0, 8)}`}
+                      className="rounded-lg border border-white/10 bg-black/50 p-2.5 text-[11px] leading-snug text-white/72"
+                    >
+                      {s}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </aside>
       </div>
-      <style>{`@keyframes marqueeUp {0% {transform: translateY(0);} 100% {transform: translateY(-50%);}}`}</style>
+      <style>{`
+        @keyframes marqueeUp0 { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
+        @keyframes marqueeUp1 { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
+        @keyframes marqueeUp2 { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
+      `}</style>
     </div>
   );
 }

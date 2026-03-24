@@ -3,6 +3,15 @@ import { authFetch } from "../auth/api";
 import { useAuth } from "../auth/AuthProvider";
 import { AnimatePresence, motion } from "framer-motion";
 
+async function markNotificationRead(id) {
+  try {
+    await authFetch(`/api/notifications/${encodeURIComponent(String(id))}/read`, { method: "POST" });
+    window.dispatchEvent(new Event("notifications:changed"));
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function NotificationToasts() {
   const { status } = useAuth();
   const seenRef = useRef(new Set());
@@ -23,6 +32,7 @@ export default function NotificationToasts() {
         const next = [];
         for (const n of list.slice(0, 20)) {
           if (!n?.id) continue;
+          if (n.is_read) continue;
           if (seenRef.current.has(n.id)) continue;
           seenRef.current.add(n.id);
           const createdAt = n.created_at ? Date.parse(n.created_at) : now;
@@ -38,7 +48,7 @@ export default function NotificationToasts() {
         if (next.length) {
           setToasts((prev) => [...next.slice(0, 3), ...prev].slice(0, 3));
         }
-      } catch (e) {
+      } catch {
         return;
       }
     };
@@ -55,37 +65,44 @@ export default function NotificationToasts() {
     if (!toasts.length) return;
     const timers = toasts.map((t) =>
       setTimeout(() => {
+        markNotificationRead(t.id);
         setToasts((prev) => prev.filter((x) => x.id !== t.id));
       }, 10000)
     );
     return () => timers.forEach(clearTimeout);
   }, [toasts]);
 
+  const dismiss = (t) => {
+    markNotificationRead(t.id);
+    setToasts((prev) => prev.filter((x) => x.id !== t.id));
+  };
+
   if (status !== "authed" || !toasts.length) return null;
 
   return (
-    <div className="fixed top-6 right-4 z-[80] w-[380px] max-w-[92vw] space-y-2">
+    <div className="fixed top-5 right-4 z-[80] w-[380px] max-w-[92vw] space-y-3 pointer-events-auto">
       <AnimatePresence initial={false}>
         {toasts.map((t) => (
           <motion.div
             key={t.id}
-            initial={{ opacity: 0, y: -18, x: 30 }}
-            animate={{ opacity: 1, y: 0, x: 0 }}
-            exit={{ opacity: 0, y: -12, x: 30 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="bg-zinc-900/90 border border-white/15 backdrop-blur-xl rounded-2xl p-4 shadow-2xl"
+            initial={{ opacity: 0, y: -28, x: 40, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, x: 24, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+            className="rounded-[1.15rem] border border-white/12 bg-zinc-900/85 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.55)] p-4 ring-1 ring-white/5"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-xs text-white/60 mb-1">
-                  {t.type === "admin" ? "Duyuru" : t.type === "case_reminder" ? "Hatırlatma" : "Sistem"}
+                <div className="text-[11px] text-white/50 mb-1 tracking-wide">
+                  {t.type === "admin" ? "Duyuru" : t.type === "case_reminder" ? "Hatırlatma" : "Bildirim"}
                 </div>
-                <div className="font-semibold text-white truncate">{t.title}</div>
-                <div className="text-xs text-white/70 mt-1 break-words">{t.message}</div>
+                <div className="font-semibold text-white text-[15px] leading-snug">{t.title}</div>
+                <div className="text-[13px] text-white/75 mt-1.5 leading-relaxed break-words">{t.message}</div>
               </div>
               <button
-                onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
-                className="text-white/50 hover:text-white text-sm"
+                type="button"
+                onClick={() => dismiss(t)}
+                className="shrink-0 text-white/40 hover:text-white text-lg leading-none px-1"
                 aria-label="Bildirimi kapat"
               >
                 ✕

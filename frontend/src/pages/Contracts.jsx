@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { authFetch } from "../auth/api";
 
-export default function Contracts({ forcedTab = null }) {
+export default function Contracts({ forcedTab = null, pageMode = null }) {
   const [categories, setCategories] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,12 +10,20 @@ export default function Contracts({ forcedTab = null }) {
   const [search, setSearch] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
+  const resolvedPage = pageMode || (forcedTab === "analyze" ? "analysis" : forcedTab === "templates" ? "builder" : null);
+
   const initialTab = useMemo(() => {
+    if (resolvedPage === "analysis") return "analyze";
+    if (resolvedPage === "builder") {
+      const t = new URLSearchParams(location.search).get("tab");
+      if (t === "create" || t === "templates") return t;
+      return "templates";
+    }
     if (forcedTab === "analyze" || forcedTab === "templates") return forcedTab;
     const t = new URLSearchParams(location.search).get("tab");
     if (t === "analyze" || t === "create" || t === "templates") return t;
     return "templates";
-  }, [location.search, forcedTab]);
+  }, [location.search, forcedTab, resolvedPage]);
   const [activeTab, setActiveTab] = useState(initialTab); // 'templates' | 'analyze' | 'create'
   const [analysisText, setAnalysisText] = useState("");
   const [analysisResult, setAnalysisResult] = useState(null);
@@ -139,7 +147,8 @@ export default function Contracts({ forcedTab = null }) {
   };
 
   const setTab = (tab) => {
-    navigate(`/contracts?tab=${tab}`);
+    const base = resolvedPage === "builder" ? "/contracts/builder" : "/contracts";
+    navigate(`${base}?tab=${tab}`);
   };
 
   const extractPlaceholders = (text) => {
@@ -348,28 +357,59 @@ export default function Contracts({ forcedTab = null }) {
   return (
     <div className="min-h-screen bg-[#050505] text-white pt-24 px-6">
       <div className="max-w-7xl mx-auto">
-        <header className="mb-10">
-          <h1 className="text-4xl font-bold mb-2">Sözleşme Merkezi</h1>
-          <p className="text-white/50">Şablonları kullanın, sözleşme oluşturun veya mevcut sözleşmeleri AI ile analiz edin.</p>
+        <header className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">
+              {resolvedPage === "analysis" ? "Sözleşme Analizi" : resolvedPage === "builder" ? "Sözleşme Oluşturucu" : "Sözleşme Merkezi"}
+            </h1>
+            <p className="text-white/50">
+              {resolvedPage === "analysis"
+                ? "Mevcut sözleşmenizi yükleyin veya yapıştırın; risk ve uyum analizini görün."
+                : resolvedPage === "builder"
+                  ? "Şablon seçin, zorunlu alanları doldurun, sözleşmeyi oluşturun."
+                  : "Şablonları kullanın, sözleşme oluşturun veya mevcut sözleşmeleri AI ile analiz edin."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3 text-sm">
+            {resolvedPage === "analysis" ? (
+              <Link
+                to="/contracts/builder"
+                className="px-4 py-2 rounded-xl border border-white/15 text-white/80 hover:bg-white/5"
+              >
+                Oluşturucuya geç
+              </Link>
+            ) : null}
+            {resolvedPage === "builder" ? (
+              <Link
+                to="/contracts/analysis"
+                className="px-4 py-2 rounded-xl border border-white/15 text-white/80 hover:bg-white/5"
+              >
+                Analiz modülü
+              </Link>
+            ) : null}
+          </div>
         </header>
 
-        {/* Tabs */}
-        <div className="flex gap-4 border-b border-white/10 mb-8">
-          <button 
-            onClick={() => setTab("templates")}
-            className={`pb-4 px-2 font-medium transition-colors ${activeTab === "templates" ? "text-[var(--miron-gold)] border-b-2 border-[var(--miron-gold)]" : "text-white/50 hover:text-white"}`}
-          >
-            Şablonlar
-          </button>
-          <button 
-            onClick={() => setTab("analyze")}
-            className={`pb-4 px-2 font-medium transition-colors ${activeTab === "analyze" ? "text-[var(--miron-gold)] border-b-2 border-[var(--miron-gold)]" : "text-white/50 hover:text-white"}`}
-          >
-            AI Analizi
-          </button>
-        </div>
+        {!resolvedPage ? (
+          <div className="flex gap-4 border-b border-white/10 mb-8">
+            <button
+              type="button"
+              onClick={() => setTab("templates")}
+              className={`pb-4 px-2 font-medium transition-colors ${activeTab === "templates" ? "text-[var(--miron-gold)] border-b-2 border-[var(--miron-gold)]" : "text-white/50 hover:text-white"}`}
+            >
+              Şablonlar
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("analyze")}
+              className={`pb-4 px-2 font-medium transition-colors ${activeTab === "analyze" ? "text-[var(--miron-gold)] border-b-2 border-[var(--miron-gold)]" : "text-white/50 hover:text-white"}`}
+            >
+              AI Analizi
+            </button>
+          </div>
+        ) : null}
 
-        {activeTab === "templates" && (
+        {activeTab === "templates" && resolvedPage !== "analysis" && (
           <div className="grid lg:grid-cols-12 gap-6">
             <aside className="lg:col-span-3 bg-[#111] border border-white/10 rounded-2xl p-5 h-fit lg:sticky lg:top-28">
               <div className="text-sm font-semibold mb-3">Kategoriler</div>
@@ -391,7 +431,6 @@ export default function Contracts({ forcedTab = null }) {
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <div className="text-lg">{c.icon}</div>
                       <div className="font-semibold text-sm">{c.title}</div>
                     </div>
                     <div className="text-[11px] text-white/50 mt-1">{c.description}</div>
@@ -443,12 +482,12 @@ export default function Contracts({ forcedTab = null }) {
           </div>
         )}
 
-        {activeTab === "create" && (
+        {activeTab === "create" && resolvedPage !== "analysis" && (
           <div className="grid lg:grid-cols-2 gap-10">
             <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <div className="text-lg font-bold">Şablon Seç</div>
-                <Link to="/contracts?tab=templates" className="text-xs text-[var(--miron-gold)] underline">
+                <Link to="/contracts/builder" className="text-xs text-[var(--miron-gold)] underline">
                   Şablonlara dön
                 </Link>
               </div>
@@ -649,7 +688,7 @@ export default function Contracts({ forcedTab = null }) {
           </div>
         )}
 
-        {activeTab === "analyze" && (
+        {(activeTab === "analyze" || resolvedPage === "analysis") && (
           <div className="grid lg:grid-cols-2 gap-10">
             <div>
               <label className="block text-sm font-medium text-white/70 mb-3">Sözleşme Metni</label>
@@ -774,9 +813,7 @@ export default function Contracts({ forcedTab = null }) {
             </div>
 
             <div className="bg-[#111] border border-white/10 rounded-2xl p-8 h-fit">
-              <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <span>🤖</span> Analiz Sonucu
-              </h3>
+              <h3 className="text-xl font-bold mb-6">Analiz Sonucu</h3>
               
               {!analysisResult ? (
                 <div className="text-center py-20 text-white/30">

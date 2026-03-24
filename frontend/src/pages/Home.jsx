@@ -43,7 +43,7 @@ const baseTiles = [
   {
     title: "Sözleşme Oluşturucu",
     desc: "Şablon seç, alanları doldur, sözleşmeyi üret.",
-    to: "/contracts/templates",
+    to: "/contracts/builder",
     icon: "✍️",
     disabled: false,
   },

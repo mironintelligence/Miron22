@@ -3,6 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { authFetch } from "../auth/api";
 import { useAuth } from "../auth/AuthProvider";
 
+function isTrialLike(u) {
+  if (!u) return false;
+  return (
+    u.role === "demo" ||
+    u.isDemo ||
+    u.subscriptionStatus === "demo" ||
+    u.subscriptionStatus === "trial" ||
+    !!u.demoExpiresAt ||
+    !!u.trialEndsAt
+  );
+}
+
 export default function Upgrade() {
   const nav = useNavigate();
   const { user } = useAuth();
@@ -15,7 +27,8 @@ export default function Upgrade() {
 
   useEffect(() => {
     if (!user) nav("/login");
-  }, [user]);
+    else if (!isTrialLike(user)) nav("/home", { replace: true });
+  }, [user, nav]);
 
   useEffect(() => {
     let alive = true;
@@ -70,7 +83,7 @@ export default function Upgrade() {
         <div className="card p-6 mt-6">
           <div className="text-sm text-white/60 mb-3">Plan Seç</div>
           <div className="grid md:grid-cols-2 gap-3">
-            {(plans.length ? plans : [{ id: "pro", name: "Profesyonel" }, { id: "enterprise", name: "Kurumsal" }]).map((p) => (
+            {(plans.length ? plans : [{ id: "pro", name: "Profesyonel" }]).filter((p) => String(p.id || "").toLowerCase() !== "enterprise").map((p) => (
               <button
                 key={p.id}
                 onClick={() => setSelected(p.id)}

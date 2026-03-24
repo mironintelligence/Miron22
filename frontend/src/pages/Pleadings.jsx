@@ -137,23 +137,24 @@ export default function Pleadings() {
   };
 
   return (
-    <div className="min-h-screen overflow-y-auto pb-24 grid grid-cols-12 gap-5">
-      {/* Sol: Kategoriler */}
-      <motion.aside
-        initial={{ opacity: 0, x: -12 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="col-span-12 md:col-span-4 glass p-4 h-fit sticky top-20"
-      >
-        <h3 className="text-lg font-semibold mb-3">🗂️ Kategoriler</h3>
-        <div className="space-y-2">
+    <div className="min-h-screen overflow-y-auto pb-24 px-4">
+      <div className="max-w-5xl mx-auto pt-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center text-accent mb-2">Dilekçe Oluşturucu</h1>
+        <p className="text-center text-sm text-white/55 mb-8">Kategori seçin; şablonlar ortada listelenir. Tür seçtikten sonra formu doldurun.</p>
+
+        <div className="flex flex-wrap justify-center gap-2 mb-10">
           {catalog.map((cat) => (
             <button
               key={cat.category}
-              onClick={() => setActiveCat(cat.category)}
-              className={`w-full text-left px-3 py-2 rounded-xl transition ${
+              type="button"
+              onClick={() => {
+                setActiveCat(cat.category);
+                setActiveTpl(null);
+              }}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition border ${
                 activeCat === cat.category
-                  ? "bg-accent text-black"
-                  : "bg-white/10 hover:bg-white/20 text-fg"
+                  ? "bg-[var(--miron-gold)] text-black border-[var(--miron-gold)]"
+                  : "bg-white/5 border-white/15 text-white/80 hover:bg-white/10"
               }`}
             >
               {cat.category}
@@ -161,81 +162,85 @@ export default function Pleadings() {
           ))}
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-          <div className="glass p-3 rounded-xl">
-            <div className="font-semibold mb-2">Dil</div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setLanguage("TR")}
-                className={`px-3 py-1 rounded-lg ${language === "TR" ? "bg-accent text-black" : "bg-white/10"}`}
-              >
-                TR
-              </button>
-              <button
-                onClick={() => setLanguage("EN")}
-                className={`px-3 py-1 rounded-lg ${language === "EN" ? "bg-accent text-black" : "bg-white/10"}`}
-              >
-                EN
-              </button>
-            </div>
-          </div>
-          <div className="glass p-3 rounded-xl">
-            <div className="font-semibold mb-2">Seçenekler</div>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={includeStatutes} onChange={(e) => setIncludeStatutes(e.target.checked)} />
-              <span>Kanun Maddeleri</span>
-            </label>
-            <label className="flex items-center gap-2 mt-2">
-              <input type="checkbox" checked={includeCaseLaw} onChange={(e) => setIncludeCaseLaw(e.target.checked)} />
-              <span>Yargıtay Emsal Önerisi</span>
-            </label>
-            <label className="flex items-center gap-2 mt-2">
-              <input type="checkbox" checked={maskPII} onChange={(e) => setMaskPII(e.target.checked)} />
-              <span>KVKK Maskeleme</span>
-            </label>
-          </div>
-        </div>
-      </motion.aside>
+        <div className="grid lg:grid-cols-12 gap-6 items-start">
+          <motion.section
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="lg:col-span-7 glass p-5 rounded-2xl order-2 lg:order-1"
+          >
+            <h3 className="text-sm font-semibold text-white/70 mb-4 text-center lg:text-left">Şablonlar — {activeCat || "—"}</h3>
+            {!currentItems.length ? (
+              <div className="text-sm text-white/50 text-center py-12">Bu kategoride şablon yok.</div>
+            ) : (
+              <div className="space-y-4 max-h-[52vh] overflow-y-auto pr-1">
+                {Object.entries(groupedTemplates).map(([caseType, items]) => (
+                  <div key={caseType} className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                    <div className="text-xs text-white/50 mb-3 uppercase tracking-wider">{caseType}</div>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      {items.map((item) => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setActiveTpl(item.key)}
+                          className={`text-left px-3 py-3 rounded-xl transition border text-sm ${
+                            activeTpl === item.key
+                              ? "bg-[var(--miron-gold)]/20 border-[var(--miron-gold)] text-white"
+                              : "bg-black/30 border-white/10 text-white/85 hover:border-white/25"
+                          }`}
+                        >
+                          <div className="font-semibold leading-snug">{item.title}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.section>
 
-      <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="col-span-12 md:col-span-3 glass p-4"
-      >
-        <h3 className="text-lg font-semibold mb-3">📄 Şablonlar</h3>
-        {!currentItems.length ? (
-          <div className="text-sm opacity-70">Bu kategoride kayıt yok.</div>
-        ) : (
-          <div className="space-y-3">
-            {Object.entries(groupedTemplates).map(([caseType, items]) => (
-              <div key={caseType} className="bg-white/5 border border-white/10 rounded-2xl p-3">
-                <div className="text-xs text-white/60 mb-2">{caseType}</div>
-                <div className="space-y-2">
-                  {items.map((item) => (
-                    <button
-                      key={item.key}
-                      onClick={() => setActiveTpl(item.key)}
-                      className={`w-full text-left px-3 py-2 rounded-xl transition ${
-                        activeTpl === item.key ? "bg-accent text-black" : "bg-white/10 hover:bg-white/20 text-fg"
-                      }`}
-                    >
-                      <div className="font-semibold text-sm">{item.title}</div>
-                    </button>
-                  ))}
+          <motion.section
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="lg:col-span-5 glass p-5 rounded-2xl space-y-4 order-1 lg:order-2 lg:sticky lg:top-24"
+          >
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="bg-black/30 border border-white/10 rounded-xl p-3">
+                <div className="font-semibold mb-2 text-white/80">Dil</div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLanguage("TR")}
+                    className={`px-3 py-1 rounded-lg ${language === "TR" ? "bg-accent text-black" : "bg-white/10"}`}
+                  >
+                    TR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLanguage("EN")}
+                    className={`px-3 py-1 rounded-lg ${language === "EN" ? "bg-accent text-black" : "bg-white/10"}`}
+                  >
+                    EN
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </motion.section>
+              <div className="bg-black/30 border border-white/10 rounded-xl p-3">
+                <div className="font-semibold mb-2 text-white/80">Seçenekler</div>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={includeStatutes} onChange={(e) => setIncludeStatutes(e.target.checked)} />
+                  <span>Kanun</span>
+                </label>
+                <label className="flex items-center gap-2 mt-1">
+                  <input type="checkbox" checked={includeCaseLaw} onChange={(e) => setIncludeCaseLaw(e.target.checked)} />
+                  <span>Emsal</span>
+                </label>
+                <label className="flex items-center gap-2 mt-1">
+                  <input type="checkbox" checked={maskPII} onChange={(e) => setMaskPII(e.target.checked)} />
+                  <span>KVKK</span>
+                </label>
+              </div>
+            </div>
 
-      {/* Sağ: Dinamik Form + Önizleme */}
-      <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="col-span-12 md:col-span-5 glass p-4"
-      >
-        <h3 className="text-lg font-semibold mb-3">🧾 Form</h3>
+            <h3 className="text-lg font-semibold">Form</h3>
         {!activeTpl && (
           <div className="text-sm opacity-70">Lütfen dilekçe türü seçiniz.</div>
         )}
@@ -336,15 +341,13 @@ export default function Pleadings() {
                   exit={{ opacity: 0, y: 6 }}
                   className="mt-4 p-3 rounded-xl bg-white/10 border border-white/10 text-sm"
                 >
-                  <div className="text-accent font-semibold mb-2">
-                    📄 Önizleme
-                  </div>
+                  <div className="text-accent font-semibold mb-2">Önizleme</div>
                   {["strategic_assessment", "header", "summary", "legal_basis", "result_requests", "attachments"].map(
                     (k) =>
                       preview[k] ? (
                         <div key={k} className={`mb-3 ${k === "strategic_assessment" ? "bg-accent/10 p-3 rounded-lg border border-accent/20" : ""}`}>
                           <div className={`opacity-70 capitalize ${k === "strategic_assessment" ? "text-accent font-bold" : ""}`}>
-                            {k === "strategic_assessment" ? "🔍 STRATEGIC PRE-CHECK" : k.replace("_", " ")}
+                            {k === "strategic_assessment" ? "STRATEGIC PRE-CHECK" : k.replace("_", " ")}
                           </div>
                           <pre className="whitespace-pre-wrap">{preview[k]}</pre>
                         </div>
@@ -355,12 +358,13 @@ export default function Pleadings() {
             </AnimatePresence>
           </>
         )}
-      </motion.section>
+          </motion.section>
+        </div>
 
-      {/* ✅ Alt Telif Satırı */}
-      <footer className="col-span-12 text-center text-xs text-subtle mt-10 py-6 glass border-t border-white/10 rounded-t-2xl">
-        ®2025 Miron Intelligence — Tüm hakları saklıdır.
-      </footer>
+        <footer className="text-center text-xs text-subtle mt-12 py-6 glass border border-white/10 rounded-2xl">
+          ®2025 Miron Intelligence — Tüm hakları saklıdır.
+        </footer>
+      </div>
     </div>
   );
 }

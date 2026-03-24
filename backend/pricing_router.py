@@ -14,6 +14,8 @@ try:
 except ImportError:
     from admin_auth import require_admin
 
+from db import get_db_cursor
+
 from services.pricing_service import (
     find_valid_discount,
     create_discount,
@@ -29,10 +31,48 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 PRICING_CONFIG_FILE = DATA_DIR / "pricing_config.json"
 
 DEFAULT_CONFIG = {
-    "base_price": 8000.0,
+    "base_price": 7999.0,
     "discount_rate": 12.5,
     "bulk_threshold": 3,
 }
+
+
+def _load_config_from_db() -> Optional[Dict[str, Any]]:
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                "SELECT base_price, discount_rate, bulk_threshold FROM pricing_settings WHERE id = 1 LIMIT 1"
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "base_price": float(row.get("base_price") or DEFAULT_CONFIG["base_price"]),
+                "discount_rate": float(row.get("discount_rate") or DEFAULT_CONFIG["discount_rate"]),
+                "bulk_threshold": int(row.get("bulk_threshold") or DEFAULT_CONFIG["bulk_threshold"]),
+            }
+    except Exception:
+        return None
+
+
+def _save_config_to_db(config: Dict[str, Any]) -> None:
+    with get_db_cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO pricing_settings (id, base_price, discount_rate, bulk_threshold, updated_at)
+            VALUES (1, %s, %s, %s, NOW())
+            ON CONFLICT (id) DO UPDATE SET
+              base_price = EXCLUDED.base_price,
+              discount_rate = EXCLUDED.discount_rate,
+              bulk_threshold = EXCLUDED.bulk_threshold,
+              updated_at = NOW()
+            """,
+            (
+                float(config["base_price"]),
+                float(config["discount_rate"]),
+                int(config["bulk_threshold"]),
+            ),
+        )
 
 
 class PricingConfig(BaseModel):
@@ -86,19 +126,26 @@ class DiscountCodeCreate(BaseModel):
 
 
 def _load_config() -> Dict[str, Any]:
+    db_cfg = _load_config_from_db()
+    base = dict(DEFAULT_CONFIG)
     if not PRICING_CONFIG_FILE.exists():
-        return dict(DEFAULT_CONFIG)
+        return db_cfg or base
     try:
         with PRICING_CONFIG_FILE.open("r", encoding="utf-8") as f:
             data = json.load(f)
-            config = dict(DEFAULT_CONFIG)
-            config.update(data)
-            return config
+            base.update(data)
     except Exception:
-        return dict(DEFAULT_CONFIG)
+        pass
+    if db_cfg:
+        base.update(db_cfg)
+    return base
 
 
 def _save_config(config: Dict[str, Any]) -> None:
+    try:
+        _save_config_to_db(config)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save config to database: {str(e)}")
     PRICING_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = PRICING_CONFIG_FILE.with_suffix(".tmp")
     try:
@@ -117,6 +164,22 @@ def _save_config(config: Dict[str, Any]) -> None:
 @router.get("/config", response_model=PricingConfig)
 def get_pricing_config():
     return _load_config()
+
+
+@router.get("/public-settings")
+def get_public_pricing_settings():
+    """Ücretsiz fiyatlandırma sayfası için kimlik gerektirmez; değerler DB + dosya birleşiminden gelir."""
+    cfg = _load_config()
+    bp = float(cfg.get("base_price", DEFAULT_CONFIG["base_price"]))
+    dr = float(cfg.get("discount_rate", DEFAULT_CONFIG["discount_rate"]))
+    th = int(cfg.get("bulk_threshold", DEFAULT_CONFIG["bulk_threshold"]))
+    unit_discounted = round(bp * (1 - dr / 100.0), 2)
+    return {
+        "base_price": bp,
+        "bulk_discount_rate": dr,
+        "bulk_threshold": th,
+        "bulk_discounted_unit_price": unit_discounted,
+    }
 
 
 @router.post("/config", dependencies=[Depends(require_admin)])

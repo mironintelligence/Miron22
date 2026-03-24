@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/billing", tags=["Billing"])
 BILLING_MODE = os.getenv("BILLING_MODE", "demo")  # demo | live
 
 class UpgradeRequest(BaseModel):
-    plan_id: str # 'pro', 'enterprise'
+    plan_id: str  # 'starter' | 'pro'
     payment_method_id: str # Placeholder for Stripe/Iyzico token
 
 @router.post("/upgrade")
@@ -38,7 +38,7 @@ async def upgrade_account(
     # 2. Update User Subscription in DB
     try:
         plan = (req.plan_id or "").strip().lower()
-        if plan not in ["starter", "pro", "enterprise"]:
+        if plan not in ["starter", "pro"]:
             raise HTTPException(status_code=400, detail="Geçersiz plan.")
 
         await db.execute(
@@ -68,19 +68,21 @@ async def upgrade_account(
 
 @router.get("/plans")
 def get_plans():
-    return [
-        {
-            "id": "starter",
-            "name": "Başlangıç Paketi",
-            "price": 0,
-            "currency": "TRY",
-            "features": ["Temel Dava Analizi", "Sınırlı Mevzuat Arama"]
-        },
-        {
-            "id": "pro",
-            "name": "Profesyonel Paket",
-            "price": 1500,
-            "currency": "TRY",
-            "features": ["Detaylı Risk Analizi", "Sınırsız Dava Simülasyonu", "Öncelikli Destek"]
-        }
-    ]
+    return {
+        "plans": [
+            {
+                "id": "starter",
+                "name": "Başlangıç Paketi",
+                "price": 0,
+                "currency": "TRY",
+                "features": ["Temel Dava Analizi", "Sınırlı Mevzuat Arama"],
+            },
+            {
+                "id": "pro",
+                "name": "Profesyonel Paket",
+                "price": 1500,
+                "currency": "TRY",
+                "features": ["Detaylı Risk Analizi", "Sınırsız Dava Simülasyonu", "Öncelikli Destek"],
+            },
+        ]
+    }

@@ -78,27 +78,27 @@ export default function Calculators() {
           Faiz, harç, vekalet, işçilik alacakları ve zamanaşımı hesapları.
         </p>
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="glass p-4 rounded-2xl lg:col-span-3 h-fit">
-            <div className="text-sm font-semibold mb-3">Hesap Türü</div>
-            <div className="space-y-2">
-              {tabs.map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setActiveTab(t.key)}
-                  className={`w-full text-left px-3 py-2 rounded-xl border text-sm ${
-                    activeTab === t.key
-                      ? "bg-[var(--miron-gold)]/20 border-[var(--miron-gold)] text-white"
-                      : "bg-black/40 border-white/10 text-white/75 hover:bg-white/5"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+        <div className="glass p-2 rounded-2xl border border-white/10 mb-6 overflow-x-auto">
+          <div className="flex gap-1 min-w-max sm:flex-wrap sm:min-w-0 px-1">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setActiveTab(t.key)}
+                className={`px-4 py-2.5 rounded-xl border text-sm font-medium whitespace-nowrap transition ${
+                  activeTab === t.key
+                    ? "bg-[var(--miron-gold)]/25 border-[var(--miron-gold)] text-white"
+                    : "bg-black/40 border-white/10 text-white/75 hover:bg-white/5"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
+        </div>
 
-          <div className="glass p-6 rounded-2xl lg:col-span-5 space-y-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="glass p-6 rounded-2xl space-y-4">
             {activeTab === "faiz" && (
               <>
                 <div className="text-sm font-semibold">Faiz Hesaplama</div>
@@ -207,7 +207,7 @@ export default function Calculators() {
             )}
           </div>
 
-          <div className="glass p-6 rounded-2xl lg:col-span-4">
+          <div className="glass p-6 rounded-2xl lg:sticky lg:top-24 h-fit">
             {error && <div className="text-xs text-red-400 mb-3">{error}</div>}
             {!error && !result && <div className="text-xs text-subtle">Hesaplama sonucu burada görünecek.</div>}
             {result && (
