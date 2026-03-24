@@ -100,6 +100,22 @@ def get_my_notifications(user: Dict[str, Any] = Depends(get_current_user)):
         cur.execute(sql, (user_id,))
         return cur.fetchall()
 
+
+@router.get("/unread-count")
+def get_unread_count(user: Dict[str, Any] = Depends(get_current_user)):
+    user_id = user.get("id")
+    with get_db_cursor() as cur:
+        cur.execute(
+            """
+            SELECT COUNT(*) AS c
+            FROM notifications
+            WHERE user_id = %s AND is_read = FALSE
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone() or {}
+    return {"count": int(row.get("c") or 0)}
+
 @router.post("/{notif_id}/read")
 def mark_as_read(notif_id: int, user: Dict[str, Any] = Depends(get_current_user)):
     """Bildirimi okundu olarak işaretle"""

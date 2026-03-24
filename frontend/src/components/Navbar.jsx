@@ -6,13 +6,14 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { user, status } = useAuth();
+  const { user, status, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const baseNavLinks = [
     { name: "Ana Sayfa", path: "/home" },
     { name: "Analiz", path: "/analyze" },
-    { name: "Yargıtay", path: "/yargitay" },
-    { name: "Mevzuat", path: "/mevzuat" },
+    { name: "Yargıtay", path: "/yargitay", beta: true },
+    { name: "Mevzuat", path: "/mevzuat", beta: true },
     { name: "Dava Simülasyonu", path: "/case-simulation" },
     { name: "Sözleşmeler", path: "/contracts" },
   ];
@@ -25,6 +26,35 @@ export default function Navbar() {
           ...baseNavLinks.slice(1),
         ]
       : baseNavLinks;
+
+  React.useEffect(() => {
+    if (status !== "authed") return;
+    let mounted = true;
+    const run = async () => {
+      try {
+        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+        const res = await fetch(`${base}/api/notifications/unread-count`, { credentials: "include" });
+        const data = await res.json().catch(() => ({}));
+        if (mounted) setUnreadCount(Number(data?.count || 0));
+      } catch {
+        if (mounted) setUnreadCount(0);
+      }
+    };
+    run();
+    const iv = setInterval(run, 12000);
+    const onChanged = () => run();
+    window.addEventListener("notifications:changed", onChanged);
+    return () => {
+      mounted = false;
+      clearInterval(iv);
+      window.removeEventListener("notifications:changed", onChanged);
+    };
+  }, [status]);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/", { replace: true });
+  };
 
   if (status !== "authed") {
     return (
@@ -73,7 +103,7 @@ export default function Navbar() {
               to="/register"
               className="px-5 py-2 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition"
             >
-              15 Gün Ücretsiz
+              15 Günlük Deneme
             </Link>
           </div>
         </div>
@@ -104,7 +134,12 @@ export default function Navbar() {
                     : "text-white/60 hover:text-white"
               }`}
             >
-              {link.name}
+              <span className="inline-flex items-center gap-2">
+                {link.name}
+                {link.beta ? (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/15 border border-white/20 text-white/80">BETA</span>
+                ) : null}
+              </span>
             </Link>
           ))}
         </div>
@@ -117,8 +152,12 @@ export default function Navbar() {
             Premium
           </Link>
           <Link to="/notifications" className="relative group">
-            <span className="text-xl">🔔</span>
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+            <span className={`text-xl transition ${unreadCount > 0 ? "text-white" : "text-white/35"}`}>🔔</span>
+            {unreadCount > 0 ? (
+              <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            ) : null}
           </Link>
 
           <div className="relative group">
@@ -143,12 +182,16 @@ export default function Navbar() {
                   🛡️ Admin Paneli
                 </Link>
               )}
-              <Link to="/settings" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
-                Ayarlar
+              <Link to="/upgrade" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
+                Abonelik
               </Link>
               <Link to="/feedback" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
                 Geri Bildirim
               </Link>
+              <div className="h-px bg-white/10 my-2" />
+              <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-300 hover:bg-white/5">
+                Çıkış Yap
+              </button>
             </div>
           </div>
         </div>
@@ -181,16 +224,22 @@ export default function Navbar() {
                       : "text-white/70"
                 }`}
               >
-                {link.name}
+                <span className="inline-flex items-center gap-2">
+                  {link.name}
+                  {link.beta ? (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/15 border border-white/20 text-white/80">BETA</span>
+                  ) : null}
+                </span>
               </Link>
             ))}
             <div className="h-px bg-white/10 my-2" />
             <Link to="/notifications" onClick={() => setMenuOpen(false)} className="text-lg text-white/70">
               Bildirimler
             </Link>
-            <Link to="/settings" onClick={() => setMenuOpen(false)} className="text-lg text-white/70">
-              Ayarlar
+            <Link to="/upgrade" onClick={() => setMenuOpen(false)} className="text-lg text-white/70">
+              Abonelik
             </Link>
+            <button onClick={handleLogout} className="text-left text-red-300">Çıkış Yap</button>
           </div>
         </div>
       )}

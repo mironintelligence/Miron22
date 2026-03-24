@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
-import { luhnCheck } from "../utils/luhn";
 import { emitToast } from "../utils/toastBus";
 import { passwordMeetsPolicy } from "../utils/passwordPolicy";
 
@@ -51,10 +50,6 @@ export default function Register() {
   const [consentPreinfo, setConsentPreinfo] = useState(false);
   const [consentKvkk, setConsentKvkk] = useState(false);
 
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpMonth, setCardExpMonth] = useState("");
-  const [cardExpYear, setCardExpYear] = useState("");
-  const [cardCvc, setCardCvc] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -128,15 +123,6 @@ export default function Register() {
     );
   }, [firstName, lastName, email, password]);
 
-  const cardOk = useMemo(() => {
-    return (
-      luhnCheck(cardNumber) &&
-      /^\d{2}$/.test(cardExpMonth) &&
-      /^\d{4}$/.test(cardExpYear) &&
-      /^\d{3,4}$/.test(cardCvc)
-    );
-  }, [cardNumber, cardExpMonth, cardExpYear, cardCvc]);
-
   const validMulti = useMemo(() => {
     return (
       firstName.trim().length > 0 &&
@@ -148,8 +134,7 @@ export default function Register() {
   }, [firstName, lastName, email, password, personCount]);
 
   const acceptedAll = consentSaas && consentMss && consentPreinfo && consentKvkk;
-  const needsCard = mode === "single";
-  const disabled = !validSingle || !acceptedAll || (needsCard && !cardOk);
+  const disabled = !validSingle || !acceptedAll;
 
   const updatePerson = (idx, key, value) => {
     setPersons((prev) => {
@@ -215,15 +200,7 @@ export default function Register() {
         preinfo: true,
         kvkk: true,
       };
-      const cardPayload =
-        payload.mode === "single"
-          ? {
-              number: cardNumber.replace(/\s/g, ""),
-              exp_month: cardExpMonth,
-              exp_year: cardExpYear,
-              cvc: cardCvc,
-            }
-          : null;
+      const cardPayload = null;
 
       for (const p of list) {
         const res = await register({
@@ -466,7 +443,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen mt-12 px-6 sm:px-10 md:px-16 pb-12">
+    <div className="min-h-screen px-6 sm:px-10 md:px-16 pb-12">
       <div className="glass p-6 sm:p-8 rounded-2xl">
         <div className="text-center mb-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-accent">
@@ -574,58 +551,12 @@ export default function Register() {
                   </div>
                 </div>
 
-                {mode === "single" && (
-                  <div className="sm:col-span-2 mt-4 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-3">
-                    <div className="text-sm font-semibold text-amber-200/90">
-                      15 gün ücretsiz deneme — kart bilgisi (çekim yapılmaz)
-                    </div>
-                    <p className="text-xs text-white/50">
-                      Deneme süresince ücret tahsil edilmez. Deneme bitiminde iptal edebilirsiniz.
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs text-subtle mb-1">Kart numarası</label>
-                        <input
-                          value={cardNumber}
-                          onChange={(e) => setCardNumber(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 font-mono"
-                          placeholder="4242 4242 4242 4242"
-                          autoComplete="cc-number"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-subtle mb-1">Ay (AA)</label>
-                        <input
-                          value={cardExpMonth}
-                          onChange={(e) => setCardExpMonth(e.target.value.replace(/\D/g, "").slice(0, 2))}
-                          className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15"
-                          placeholder="MM"
-                          maxLength={2}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-subtle mb-1">Yıl (YYYY)</label>
-                        <input
-                          value={cardExpYear}
-                          onChange={(e) => setCardExpYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                          className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15"
-                          placeholder="YYYY"
-                          maxLength={4}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-subtle mb-1">CVC</label>
-                        <input
-                          value={cardCvc}
-                          onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                          className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15"
-                          placeholder="123"
-                          autoComplete="cc-csc"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <div className="sm:col-span-2 mt-4 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                  <div className="text-sm font-semibold text-amber-200/90">15 Günlük Deneme</div>
+                  <p className="text-xs text-white/50">
+                    Deneme süresini başlatmak için sadece hesap bilgileri yeterlidir. Kart bilgisi istenmez.
+                  </p>
+                </div>
               </div>
             ) : (
               <>

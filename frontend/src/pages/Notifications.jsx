@@ -26,6 +26,7 @@ export default function Notifications() {
     try {
       await authFetch(`/api/notifications/${id}/read`, { method: "POST" });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      window.dispatchEvent(new CustomEvent("notifications:changed"));
     } catch (e) {
       console.error("Read error:", e);
     }

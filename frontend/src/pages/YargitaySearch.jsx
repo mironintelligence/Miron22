@@ -82,8 +82,17 @@ export default function YargitaySearch() {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const sampleSnippets = [
+    "Yargıtay 3. HD: Tahliye taleplerinde ihtar şartı somut olayla birlikte değerlendirilir.",
+    "Yargıtay 11. HD: Ticari defterlerin usulüne uygun tutulması delil değerini artırır.",
+    "Yargıtay 12. HD: İcra takiplerinde tebligat usulü kamu düzenindendir.",
+    "YHGK: Hakkın kötüye kullanılması iddiasında dürüstlük kuralı esas alınır.",
+    "Yargıtay 4. HD: Manevi tazminatın takdirinde olayın özellikleri belirleyicidir.",
+    "Yargıtay 13. HD: Tüketici uyuşmazlığında ispat yükü somut olgulara göre değişir.",
+  ];
+
   return (
-    <div className="mt-24 max-w-7xl mx-auto px-4 pb-12">
+    <div className="max-w-7xl mx-auto px-4 pb-12">
       <div className="text-center mb-10">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-600 bg-clip-text text-transparent">
           Karar Arama Motoru
@@ -94,7 +103,7 @@ export default function YargitaySearch() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_280px] gap-8">
         {/* FILTERS SIDEBAR */}
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 h-fit sticky top-24 backdrop-blur-sm">
           <form onSubmit={handleSearch} className="space-y-6">
@@ -221,7 +230,21 @@ export default function YargitaySearch() {
             </div>
           ))}
         </div>
+
+        <aside className="hidden lg:block bg-white/5 border border-white/10 rounded-2xl p-4 overflow-hidden">
+          <h3 className="text-sm font-semibold text-white/80 mb-3">Örnek Yargıtay Kararları</h3>
+          <div className="relative h-[70vh] overflow-hidden">
+            <div className="absolute inset-0 [animation:marqueeUp_30s_linear_infinite] space-y-3">
+              {[...sampleSnippets, ...sampleSnippets, ...sampleSnippets].map((s, i) => (
+                <div key={`${i}-${s.slice(0, 12)}`} className="rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-white/70">
+                  {s}
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
+      <style>{`@keyframes marqueeUp {0% {transform: translateY(0);} 100% {transform: translateY(-50%);}}`}</style>
     </div>
   );
 }

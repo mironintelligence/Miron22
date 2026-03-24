@@ -228,7 +228,7 @@ export default function CaseDetail() {
 
   if (loading && !caseData) {
     return (
-      <div className="mt-24 max-w-4xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4">
         <div className="glass px-5 py-4 text-xs text-subtle">
           Dosya yükleniyor...
         </div>
@@ -238,7 +238,7 @@ export default function CaseDetail() {
 
   if (error && !caseData) {
     return (
-      <div className="mt-24 max-w-4xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4">
         <div className="glass px-5 py-4 text-xs text-red-400">
           {error}
         </div>
@@ -261,7 +261,7 @@ export default function CaseDetail() {
     caseData.status;
 
   return (
-        <div className="mt-24 max-w-6xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-4">
       <div className="flex items-center justify-between mb-4">
         <div>
           <p className="text-[11px] text-subtle mb-1">

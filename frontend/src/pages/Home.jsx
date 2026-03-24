@@ -36,14 +36,14 @@ const baseTiles = [
   {
     title: "Sözleşme Analizi",
     desc: "Sözleşmeni yapıştır, riskleri ve açıkları gör.",
-    to: "/contracts?tab=analyze",
+    to: "/contracts/analysis",
     icon: "🧾",
     disabled: false,
   },
   {
     title: "Sözleşme Oluşturucu",
     desc: "Şablon seç, alanları doldur, sözleşmeyi üret.",
-    to: "/contracts?tab=create",
+    to: "/contracts/templates",
     icon: "✍️",
     disabled: false,
   },
@@ -64,6 +64,7 @@ const baseTiles = [
     desc: "AI destekli emsal karar ve strateji analizi.",
     to: "/yargitay",
     icon: "⚖️",
+    beta: true,
     disabled: false,
   },
   {
@@ -71,6 +72,7 @@ const baseTiles = [
     desc: "Kanun / madde bazlı AI açıklama ve strateji.",
     to: "/mevzuat",
     icon: "📚",
+    beta: true,
     disabled: false,
   },
 
@@ -101,6 +103,7 @@ const baseTiles = [
 
 export default function Home() {
   const { user } = useAuth();
+  const isTrial = user?.subscriptionStatus === "trial" || user?.isDemo || user?.role === "demo";
   const tiles = [...baseTiles];
   if (user?.role === "admin") {
     tiles.unshift({
@@ -112,11 +115,18 @@ export default function Home() {
     });
   }
   return (
-    <div className="mt-24 pb-28">
+    <div className="pb-28">
       <div className="glass px-6 py-10">
         <div className="text-center mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-accent">Hoş geldiniz</h2>
           <p className="text-sm text-subtle mt-1">MIRON AI modüllerini keşfedin.</p>
+          {isTrial ? (
+            <div className="mt-4">
+              <Link to="/upgrade" className="inline-flex px-5 py-2 rounded-xl bg-[var(--miron-gold)] text-black font-semibold">
+                Hesabı Yükselt
+              </Link>
+            </div>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -143,7 +153,14 @@ export default function Home() {
                 >
                   <div>
                     <div className="text-3xl">{t.icon}</div>
-                    <h3 className="text-lg font-semibold mt-3">{t.title}</h3>
+                    <h3 className="text-lg font-semibold mt-3 flex items-center gap-2">
+                      <span>{t.title}</span>
+                      {t.beta ? (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/15 border border-white/20 text-white/80">
+                          BETA
+                        </span>
+                      ) : null}
+                    </h3>
                     <p className="text-sm text-subtle mt-1">{t.desc}</p>
                   </div>
                   <div className="mt-4 text-right text-accent">

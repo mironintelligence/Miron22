@@ -61,7 +61,7 @@ export default function Mevzuat() {
   };
 
   return (
-    <div className="mt-24 max-w-6xl mx-auto px-4">
+    <div className="max-w-6xl mx-auto px-4">
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-6">
         {/* SOL: FORM */}
         <div className="glass px-6 py-6">

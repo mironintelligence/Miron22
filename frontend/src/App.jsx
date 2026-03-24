@@ -77,7 +77,7 @@ export default function App() {
         }}
       />
 
-      <div className=""> {/* Padding removed, pages handle their own padding */}
+      <div className="pt-24 pb-20"> {/* Global navbar/footer safe spacing */}
         <Routes>
           <Route path="/demo-request" element={<DemoRequest />} />
 
@@ -107,6 +107,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Contracts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contracts/templates"
+            element={
+              <ProtectedRoute>
+                <Contracts forcedTab="templates" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contracts/analysis"
+            element={
+              <ProtectedRoute>
+                <Contracts forcedTab="analyze" />
               </ProtectedRoute>
             }
           />

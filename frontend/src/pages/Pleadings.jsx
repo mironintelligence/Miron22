@@ -137,7 +137,7 @@ export default function Pleadings() {
   };
 
   return (
-    <div className="min-h-screen overflow-y-auto pb-24 mt-12 grid grid-cols-12 gap-5">
+    <div className="min-h-screen overflow-y-auto pb-24 grid grid-cols-12 gap-5">
       {/* Sol: Kategoriler */}
       <motion.aside
         initial={{ opacity: 0, x: -12 }}
@@ -159,33 +159,6 @@ export default function Pleadings() {
               {cat.category}
             </button>
           ))}
-        </div>
-
-        <div className="mt-5">
-          <h3 className="text-lg font-semibold mb-3">📄 Şablonlar</h3>
-          {!currentItems.length && <div className="text-sm opacity-70">Bu kategoride kayıt yok.</div>}
-          <div className="space-y-3">
-            {Object.entries(groupedTemplates).map(([caseType, items]) => (
-              <div key={caseType} className="bg-white/5 border border-white/10 rounded-2xl p-3">
-                <div className="text-xs text-white/60 mb-2">{caseType}</div>
-                <div className="space-y-2">
-                  {items.map((item) => (
-                    <button
-                      key={item.key}
-                      onClick={() => setActiveTpl(item.key)}
-                      className={`w-full text-left px-3 py-2 rounded-xl transition ${
-                        activeTpl === item.key
-                          ? "bg-accent text-black"
-                          : "bg-white/10 hover:bg-white/20 text-fg"
-                      }`}
-                    >
-                      <div className="font-semibold text-sm">{item.title}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
@@ -224,11 +197,43 @@ export default function Pleadings() {
         </div>
       </motion.aside>
 
+      <motion.section
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="col-span-12 md:col-span-3 glass p-4"
+      >
+        <h3 className="text-lg font-semibold mb-3">📄 Şablonlar</h3>
+        {!currentItems.length ? (
+          <div className="text-sm opacity-70">Bu kategoride kayıt yok.</div>
+        ) : (
+          <div className="space-y-3">
+            {Object.entries(groupedTemplates).map(([caseType, items]) => (
+              <div key={caseType} className="bg-white/5 border border-white/10 rounded-2xl p-3">
+                <div className="text-xs text-white/60 mb-2">{caseType}</div>
+                <div className="space-y-2">
+                  {items.map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => setActiveTpl(item.key)}
+                      className={`w-full text-left px-3 py-2 rounded-xl transition ${
+                        activeTpl === item.key ? "bg-accent text-black" : "bg-white/10 hover:bg-white/20 text-fg"
+                      }`}
+                    >
+                      <div className="font-semibold text-sm">{item.title}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.section>
+
       {/* Sağ: Dinamik Form + Önizleme */}
       <motion.section
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="col-span-12 md:col-span-8 glass p-4"
+        className="col-span-12 md:col-span-5 glass p-4"
       >
         <h3 className="text-lg font-semibold mb-3">🧾 Form</h3>
         {!activeTpl && (

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { authFetch } from "../auth/api";
 import { useAuth } from "../auth/AuthProvider";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function NotificationToasts() {
   const { status } = useAuth();
@@ -55,7 +56,7 @@ export default function NotificationToasts() {
     const timers = toasts.map((t) =>
       setTimeout(() => {
         setToasts((prev) => prev.filter((x) => x.id !== t.id));
-      }, 3000)
+      }, 10000)
     );
     return () => timers.forEach(clearTimeout);
   }, [toasts]);
@@ -63,27 +64,36 @@ export default function NotificationToasts() {
   if (status !== "authed" || !toasts.length) return null;
 
   return (
-    <div className="fixed top-24 right-4 z-[60] w-[360px] max-w-[92vw] space-y-2">
-      {toasts.map((t) => (
-        <div key={t.id} className="bg-black/80 border border-white/15 backdrop-blur-xl rounded-2xl p-4 shadow-2xl">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-xs text-white/60 mb-1">
-                {t.type === "admin" ? "Duyuru" : t.type === "case_reminder" ? "Hatırlatma" : "Sistem"}
+    <div className="fixed top-6 right-4 z-[80] w-[380px] max-w-[92vw] space-y-2">
+      <AnimatePresence initial={false}>
+        {toasts.map((t) => (
+          <motion.div
+            key={t.id}
+            initial={{ opacity: 0, y: -18, x: 30 }}
+            animate={{ opacity: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, y: -12, x: 30 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="bg-zinc-900/90 border border-white/15 backdrop-blur-xl rounded-2xl p-4 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-xs text-white/60 mb-1">
+                  {t.type === "admin" ? "Duyuru" : t.type === "case_reminder" ? "Hatırlatma" : "Sistem"}
+                </div>
+                <div className="font-semibold text-white truncate">{t.title}</div>
+                <div className="text-xs text-white/70 mt-1 break-words">{t.message}</div>
               </div>
-              <div className="font-semibold text-white truncate">{t.title}</div>
-              <div className="text-xs text-white/70 mt-1 break-words">{t.message}</div>
+              <button
+                onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
+                className="text-white/50 hover:text-white text-sm"
+                aria-label="Bildirimi kapat"
+              >
+                ✕
+              </button>
             </div>
-            <button
-              onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
-              className="text-white/50 hover:text-white text-sm"
-              aria-label="Bildirimi kapat"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      ))}
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

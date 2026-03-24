@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { authFetch } from "../auth/api";
 
-export default function Contracts() {
+export default function Contracts({ forcedTab = null }) {
   const [categories, setCategories] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,10 +11,11 @@ export default function Contracts() {
   const location = useLocation();
   const navigate = useNavigate();
   const initialTab = useMemo(() => {
+    if (forcedTab === "analyze" || forcedTab === "templates") return forcedTab;
     const t = new URLSearchParams(location.search).get("tab");
     if (t === "analyze" || t === "create" || t === "templates") return t;
     return "templates";
-  }, [location.search]);
+  }, [location.search, forcedTab]);
   const [activeTab, setActiveTab] = useState(initialTab); // 'templates' | 'analyze' | 'create'
   const [analysisText, setAnalysisText] = useState("");
   const [analysisResult, setAnalysisResult] = useState(null);
@@ -361,12 +362,6 @@ export default function Contracts() {
             Şablonlar
           </button>
           <button 
-            onClick={() => setTab("create")}
-            className={`pb-4 px-2 font-medium transition-colors ${activeTab === "create" ? "text-[var(--miron-gold)] border-b-2 border-[var(--miron-gold)]" : "text-white/50 hover:text-white"}`}
-          >
-            Sözleşme Oluştur
-          </button>
-          <button 
             onClick={() => setTab("analyze")}
             className={`pb-4 px-2 font-medium transition-colors ${activeTab === "analyze" ? "text-[var(--miron-gold)] border-b-2 border-[var(--miron-gold)]" : "text-white/50 hover:text-white"}`}
           >
@@ -419,7 +414,6 @@ export default function Contracts() {
                     >
                       <div className="flex items-center justify-between gap-3 mb-2">
                         <div className="text-xs font-bold text-[var(--miron-gold)] uppercase tracking-wider">
-                          <span className="mr-1">{t.category_icon}</span>
                           {t.category}
                         </div>
                         {t.subcategory && <div className="text-[11px] text-white/45">{t.subcategory}</div>}

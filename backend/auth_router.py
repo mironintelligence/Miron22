@@ -95,8 +95,6 @@ def _permissions_for_user_row(u: Dict[str, Any]) -> list:
         perms.extend(["admin.all", "admin.export", "app.billing"])
     else:
         perms.append("app.billing")
-    if not u.get("payment_card_on_file"):
-        perms.append("gate.payment_card")
     return list(dict.fromkeys(perms))
 
 
@@ -130,10 +128,6 @@ def register(payload: RegisterRequest, request: Request) -> Dict[str, Any]:
     if not cp or not (cp.saas and cp.mss and cp.preinfo and cp.kvkk):
         raise HTTPException(status_code=400, detail="Dört yasal onay kutusu da işaretlenmelidir.")
 
-    skip_card = (os.getenv("ENVIRONMENT") or "").lower() == "test" and (
-        os.getenv("SKIP_PAYMENT_CARD_FOR_REGISTER", "true") or ""
-    ).lower() == "true"
-
     used_code = None
     if payload.discountCode:
         dc = find_valid_discount(payload.discountCode)
@@ -159,10 +153,6 @@ def register(payload: RegisterRequest, request: Request) -> Dict[str, Any]:
             demo_expires_at = approved_until
             role = "demo"
 
-    if payload.mode == "single" and not skip_card:
-        if not payload.card or not luhn_valid(payload.card.number):
-            raise HTTPException(status_code=400, detail="Geçerli kart numarası gerekli (15 gün ücret alınmaz).")
-
     v_token = secrets.token_urlsafe(32)
 
     user_data = {
@@ -183,14 +173,14 @@ def register(payload: RegisterRequest, request: Request) -> Dict[str, Any]:
 
     _insert_legal_consents(str(user_id), ip)
 
-    if payload.mode == "single" and (skip_card or (payload.card and luhn_valid(payload.card.number))):
+    if payload.mode == "single":
         if (os.getenv("ENVIRONMENT") or "").lower() != "test" or (
             os.getenv("TEST_USE_INMEMORY_PG_STORE", "true") or ""
         ).lower() == "false":
             with get_db_cursor() as cur:
                 cur.execute(
                     """
-                    UPDATE users SET payment_card_on_file = TRUE,
+                    UPDATE users SET payment_card_on_file = FALSE,
                     trial_ends_at = NOW() + interval '15 days'
                     WHERE id = %s
                     """,

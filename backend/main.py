@@ -8,7 +8,7 @@ import datetime
 import pathlib
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Body
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Body, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -50,6 +50,7 @@ except ImportError:
     from db import init_pool, close_pool
     from db_async import db as async_db
 from security import sanitize_text
+from user_auth import get_current_user
 
 # OpenAI error types (sürüm uyumlu)
 try:
@@ -176,10 +177,8 @@ from starlette.requests import Request
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     import traceback
-    # In production, do NOT expose stack trace
-    # Log the full error internally
-    print(f"[ERROR] Global Exception: {exc}")
-    # traceback.print_exc() 
+    print(f"[ERROR] Global Exception on {request.method} {request.url.path}: {exc}")
+    traceback.print_exc()
     
     return JSONResponse(
         status_code=500,
@@ -220,6 +219,25 @@ app.add_middleware(TimeoutMiddleware) # Global Timeout
 app.add_middleware(PrometheusMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(LoggingMiddleware) # Outermost logger
+
+
+@app.middleware("http")
+async def strict_api_admin_rbac(request: Request, call_next):
+    """
+    /api/admin/* uçlarında ek RBAC kontrolü.
+    Admin olmayan JWT ile erişimde kesin 403 döner.
+    """
+    if request.url.path.startswith("/api/admin"):
+        auth = (request.headers.get("authorization") or "").strip()
+        if not auth.lower().startswith("bearer "):
+            return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+        try:
+            user = get_current_user(auth)
+            if (user.get("role") or "").lower() != "admin":
+                return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+        except Exception:
+            return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+    return await call_next(request)
 
 @app.get("/health")
 def health():
@@ -636,6 +654,23 @@ except ImportError:
     from pricing_router import router as pricing_router
 
 app.include_router(pricing_router, prefix="/api/pricing", tags=["Pricing"])
+
+
+@app.get("/api/admin/pricing-settings")
+def get_admin_pricing_settings(user: dict = Depends(get_current_user)):
+    if (user.get("role") or "").lower() != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        from pricing_router import _load_config, DEFAULT_CONFIG  # type: ignore
+        cfg = _load_config()
+        return {
+            "base_price": float(cfg.get("base_price", DEFAULT_CONFIG["base_price"])),
+            "bulk_discount_rate": float(cfg.get("discount_rate", 12.5)),
+            "bulk_threshold": int(cfg.get("bulk_threshold", 3)),
+            "bulk_discounted_unit_price": round(float(cfg.get("base_price", 8000.0)) * (1 - float(cfg.get("discount_rate", 12.5)) / 100.0), 2),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"pricing_settings_error: {e}")
 
 # Admin Router (ensure it is included)
 # Note: admin_router is already imported via _safe_import and included above with prefix="/admin"

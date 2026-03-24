@@ -127,7 +127,7 @@ export default function Cases() {
   };
 
   return (
-    <div className="mt-24 max-w-6xl mx-auto px-4">
+    <div className="max-w-6xl mx-auto px-4">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-2xl font-semibold text-accent">Dosya Yönetimi</h2>
