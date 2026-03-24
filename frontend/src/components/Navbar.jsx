@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { authFetch } from "../auth/api";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, status, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const isDemoUser = user?.role === "demo" || user?.isDemo || user?.subscriptionStatus === "demo" || user?.subscriptionStatus === "trial";
 
   const baseNavLinks = [
     { name: "Ana Sayfa", path: "/home" },
@@ -18,22 +20,14 @@ export default function Navbar() {
     { name: "Sözleşmeler", path: "/contracts" },
   ];
 
-  const navLinks =
-    user?.role === "admin"
-      ? [
-          baseNavLinks[0],
-          { name: "🛡️ Admin Paneli", path: "/admin", prominent: true },
-          ...baseNavLinks.slice(1),
-        ]
-      : baseNavLinks;
+  const navLinks = baseNavLinks;
 
   React.useEffect(() => {
     if (status !== "authed") return;
     let mounted = true;
     const run = async () => {
       try {
-        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-        const res = await fetch(`${base}/api/notifications/unread-count`, { credentials: "include" });
+        const res = await authFetch("/api/notifications/unread-count");
         const data = await res.json().catch(() => ({}));
         if (mounted) setUnreadCount(Number(data?.count || 0));
       } catch {
@@ -90,12 +84,14 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link
-              to="/pricing"
-              className="hidden sm:inline px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-700 text-black hover:brightness-110 transition"
-            >
-              Premium
-            </Link>
+            {isDemoUser ? (
+              <Link
+                to="/pricing"
+                className="hidden sm:inline px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-700 text-black hover:brightness-110 transition"
+              >
+                Premium
+              </Link>
+            ) : null}
             <Link to="/login" className="text-white/70 hover:text-white transition">
               Giriş Yap
             </Link>
@@ -134,23 +130,20 @@ export default function Navbar() {
                     : "text-white/60 hover:text-white"
               }`}
             >
-              <span className="inline-flex items-center gap-2">
-                {link.name}
-                {link.beta ? (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/15 border border-white/20 text-white/80">BETA</span>
-                ) : null}
-              </span>
+              <span>{link.name}</span>
             </Link>
           ))}
         </div>
 
         <div className="hidden md:flex items-center gap-6">
-          <Link
-            to="/upgrade"
-            className="text-sm font-bold px-4 py-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-700 text-black hover:brightness-110 transition shadow-lg shadow-amber-900/30"
-          >
-            Premium
-          </Link>
+          {isDemoUser ? (
+            <Link
+              to="/upgrade"
+              className="text-sm font-bold px-4 py-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-700 text-black hover:brightness-110 transition shadow-lg shadow-amber-900/30"
+            >
+              Premium
+            </Link>
+          ) : null}
           <Link to="/notifications" className="relative group">
             <span className={`text-xl transition ${unreadCount > 0 ? "text-white" : "text-white/35"}`}>🔔</span>
             {unreadCount > 0 ? (
@@ -177,11 +170,6 @@ export default function Navbar() {
             </button>
 
             <div className="absolute right-0 top-full mt-2 w-48 bg-[#111] border border-white/10 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top-right">
-              {user?.role === "admin" && (
-                <Link to="/admin" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
-                  🛡️ Admin Paneli
-                </Link>
-              )}
               <Link to="/upgrade" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
                 Abonelik
               </Link>
@@ -204,13 +192,15 @@ export default function Navbar() {
       {menuOpen && (
         <div className="md:hidden bg-[#050505] border-t border-white/10 p-6 absolute w-full left-0 top-20">
           <div className="flex flex-col gap-4">
-            <Link
-              to="/upgrade"
-              onClick={() => setMenuOpen(false)}
-              className="text-lg font-bold text-center py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-700 text-black"
-            >
-              Premium
-            </Link>
+            {isDemoUser ? (
+              <Link
+                to="/upgrade"
+                onClick={() => setMenuOpen(false)}
+                className="text-lg font-bold text-center py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-700 text-black"
+              >
+                Premium
+              </Link>
+            ) : null}
             {navLinks.map((link) => (
               <Link
                 key={link.path}
@@ -224,12 +214,7 @@ export default function Navbar() {
                       : "text-white/70"
                 }`}
               >
-                <span className="inline-flex items-center gap-2">
-                  {link.name}
-                  {link.beta ? (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/15 border border-white/20 text-white/80">BETA</span>
-                  ) : null}
-                </span>
+                <span>{link.name}</span>
               </Link>
             ))}
             <div className="h-px bg-white/10 my-2" />

@@ -58,6 +58,10 @@ export default function App() {
     }
   }, [location.pathname, status, navigate]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname]);
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar /> {/* Header yerine Navbar */}
@@ -77,7 +81,7 @@ export default function App() {
         }}
       />
 
-      <div className="pt-24 pb-20"> {/* Global navbar/footer safe spacing */}
+      <div className="pt-20 pb-20"> {/* Global navbar/footer safe spacing */}
         <Routes>
           <Route path="/demo-request" element={<DemoRequest />} />
 

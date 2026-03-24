@@ -23,13 +23,13 @@ describe("Navbar", () => {
     expect(screen.queryByText(/Admin Panel/i)).toBeNull();
   });
 
-  it("oturum açıkken Premium CTA görünür", () => {
+  it("normal user için Premium CTA görünmez", () => {
     render(
       <MemoryRouter initialEntries={["/home"]}>
         <Navbar />
       </MemoryRouter>
     );
-    expect(screen.getAllByText("Premium").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Premium")).toBeNull();
   });
 
   it("demo kullanıcıda da Premium CTA görünür", async () => {
@@ -52,7 +52,7 @@ describe("Navbar", () => {
     expect(screen.getAllByText("Premium").length).toBeGreaterThan(0);
   });
 
-  it("admin rolünde Admin Panel linkini gösterir", async () => {
+  it("admin rolünde de navbar Admin Panel göstermez", async () => {
     vi.resetModules();
     vi.doMock("../auth/AuthProvider", () => ({
       useAuth: () => ({
@@ -69,6 +69,6 @@ describe("Navbar", () => {
         <AdminNavbar />
       </MemoryRouter>
     );
-    expect(screen.getAllByText(/Admin Panel/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Admin Panel/i)).toBeNull();
   });
 });
