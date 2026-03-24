@@ -38,9 +38,6 @@ def get_current_user(authorization: Optional[str] = Header(default=None)) -> Dic
         if u.get("is_active") is False:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hesap askıya alındı.")
 
-        if u.get("is_verified") is False:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="E-posta doğrulanmamış.")
-
         current_tv = get_user_token_version(str(uid))
         if int(tv) != int(current_tv):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Oturum geçersiz.")

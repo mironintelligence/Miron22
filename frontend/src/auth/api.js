@@ -1,3 +1,5 @@
+import axios from "axios";
+
 const API = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
 function detailMessage(t) {
@@ -13,11 +15,75 @@ function detailMessage(t) {
   return "İstek başarısız";
 }
 
-/** Bellekte tutulan access token getter (HttpOnly çerez yoksa Bearer yedek). */
+/** Bellekte tutulan access token getter (Authorization Bearer). */
 let _getAccessToken = () => null;
+
+/** Access token yenilendiğinde React state güncellemesi (401 sonrası retry için). */
+let _setAccessToken = () => {};
 
 export function registerAccessTokenGetter(fn) {
   _getAccessToken = typeof fn === "function" ? fn : () => null;
+}
+
+export function registerAccessTokenSetter(fn) {
+  _setAccessToken = typeof fn === "function" ? fn : () => {};
+}
+
+function readCsrfToken() {
+  if (typeof document === "undefined") return "";
+  const csrf = String(document.cookie || "")
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith("csrf_token="));
+  return csrf ? decodeURIComponent(csrf.split("=", 2)[1] || "") : "";
+}
+
+function authHeaders(method, extra = {}) {
+  const token = (_getAccessToken && _getAccessToken()) || "";
+  const m = String(method || "GET").toUpperCase();
+  const unsafe = m !== "GET" && m !== "HEAD" && m !== "OPTIONS";
+  const csrfToken = readCsrfToken();
+  return {
+    ...extra,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(unsafe && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+  };
+}
+
+let _refreshChain = null;
+
+/**
+ * HttpOnly refresh çerezi ile yeni access token alır; bellekteki token'ı günceller.
+ */
+export async function refreshSession() {
+  if (!_refreshChain) {
+    _refreshChain = (async () => {
+      const r = await fetch(`${API}/api/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!r.ok) {
+        const t = await r.json().catch(() => ({}));
+        throw new Error(detailMessage(t) || "Oturum yenilenemedi");
+      }
+      const j = await r.json();
+      const tok = j?.access_token || "";
+      if (tok) _setAccessToken(tok);
+      return j;
+    })().finally(() => {
+      _refreshChain = null;
+    });
+  }
+  return _refreshChain;
+}
+
+function shouldSkip401Retry(path) {
+  const p = String(path || "");
+  return (
+    p.includes("/api/auth/refresh") ||
+    p.includes("/api/auth/login") ||
+    p.includes("/api/auth/logout")
+  );
 }
 
 export async function login(email, password) {
@@ -31,7 +97,10 @@ export async function login(email, password) {
     const t = await r.json().catch(() => ({}));
     throw new Error(detailMessage(t) || "Giriş başarısız");
   }
-  return r.json();
+  const data = await r.json();
+  const tok = data?.access_token || "";
+  if (tok) _setAccessToken(tok);
+  return data;
 }
 
 export async function register({ email, password, firstName, lastName, mode, discountCode, consents, card }) {
@@ -58,15 +127,7 @@ export async function register({ email, password, firstName, lastName, mode, dis
 }
 
 export async function refresh() {
-  const r = await fetch(`${API}/api/auth/refresh`, {
-    method: "POST",
-    credentials: "include",
-  });
-  if (!r.ok) {
-    const t = await r.json().catch(() => ({}));
-    throw new Error(detailMessage(t) || "Oturum yenilenemedi");
-  }
-  return r.json();
+  return refreshSession();
 }
 
 export async function logout() {
@@ -104,25 +165,67 @@ export async function me() {
 }
 
 export async function authFetch(path, options = {}) {
-  const token = (_getAccessToken && _getAccessToken()) || "";
   const method = String(options.method || "GET").toUpperCase();
-  const unsafe = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
-  const csrf =
-    typeof document !== "undefined"
-      ? String(document.cookie || "")
-          .split(";")
-          .map((c) => c.trim())
-          .find((c) => c.startsWith("csrf_token="))
-      : null;
-  const csrfToken = csrf ? decodeURIComponent(csrf.split("=", 2)[1] || "") : "";
-  const headers = {
-    ...(options.headers || {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(unsafe && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
-  };
-  return fetch(`${API}${path}`, {
-    ...options,
-    headers,
-    credentials: "include",
-  });
+  const headers = authHeaders(method, options.headers || {});
+  const url = `${API}${path}`;
+
+  const exec = () =>
+    fetch(url, {
+      ...options,
+      headers,
+      credentials: "include",
+    });
+
+  let res = await exec();
+  if (res.status === 401 && !shouldSkip401Retry(path)) {
+    try {
+      await refreshSession();
+      const retryHeaders = authHeaders(method, options.headers || {});
+      res = await fetch(url, {
+        ...options,
+        headers: retryHeaders,
+        credentials: "include",
+      });
+    } catch {
+      /* orijinal 401 */
+    }
+  }
+  return res;
 }
+
+export const apiAxios = axios.create({
+  baseURL: API,
+  withCredentials: true,
+});
+
+apiAxios.interceptors.request.use((config) => {
+  const method = String(config.method || "get").toUpperCase();
+  const base = config.headers || {};
+  const merged = authHeaders(method, { ...base });
+  Object.assign(config.headers, merged);
+  return config;
+});
+
+apiAxios.interceptors.response.use(
+  (r) => r,
+  async (error) => {
+    const orig = error.config;
+    const status = error.response?.status;
+    if (status !== 401 || !orig || orig._retry) {
+      return Promise.reject(error);
+    }
+    const reqUrl = String(orig.url || "");
+    if (reqUrl.includes("/api/auth/refresh") || reqUrl.includes("/api/auth/login")) {
+      return Promise.reject(error);
+    }
+    orig._retry = true;
+    try {
+      await refreshSession();
+      const method = String(orig.method || "get").toUpperCase();
+      Object.assign(orig.headers, authHeaders(method, {}));
+      return apiAxios(orig);
+    } catch {
+      return Promise.reject(error);
+    }
+  }
+);

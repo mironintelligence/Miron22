@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   login as apiLogin,
   register as apiRegister,
@@ -6,6 +6,7 @@ import {
   logout as apiLogout,
   me as apiMe,
   registerAccessTokenGetter,
+  registerAccessTokenSetter,
 } from "./api";
 import { purgeLegacyTokenStorage } from "../utils/auth";
 import { emitToast } from "../utils/toastBus";
@@ -40,6 +41,12 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [accessToken, setAccessToken] = useState(null);
   const [lastLoginMeta, setLastLoginMeta] = useState(null);
+  const setAccessTokenRef = useRef(setAccessToken);
+  setAccessTokenRef.current = setAccessToken;
+
+  useEffect(() => {
+    registerAccessTokenSetter((tok) => setAccessTokenRef.current(tok || null));
+  }, []);
 
   useEffect(() => {
     registerAccessTokenGetter(() => accessToken);

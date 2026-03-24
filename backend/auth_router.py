@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import re
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from fastapi import APIRouter, HTTPException, status, Request, Response, Body, Depends
 from pydantic import BaseModel, EmailStr, Field, validator
@@ -36,6 +36,40 @@ except ImportError:
         def increment_usage(code): pass
 
 router = APIRouter()
+
+
+def _session_cookie_flags() -> Dict[str, Union[bool, str]]:
+    """
+    Çapraz köken SPA: üretimde Secure + SameSite=None; yerel HTTP için Lax (aksi halde çerez düşmez).
+    COOKIE_SECURE=1|0 ile zorlanabilir.
+    """
+    explicit = (os.getenv("COOKIE_SECURE") or "").strip().lower()
+    if explicit in ("0", "false", "no"):
+        secure = False
+    elif explicit in ("1", "true", "yes"):
+        secure = True
+    else:
+        secure = (os.getenv("ENVIRONMENT") or "").strip().lower() in ("production", "prod", "staging")
+    if secure:
+        return {"httponly": True, "secure": True, "samesite": "none"}
+    return {"httponly": True, "secure": False, "samesite": "lax"}
+
+
+def _set_refresh_cookie(response: Response, value: str, max_age: int = 604800) -> None:
+    flags = _session_cookie_flags()
+    response.set_cookie(key="refresh_token", value=value, max_age=max_age, path="/", **flags)
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    flags = _session_cookie_flags()
+    response.delete_cookie(
+        key="refresh_token",
+        path="/",
+        secure=bool(flags.get("secure")),
+        httponly=bool(flags.get("httponly")),
+        samesite=str(flags.get("samesite") or "lax"),
+    )
+
 
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
@@ -162,7 +196,7 @@ def register(payload: RegisterRequest, request: Request) -> Dict[str, Any]:
         "hashed_password": hash_password(payload.password),
         "role": "user",
         "is_active": True,
-        "is_verified": False,
+        "is_verified": True,
         "verification_token": v_token,
         "used_discount_code": used_code,
         "demo_expires_at": demo_expires_at,
@@ -200,7 +234,12 @@ def register(payload: RegisterRequest, request: Request) -> Dict[str, Any]:
 
     send_verification_email(email_norm, v_token)
 
-    return {"status": "ok", "requires_verification": True, "user_id": user_id, "message": "Kayıt başarılı! Lütfen e-postanızı doğrulayın."}
+    return {
+        "status": "ok",
+        "requires_verification": False,
+        "user_id": user_id,
+        "message": "Kayıt başarılı. İsterseniz e-postanızdaki bağlantı ile hesabınızı doğrulayabilirsiniz.",
+    }
 
 
 class AttachPaymentIn(BaseModel):
@@ -302,9 +341,6 @@ def login(payload: LoginRequest, request: Request, response: Response):
     if user.get("is_active") is False:
         raise HTTPException(status_code=403, detail="Hesap askıya alındı.")
 
-    if user.get("is_verified") is False:
-        raise HTTPException(status_code=403, detail="E-posta doğrulanmamış.")
-
     if not verify_password(payload.password, user.get("password_hash") or user.get("hashed_password")):
         increment_failed_login(email_norm)
         raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
@@ -329,15 +365,7 @@ def login(payload: LoginRequest, request: Request, response: Response):
         expires_at=_now_utc() + timedelta(days=7),
     )
 
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="none",
-        max_age=604800,
-        path="/",
-    )
+    _set_refresh_cookie(response, refresh_token)
 
     return {
         "status": "ok",
@@ -369,26 +397,18 @@ def refresh(request: Request, response: Response):
 
     current_tv = get_user_token_version(str(user_id))
     if int(tv) != int(current_tv):
-        response.delete_cookie("refresh_token", path="/")
+        _clear_refresh_cookie(response)
         raise HTTPException(status_code=401, detail="Oturum geçersiz.")
 
     old_hash = hmac_hash(token, os.getenv("DATA_HASH_KEY", ""))
     if not rotate_refresh_token_atomic(old_hash, reason="rotation"):
-        response.delete_cookie("refresh_token", path="/")
+        _clear_refresh_cookie(response)
         raise HTTPException(status_code=401, detail="Oturum geçersiz.")
     
     new_access = create_access_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
     new_refresh = create_refresh_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
     
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh,
-        httponly=True,
-        secure=True,
-        samesite="none",
-        max_age=604800,
-        path="/"
-    )
+    _set_refresh_cookie(response, new_refresh)
     ip = request.client.host if request.client else "127.0.0.1"
     if ip == "testclient":
         ip = "127.0.0.1"
@@ -435,7 +455,7 @@ def logout_all(request: Request, response: Response) -> Dict[str, Any]:
         except:
             pass
             
-    response.delete_cookie("refresh_token", path="/")
+    _clear_refresh_cookie(response)
     return {"status": "ok", "message": "Tüm cihazlardan çıkış yapıldı."}
 
 
@@ -446,5 +466,5 @@ def logout(request: Request, response: Response) -> Dict[str, Any]:
         refresh_hash = hmac_hash(token, os.getenv("DATA_HASH_KEY", ""))
         revoke_session(refresh_hash, reason="logout")
         
-    response.delete_cookie("refresh_token", path="/")
+    _clear_refresh_cookie(response)
     return {"status": "ok"}

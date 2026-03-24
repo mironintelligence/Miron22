@@ -231,12 +231,13 @@ def test_auth_single_user_flow(mock_update_login, mock_log_audit, mock_create_se
         "password": "Password123!", # Valid password
         "firstName": "Test",
         "lastName": "User",
-        "mode": "single"
+        "mode": "single",
+        "consents": {"saas": True, "mss": True, "preinfo": True, "kvkk": True},
     }
     res = client.post("/api/auth/register", json=payload)
     assert res.status_code == 200
-    assert res.json()["requires_verification"] is True
-    
+    assert res.json()["requires_verification"] is False
+
     res = client.post("/api/auth/login", json={"email": "test@example.com", "password": "Password123!"})
     assert res.status_code == 200
     assert "access_token" in res.json()
@@ -275,11 +276,12 @@ def test_auth_multi_user_flow(mock_update_login, mock_log_audit, mock_create_ses
         "password": "Password123!",
         "firstName": "Multi",
         "lastName": "User",
-        "mode": "single"
+        "mode": "single",
+        "consents": {"saas": True, "mss": True, "preinfo": True, "kvkk": True},
     }
     res = client.post("/api/auth/register", json=payload)
     assert res.status_code == 200
-    assert res.json()["requires_verification"] is True
+    assert res.json()["requires_verification"] is False
 
     # 2. Login immediately (should succeed)
     res = client.post("/api/auth/login", json={"email": "multi@example.com", "password": "Password123!"})
