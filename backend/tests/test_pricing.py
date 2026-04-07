@@ -72,7 +72,7 @@ def test_get_config():
     assert res.status_code == 200
     data = res.json()
     assert "base_price" in data
-    assert data["base_price"] == 8000.0
+    assert data["base_price"] == 6999.0
 
 def test_update_config_admin():
     headers = get_admin_headers()
@@ -113,20 +113,21 @@ def test_calculate_simple():
     res = client.post("/api/pricing/calculate", json={"count": 1})
     assert res.status_code == 200
     data = res.json()
-    assert data["raw_total"] == 8000.0
-    assert data["final_total"] == 8000.0
+    assert data["raw_total"] == 6999.0
+    assert data["final_total"] == 6999.0
     assert data["is_discounted"] is False
 
 def test_calculate_bulk():
-    # 3 items (threshold is 3 by default) -> 20% off
+    # 3 items (threshold is 3 by default) -> bulk discount from DEFAULT_CONFIG (12.5%)
     res = client.post("/api/pricing/calculate", json={"count": 3})
     assert res.status_code == 200
     data = res.json()
-    expected_raw = 3 * 8000.0 # 24000
-    expected_discount = 24000 * 0.20 # 4800
+    base = 6999.0
+    expected_raw = 3 * base
+    expected_discount = expected_raw * 0.125
     assert data["raw_total"] == expected_raw
-    assert data["discount_amount"] == expected_discount
-    assert data["final_total"] == 24000 - 4800
+    assert abs(data["discount_amount"] - expected_discount) < 0.01
+    assert abs(data["final_total"] - (expected_raw - expected_discount)) < 0.01
     assert data["is_discounted"] is True
 
 def test_calculate_invalid_code():
@@ -161,8 +162,8 @@ def test_discount_codes_lifecycle():
     assert res.status_code == 200
     data = res.json()
     assert data["discount_code"] == "SUMMER2024"
-    assert data["discount_code_amount"] == 1200.0
-    assert data["final_total"] == 6800.0
+    assert abs(data["discount_code_amount"] - 1049.85) < 0.02
+    assert abs(data["final_total"] - (6999.0 - 1049.85)) < 0.02
     
     # 4. Toggle Code (Deactivate)
     res = client.post("/api/pricing/discount-codes/SUMMER2024/toggle", json={"active": False}, headers=headers)
@@ -209,5 +210,5 @@ def test_create_discount_fixed_amount():
     res = client.post("/api/pricing/calculate", json={"count": 1, "discount_code": "FIXED500"})
     data = res.json()
     assert data["discount_code_amount"] == 500.0
-    assert data["final_total"] == 7500.0 # 8000 - 500
+    assert data["final_total"] == 6499.0 # 6999 - 500
 

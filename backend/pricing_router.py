@@ -31,7 +31,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 PRICING_CONFIG_FILE = DATA_DIR / "pricing_config.json"
 
 DEFAULT_CONFIG = {
-    "base_price": 7999.0,
+    "base_price": 6999.0,
     "discount_rate": 12.5,
     "bulk_threshold": 3,
 }
@@ -191,7 +191,7 @@ def update_pricing_config(config: PricingConfig):
 @router.post("/calculate", response_model=CalculateResponse)
 def calculate_price(req: CalculateRequest):
     cfg = _load_config()
-    base_price = float(cfg.get("base_price", 8000.0))
+    base_price = float(cfg.get("base_price", 6999.0))
     discount_rate = float(cfg.get("discount_rate", 12.5))
     threshold = int(cfg.get("bulk_threshold", 3))
     count = req.count

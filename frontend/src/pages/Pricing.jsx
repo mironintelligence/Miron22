@@ -7,7 +7,7 @@ function tl(n) {
 export default function Pricing() {
   const [people, setPeople] = useState(3);
   const [pricingData, setPricingData] = useState(null);
-  const [settings, setSettings] = useState({ base_price: 8000, bulk_discount_rate: 12.5, bulk_threshold: 3 });
+  const [settings, setSettings] = useState({ base_price: 6999, bulk_discount_rate: 12.5, bulk_threshold: 3 });
   const [loadingPrice, setLoadingPrice] = useState(false);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function Pricing() {
         if (res.ok) {
           const data = await res.json();
           setSettings({
-            base_price: Number(data.base_price || 8000),
+            base_price: Number(data.base_price || 6999),
             bulk_discount_rate: Number(data.bulk_discount_rate || 12.5),
             bulk_threshold: Number(data.bulk_threshold || 3),
           });
@@ -68,7 +68,7 @@ export default function Pricing() {
         <div className="glass p-6 rounded-2xl border border-white/10 flex flex-col">
           <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-2">Aylık</div>
           <div className="text-3xl font-black text-white mb-1">
-            {tl(Number(settings.base_price || 7999))}
+            {tl(Number(settings.base_price || 6999))}
             <span className="text-lg font-semibold text-white/50"> + KDV</span>
           </div>
           <div className="text-sm text-subtle mb-4">/ ay • tek kullanıcı</div>
@@ -76,7 +76,7 @@ export default function Pricing() {
             <li>✓ Tüm çekirdek modüller</li>
             <li>✓ E-posta destek</li>
           </ul>
-          <a href="/register" className="btn-primary text-center block">Kaydol</a>
+          <a href="/kaydol" className="btn-primary text-center block">Kaydol</a>
         </div>
         <div className="glass p-6 rounded-2xl border-2 border-amber-500/50 relative flex flex-col scale-[1.02] shadow-xl shadow-amber-900/20">
           <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-amber-500 text-black px-3 py-1 rounded-full">
@@ -89,7 +89,7 @@ export default function Pricing() {
             <li>✓ Aylık plana göre önemli tasarruf</li>
             <li>✓ Öncelikli erişim</li>
           </ul>
-          <a href="/register" className="btn-primary text-center block">Kaydol</a>
+          <a href="/kaydol" className="btn-primary text-center block">Kaydol</a>
         </div>
       </section>
 
@@ -102,7 +102,7 @@ export default function Pricing() {
             Lisansınızı etkinleştirin ve tüm modüllere erişin.
           </p>
 
-          <div className="mt-3 text-sm text-amber-200/90">15 Günlük Deneme</div>
+          <div className="mt-3 text-sm text-amber-200/90 font-semibold">15 Günlük Ücretsiz Deneme — Kart bilgisi gerekmez</div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -166,7 +166,7 @@ export default function Pricing() {
               />
             </div>
             <div className="mt-3 text-xs text-white/60">
-              {settings.bulk_threshold}+ kullanıcıda %{settings.bulk_discount_rate} indirim uygulanır. İndirimli birim fiyat: {tl(bulkUnit)}
+              {settings.bulk_threshold}+ kullanıcıda %{settings.bulk_discount_rate} indirim · Kişi başı {tl(Math.round(bulkUnit))} · Toplam {people} kişi
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-subtle">
@@ -195,7 +195,7 @@ export default function Pricing() {
               </div>
             </div>
 
-            <a href="/register" className="mt-5 w-full btn-primary block text-center">Kaydol</a>
+            <a href="/kaydol" className="mt-5 w-full btn-primary block text-center">Kaydol</a>
 
             <div className="text-[11px] text-subtle mt-3">
               {loadingPrice ? "Hesaplama yapılıyor..." : "Toplam tutar canlı güncellenir."}

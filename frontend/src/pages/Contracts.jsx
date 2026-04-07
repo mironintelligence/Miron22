@@ -458,7 +458,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
                         {t.subcategory && <div className="text-[11px] text-white/45">{t.subcategory}</div>}
                       </div>
                       <h3 className="text-lg font-bold mb-2 group-hover:text-[var(--miron-gold)] transition-colors">
-                        {t.title}
+                        {(t.title || "").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}]/gu, "").trim()}
                       </h3>
                       <p className="text-white/60 text-sm mb-4 line-clamp-3">{t.description}</p>
                       <div className="flex items-center justify-between gap-3 mb-5 text-[11px] text-white/45">
@@ -499,7 +499,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
                 <option value="">Şablon seçin</option>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.category} — {t.title}
+                    {(t.category || "").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}]/gu, "").trim()} — {(t.title || "").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}]/gu, "").trim()}
                   </option>
                 ))}
               </select>
