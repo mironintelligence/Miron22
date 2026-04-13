@@ -1,6 +1,7 @@
 // src/pages/Analyze.jsx
 import React, { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { authFetch } from "../auth/api";
 
 const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
@@ -175,7 +176,7 @@ export default function Analyze() {
       const fd = new FormData();
       fd.append("file", file);
 
-      const r = await fetch(`${API_BASE}/analyze`, {
+      const r = await authFetch("/analyze", {
         method: "POST",
         body: fd,
       });

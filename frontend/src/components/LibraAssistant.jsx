@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { authFetch } from "../auth/api";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
@@ -215,7 +216,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
 
     for (const url of urls) {
       try {
-        const res = await fetch(url, {
+        const res = await authFetch(url.replace(import.meta.env.VITE_API_URL || "https://miron22.onrender.com", ""), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),

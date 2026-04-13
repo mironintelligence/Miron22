@@ -2,50 +2,14 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-try:
-    from auth import get_supabase_client
-except ImportError:
-    from auth import get_supabase_client
-
 from rag_engine import analyze_case_risk
-from security import decode_token, sanitize_text
+from security import sanitize_text
+from user_auth import get_current_user
 
 router = APIRouter(prefix="/api", tags=["analyze"])
-
-
-def get_current_user(authorization: str = Header(default="")) -> Dict[str, Any]:
-    auth = (authorization or "").strip()
-    if not auth.lower().startswith("bearer "):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token gerekli.")
-
-    token = auth.split(" ", 1)[1].strip()
-    if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token gerekli.")
-
-    try:
-        payload = decode_token(token)
-        return {"id": payload.get("sub"), "role": payload.get("role")}
-    except Exception:
-        pass
-
-    try:
-        client = get_supabase_client()
-        resp = client.auth.get_user(token)
-        data = getattr(resp, "user", None) or getattr(resp, "data", None) or resp
-        if isinstance(data, dict):
-            user = data.get("user") or data
-            if isinstance(user, dict) and user.get("id"):
-                return user
-        d = getattr(data, "__dict__", None)
-        if isinstance(d, dict) and d.get("id"):
-            return d
-    except Exception:
-        pass
-        
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token doğrulanamadı.")
 
 
 class AnalyzeCasePayload(BaseModel):

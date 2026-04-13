@@ -193,8 +193,11 @@ async def global_exception_handler(request: Request, exc: Exception):
 _origins_env = os.getenv("FRONTEND_ORIGINS")
 _allowed_origins = [
     "http://localhost:5173",
+    "http://localhost:3000",
     "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
     "https://miron22.vercel.app",
+    "https://miron22.onrender.com",
 ]
 if _origins_env:
     for o in [x.strip() for x in _origins_env.split(",")]:
@@ -488,7 +491,7 @@ def extract_text(filename: str, data: bytes):
 
 
 @app.post("/analyze")
-async def analyze_file(file: UploadFile = File(...)):
+async def analyze_file(file: UploadFile = File(...), _user: dict = Depends(get_current_user)):
     content = await file.read()
     text = extract_text(file.filename, content)
 
@@ -570,7 +573,7 @@ def _run_llm(messages):
     return chat_completions_create(client, temperature=0.2, messages=messages)
 
 @app.post("/assistant-chat")
-def assistant_chat(req: ChatRequest = Body(...)):
+def assistant_chat(req: ChatRequest = Body(...), _user: dict = Depends(get_current_user)):
     global client
     if not client:
         # Try to init again if it failed at startup
