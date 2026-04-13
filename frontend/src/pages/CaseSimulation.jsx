@@ -42,8 +42,7 @@ export default function CaseSimulation() {
         payload.append("file", file);
       }
 
-      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-      const resp = await fetch(`${base}/api/risk/simulate`, {
+      const resp = await authFetch("/api/risk/simulate", {
         method: "POST",
         body: payload,
       });

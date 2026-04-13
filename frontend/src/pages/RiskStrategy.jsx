@@ -1,7 +1,8 @@
 import React, { useState } from "react";
+import { authFetch } from "../auth/api";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API = `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/risk`;
+// API base defined via authFetch relative path
 
 export default function RiskStrategy() {
   const [file, setFile] = useState(null);
@@ -25,7 +26,7 @@ export default function RiskStrategy() {
       if (file) fd.append("file", file);
       if (caseText.trim()) fd.append("case_text", caseText);
 
-      const r = await fetch(`${API}/analyze`, { method: "POST", body: fd });
+      const r = await authFetch("/api/risk/analyze", { method: "POST", body: fd });
       if (!r.ok) {
         const txt = await r.text().catch(() => "");
         throw new Error(txt || `Sunucu hatası: ${r.status}`);

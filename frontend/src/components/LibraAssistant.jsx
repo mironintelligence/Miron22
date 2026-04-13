@@ -206,17 +206,13 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
   // Backend call: try routes (404 fallback)
   // -----------------------------
   const postAssistant = async (payload) => {
-    const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-    const urls = [
-      `${base}/assistant-chat`,
-      `${base}/assistant/assistant-chat`,
-    ];
+    const relPaths = ["/assistant-chat", "/assistant/assistant-chat"];
 
     let lastErr = null;
 
-    for (const url of urls) {
+    for (const url of relPaths) {
       try {
-        const res = await authFetch(url.replace(import.meta.env.VITE_API_URL || "https://miron22.onrender.com", ""), {
+        const res = await authFetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),

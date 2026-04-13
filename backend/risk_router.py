@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query, Depends
+from user_auth import get_current_user
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import os, io, json, re
@@ -27,7 +28,8 @@ async def simulate_case(
     case_description: Optional[str] = Form(None),
     jurisdiction: str = Form("Türkiye"),
     user_role: str = Form("Davacı"),
-    file: Optional[UploadFile] = File(None)
+    file: Optional[UploadFile] = File(None),
+    _user: dict = Depends(get_current_user),
 ):
     """
     Advanced Case Simulation with Deep Reasoning.
@@ -183,6 +185,7 @@ async def risk_analyze(
     case_text: Optional[str] = Form(None),
     first_name: Optional[str] = Form(None),
     last_name: Optional[str] = Form(None),
+    _user: dict = Depends(get_current_user),
 ):
     """
     Yüklenen dosya veya case_text üzerinden risk puanı ve strateji önerisi üretir.
