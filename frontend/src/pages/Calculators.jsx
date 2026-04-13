@@ -208,12 +208,39 @@ export default function Calculators() {
           </div>
 
           <div className="glass p-6 rounded-2xl lg:sticky lg:top-24 h-fit">
-            {error && <div className="text-xs text-red-400 mb-3">{error}</div>}
-            {!error && !result && <div className="text-xs text-subtle">Hesaplama sonucu burada görünecek.</div>}
-            {result && (
-              <div className="text-sm text-white/80 space-y-2">
-                <div className="font-semibold text-accent">Sonuç</div>
-                <pre className="whitespace-pre-wrap text-xs bg-black/30 rounded-xl p-3">{JSON.stringify(result, null, 2)}</pre>
+            {loading && (
+              <div className="space-y-3 animate-pulse">
+                <div className="h-4 bg-white/10 rounded w-1/2"/>
+                <div className="h-3 bg-white/8 rounded w-3/4"/>
+                <div className="h-3 bg-white/8 rounded w-2/3"/>
+              </div>
+            )}
+            {!loading && error && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-300">
+                {error}
+              </div>
+            )}
+            {!loading && !error && !result && (
+              <div className="text-center py-8 text-white/30 text-sm">
+                Hesaplama sonucu burada görünecek.
+              </div>
+            )}
+            {!loading && result && (
+              <div className="space-y-3">
+                <div className="font-semibold text-accent text-sm">Hesaplama Sonucu</div>
+                {Object.entries(result).map(([key, val]) => {
+                  if (val === null || val === undefined) return null;
+                  const label = key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+                  const formatted = typeof val === "number"
+                    ? val.toLocaleString("tr-TR", { maximumFractionDigits: 2 })
+                    : String(val);
+                  return (
+                    <div key={key} className="flex justify-between items-center gap-4 py-2 border-b border-white/8 last:border-0">
+                      <span className="text-xs text-white/50 capitalize">{label}</span>
+                      <span className="text-sm font-semibold text-white">{formatted}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

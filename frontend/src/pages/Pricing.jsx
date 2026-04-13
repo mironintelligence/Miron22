@@ -73,8 +73,8 @@ export default function Pricing() {
           </div>
           <div className="text-sm text-subtle mb-4">/ ay • tek kullanıcı</div>
           <ul className="text-sm text-white/70 space-y-2 flex-1 mb-6">
-            <li>✓ Tüm çekirdek modüller</li>
-            <li>✓ E-posta destek</li>
+            <li> Tüm çekirdek modüller</li>
+            <li> E-posta destek</li>
           </ul>
           <a href="/kaydol" className="btn-primary text-center block">Kaydol</a>
         </div>
@@ -86,8 +86,8 @@ export default function Pricing() {
           <div className="text-3xl font-black text-amber-300 mb-1">85.000 TL + KDV</div>
           <div className="text-sm text-subtle mb-4">/ yıl • tek kullanıcı</div>
           <ul className="text-sm text-white/80 space-y-2 flex-1 mb-6">
-            <li>✓ Aylık plana göre önemli tasarruf</li>
-            <li>✓ Öncelikli erişim</li>
+            <li> Aylık plana göre önemli tasarruf</li>
+            <li> Öncelikli erişim</li>
           </ul>
           <a href="/kaydol" className="btn-primary text-center block">Kaydol</a>
         </div>
@@ -111,40 +111,40 @@ export default function Pricing() {
             <h3 className="font-semibold text-accent mb-3">Paket Özellikleri</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="glass rounded-xl p-3">
-                <div className="text-accent font-semibold">📂 Evrak Analizi</div>
+                <div className="text-accent font-semibold"> Evrak Analizi</div>
                 <div className="text-subtle text-xs mt-1">Otomatik özet, alan çıkarımı</div>
               </div>
               <div className="glass rounded-xl p-3">
-                <div className="text-accent font-semibold">🧾 Dilekçe Oluşturucu</div>
+                <div className="text-accent font-semibold"> Dilekçe Oluşturucu</div>
                 <div className="text-subtle text-xs mt-1">Şablonlar, dışa aktarma</div>
               </div>
               <div className="glass rounded-xl p-3">
-                <div className="text-accent font-semibold">💬 Miron Assistant</div>
+                <div className="text-accent font-semibold"> Miron Assistant</div>
                 <div className="text-subtle text-xs mt-1">Dava bazlı soru-cevap</div>
               </div>
               <div className="glass rounded-xl p-3">
-                <div className="text-accent font-semibold">🔐 KVKK Maskeleme</div>
+                <div className="text-accent font-semibold"> KVKK Maskeleme</div>
                 <div className="text-subtle text-xs mt-1">Hassas veriler için güvenlik</div>
               </div>
               <div className="glass rounded-xl p-3">
-                <div className="text-accent font-semibold">🧠 Risk & Strateji</div>
+                <div className="text-accent font-semibold"> Risk & Strateji</div>
                 <div className="text-subtle text-xs mt-1">Kazanma olasılığı & riskler</div>
               </div>
               <div className="glass rounded-xl p-3">
-                <div className="text-accent font-semibold">📊 Raporlama</div>
+                <div className="text-accent font-semibold"> Raporlama</div>
                 <div className="text-subtle text-xs mt-1">Dosya trafiği & metrikler</div>
               </div>
             </div>
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-subtle">
               <div className="glass rounded-xl p-3">
-                ⚖️ Yargıtay Karar Arama
+                 Yargıtay Karar Arama
               </div>
               <div className="glass rounded-xl p-3">
-                📚 Mevzuat Analizi
+                 Mevzuat Analizi
               </div>
               <div className="glass rounded-xl p-3">
-                🎯 Dava Simülasyonu
+                 Dava Simülasyonu
               </div>
             </div>
           </div>

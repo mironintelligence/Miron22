@@ -105,7 +105,7 @@ export default function NotificationToasts() {
                 className="shrink-0 text-white/40 hover:text-white text-lg leading-none px-1"
                 aria-label="Bildirimi kapat"
               >
-                ✕
+                
               </button>
             </div>
           </motion.div>

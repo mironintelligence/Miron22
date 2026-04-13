@@ -50,7 +50,7 @@ export default function Header({ onOpenLogin }) {
               className="md:hidden w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-center"
               aria-label="Menü"
             >
-              <span className="text-xl leading-none">☰</span>
+              <span className="text-xl leading-none"></span>
             </button>
 
             <Link to={authed ? "/home" : "/"} className="flex items-center gap-2">

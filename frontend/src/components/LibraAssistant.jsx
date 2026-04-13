@@ -167,7 +167,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
     if (!currentChat) return;
 
     const content = (currentChat.messages || [])
-      .map((m) => `${m.sender === "user" ? "👤" : "🤖"} ${m.text}`)
+      .map((m) => `${m.sender === "user" ? "" : ""} ${m.text}`)
       .join("\n\n");
 
     const safeName = (currentChat.name || "Sohbet").replace(/[\\/:*?"<>|]/g, "-");
@@ -271,7 +271,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
 
     try {
       const data = await postAssistant(payload);
-      const replyText = data?.reply || "⚠️ Yanıt alınamadı.";
+      const replyText = data?.reply || " Yanıt alınamadı.";
 
       const botMsg = { sender: "assistant", text: replyText };
 
@@ -283,7 +283,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
     } catch (e) {
       const botMsg = {
         sender: "assistant",
-        text: `⚠️ Yanıt alınamadı: ${e?.message || "Bilinmeyen hata"}`,
+        text: ` Yanıt alınamadı: ${e?.message || "Bilinmeyen hata"}`,
       };
       setChats((prev) =>
         prev.map((c) =>
@@ -400,19 +400,19 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
                           onClick={openRename}
                           className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/10 transition"
                         >
-                          ✏️ Yeniden adlandır
+                           Yeniden adlandır
                         </button>
                         <button
                           onClick={exportChat}
                           className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/10 transition"
                         >
-                          📤 Dışa aktar
+                           Dışa aktar
                         </button>
                         <button
                           onClick={openDelete}
                           className="w-full text-left px-4 py-3 text-sm text-red-300 hover:bg-red-500/10 transition"
                         >
-                          🗑 Sil
+                           Sil
                         </button>
                       </motion.div>
                     )}

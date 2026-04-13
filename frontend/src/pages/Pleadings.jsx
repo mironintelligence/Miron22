@@ -114,7 +114,7 @@ export default function Pleadings() {
           include_case_law: includeCaseLaw,
           mask_pii: maskPII,
           ai_note: aiNote,
-          format, // ✅ docx | uyap | udf
+          format, //  docx | uyap | udf
         }),
       });
 
@@ -310,7 +310,7 @@ export default function Pleadings() {
                 {loading ? "Hazırlanıyor..." : "Önizleme"}
               </button>
 
-              {/* ✅ 3 İNDİRME TUŞU */}
+              {/*  3 İNDİRME TUŞU */}
               <button
                 onClick={() => doExport("docx")}
                 className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20"

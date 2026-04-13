@@ -82,17 +82,17 @@ export default function DemoRequest() {
 
         {status === "success" && (
           <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 text-center">
-            ✔ Demo talebiniz alındı. En kısa sürede e-posta ile dönüş yapılacaktır.
+             Demo talebiniz alındı. En kısa sürede e-posta ile dönüş yapılacaktır.
           </div>
         )}
         {status === "error" && (
           <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300 text-center">
-            ❌ Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.
+             Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.
           </div>
         )}
         {status === "need_approve" && (
           <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300 text-center">
-            ⚠ Lütfen KVKK ve kullanım şartlarını onaylayın.
+             Lütfen KVKK ve kullanım şartlarını onaylayın.
           </div>
         )}
 

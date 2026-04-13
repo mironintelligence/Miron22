@@ -31,21 +31,21 @@ export default function About() {
             <div className="relative z-10 border border-white/10 bg-[#111] p-8 rounded-3xl">
               <ul className="space-y-6">
                 <li className="flex gap-4">
-                  <span className="text-2xl">⚖️</span>
+                  <span className="text-2xl"></span>
                   <div>
                     <h3 className="font-bold text-white">Hukuk Odaklı</h3>
                     <p className="text-sm text-white/50">Dilekçe, evrak, mevzuat ve emsal akışları için tasarlandı.</p>
                   </div>
                 </li>
                 <li className="flex gap-4">
-                  <span className="text-2xl">🏢</span>
+                  <span className="text-2xl"></span>
                   <div>
                     <h3 className="font-bold text-white">Sektörel Kullanım</h3>
                     <p className="text-sm text-white/50">Emlak ve turizm operasyonlarında belge/uyum otomasyonları.</p>
                   </div>
                 </li>
                 <li className="flex gap-4">
-                  <span className="text-2xl">🔒</span>
+                  <span className="text-2xl"></span>
                   <div>
                     <h3 className="font-bold text-white">Veri Güvenliği</h3>
                     <p className="text-sm text-white/50">Gizlilik, yetkilendirme ve veri minimizasyonu temel prensip.</p>

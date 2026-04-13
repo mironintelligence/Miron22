@@ -16,36 +16,57 @@ const cezaDaireleri = [
 ];
 
 const sampleSnippets = [
-  { court: "Yargıtay 3. HD", text: "Tahliye taleplerinde ihtar şartı somut olayla birlikte değerlendirilir." },
-  { court: "Yargıtay 11. HD", text: "Ticari defterlerin usulüne uygun tutulması delil değerini artırır." },
-  { court: "Yargıtay 12. HD", text: "İcra takiplerinde tebligat usulü kamu düzenindendir." },
-  { court: "YHGK", text: "Hakkın kötüye kullanılması iddiasında dürüstlük kuralı esas alınır." },
-  { court: "Yargıtay 4. HD", text: "Manevi tazminatın takdirinde olayın özellikleri belirleyicidir." },
-  { court: "Yargıtay 13. HD", text: "Tüketici uyuşmazlığında ispat yükü somut olgulara göre değişir." },
-  { court: "Yargıtay 2. HD", text: "Boşanma davalarında birlikte yaşamayı çekilmez kılan durum mahkemece takdir edilir." },
-  { court: "Yargıtay 9. HD", text: "İşçinin kıdem tazminatına hak kazanması için en az bir yıl çalışması gereklidir." },
+  { court: "Yargıtay 3. HD", chamber: "3. Hukuk Dairesi", decision_number: "2023/1421", outcome: "ONAMA", year: "2023", summary: "Tahliye taleplerinde ihtar şartı somut olayla birlikte değerlendirilir." },
+  { court: "Yargıtay 11. HD", chamber: "11. Hukuk Dairesi", decision_number: "2022/8834", outcome: "BOZMA", year: "2022", summary: "Ticari defterlerin usulüne uygun tutulması delil değerini artırır." },
+  { court: "Yargıtay 12. HD", chamber: "12. Hukuk Dairesi", decision_number: "2023/4562", outcome: "ONAMA", year: "2023", summary: "İcra takiplerinde tebligat usulü kamu düzenindendir." },
+  { court: "YHGK", chamber: "Genel Kurul", decision_number: "2022/3301", outcome: "ONAMA", year: "2022", summary: "Hakkın kötüye kullanılması iddiasında dürüstlük kuralı esas alınır." },
+  { court: "Yargıtay 4. HD", chamber: "4. Hukuk Dairesi", decision_number: "2023/2219", outcome: "BOZMA", year: "2023", summary: "Manevi tazminatın takdirinde olayın özellikleri belirleyicidir." },
+  { court: "Yargıtay 13. HD", chamber: "13. Hukuk Dairesi", decision_number: "2022/7741", outcome: "ONAMA", year: "2022", summary: "Tüketici uyuşmazlığında ispat yükü somut olgulara göre değişir." },
 ];
 
-function MarqueeColumn({ snippets, speed, reverse = false }) {
-  const doubled = [...snippets, ...snippets];
+function DecisionCard({ item }) {
+  const [expanded, setExpanded] = useState(false);
+  const isOnama = (item.outcome || "").toUpperCase().includes("ONAMA");
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/8 bg-black/20 flex-1 min-h-0">
-      <div
-        className="flex flex-col gap-2 px-1.5 py-1.5"
-        style={{
-          animation: `marqueeUp${reverse ? "Rev" : ""} ${speed}s linear infinite`,
-        }}
-      >
-        {doubled.map((s, i) => (
-          <div
-            key={i}
-            className="rounded-lg border border-white/10 bg-white/4 p-2.5 shrink-0"
-          >
-            <div className="text-[9px] font-bold text-yellow-400/70 mb-1 uppercase tracking-wide">{s.court}</div>
-            <p className="text-[10px] text-white/65 leading-snug">{s.text}</p>
-          </div>
-        ))}
+    <div
+      className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-yellow-500/40 transition-all cursor-pointer group flex flex-col gap-3"
+      onClick={() => setExpanded((v) => !v)}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex flex-wrap gap-1.5 text-[11px] font-mono text-yellow-500/80">
+          <span className="bg-yellow-500/10 px-2 py-0.5 rounded">{item.court || "Yargıtay"}</span>
+          {item.chamber && <span className="bg-yellow-500/10 px-2 py-0.5 rounded">{item.chamber}</span>}
+          {item.decision_number && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.decision_number}</span>}
+          {(item.date || item.year) && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.date || item.year}</span>}
+        </div>
+        {item.final_score != null && (
+          <span className="text-[10px] text-white/30">Skor: {item.final_score.toFixed(2)}</span>
+        )}
       </div>
+
+      <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-yellow-300 transition-colors line-clamp-3">
+        {item.summary || "Özet bilgisi bulunmuyor."}
+      </h3>
+
+      <div className="flex items-center justify-between mt-auto">
+        {item.outcome && (
+          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${isOnama ? "bg-green-900/40 text-green-300" : "bg-red-900/40 text-red-300"}`}>
+            {item.outcome}
+          </span>
+        )}
+        <span className="text-[10px] text-white/30 ml-auto group-hover:text-yellow-500/60 transition-colors">
+          {expanded ? "▲ Daralt" : "▼ Detay"}
+        </span>
+      </div>
+
+      {expanded && (
+        <div className="mt-2 pt-3 border-t border-white/10">
+          <div className="text-[11px] text-white/40 uppercase tracking-wider mb-2">Tam Metin</div>
+          <div className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap font-serif bg-black/20 p-3 rounded-xl">
+            {item.clean_text || item.summary || "Tam metin bulunamadı."}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -58,14 +79,12 @@ export default function YargitaySearch() {
   const [results, setResults] = useState([]);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState("");
-  const [expandedId, setExpandedId] = useState(null);
 
   const handleSearch = async (e) => {
     e.preventDefault();
     setError("");
     setResults([]);
     setSearched(false);
-    setExpandedId(null);
     if (!query.trim()) { setError("Lütfen aranacak kelime veya cümle girin."); return; }
     setLoading(true);
     try {
@@ -86,10 +105,6 @@ export default function YargitaySearch() {
     }
   };
 
-  const col1 = sampleSnippets.filter((_, i) => i % 3 === 0);
-  const col2 = sampleSnippets.filter((_, i) => i % 3 === 1);
-  const col3 = sampleSnippets.filter((_, i) => i % 3 === 2);
-
   return (
     <div className="max-w-[1400px] mx-auto px-4 pb-12">
       <div className="text-center mb-8">
@@ -101,7 +116,7 @@ export default function YargitaySearch() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_200px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
         {/* FILTER SIDEBAR */}
         <aside className="bg-white/5 border border-white/10 rounded-2xl p-5 h-fit lg:sticky lg:top-24 backdrop-blur-sm">
           <form onSubmit={handleSearch} className="space-y-5">
@@ -150,79 +165,53 @@ export default function YargitaySearch() {
           </form>
         </aside>
 
-        {/* RESULTS — full-width rows */}
-        <div className="min-w-0 space-y-4">
+        {/* MAIN CONTENT */}
+        <div className="min-w-0">
           {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 text-sm">{error}</div>
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 text-sm mb-4">{error}</div>
           )}
-          {loading && (
-            <div className="flex items-center justify-center py-16 text-white/40 text-sm">Aranıyor…</div>
-          )}
-          {!loading && searched && results.length === 0 && !error && (
-            <div className="text-center py-16 bg-white/5 rounded-2xl border border-white/10">
-              <div className="text-3xl mb-3">🔍</div>
-              <h3 className="text-lg font-semibold text-white">Karar Bulunamadı</h3>
-              <p className="text-white/50 mt-1 text-sm">Arama kriterlerinizi genişleterek tekrar deneyin.</p>
-            </div>
-          )}
-          {!loading && !searched && !error && (
-            <div className="text-center py-16 text-white/30 text-sm">Aramak istediğiniz kavramı yazıp "Karar Ara" butonuna basın.</div>
-          )}
-          {results.map((item) => (
-            <div
-              key={item.id}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-yellow-500/40 transition-all cursor-pointer group"
-              onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                <div className="flex flex-wrap gap-1.5 text-[11px] font-mono text-yellow-500/80">
-                  <span className="bg-yellow-500/10 px-2 py-0.5 rounded">{item.court || "Yargıtay"}</span>
-                  {item.chamber && <span className="bg-yellow-500/10 px-2 py-0.5 rounded">{item.chamber}</span>}
-                  {item.decision_number && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.decision_number}</span>}
-                  {item.date && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.date}</span>}
-                </div>
-                {item.final_score != null && (
-                  <span className="text-[10px] text-white/30">Skor: {item.final_score.toFixed(2)}</span>
-                )}
-              </div>
-              <h3 className="text-base font-semibold text-white leading-snug mb-2 group-hover:text-yellow-300 transition-colors">
-                {item.summary || "Özet bilgisi bulunmuyor."}
-              </h3>
-              <p className="text-sm text-white/60">
-                Sonuç: <span className="font-semibold text-white/80">{item.outcome || "Belirtilmemiş"}</span>
-              </p>
-              {expandedId === item.id && (
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <div className="text-[11px] text-white/40 uppercase tracking-wider mb-2">Tam Metin</div>
-                  <div className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap font-serif bg-black/20 p-4 rounded-xl">
-                    {item.clean_text || "Tam metin bulunamadı."}
-                  </div>
+
+          {/* SEARCH RESULTS — Grid layout */}
+          {(searched || loading) && (
+            <>
+              {loading && (
+                <div className="flex items-center justify-center py-16 text-white/40 text-sm">Aranıyor…</div>
+              )}
+              {!loading && searched && results.length === 0 && !error && (
+                <div className="text-center py-16 bg-white/5 rounded-2xl border border-white/10">
+                  <h3 className="text-lg font-semibold text-white">Karar Bulunamadı</h3>
+                  <p className="text-white/50 mt-1 text-sm">Arama kriterlerinizi genişleterek tekrar deneyin.</p>
                 </div>
               )}
-              <div className="mt-2 text-center">
-                <span className="text-[10px] text-white/25 group-hover:text-yellow-500/60 transition-colors">
-                  {expandedId === item.id ? "▲ Daralt" : "▼ Detay"}
-                </span>
+              {!loading && results.length > 0 && (
+                <>
+                  <div className="text-xs text-white/40 mb-4">{results.length} karar bulundu</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {results.map((item) => (
+                      <DecisionCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {/* INITIAL STATE — Sample decisions grid */}
+          {!searched && !loading && !error && (
+            <>
+              <div className="text-xs font-semibold text-white/35 uppercase tracking-widest mb-4">Örnek Kararlar</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {sampleSnippets.map((item, i) => (
+                  <DecisionCard key={i} item={item} />
+                ))}
               </div>
-            </div>
-          ))}
+              <p className="text-center text-white/25 text-xs mt-8">
+                Yukarıdaki formu kullanarak gerçek Yargıtay kararlarında arama yapabilirsiniz.
+              </p>
+            </>
+          )}
         </div>
-
-        {/* RIGHT: 3-column marquee preview */}
-        <aside className="hidden lg:flex flex-col gap-2 h-[78vh] sticky top-24">
-          <div className="text-[10px] font-semibold text-white/35 uppercase tracking-widest mb-1 text-center">Örnek Kararlar</div>
-          <div className="flex gap-1.5 flex-1 min-h-0 overflow-hidden">
-            <MarqueeColumn snippets={col1.length ? col1 : sampleSnippets.slice(0,3)} speed={22} />
-            <MarqueeColumn snippets={col2.length ? col2 : sampleSnippets.slice(2,5)} speed={28} reverse />
-            <MarqueeColumn snippets={col3.length ? col3 : sampleSnippets.slice(4)} speed={20} />
-          </div>
-        </aside>
       </div>
-
-      <style>{`
-        @keyframes marqueeUp { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
-        @keyframes marqueeUpRev { 0% { transform: translateY(-50%); } 100% { transform: translateY(0); } }
-      `}</style>
     </div>
   );
 }

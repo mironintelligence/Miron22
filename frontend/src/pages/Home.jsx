@@ -8,28 +8,28 @@ const baseTiles = [
     title: "Evrak Analizi",
     desc: "PDF/DOCX/TXT/UDF/RTF/UYAP/ODT yükle, AI analiz etsin.",
     to: "/analyze",
-    icon: "📂",
+    icon: "",
     disabled: false,
   },
   {
     title: "Miron Assistant",
     desc: "Dava özelinde soru-cevap, delil analizi.",
     to: "/assistant",
-    icon: "💬",
+    icon: "",
     disabled: false,
   },
   {
     title: "Dilekçe Oluşturucu",
     desc: "AI destekli otomatik dilekçe oluştur.",
     to: "/pleadings",
-    icon: "🧾",
+    icon: "",
     disabled: false,
   },
   {
     title: "Hesaplamalar",
     desc: "Faiz, vekalet, harç, KDV ve icra hesapları.",
     to: "/calculators",
-    icon: "🧮",
+    icon: "",
     disabled: false,
   },
 
@@ -37,33 +37,33 @@ const baseTiles = [
     title: "Sözleşme Analizi",
     desc: "Sözleşmeni yapıştır, riskleri ve açıkları gör.",
     to: "/contracts/analysis",
-    icon: "🧾",
+    icon: "",
     disabled: false,
   },
   {
     title: "Sözleşme Oluşturucu",
     desc: "Şablon seç, alanları doldur, sözleşmeyi üret.",
     to: "/contracts/builder",
-    icon: "✍️",
+    icon: "",
     disabled: false,
   },
  
 
-  // ✅ Yeni: Dava Simülasyonu (yakında)
+  //  Yeni: Dava Simülasyonu (yakında)
   {
     title: "Dava Simülasyonu",
     desc: "Senaryoya göre olası sonuçlar ve strateji önerisi.",
     to: "/case-simulation",
-    icon: "🎯",
+    icon: "",
     disabled: false,
   },
 
-  // ✅ Yakında: Yargıtay / Mevzuat (launch’u bozmasın)
+  //  Yakında: Yargıtay / Mevzuat (launch’u bozmasın)
   {
     title: "Yargıtay Karar Arama",
     desc: "AI destekli emsal karar ve strateji analizi.",
     to: "/yargitay",
-    icon: "⚖️",
+    icon: "",
     beta: true,
     disabled: false,
   },
@@ -71,7 +71,7 @@ const baseTiles = [
     title: "Mevzuat Analizi",
     desc: "Kanun / madde bazlı AI açıklama ve strateji.",
     to: "/mevzuat",
-    icon: "📚",
+    icon: "",
     beta: true,
     disabled: false,
   },
@@ -80,7 +80,7 @@ const baseTiles = [
     title: "Risk & Strateji Analizi",
     desc: "AI tabanlı risk puanı, kazanma olasılığı ve strateji önerileri.",
     to: "/risk",
-    icon: "🧠",
+    icon: "",
     disabled: false,
   },
 
@@ -96,7 +96,7 @@ const baseTiles = [
     title: "Geri Bildirim",
     desc: "Öneri, hata bildirimi ve isteklerini bize ilet.",
     to: "/feedback",
-    icon: "📝",
+    icon: "",
     disabled: false,
   },
 ];
@@ -110,7 +110,7 @@ export default function Home() {
       title: "Admin Paneli",
       desc: "Kullanıcılar, demo talepleri ve sistem ayarları.",
       to: "/admin",
-      icon: "🛡️",
+      icon: "",
       disabled: false,
     });
   }
@@ -174,7 +174,7 @@ export default function Home() {
       </div>
 
       <footer className="mt-10 mb-6 text-center text-xs text-subtle">
-        <div>©️ 2025 Miron Intelligence — Tüm hakları saklıdır</div>
+        <div>© 2025 Miron Intelligence — Tüm hakları saklıdır</div>
 
         <div className="mt-2 flex items-center justify-center gap-4">
           <Link to="/user-agreement" className="text-accent underline">

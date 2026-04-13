@@ -341,7 +341,7 @@ export default function Analyze() {
       </div>
 
       <footer className="mt-8 mb-6 text-center text-xs text-subtle">
-        ⚠ Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
+         Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
       </footer>
     </div>
   );

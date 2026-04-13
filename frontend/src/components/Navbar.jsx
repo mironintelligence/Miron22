@@ -207,7 +207,7 @@ export default function Navbar() {
         </div>
 
         <button type="button" onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-white text-2xl">
-          {menuOpen ? "✕" : "☰"}
+          {menuOpen ? "" : ""}
         </button>
       </div>
 

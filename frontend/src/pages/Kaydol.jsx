@@ -99,6 +99,8 @@ export default function Kaydol() {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white"
+              placeholder="Adınız"
+              autoComplete="given-name"
             />
           </div>
           <div>
@@ -109,6 +111,8 @@ export default function Kaydol() {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white"
+              placeholder="Soyadınız"
+              autoComplete="family-name"
             />
           </div>
           <div className="sm:col-span-2">
@@ -118,8 +122,10 @@ export default function Kaydol() {
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              type="email"
               className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white"
               placeholder="ornek@domain.com"
+              autoComplete="email"
             />
           </div>
           <div className="sm:col-span-2">
@@ -131,6 +137,8 @@ export default function Kaydol() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white"
+              placeholder="••••••••••••"
+              autoComplete="new-password"
             />
             <div className="text-[12px] mt-1 text-subtle">Güçlü şifre politikası geçerlidir (uzunluk, büyük/küçük harf, rakam, özel karakter).</div>
           </div>

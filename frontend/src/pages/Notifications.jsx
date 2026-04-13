@@ -46,7 +46,7 @@ export default function Notifications() {
           <div className="text-center py-20 text-white/30">Yükleniyor...</div>
         ) : notifications.length === 0 ? (
           <div className="text-center py-20 bg-[#111] rounded-2xl border border-white/10">
-            <div className="text-4xl mb-4">🔕</div>
+            <div className="text-4xl mb-4"></div>
             <p className="text-white/50">Henüz bildiriminiz yok.</p>
           </div>
         ) : (

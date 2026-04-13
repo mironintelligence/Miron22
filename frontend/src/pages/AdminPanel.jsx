@@ -266,11 +266,11 @@ export default function AdminPanel() {
         body: JSON.stringify(payload),
       });
       if (res?.ok) {
-        showMsg("✅ Şablon güncellendi", "success");
+        showMsg(" Şablon güncellendi", "success");
         resetTemplateDraft();
         fetchTemplates();
       } else {
-        showMsg("❌ Şablon güncellenemedi", "error");
+        showMsg(" Şablon güncellenemedi", "error");
       }
     } else {
       const res = await fetchWithAuth("/api/contracts/templates", {
@@ -278,11 +278,11 @@ export default function AdminPanel() {
         body: JSON.stringify(payload),
       });
       if (res?.id || res?.ok) {
-        showMsg("✅ Şablon oluşturuldu", "success");
+        showMsg(" Şablon oluşturuldu", "success");
         resetTemplateDraft();
         fetchTemplates();
       } else {
-        showMsg("❌ Şablon oluşturulamadı", "error");
+        showMsg(" Şablon oluşturulamadı", "error");
       }
     }
   };
@@ -293,11 +293,11 @@ export default function AdminPanel() {
 
     const res = await fetchWithAuth(`/api/contracts/templates/${encodeURIComponent(String(templateId))}`, { method: "DELETE" });
     if (res?.ok) {
-      showMsg("✅ Şablon silindi", "success");
+      showMsg(" Şablon silindi", "success");
       if (String(templateDraft.id || "") === String(templateId)) resetTemplateDraft();
       fetchTemplates();
     } else {
-      showMsg("❌ Şablon silinemedi", "error");
+      showMsg(" Şablon silinemedi", "error");
     }
   };
 
@@ -361,7 +361,7 @@ export default function AdminPanel() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || "2FA doğrulanamadı");
-      showMsg("✅ 2FA aktif edildi", "success");
+      showMsg(" 2FA aktif edildi", "success");
       await exchangeAdminToken(otp);
     } catch (e) {
       showMsg(e.message || "2FA doğrulanamadı", "error");
@@ -391,10 +391,10 @@ export default function AdminPanel() {
 
     const res = await fetchWithAuth("/admin/config", { method: "POST", body: JSON.stringify(payload) });
     if (res?.ok) {
-      showMsg("✅ Sistem ayarları güncellendi", "success");
+      showMsg(" Sistem ayarları güncellendi", "success");
       setConfig((prev) => ({ ...(prev || {}), ...(res?.config || payload) }));
     } else {
-      showMsg("❌ Sistem ayarları güncellenemedi", "error");
+      showMsg(" Sistem ayarları güncellenemedi", "error");
     }
   };
 
@@ -413,7 +413,7 @@ export default function AdminPanel() {
     const res = await fetchWithAuth("/api/pricing/config", { method: "POST", body: JSON.stringify(payload) });
     if (res?.status === "ok" || res?.config) {
       const next = res?.config || payload;
-      showMsg("✅ Pricing ayarları güncellendi", "success");
+      showMsg(" Pricing ayarları güncellendi", "success");
       setPricingConfig(next);
       setPricingDraft({
         base_price: Number(next?.base_price ?? payload.base_price),
@@ -421,7 +421,7 @@ export default function AdminPanel() {
         bulk_threshold: Number(next?.bulk_threshold ?? payload.bulk_threshold),
       });
     } else {
-      showMsg("❌ Pricing ayarları güncellenemedi", "error");
+      showMsg(" Pricing ayarları güncellenemedi", "error");
     }
   };
 
@@ -452,10 +452,10 @@ export default function AdminPanel() {
     };
     const res = await fetchWithAuth("/api/pricing/discount-codes", { method: "POST", body: JSON.stringify(payload) });
     if (res?.status === "ok" || res?.code) {
-      showMsg("✅ İndirim kodu oluşturuldu", "success");
+      showMsg(" İndirim kodu oluşturuldu", "success");
       fetchDiscounts();
       setNewDiscount({ code: "", type: "percent", value: 0, max_usage: "", expires_at: "", description: "" });
-    } else showMsg("❌ Kod oluşturulamadı", "error");
+    } else showMsg(" Kod oluşturulamadı", "error");
   };
 
   const toggleDiscount = async (code, active) => {
@@ -469,10 +469,10 @@ export default function AdminPanel() {
     });
 
     if (res?.ok) {
-      showMsg("✅ İndirim kodu güncellendi", "success");
+      showMsg(" İndirim kodu güncellendi", "success");
       fetchDiscounts();
     } else {
-      showMsg("❌ İndirim kodu güncellenemedi", "error");
+      showMsg(" İndirim kodu güncellenemedi", "error");
     }
   };
 
@@ -485,21 +485,21 @@ export default function AdminPanel() {
         body: JSON.stringify({ ...notif, user_id: notifUserId })
       });
       if (res?.status === "ok") {
-        showMsg("✅ Duyuru gönderildi", "success");
+        showMsg(" Duyuru gönderildi", "success");
         setNotif({ title: "", message: "", type: "admin" });
         return;
       }
-      return showMsg("❌ Gönderim hatası", "error");
+      return showMsg(" Gönderim hatası", "error");
     }
     const res = await fetchWithAuth("/api/notifications/broadcast", {
       method: "POST",
       body: JSON.stringify(notif)
     });
     if (res?.status === "ok") {
-      showMsg(`✅ Duyuru gönderildi: ${res.count} kişi`, "success");
+      showMsg(` Duyuru gönderildi: ${res.count} kişi`, "success");
       setNotif({ title: "", message: "", type: "admin" });
     } else {
-      showMsg("❌ Gönderim hatası", "error");
+      showMsg(" Gönderim hatası", "error");
     }
   };
 
@@ -539,11 +539,11 @@ export default function AdminPanel() {
     if (!newUser.email || !newUser.password) return showMsg("E-posta ve şifre gerekli", "error");
     const res = await fetchWithAuth("/admin/users", { method: "POST", body: JSON.stringify(newUser) });
     if (res?.ok) {
-      showMsg("✅ Kullanıcı oluşturuldu", "success");
+      showMsg(" Kullanıcı oluşturuldu", "success");
       setNewUser({ username: "", email: "", password: "", role: "user", is_active: true });
       fetchUsers();
     } else {
-      showMsg("❌ Kullanıcı oluşturulamadı", "error");
+      showMsg(" Kullanıcı oluşturulamadı", "error");
     }
   };
 
@@ -551,10 +551,10 @@ export default function AdminPanel() {
     if (!window.confirm(`${email} silinsin mi?`)) return;
     const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}`, { method: "DELETE" });
     if (res?.ok) {
-      showMsg("✅ Kullanıcı silindi", "success");
+      showMsg(" Kullanıcı silindi", "success");
       fetchUsers();
     } else {
-      showMsg("❌ Silme hatası", "error");
+      showMsg(" Silme hatası", "error");
     }
   };
 
@@ -565,18 +565,18 @@ export default function AdminPanel() {
       method: "POST",
       body: JSON.stringify({ password: pw }),
     });
-    if (res?.ok) showMsg("✅ Şifre güncellendi", "success");
-    else showMsg("❌ Şifre güncellenemedi", "error");
+    if (res?.ok) showMsg(" Şifre güncellendi", "success");
+    else showMsg(" Şifre güncellenemedi", "error");
   };
 
   const lockUserById = async (userId) => {
     if (!userId) return showMsg("Kullanıcı id gerekli", "error");
     const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(userId)}/lock`, { method: "POST" });
     if (res?.ok) {
-      showMsg("✅ Kullanıcı kilitlendi", "success");
+      showMsg(" Kullanıcı kilitlendi", "success");
       fetchUsers();
     } else {
-      showMsg("❌ Kullanıcı kilitlenemedi", "error");
+      showMsg(" Kullanıcı kilitlenemedi", "error");
     }
   };
 
@@ -584,10 +584,10 @@ export default function AdminPanel() {
     if (!userId) return showMsg("Kullanıcı id gerekli", "error");
     const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(userId)}/unlock`, { method: "POST" });
     if (res?.ok) {
-      showMsg("✅ Kullanıcı kilidi açıldı", "success");
+      showMsg(" Kullanıcı kilidi açıldı", "success");
       fetchUsers();
     } else {
-      showMsg("❌ Kullanıcı kilidi açılamadı", "error");
+      showMsg(" Kullanıcı kilidi açılamadı", "error");
     }
   };
 
@@ -599,11 +599,11 @@ export default function AdminPanel() {
     if (bulk.action === "set_password") payload.password = bulk.password;
     const res = await fetchWithAuth("/admin/users/bulk", { method: "POST", body: JSON.stringify(payload) });
     if (res?.ok) {
-      showMsg(`✅ Toplu işlem tamam: ${res.updated} güncellendi, ${res.deleted} silindi`, "success");
+      showMsg(` Toplu işlem tamam: ${res.updated} güncellendi, ${res.deleted} silindi`, "success");
       setSelectedEmails({});
       fetchUsers();
     } else {
-      showMsg("❌ Toplu işlem hatası", "error");
+      showMsg(" Toplu işlem hatası", "error");
     }
   };
 
@@ -623,7 +623,7 @@ export default function AdminPanel() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      showMsg("❌ Export başarısız", "error");
+      showMsg(" Export başarısız", "error");
     }
   };
 
@@ -636,14 +636,14 @@ export default function AdminPanel() {
         body: JSON.stringify({ mode: "upsert", users: parsed }),
       });
       if (res?.ok) {
-        showMsg(`✅ Import: ${res.created} oluşturuldu, ${res.updated} güncellendi`, "success");
+        showMsg(` Import: ${res.created} oluşturuldu, ${res.updated} güncellendi`, "success");
         setImportText("");
         fetchUsers();
       } else {
-        showMsg("❌ Import başarısız", "error");
+        showMsg(" Import başarısız", "error");
       }
     } catch (e) {
-      showMsg("❌ Geçersiz JSON", "error");
+      showMsg(" Geçersiz JSON", "error");
     }
   };
 
@@ -1496,10 +1496,10 @@ export default function AdminPanel() {
                             onClick={async () => {
                               const r = await fetchWithAuth(`/admin/sessions/${encodeURIComponent(s.jti)}/revoke`, { method: "POST", body: JSON.stringify({}) });
                               if (r?.ok) {
-                                showMsg("✅ Oturum iptal edildi", "success");
+                                showMsg(" Oturum iptal edildi", "success");
                                 fetchSessions();
                               } else {
-                                showMsg("❌ Oturum iptal edilemedi", "error");
+                                showMsg(" Oturum iptal edilemedi", "error");
                               }
                             }}
                             className="text-xs border border-red-900/40 px-2 py-1 rounded hover:bg-red-900/20 text-red-400"
