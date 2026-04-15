@@ -16,7 +16,7 @@ vi.mock("../auth/AuthProvider", () => ({
 describe("Navbar", () => {
   it("user rolünde Admin Panel linki DOM'da yok", () => {
     render(
-      <MemoryRouter initialEntries={["/home"]}>
+      <MemoryRouter initialEntries={["/dashboard"]}>
         <Navbar />
       </MemoryRouter>
     );
@@ -25,14 +25,14 @@ describe("Navbar", () => {
 
   it("normal user için Hesabı Yükselt CTA görünmez", () => {
     render(
-      <MemoryRouter initialEntries={["/home"]}>
+      <MemoryRouter initialEntries={["/dashboard"]}>
         <Navbar />
       </MemoryRouter>
     );
     expect(screen.queryByText("Hesabı Yükselt")).toBeNull();
   });
 
-  it("demo kullanıcıda Hesabı Yükselt CTA görünür", async () => {
+  it("demo kullanıcıda da Hesabı Yükselt CTA navbar’da yok", async () => {
     vi.resetModules();
     vi.doMock("../auth/AuthProvider", () => ({
       useAuth: () => ({
@@ -45,11 +45,11 @@ describe("Navbar", () => {
     const DemoNavbar = mod.default;
 
     render(
-      <MemoryRouter initialEntries={["/home"]}>
+      <MemoryRouter initialEntries={["/dashboard"]}>
         <DemoNavbar />
       </MemoryRouter>
     );
-    expect(screen.getAllByText("Hesabı Yükselt").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Hesabı Yükselt")).toBeNull();
   });
 
   it("admin rolünde de navbar Admin Panel göstermez", async () => {
@@ -65,7 +65,7 @@ describe("Navbar", () => {
     const AdminNavbar = mod.default;
 
     render(
-      <MemoryRouter initialEntries={["/home"]}>
+      <MemoryRouter initialEntries={["/dashboard"]}>
         <AdminNavbar />
       </MemoryRouter>
     );

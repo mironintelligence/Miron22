@@ -110,6 +110,21 @@ def test_admin_exchange_requires_mfa_setup_first(admin_ctx):
     assert body.get("otpauth_url")
 
 
+def test_panel_bootstrap_single_step_unlock_and_exchange_shape(admin_ctx):
+    """İki ayrı istek yerine panel-bootstrap ile aynı MFA-setup yanıtı."""
+    csrf = _csrf_headers()
+    res = client.post(
+        "/admin/panel-bootstrap",
+        json={"password": "test_panel_password"},
+        headers={"Authorization": f"Bearer {admin_ctx['token']}", **csrf},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body.get("mfa_setup_required") is True
+    assert body.get("secret")
+    assert body.get("otpauth_url")
+
+
 def test_admin_exchange_after_mfa_setup(admin_ctx):
     _unlock_admin_panel(admin_ctx["token"])
     csrf = _csrf_headers()

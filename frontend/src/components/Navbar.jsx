@@ -18,11 +18,8 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, status, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-  const isDemoUser =
-    user?.role === "demo" || user?.isDemo || user?.subscriptionStatus === "demo" || user?.subscriptionStatus === "trial";
-
   const baseNavLinks = [
-    { name: "Ana Sayfa", path: "/home" },
+    { name: "Ana Sayfa", path: "/dashboard" },
     { name: "Analiz", path: "/analyze" },
     { name: "Yargıtay Karar Arama", path: "/yargitay", beta: true },
     { name: "Mevzuat Analizi", path: "/mevzuat", beta: true },
@@ -103,11 +100,8 @@ export default function Navbar() {
             <Link to="/login" className="text-white/70 hover:text-white transition">
               Giriş Yap
             </Link>
-            <Link
-              to="/register"
-              className="px-5 py-2 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition"
-            >
-              15 Günlük Deneme
+            <Link to="/pricing" className="px-5 py-2 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition">
+              Fiyatlandırma
             </Link>
           </div>
         </div>
@@ -118,7 +112,7 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-[#050505]/90 backdrop-blur-xl border-b border-white/5">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <Link to="/home" className="text-xl font-bold tracking-tight text-white">
+        <Link to="/dashboard" className="text-xl font-bold tracking-tight text-white">
           Miron AI
         </Link>
 
@@ -142,14 +136,6 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-6">
-          {isDemoUser ? (
-            <Link
-              to="/upgrade"
-              className="text-sm font-bold px-4 py-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-700 text-black hover:brightness-110 transition shadow-lg shadow-amber-900/30"
-            >
-              Hesabı Yükselt
-            </Link>
-          ) : null}
           <Link to="/notifications" className="relative group p-1" aria-label="Bildirimler">
             <Bell
               className={`h-6 w-6 transition-colors ${unreadCount > 0 ? "text-amber-400" : "text-white/30"}`}
@@ -195,18 +181,9 @@ export default function Navbar() {
         </button>
       </div>
 
-      {menuOpen && (
+          {menuOpen && (
         <div className="md:hidden bg-[#050505] border-t border-white/10 p-6 absolute w-full left-0 top-20">
           <div className="flex flex-col gap-4">
-            {isDemoUser ? (
-              <Link
-                to="/upgrade"
-                onClick={() => setMenuOpen(false)}
-                className="text-lg font-bold text-center py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-700 text-black"
-              >
-                Hesabı Yükselt
-              </Link>
-            ) : null}
             {navLinks.map((link) => (
               <Link
                 key={link.path}

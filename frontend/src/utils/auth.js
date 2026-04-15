@@ -30,6 +30,8 @@ export function purgeLegacyTokenStorage() {
     "miron_current_user",
     "libraUser",
     "authUser",
+    "miron_admin_token",
+    "adminToken",
   ];
   keys.forEach((k) => {
     try {
@@ -38,4 +40,9 @@ export function purgeLegacyTokenStorage() {
       /* ignore */
     }
   });
+  try {
+    sessionStorage.removeItem("miron_admin_authenticated");
+  } catch {
+    /* ignore */
+  }
 }

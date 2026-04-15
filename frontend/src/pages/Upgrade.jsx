@@ -27,7 +27,7 @@ export default function Upgrade() {
 
   useEffect(() => {
     if (!user) nav("/login");
-    else if (!isTrialLike(user)) nav("/home", { replace: true });
+    else if (!isTrialLike(user)) nav("/dashboard", { replace: true });
   }, [user, nav]);
 
   useEffect(() => {

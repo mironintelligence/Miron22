@@ -78,8 +78,7 @@ export default function IntroLanding() {
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
               <div className="text-xs font-bold text-amber-200 uppercase tracking-widest mb-2">Cennet</div>
               <p className="text-white/80">
-                Tek panelde özet, risk, emsal yönü ve net bir yapılacaklar sırası —{" "}
-                <span className="text-[var(--miron-gold)] font-semibold">15 gün ücretsiz deneme</span> ile başlayın.
+                Tek panelde özet, risk, emsal yönü ve net bir yapılacaklar sırası — hemen kullanmaya başlayın.
               </p>
             </div>
           </motion.div>
@@ -89,7 +88,7 @@ export default function IntroLanding() {
               to="/register"
               className="group relative px-10 py-5 bg-white text-black font-bold rounded-full overflow-hidden hover:scale-105 transition-transform duration-300"
             >
-              <span className="relative z-10">15 Gün Ücretsiz Başla</span>
+              <span className="relative z-10">Hemen Başla</span>
               <div className="absolute inset-0 bg-[var(--miron-gold)] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
             </Link>
             <Link

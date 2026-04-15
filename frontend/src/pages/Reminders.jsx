@@ -103,14 +103,16 @@ export default function Reminders() {
 
   return (
     <div className="min-h-screen px-6 sm:px-10 md:px-16 py-16">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold text-accent">⏰ Dava Hatırlatıcı</h1>
-        <p className="text-sm text-white/60 mt-1">
-          Duruşma ve süreleri kaydedin. Seçtiğiniz zamanlarda uygulama içi bildirim alırsınız.
-        </p>
+      <div className="max-w-5xl mx-auto flex flex-col gap-6">
+        <div>
+          <h1 className="text-3xl font-bold text-accent">Dava Hatırlatıcı</h1>
+          <p className="text-sm text-white/60 mt-1">
+            Duruşma ve süreleri kaydedin. Seçtiğiniz zamanlarda uygulama içi bildirim alırsınız.
+          </p>
+        </div>
 
-        <div className="grid lg:grid-cols-2 gap-8 mt-8">
-          <div className="glass p-6 rounded-2xl space-y-3">
+        <div className="grid lg:grid-cols-2 gap-8">
+          <div className="glass p-6 rounded-2xl space-y-4 border border-white/10">
             <div className="text-sm font-semibold">Yeni Hatırlatıcı</div>
             <label htmlFor="reminder-title" className="text-xs text-white/60">
               Başlık
@@ -216,8 +218,8 @@ export default function Reminders() {
             </button>
           </div>
 
-          <div className="glass p-6 rounded-2xl">
-            <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="glass p-6 rounded-2xl border border-white/10 flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-semibold">Kayıtlı Hatırlatıcılar</div>
               <div className="flex gap-2">
                 <button
@@ -239,10 +241,13 @@ export default function Reminders() {
             ) : (!showArchived ? upcoming : archived).length === 0 ? (
               <div className="text-xs text-white/50">Henüz hatırlatıcı yok.</div>
             ) : (
-              <div className="space-y-3">
+              <div className="flex flex-col gap-4">
                 {(!showArchived ? upcoming : archived).map((r) => (
-                  <div key={r.id} className="bg-black/40 border border-white/10 rounded-xl p-4">
-                    <div className="flex items-start justify-between gap-3">
+                  <div
+                    key={r.id}
+                    className="bg-black/40 border border-white/10 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                  >
+                    <div className="flex items-start justify-between gap-3 flex-1 min-w-0">
                       <div>
                         <div className="font-semibold">{r.title}</div>
                         <div className="text-xs text-white/60 mt-1">{r.details || ""}</div>

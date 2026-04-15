@@ -1,29 +1,24 @@
 from __future__ import annotations
 
-import json
 import os
 import re
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, Optional, Union
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, status, Request, Response, Body, Depends
-from pydantic import BaseModel, EmailStr, Field, validator
+from fastapi import APIRouter, HTTPException, status, Request, Body, Depends
+from pydantic import BaseModel, Field, validator
 
 from stores.pg_users_store import (
-    create_user, find_user_by_email, update_user_login,
-    increment_failed_login, is_account_locked, reset_failed_login,
-    create_session, revoke_session, is_session_valid,
-    get_user_token_version, increment_token_version, log_audit,
-    rotate_refresh_token_atomic,
+    find_user_by_email,
+    find_user_by_id,
+    log_audit,
+    update_user_fields_by_id,
+    update_user_verification,
+    get_user_by_reset_token,
+    update_password,
 )
-
-from security import (
-    create_access_token, create_refresh_token, decode_token, 
-    token_fingerprint, hmac_hash, hash_password, verify_password, 
-    sanitize_user_for_response
-)
+from security import hash_password, sanitize_user_for_response
 from user_auth import get_current_user
-from stores.pg_users_store import find_user_by_id
 from legal_compliance import document_version_hash, luhn_valid, card_last_four
 
 try:
@@ -32,48 +27,16 @@ except ImportError:
     try:
         from services.pricing_service import find_valid_discount, increment_usage
     except ImportError:
-        # Mock for now if not found
-        def find_valid_discount(code): return None
-        def increment_usage(code): pass
+
+        def find_valid_discount(code):
+            return None
+
+        def increment_usage(code):
+            pass
+
 
 router = APIRouter()
 
-
-def _session_cookie_flags() -> Dict[str, Union[bool, str]]:
-    """
-    Çapraz köken SPA: üretimde Secure + SameSite=None; yerel HTTP için Lax (aksi halde çerez düşmez).
-    COOKIE_SECURE=1|0 ile zorlanabilir.
-    """
-    explicit = (os.getenv("COOKIE_SECURE") or "").strip().lower()
-    if explicit in ("0", "false", "no"):
-        secure = False
-    elif explicit in ("1", "true", "yes"):
-        secure = True
-    else:
-        secure = (os.getenv("ENVIRONMENT") or "").strip().lower() in ("production", "prod", "staging")
-    if secure:
-        return {"httponly": True, "secure": True, "samesite": "none"}
-    return {"httponly": True, "secure": False, "samesite": "lax"}
-
-
-def _set_refresh_cookie(response: Response, value: str, max_age: int = 604800) -> None:
-    flags = _session_cookie_flags()
-    response.set_cookie(key="refresh_token", value=value, max_age=max_age, path="/", **flags)
-
-
-def _clear_refresh_cookie(response: Response) -> None:
-    flags = _session_cookie_flags()
-    response.delete_cookie(
-        key="refresh_token",
-        path="/",
-        secure=bool(flags.get("secure")),
-        httponly=bool(flags.get("httponly")),
-        samesite=str(flags.get("samesite") or "lax"),
-    )
-
-
-def _now_utc() -> datetime:
-    return datetime.now(timezone.utc)
 
 class ConsentPayload(BaseModel):
     saas: bool = False
@@ -89,38 +52,18 @@ class CardPayload(BaseModel):
     cvc: str = Field(default="", max_length=4)
 
 
-class RegisterRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=12, max_length=128)
+class CompleteRegistrationRequest(BaseModel):
     firstName: str = Field(min_length=1, max_length=64)
     lastName: str = Field(min_length=1, max_length=64)
     mode: Optional[str] = Field(default="single", pattern="^(single|demo)$", max_length=16)
     discountCode: Optional[str] = Field(default=None, max_length=64)
-    role: Optional[str] = Field(default="user", pattern="^(user)$")
-    consents: Optional[ConsentPayload] = None
+    consents: ConsentPayload
     card: Optional[CardPayload] = None
 
-    @validator('password')
-    def validate_password_strength(cls, v):
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("Şifre en az bir büyük harf içermelidir.")
-        if not re.search(r"[a-z]", v):
-            raise ValueError("Şifre en az bir küçük harf içermelidir.")
-        if not re.search(r"\d", v):
-            raise ValueError("Şifre en az bir rakam içermelidir.")
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
-            raise ValueError("Şifre en az bir özel karakter içermelidir.")
-        return v
 
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=1, max_length=128)
-
-
-from services.mail_service import send_verification_email, send_reset_password_email
-from stores.pg_users_store import update_user_verification, get_user_by_reset_token, update_password
 import secrets
 from db import get_db_cursor
+from services.mail_service import send_reset_password_email
 
 
 def _permissions_for_user_row(u: Dict[str, Any]) -> list:
@@ -149,19 +92,30 @@ def _insert_legal_consents(user_id: str, ip: str) -> None:
             )
 
 
-@router.post("/register")
-def register(payload: RegisterRequest, request: Request) -> Dict[str, Any]:
-    email_norm = str(payload.email).strip().lower()
+@router.post("/complete-registration")
+def complete_registration(
+    payload: CompleteRegistrationRequest,
+    request: Request,
+    user: Dict[str, Any] = Depends(get_current_user),
+) -> Dict[str, Any]:
+    uid = str(user.get("id") or "")
+    if not uid:
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
+    u = find_user_by_id(uid)
+    if not u:
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
+
     ip = request.client.host if request.client else "127.0.0.1"
     if ip == "testclient":
         ip = "127.0.0.1"
 
-    if find_user_by_email(email_norm):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email zaten kayıtlı.")
-
     cp = payload.consents
     if not cp or not (cp.saas and cp.mss and cp.preinfo and cp.kvkk):
         raise HTTPException(status_code=400, detail="Dört yasal onay kutusu da işaretlenmelidir.")
+
+    email_norm = str(u.get("email") or user.get("email") or "").strip().lower()
+    if not email_norm:
+        raise HTTPException(status_code=400, detail="Hesapta e-posta tanımlı değil.")
 
     used_code = None
     if payload.discountCode:
@@ -188,25 +142,24 @@ def register(payload: RegisterRequest, request: Request) -> Dict[str, Any]:
             demo_expires_at = approved_until
             role = "demo"
 
-    v_token = secrets.token_urlsafe(32)
+    payment_on_file = bool(payload.card and payload.card.number and luhn_valid(payload.card.number))
 
-    user_data = {
-        "email": email_norm,
-        "firstName": payload.firstName.strip(),
-        "lastName": payload.lastName.strip(),
-        "hashed_password": hash_password(payload.password),
-        "role": "user",
-        "is_active": True,
-        "is_verified": True,
-        "verification_token": v_token,
-        "used_discount_code": used_code,
-        "demo_expires_at": demo_expires_at,
+    fields: Dict[str, Any] = {
+        "first_name": payload.firstName.strip(),
+        "last_name": payload.lastName.strip(),
+        "role": role,
+        "payment_card_on_file": payment_on_file,
     }
-    user_data["role"] = role
+    if used_code:
+        fields["used_discount_code"] = used_code
+    if demo_expires_at is not None:
+        fields["demo_expires_at"] = demo_expires_at
 
-    user_id = create_user(user_data)
+    if payload.mode == "single":
+        fields["trial_ends_at"] = datetime.now(timezone.utc) + timedelta(days=15)
 
-    _insert_legal_consents(str(user_id), ip)
+    if not update_user_fields_by_id(uid, fields):
+        raise HTTPException(status_code=500, detail="Profil güncellenemedi.")
 
     if payload.mode == "single":
         if (os.getenv("ENVIRONMENT") or "").lower() != "test" or (
@@ -215,16 +168,21 @@ def register(payload: RegisterRequest, request: Request) -> Dict[str, Any]:
             with get_db_cursor() as cur:
                 cur.execute(
                     """
-                    UPDATE users SET payment_card_on_file = FALSE,
-                    trial_ends_at = NOW() + interval '15 days'
+                    UPDATE users SET trial_ends_at = COALESCE(trial_ends_at, NOW() + interval '15 days')
                     WHERE id = %s
                     """,
-                    (user_id,),
+                    (uid,),
                 )
+
+    try:
+        _insert_legal_consents(uid, ip)
+    except Exception:
+        pass
+
     try:
         log_audit(
-            str(user_id),
-            "REGISTER_LEGAL_CONSENTS",
+            uid,
+            "COMPLETE_REGISTRATION",
             "legal",
             {"card_last4": card_last_four(payload.card.number) if payload.card else None},
             ip,
@@ -233,13 +191,9 @@ def register(payload: RegisterRequest, request: Request) -> Dict[str, Any]:
     except Exception:
         pass
 
-    send_verification_email(email_norm, v_token)
-
     return {
         "status": "ok",
-        "requires_verification": False,
-        "user_id": user_id,
-        "message": "Kayıt başarılı. İsterseniz e-postanızdaki bağlantı ile hesabınızı doğrulayabilirsiniz.",
+        "message": "Kayıt bilgileriniz kaydedildi.",
     }
 
 
@@ -274,167 +228,61 @@ def attach_payment(body: AttachPaymentIn, request: Request, user: Dict[str, Any]
         pass
     return {"status": "ok", "message": "Kart kaydedildi. 15 gün ücret alınmaz."}
 
+
 @router.post("/verify-email")
 def verify_email_endpoint(token: str = Body(..., embed=True)):
-    # DB'de token'ı bul ve is_verified=True yap
     if update_user_verification(token):
         return {"status": "ok", "message": "E-posta başarıyla doğrulandı."}
     raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş token.")
+
 
 @router.post("/forgot-password")
 def forgot_password(email: str = Body(..., embed=True)):
     email_norm = (email or "").strip().lower()
     user = find_user_by_email(email_norm)
     if not user:
-        # Güvenlik için kullanıcı bulunamadı dememek lazım ama UX için diyelim şimdilik
         return {"status": "ok", "message": "Eğer kayıtlıysa şifre sıfırlama bağlantısı gönderildi."}
-    
+
     reset_token = secrets.token_urlsafe(32)
-    # DB'ye kaydet (Expires in 1 hour)
-    from db import get_db_cursor
     with get_db_cursor() as cur:
         cur.execute(
             "UPDATE users SET reset_password_token = %s, reset_password_expires_at = NOW() + INTERVAL '1 hour' WHERE id = %s",
             (reset_token, user["id"]),
         )
-    
+
     send_reset_password_email(email, reset_token)
     return {"status": "ok", "message": "Şifre sıfırlama bağlantısı gönderildi."}
 
-@router.post("/reset-password")
-def reset_password(token: str = Body(...), new_password: str = Body(...)):
-    if not token:
-        raise HTTPException(status_code=400, detail="Token gerekli.")
-    new_password = (new_password or "").strip()
-    if not re.search(r"[A-Z]", new_password):
-        raise HTTPException(status_code=400, detail="Şifre en az bir büyük harf içermelidir.")
-    if not re.search(r"[a-z]", new_password):
-        raise HTTPException(status_code=400, detail="Şifre en az bir küçük harf içermelidir.")
-    if not re.search(r"\d", new_password):
-        raise HTTPException(status_code=400, detail="Şifre en az bir rakam içermelidir.")
-    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", new_password):
-        raise HTTPException(status_code=400, detail="Şifre en az bir özel karakter içermelidir.")
 
-    u = get_user_by_reset_token(token)
+class ResetPasswordBody(BaseModel):
+    token: str
+    new_password: str
+
+    @validator("new_password")
+    def validate_password_strength(cls, v):
+        new_password = (v or "").strip()
+        if not re.search(r"[A-Z]", new_password):
+            raise ValueError("Şifre en az bir büyük harf içermelidir.")
+        if not re.search(r"[a-z]", new_password):
+            raise ValueError("Şifre en az bir küçük harf içermelidir.")
+        if not re.search(r"\d", new_password):
+            raise ValueError("Şifre en az bir rakam içermelidir.")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", new_password):
+            raise ValueError("Şifre en az bir özel karakter içermelidir.")
+        return new_password
+
+
+@router.post("/reset-password")
+def reset_password_endpoint(body: ResetPasswordBody):
+    if not body.token:
+        raise HTTPException(status_code=400, detail="Token gerekli.")
+
+    u = get_user_by_reset_token(body.token)
     if not u:
         raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş token.")
 
-    update_password(str(u["id"]), hash_password(new_password))
+    update_password(str(u["id"]), hash_password(body.new_password))
     return {"status": "ok", "message": "Şifreniz başarıyla güncellendi."}
-
-
-@router.post("/login")
-def login(payload: LoginRequest, request: Request, response: Response):
-    email_norm = str(payload.email).strip().lower()
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient":
-        ip = "127.0.0.1"
-    ua = request.headers.get("user-agent", "unknown")
-    
-    user = find_user_by_email(email_norm)
-
-    if not user:
-        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
-
-    if is_account_locked(email_norm):
-        raise HTTPException(status_code=423, detail="Hesap geçici olarak kilitli. Lütfen daha sonra tekrar deneyin.")
-
-    if user.get("is_active") is False:
-        raise HTTPException(status_code=403, detail="Hesap askıya alındı.")
-
-    if not verify_password(payload.password, user.get("password_hash") or user.get("hashed_password")):
-        increment_failed_login(email_norm)
-        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
-
-    reset_failed_login(str(user["id"]))
-
-    role = user.get("role", "user")
-    uid = str(user["id"])
-    tv = get_user_token_version(uid)
-    access_token = create_access_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
-    refresh_token = create_refresh_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
-
-    refresh_hash = hmac_hash(refresh_token, os.getenv("DATA_HASH_KEY", ""))
-    fingerprint = token_fingerprint(ua, ip)
-    update_user_login(uid, ip, refresh_hash)
-    create_session(
-        user_id=uid,
-        refresh_hash=refresh_hash,
-        fingerprint=fingerprint,
-        ip=ip,
-        ua=ua,
-        expires_at=_now_utc() + timedelta(days=7),
-    )
-
-    _set_refresh_cookie(response, refresh_token)
-
-    return {
-        "status": "ok",
-        "message": "Giriş başarılı",
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "user": sanitize_user_for_response(user),
-    }
-
-
-@router.post("/refresh")
-async def refresh(request: Request, response: Response):
-    token = (request.cookies.get("refresh_token") or "").strip()
-    if not token:
-        try:
-            raw = await request.body()
-            if raw:
-                j = json.loads(raw.decode("utf-8"))
-                if isinstance(j, dict) and j.get("refresh_token"):
-                    token = str(j.get("refresh_token") or "").strip()
-        except Exception:
-            pass
-    if not token:
-        raise HTTPException(status_code=401, detail="Refresh token gerekli.")
-    
-    try:
-        payload = decode_token(token)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Geçersiz refresh token.")
-    
-    email = str(payload.get("sub") or "").strip().lower()
-    role = payload.get("role")
-    user_id = payload.get("uid")
-    tv = payload.get("tv")
-    if payload.get("type") != "refresh":
-        raise HTTPException(status_code=401, detail="Geçersiz refresh token.")
-    if not user_id or tv is None:
-        raise HTTPException(status_code=401, detail="Geçersiz refresh token.")
-
-    current_tv = get_user_token_version(str(user_id))
-    if int(tv) != int(current_tv):
-        _clear_refresh_cookie(response)
-        raise HTTPException(status_code=401, detail="Oturum geçersiz.")
-
-    old_hash = hmac_hash(token, os.getenv("DATA_HASH_KEY", ""))
-    if not rotate_refresh_token_atomic(old_hash, reason="rotation"):
-        _clear_refresh_cookie(response)
-        raise HTTPException(status_code=401, detail="Oturum geçersiz.")
-    
-    new_access = create_access_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
-    new_refresh = create_refresh_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
-    
-    _set_refresh_cookie(response, new_refresh)
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient":
-        ip = "127.0.0.1"
-    ua = request.headers.get("user-agent", "unknown")
-    new_hash = hmac_hash(new_refresh, os.getenv("DATA_HASH_KEY", ""))
-    fingerprint = token_fingerprint(ua, ip)
-    create_session(
-        user_id=str(user_id),
-        refresh_hash=new_hash,
-        fingerprint=fingerprint,
-        ip=ip,
-        ua=ua,
-        expires_at=_now_utc() + timedelta(days=7),
-    )
-    return {"status": "ok", "access_token": new_access, "refresh_token": new_refresh}
 
 
 @router.get("/me")
@@ -445,37 +293,3 @@ def me(user: Dict[str, Any] = Depends(get_current_user)):
     su = sanitize_user_for_response(u)
     su["permissions"] = _permissions_for_user_row(u)
     return {"status": "ok", "user": su}
-
-
-@router.post("/logout-all")
-def logout_all(request: Request, response: Response) -> Dict[str, Any]:
-    """
-    Global Logout / Kill Switch.
-    Invalidates ALL tokens for this user by incrementing token version.
-    """
-    token = request.cookies.get("refresh_token", "")
-    if token:
-        try:
-            payload = decode_token(token)
-            user_id = payload.get("uid")
-            if user_id:
-                increment_token_version(user_id)
-                # Also revoke current session specifically
-                refresh_hash = hmac_hash(token, os.getenv("DATA_HASH_KEY", ""))
-                revoke_session(refresh_hash, reason="global_logout")
-        except:
-            pass
-            
-    _clear_refresh_cookie(response)
-    return {"status": "ok", "message": "Tüm cihazlardan çıkış yapıldı."}
-
-
-@router.post("/logout")
-def logout(request: Request, response: Response) -> Dict[str, Any]:
-    token = request.cookies.get("refresh_token", "")
-    if token:
-        refresh_hash = hmac_hash(token, os.getenv("DATA_HASH_KEY", ""))
-        revoke_session(refresh_hash, reason="logout")
-        
-    _clear_refresh_cookie(response)
-    return {"status": "ok"}

@@ -72,7 +72,7 @@ export default function Welcome() {
                   <span className="text-accent">{name}</span>
                 </h1>
                 <div className="mt-3 text-sm text-subtle">
-                  Dashboard hazırlanıyor…
+                  Ana menüye yönlendiriliyorsunuz…
                 </div>
               </motion.div>
 

@@ -1,6 +1,7 @@
 // frontend/src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { authFetch } from "../auth/api";
 import {
   LineChart,
   Line,
@@ -15,15 +16,14 @@ import {
   Legend
 } from "recharts";
 
-const API = `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/stats`;
-
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch(API);
+        const r = await authFetch("/stats/");
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const data = await r.json();
         setStats(data);
       } catch (err) {

@@ -134,6 +134,13 @@ class AdminPanelUnlockIn(BaseModel):
     password: str = Field(min_length=1, max_length=256)
 
 
+class AdminPanelBootstrapIn(BaseModel):
+    """Tek istekte panel şifresi + isteğe bağlı 2FA; cookie + admin token."""
+
+    password: str = Field(min_length=1, max_length=256)
+    otp: Optional[str] = Field(default=None, max_length=12)
+
+
 # ------------------------
 # Admin panel password gate (httpOnly cookie; ADMIN_PANEL_PASSWORD env)
 # ------------------------
@@ -190,6 +197,74 @@ def admin_panel_unlock_logout(request: Request, user: Dict[str, Any] = Depends(g
     resp = JSONResponse({"ok": True})
     secure = request.url.scheme == "https"
     resp.delete_cookie(key=ADMIN_PANEL_GATE_COOKIE, path="/", samesite="none" if secure else "lax", secure=secure)
+    return resp
+
+
+def _admin_exchange_payload(request: Request, user: Dict[str, Any], otp: Optional[str], via: str = "exchange") -> Dict[str, Any]:
+    """Panel kilidi aşılmış kabul edilir; MFA ve admin token üretimi."""
+    if (user.get("role") or "") != "admin":
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
+
+    mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "true") or "").lower() == "true"
+    mfa = get_user_mfa(user_id=str(user.get("id")))
+
+    if mfa_required and not bool(mfa.get("enabled")):
+        secret = generate_base32_secret()
+        issuer = (os.getenv("MFA_ISSUER") or "Miron AI").strip()
+        email = (user.get("email") or "").strip().lower()
+        label = f"{issuer}:{email or 'admin'}"
+        otpauth_url = f"otpauth://totp/{label}?secret={secret}&issuer={issuer}"
+        log_audit(str(user.get("id")), "ADMIN_MFA_SETUP_REQUIRED", "auth", {"via": via}, ip, ua)
+        return {"ok": False, "mfa_setup_required": True, "secret": secret, "otpauth_url": otpauth_url}
+
+    if bool(mfa.get("enabled")):
+        if not otp or not verify_totp(str(mfa.get("secret") or ""), str(otp or "")):
+            log_audit(str(user.get("id")), "ADMIN_MFA_FAILED", "auth", {"via": via}, ip, ua)
+            raise HTTPException(status_code=401, detail="2FA doğrulaması gerekli.")
+
+    token = issue_admin_token(admin_id=str(user.get("id")), ip=ip, ua=ua)
+    log_audit(str(user.get("id")), "ADMIN_EXCHANGE_SUCCESS", "auth", None, ip, ua)
+    return {"ok": True, "token": token}
+
+
+@router.post("/panel-bootstrap")
+def admin_panel_bootstrap(body: AdminPanelBootstrapIn, request: Request, user: Dict[str, Any] = Depends(get_current_user)):
+    """Panel şifresi + (varsa) 2FA tek adımda; httpOnly gate çerezi set edilir, admin JWT döner."""
+    if (user.get("role") or "") != "admin":
+        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+    expected = (os.getenv("ADMIN_PANEL_PASSWORD") or "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="ADMIN_PANEL_PASSWORD sunucuda ayarlı değil.")
+
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
+
+    if not secrets.compare_digest(body.password, expected):
+        log_audit(str(user.get("id")), "ADMIN_PANEL_GATE_FAIL", "auth", {"reason": "invalid_password"}, ip, ua)
+        raise HTTPException(status_code=401, detail="Geçersiz şifre.")
+
+    gate_jwt = issue_admin_panel_gate_jwt(str(user.get("id")))
+    log_audit(str(user.get("id")), "ADMIN_PANEL_GATE_OK", "auth", {"via": "panel_bootstrap"}, ip, ua)
+
+    payload = _admin_exchange_payload(request, user, body.otp, via="panel_bootstrap")
+    resp = JSONResponse(payload)
+    secure = request.url.scheme == "https"
+    resp.set_cookie(
+        key=ADMIN_PANEL_GATE_COOKIE,
+        value=gate_jwt,
+        httponly=True,
+        secure=secure,
+        samesite="none" if secure else "lax",
+        max_age=8 * 3600,
+        path="/",
+    )
     return resp
 
 
@@ -337,34 +412,7 @@ def admin_mfa_confirm(body: AdminMfaConfirmIn, request: Request):
 
 @router.post("/exchange")
 def admin_exchange(body: AdminExchangeIn, request: Request, user: Dict[str, Any] = Depends(require_admin_panel_gate)):
-    if (user.get("role") or "") != "admin":
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
-
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient":
-        ip = "127.0.0.1"
-    ua = request.headers.get("user-agent", "unknown")
-
-    mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "true") or "").lower() == "true"
-    mfa = get_user_mfa(user_id=str(user.get("id")))
-
-    if mfa_required and not bool(mfa.get("enabled")):
-        secret = generate_base32_secret()
-        issuer = (os.getenv("MFA_ISSUER") or "Miron AI").strip()
-        email = (user.get("email") or "").strip().lower()
-        label = f"{issuer}:{email or 'admin'}"
-        otpauth_url = f"otpauth://totp/{label}?secret={secret}&issuer={issuer}"
-        log_audit(str(user.get("id")), "ADMIN_MFA_SETUP_REQUIRED", "auth", {"via": "exchange"}, ip, ua)
-        return {"ok": False, "mfa_setup_required": True, "secret": secret, "otpauth_url": otpauth_url}
-
-    if bool(mfa.get("enabled")):
-        if not body.otp or not verify_totp(str(mfa.get("secret") or ""), str(body.otp or "")):
-            log_audit(str(user.get("id")), "ADMIN_MFA_FAILED", "auth", {"via": "exchange"}, ip, ua)
-            raise HTTPException(status_code=401, detail="2FA doğrulaması gerekli.")
-
-    token = issue_admin_token(admin_id=str(user.get("id")), ip=ip, ua=ua)
-    log_audit(str(user.get("id")), "ADMIN_EXCHANGE_SUCCESS", "auth", None, ip, ua)
-    return {"ok": True, "token": token}
+    return _admin_exchange_payload(request, user, body.otp)
 
 
 @router.post("/2fa/setup")

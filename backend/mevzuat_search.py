@@ -65,7 +65,21 @@ def mevzuat_search(payload: MevzuatSearchRequest) -> Dict[str, Any]:
 
     client = get_openai_client()
     if not client:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY eksik/boş ya da client oluşturulamadı.")
+        return {
+            "query": q,
+            "results": precedents,
+            "analysis": {
+                "madde_uygunlugu": "AI analizi için OPENAI_API_KEY yapılandırılmalıdır.",
+                "yanlis_madde_riski": "—",
+                "ilgili_maddeler": [],
+                "capraz_atiflar": [],
+                "hiyerarsi_catisma": [],
+                "riskler": ["Harici dil modeli kapalı olduğu için otomatik madde seçimi yapılamadı."],
+                "gerekce": "Yalnızca içtihat özetleri (varsa) listelenmiştir; tam analiz için API anahtarını ekleyin.",
+            },
+            "precedents": precedents,
+            "mode": "precedents_only_no_llm",
+        }
 
     prompt = f"""
 Sen Türk hukukunda uzman bir avukat asistanısın.
@@ -102,7 +116,12 @@ Sadece aşağıdaki JSON formatında döndür:
             response_format={"type": "json_object"}
         )
         analysis = json.loads(completion.choices[0].message.content)
-        return {"analysis": analysis, "precedents": precedents}
+        return {
+            "query": q,
+            "results": precedents,
+            "analysis": analysis,
+            "precedents": precedents,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail="mevzuat_analysis_failed")
 

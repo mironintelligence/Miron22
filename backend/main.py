@@ -192,9 +192,13 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 _origins_env = os.getenv("FRONTEND_ORIGINS")
 _allowed_origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
     "https://miron22.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:3000",
 ]
 if _origins_env:
     for o in [x.strip() for x in _origins_env.split(",")]:

@@ -303,7 +303,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
   // -----------------------------
   const closeAssistant = () => {
     if (onClose) onClose();
-    else navigate("/home");
+    else navigate("/dashboard");
   };
 
   if (!show) return null;

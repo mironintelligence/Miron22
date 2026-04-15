@@ -3,11 +3,53 @@ import { motion } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { authFetch } from "../auth/api";
 
-const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+
+const ADMIN_STORAGE_KEY = "miron_admin_token";
+const ADMIN_STORAGE_LEGACY = "adminToken";
+
+function readAdminToken() {
+  try {
+    return localStorage.getItem(ADMIN_STORAGE_KEY) || localStorage.getItem(ADMIN_STORAGE_LEGACY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function persistAdminToken(t) {
+  try {
+    if (t) {
+      localStorage.setItem(ADMIN_STORAGE_KEY, t);
+      localStorage.removeItem(ADMIN_STORAGE_LEGACY);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearAdminToken() {
+  try {
+    localStorage.removeItem(ADMIN_STORAGE_KEY);
+    localStorage.removeItem(ADMIN_STORAGE_LEGACY);
+    sessionStorage.removeItem("miron_admin_authenticated");
+  } catch {
+    /* ignore */
+  }
+}
+
+function markAdminPanelSession(ok) {
+  try {
+    if (ok) sessionStorage.setItem("miron_admin_authenticated", "true");
+    else sessionStorage.removeItem("miron_admin_authenticated");
+  } catch {
+    /* ignore */
+  }
+}
 
 export default function AdminPanel() {
   const { status, user } = useAuth();
-  const [token, setToken] = useState(localStorage.getItem("adminToken") || "");
+  const [token, setToken] = useState(readAdminToken());
   const [otp, setOtp] = useState("");
   const [mfaSetup, setMfaSetup] = useState(null);
   const [authed, setAuthed] = useState(false);
@@ -70,6 +112,17 @@ export default function AdminPanel() {
     if (status !== "authed" || user?.role !== "admin") return;
     let cancelled = false;
     (async () => {
+      const stored = readAdminToken();
+      if (stored) {
+        const ok = await checkAuthWithToken(stored);
+        if (cancelled) return;
+        if (ok) {
+          setPanelGate({ phase: "ready", configured: true });
+          return;
+        }
+        clearAdminToken();
+        setToken("");
+      }
       try {
         const res = await authFetch("/admin/panel-unlock/status", { method: "GET" });
         const data = await res.json().catch(() => ({}));
@@ -97,49 +150,75 @@ export default function AdminPanel() {
     if (status !== "authed") return;
     if (user?.role !== "admin") return;
     if (panelGate.phase !== "ready") return;
+    if (authed) return;
     bootstrap();
-  }, [status, user?.role, panelGate.phase]);
+  }, [status, user?.role, panelGate.phase, authed]);
 
-  const submitPanelPassword = async () => {
+  const submitPanelBootstrap = async () => {
     setPanelGateError("");
+    setMsg("");
     try {
-      const res = await authFetch("/admin/panel-unlock", {
+      const res = await authFetch("/admin/panel-bootstrap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: panelPassword }),
+        body: JSON.stringify({ password: panelPassword, otp: otp.trim() || undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setPanelGateError(data?.detail || "Şifre doğrulanamadı.");
+        const detail = typeof data?.detail === "string" ? data.detail : "Doğrulama başarısız.";
+        setPanelGateError(detail);
         return;
       }
-      setPanelPassword("");
-      setPanelGate({ phase: "ready", configured: true });
+      if (data?.ok && data?.token) {
+        setPanelPassword("");
+        setOtp("");
+        setToken(data.token);
+        persistAdminToken(data.token);
+        markAdminPanelSession(true);
+        setMfaSetup(null);
+        setAuthed(true);
+        setPanelGate({ phase: "ready", configured: true });
+        refreshAll();
+        return;
+      }
+      if (data?.mfa_setup_required) {
+        setPanelPassword("");
+        setMfaSetup({ secret: data.secret, otpauth_url: data.otpauth_url });
+        showMsg("Authenticator ile 2FA kurulumunu tamamlayın.", "error");
+        return;
+      }
+      setPanelGateError("Beklenmeyen yanıt.");
     } catch {
       setPanelGateError("Bağlantı hatası.");
     }
   };
 
   const bootstrap = async () => {
-    if (token) {
-      const ok = await checkAuth(token);
+    const t = token || readAdminToken();
+    if (t) {
+      const ok = await checkAuthWithToken(t);
       if (ok) return;
-      localStorage.removeItem("adminToken");
+      clearAdminToken();
       setToken("");
     }
     await exchangeAdminToken("");
   };
 
-  const checkAuth = async (t) => {
+  const checkAuthWithToken = async (t) => {
+    if (!t) return false;
     try {
       const res = await fetch(`${API_BASE}/admin/health`, { headers: { Authorization: `Bearer ${t}` } });
       if (res.ok) {
         setAuthed(true);
-        localStorage.setItem("adminToken", t);
+        setToken(t);
+        persistAdminToken(t);
+        markAdminPanelSession(true);
         refreshAll();
         return true;
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
     return false;
   };
 
@@ -329,7 +408,8 @@ export default function AdminPanel() {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data?.ok && data?.token) {
         setToken(data.token);
-        localStorage.setItem("adminToken", data.token);
+        persistAdminToken(data.token);
+        markAdminPanelSession(true);
         setAuthed(true);
         setMfaSetup(null);
         setOtp("");
@@ -526,12 +606,13 @@ export default function AdminPanel() {
   const logoutAdmin = async () => {
     try {
       await fetchWithAuth("/admin/logout", { method: "POST", body: JSON.stringify({}) });
+      await authFetch("/admin/panel-unlock/logout", { method: "POST" }).catch(() => {});
     } catch (e) {
       return;
     } finally {
       setAuthed(false);
       setToken("");
-      localStorage.removeItem("adminToken");
+      clearAdminToken();
     }
   };
 
@@ -659,48 +740,29 @@ export default function AdminPanel() {
     );
   }
 
-  if (panelGate.phase === "need_password") {
+  const showAdminEntry =
+    !authed &&
+    panelGate.phase !== "loading" &&
+    !(panelGate.phase === "ready" && panelGate.configured === false);
+
+  if (!authed && panelGate.phase === "ready" && panelGate.configured === false) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-amber-500 font-mono px-4">
-        <div className="p-10 border border-amber-900/30 bg-black rounded-2xl shadow-2xl max-w-md w-full">
-          <h1 className="text-2xl font-bold mb-3 text-center tracking-widest">ADMIN ERİŞİM</h1>
-          <p className="text-xs text-zinc-500 text-center mb-6">
-            Devam etmek için yönetici paneli şifresini girin. Doğrulama sunucuda yapılır.
-          </p>
-          {panelGateError ? <div className="mb-4 text-sm text-red-500 text-center">{panelGateError}</div> : null}
-          <input
-            type="password"
-            autoComplete="off"
-            className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none mb-4"
-            placeholder="Panel şifresi"
-            value={panelPassword}
-            onChange={(e) => setPanelPassword(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submitPanelPassword();
-            }}
-          />
-          <button
-            type="button"
-            onClick={submitPanelPassword}
-            className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition"
-          >
-            Doğrula
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-black text-zinc-500">
+        Yönetici oturumu hazırlanıyor…
       </div>
     );
   }
 
-  if (!authed) {
+  if (showAdminEntry) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-amber-500 font-mono">
+      <div className="min-h-screen flex items-center justify-center bg-black text-amber-500 font-mono px-4">
         <div className="p-10 border border-amber-900/30 bg-black rounded-2xl shadow-2xl max-w-md w-full">
-          <h1 className="text-2xl font-bold mb-3 text-center tracking-widest">ADMIN PANELİ</h1>
-          <div className="text-xs text-zinc-500 text-center mb-6">
-            Oturumunuz açık. Admin doğrulaması için 2FA kodu gerekebilir.
-          </div>
-
-          {msg && <div className="mb-4 text-sm text-red-500 text-center">{msg}</div>}
+          <h1 className="text-2xl font-bold mb-3 text-center tracking-widest">YÖNETİCİ PANELİ</h1>
+          <p className="text-xs text-zinc-500 text-center mb-6">
+            Tek adımda panel şifresi ve (etkinse) 2FA kodu. Doğrulama sunucuda yapılır.
+          </p>
+          {panelGateError ? <div className="mb-4 text-sm text-red-500 text-center">{panelGateError}</div> : null}
+          {msg ? <div className="mb-4 text-sm text-red-500 text-center">{msg}</div> : null}
 
           {mfaSetup?.secret && (
             <div className="border border-amber-900/30 rounded-xl p-4 bg-amber-900/5 text-xs text-amber-200/80 space-y-2 mb-4">
@@ -711,33 +773,56 @@ export default function AdminPanel() {
             </div>
           )}
 
-          <div className="space-y-3">
-            <input
-              type="text"
-              placeholder="2FA Kodu (6 hane)"
-              className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-            />
+          {!mfaSetup?.secret && (
+            <>
+              <input
+                type="password"
+                autoComplete="current-password"
+                className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none mb-3"
+                placeholder="Panel şifresi"
+                value={panelPassword}
+                onChange={(e) => setPanelPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitPanelBootstrap();
+                }}
+              />
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none mb-4"
+                placeholder="2FA kodu (Authenticator etkinse)"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={submitPanelBootstrap}
+                className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition mb-3"
+              >
+                Panele gir
+              </button>
+            </>
+          )}
 
-            {mfaSetup?.secret ? (
+          {mfaSetup?.secret ? (
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Authenticator kodu (6 hane)"
+                className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+              />
               <button
                 type="button"
                 onClick={confirmMfaSetup}
                 className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition"
               >
-                2FA Kur ve Devam Et
+                2FA kur ve devam et
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => exchangeAdminToken(otp)}
-                className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition"
-              >
-                Admin Paneline Gir
-              </button>
-            )}
-          </div>
+            </div>
+          ) : null}
         </div>
       </div>
     );

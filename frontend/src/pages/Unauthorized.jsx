@@ -11,7 +11,7 @@ export default function Unauthorized() {
           Bu sayfaya erişmek için admin rolüne sahip olmanız gerekiyor.
         </p>
         <div className="flex gap-3">
-          <Link to="/home" className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15">
+          <Link to="/dashboard" className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15">
             Ana Menü
           </Link>
           <Link to="/feedback" className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15">

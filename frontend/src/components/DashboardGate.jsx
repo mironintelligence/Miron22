@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 
 /**
- * Sadece admin kullanıcıların /dashboard sayfasına girmesine izin verir.
+ * Sadece admin kullanıcıların /admin/metrics (eski raporlama paneli) sayfasına girmesine izin verir.
  */
 export default function DashboardGate({ children }) {
   const { status, user } = useAuth();
@@ -18,7 +18,7 @@ export default function DashboardGate({ children }) {
     return <Navigate to="/" replace />;
   }
   if ((user?.role || "").toLowerCase() !== "admin") {
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 }

@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+const API =
+  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
 
 const REFRESH_STORAGE_KEY = "miron_refresh_token";
 

@@ -20,7 +20,10 @@ def search_decisions(
     if not query:
         raise HTTPException(status_code=400, detail="empty_query")
 
-    result = search_engine.search(query=query, year=year, court=court, chamber=chamber)
+    try:
+        result = search_engine.search(query=query, year=year, court=court, chamber=chamber)
+    except Exception:
+        result = {"query": query, "results": [], "message": "search_unhandled_error"}
     out = {"query": result.get("query") or query, "results": []}
 
     for item in result.get("results") or []:

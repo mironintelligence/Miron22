@@ -76,7 +76,7 @@ export function AuthProvider({ children }) {
     bootstrap();
   }, [bootstrap]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, nameHint) => {
     const data = await apiLogin(email, password);
     const tok = data?.access_token || "";
     if (tok) setAccessToken(tok);
@@ -90,9 +90,13 @@ export function AuthProvider({ children }) {
     } catch (e) {
       emitToast(e?.message || "Profil bilgisi alınamadı", "error");
     }
+    const hintFirst = (nameHint && nameHint.firstName) || "";
+    const hintLast = (nameHint && nameHint.lastName) || "";
+    const hintFull = `${hintFirst} ${hintLast}`.trim();
     setLastLoginMeta({
       at: Date.now(),
       name:
+        hintFull ||
         `${normalized.firstName || ""} ${normalized.lastName || ""}`.trim() ||
         normalized.email ||
         email,

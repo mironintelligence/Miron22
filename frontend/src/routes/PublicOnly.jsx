@@ -5,6 +5,6 @@ import { useAuth } from "../auth/AuthProvider";
 export default function PublicOnly() {
   const { status } = useAuth();
   if (status === "loading") return null;
-  if (status === "authed") return <Navigate to="/home" replace />;
+  if (status === "authed") return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }

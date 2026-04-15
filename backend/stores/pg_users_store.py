@@ -45,7 +45,7 @@ def _row_to_user(row: Dict[str, Any]) -> Dict[str, Any]:
 
 def create_user(user: Dict[str, Any]) -> str:
     if _use_inmemory():
-        uid = str(uuid.uuid4())
+        uid = str(user.get("id") or uuid.uuid4())
         email = _norm_email(user.get("email") or "")
         now = _now_utc()
         row = {
@@ -478,6 +478,31 @@ def update_user_profile(
     with get_db_cursor() as cur:
         cur.execute(sql, tuple(params))
         return cur.fetchone() is not None
+
+
+def update_user_fields_by_id(user_id: str, fields: Dict[str, Any]) -> bool:
+    if not fields:
+        return True
+    uid = str(user_id)
+    if _use_inmemory():
+        with _mem_lock:
+            u = _mem_users_by_id.get(uid)
+            if not u:
+                return False
+            for k, v in fields.items():
+                u[k] = v
+            return True
+    cols = []
+    params: List[Any] = []
+    for k, v in fields.items():
+        cols.append(f"{k} = %s")
+        params.append(v)
+    params.append(uid)
+    sql = f"UPDATE users SET {', '.join(cols)} WHERE id = %s RETURNING id"
+    with get_db_cursor() as cur:
+        cur.execute(sql, tuple(params))
+        return cur.fetchone() is not None
+
 
 # --- Session Operations ---
 

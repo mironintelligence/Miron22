@@ -81,12 +81,17 @@ class YargitaySearchEngine:
             SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
                 0.0 AS keyword_rank
             FROM decisions
-            WHERE clean_text ILIKE %s
+            WHERE (
+                clean_text ILIKE %s
+                OR COALESCE(summary, '') ILIKE %s
+                OR COALESCE(decision_number::text, '') ILIKE %s
+                OR COALESCE(case_number::text, '') ILIKE %s
+            )
             {filter_sql}
             ORDER BY decision_date DESC NULLS LAST
             LIMIT %s
         """
-        cur.execute(sql, [q] + params + [limit])
+        cur.execute(sql, [q, q, q, q] + params + [limit])
         return {row["id"]: dict(row) for row in cur.fetchall()}
 
     def search(self, query: str, year: Optional[int] = None, court: Optional[str] = None, chamber: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:

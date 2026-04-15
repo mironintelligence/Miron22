@@ -1,6 +1,9 @@
 // src/pages/YargitaySearch.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { authFetch } from "../auth/api";
+
+const RECENT_SEARCH_KEY = "miron_recent_yargitay_queries";
 
 const hukukDaireleri = [
   "3. Hukuk Dairesi",
@@ -18,6 +21,7 @@ const cezaDaireleri = [
 ];
 
 export default function YargitaySearch() {
+  const location = useLocation();
   const [query, setQuery] = useState("");
   const [chamber, setChamber] = useState("");
   const [year, setYear] = useState("");
@@ -28,6 +32,13 @@ export default function YargitaySearch() {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => {
+    const st = location.state?.q;
+    if (typeof st === "string" && st.trim()) {
+      setQuery(st.trim());
+    }
+  }, [location.state]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -69,6 +80,14 @@ export default function YargitaySearch() {
       const data = await res.json();
       setResults(data.results || []);
       setSearched(true);
+      try {
+        const qv = query.trim();
+        const prev = JSON.parse(localStorage.getItem(RECENT_SEARCH_KEY) || "[]");
+        const next = [qv, ...(Array.isArray(prev) ? prev : []).filter((x) => x !== qv)].slice(0, 8);
+        localStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
 
     } catch (err) {
       console.error(err);

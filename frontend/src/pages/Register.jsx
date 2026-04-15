@@ -541,10 +541,10 @@ export default function Register() {
                   </div>
                 </div>
 
-                <div className="sm:col-span-2 mt-4 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-3">
-                  <div className="text-sm font-semibold text-amber-200/90">15 Günlük Deneme</div>
+                <div className="sm:col-span-2 mt-4 p-4 rounded-2xl border border-white/10 bg-black/30 space-y-2">
+                  <div className="text-sm font-semibold text-white/90">Hesap oluşturma</div>
                   <p className="text-xs text-white/50">
-                    Deneme süresini başlatmak için sadece hesap bilgileri yeterlidir. Kart bilgisi istenmez.
+                    Kayıt için gerekli alanları doldurun. Ödeme adımı paket seçiminde yapılır.
                   </p>
                 </div>
               </div>

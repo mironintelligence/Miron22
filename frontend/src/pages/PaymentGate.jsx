@@ -3,16 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 
-/**
- * Kart zorunluluğu kaldırıldı: deneme / kayıt sonrası kullanıcı doğrudan panele geçebilir.
- */
+/** Ödeme / yönlendirme sonrası ana menüye geçiş için basit kapı. */
 export default function PaymentGate() {
   const navigate = useNavigate();
   const { status } = useAuth();
 
   React.useEffect(() => {
     if (status === "authed") {
-      navigate("/home", { replace: true });
+      navigate("/dashboard", { replace: true });
     }
   }, [status, navigate]);
 
@@ -24,14 +22,14 @@ export default function PaymentGate() {
         className="w-full max-w-lg rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/90 to-black p-8 shadow-xl text-center"
       >
         <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent">
-          15 Günlük Deneme
+          Panele devam
         </h1>
         <p className="text-sm text-white/60 mb-6">
-          Kredi kartı gerekmez. Deneme süreniz hesabınızda otomatik tanımlanır; panele devam edebilirsiniz.
+          Hesabınız hazırsa ana menüye geçebilirsiniz.
         </p>
         <button
           type="button"
-          onClick={() => navigate("/home", { replace: true })}
+          onClick={() => navigate("/dashboard", { replace: true })}
           className="w-full py-3 rounded-xl bg-[var(--miron-gold)] text-black font-bold hover:brightness-110 transition"
         >
           Panele git

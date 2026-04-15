@@ -52,7 +52,7 @@ export default function App() {
   useEffect(() => {
     if (location.pathname === "/login") {
       if (status === "authed") {
-        navigate("/home", { replace: true });
+        navigate("/dashboard", { replace: true });
         return;
       }
       setLoginOpen(true);
@@ -78,7 +78,7 @@ export default function App() {
         }}
         onSuccess={() => {
           setLoginOpen(false);
-          navigate("/welcome", { replace: true });
+          navigate("/dashboard", { replace: true });
         }}
       />
 
@@ -86,7 +86,7 @@ export default function App() {
         <Routes>
           <Route path="/demo-request" element={<DemoRequest />} />
 
-          {/* GİRİŞLİ KULLANICI "/"a GİDEMEZ -> /home */}
+          {/* GİRİŞLİ KULLANICI "/"a GİDEMEZ -> /dashboard */}
           <Route
             path="/"
             element={
@@ -101,6 +101,14 @@ export default function App() {
           {/* PROTECTED ROUTES */}
           <Route
             path="/home"
+            element={
+              <ProtectedRoute>
+                <Navigate to="/dashboard" replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Home />
@@ -180,7 +188,7 @@ export default function App() {
             }
           />
           <Route
-            path="/dashboard"
+            path="/admin/metrics"
             element={
               <ProtectedRoute>
                 <DashboardGate>
@@ -328,7 +336,7 @@ export default function App() {
             path="*"
             element={
               status === "authed" ? (
-                <Navigate to="/home" replace />
+                <Navigate to="/dashboard" replace />
               ) : (
                 <Navigate to="/" replace />
               )
