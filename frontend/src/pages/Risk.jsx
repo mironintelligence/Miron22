@@ -35,7 +35,7 @@ export default function Risk() {
 
   return (
     <div className="min-h-screen px-6 sm:px-10 md:px-16 py-20 overflow-y-auto">
-      <h1 className="text-3xl font-bold mb-2 text-accent">🧠 Risk & Strateji Analizi</h1>
+      <h1 className="text-3xl font-bold mb-2 text-accent"> Risk & Strateji Analizi</h1>
       <p className="text-subtle mb-6">
         Dosyanızı veya dava özetinizi girin; Miron AI risk puanı, kazanma ihtimali ve strateji önerileri çıkarsın.
       </p>
@@ -48,7 +48,7 @@ export default function Risk() {
           className="glass rounded-2xl p-5"
         >
           <div className="mb-3">
-            <label className="block text-sm mb-2">📂 Dosya (PDF/DOCX/TXT)</label>
+            <label className="block text-sm mb-2"> Dosya (PDF/DOCX/TXT)</label>
             <input
               type="file"
               accept=".pdf,.docx,.txt,.rtf,.odt"
@@ -58,7 +58,7 @@ export default function Risk() {
           </div>
 
           <div className="mb-3">
-            <label className="block text-sm mb-2">📝 Veya metin girin</label>
+            <label className="block text-sm mb-2"> Veya metin girin</label>
             <textarea
               rows={10}
               value={caseText}
@@ -108,7 +108,7 @@ export default function Risk() {
               </div>
 
               <div className="mt-5">
-                <div className="text-sm text-subtle mb-2">🔎 Tespit Edilen Riskler</div>
+                <div className="text-sm text-subtle mb-2"> Tespit Edilen Riskler</div>
                 <ul className="list-disc pl-5 space-y-1">
                   {(result.key_issues || []).map((k, i) => (
                     <li key={i}>{k}</li>
@@ -117,7 +117,7 @@ export default function Risk() {
               </div>
 
               <div className="mt-5">
-                <div className="text-sm text-subtle mb-2">✅ Önerilen Aksiyonlar</div>
+                <div className="text-sm text-subtle mb-2"> Önerilen Aksiyonlar</div>
                 <ul className="list-disc pl-5 space-y-1">
                   {(result.recommended_actions || []).map((k, i) => (
                     <li key={i}>{k}</li>
@@ -125,7 +125,7 @@ export default function Risk() {
                 </ul>
               </div>
               <div className="mt-5">
-                <div className="text-sm text-subtle mb-2">🎯 Taktik Strateji</div>
+                <div className="text-sm text-subtle mb-2"> Taktik Strateji</div>
                 <ul className="list-disc pl-5 space-y-1">
                   {(result.tactical_strategy || []).map((k, i) => (
                     <li key={i}>{k}</li>
@@ -133,7 +133,7 @@ export default function Risk() {
                 </ul>
               </div>
               <div className="mt-5">
-                <div className="text-sm text-subtle mb-2">🛡️ Savunma Stratejisi</div>
+                <div className="text-sm text-subtle mb-2"> Savunma Stratejisi</div>
                 <ul className="list-disc pl-5 space-y-1">
                   {(result.defensive_strategy || []).map((k, i) => (
                     <li key={i}>{k}</li>
@@ -141,7 +141,7 @@ export default function Risk() {
                 </ul>
               </div>
               <div className="mt-5">
-                <div className="text-sm text-subtle mb-2">🧩 Karşı Strateji</div>
+                <div className="text-sm text-subtle mb-2"> Karşı Strateji</div>
                 <ul className="list-disc pl-5 space-y-1">
                   {(result.counter_strategy || []).map((k, i) => (
                     <li key={i}>{k}</li>
@@ -149,7 +149,7 @@ export default function Risk() {
                 </ul>
               </div>
               <div className="mt-5">
-                <div className="text-sm text-subtle mb-2">🤝 Uzlaşma Analizi</div>
+                <div className="text-sm text-subtle mb-2"> Uzlaşma Analizi</div>
                 <ul className="list-disc pl-5 space-y-1">
                   {(result.settlement_analysis || []).map((k, i) => (
                     <li key={i}>{k}</li>

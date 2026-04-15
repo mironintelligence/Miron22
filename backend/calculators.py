@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from typing import Any, Dict
+from user_auth import get_current_user
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
@@ -33,7 +35,7 @@ class KDVResponse(BaseModel):
     total: float
 
 @router.post("/kdv", response_model=KDVResponse)
-def calc_kdv(payload: KDVRequest):
+def calc_kdv(payload: KDVRequest, _auth: Any = Depends(get_current_user)):
     kdv = payload.amount * payload.rate / 100
     total = payload.amount + kdv
     return KDVResponse(base=payload.amount, kdv=kdv, total=total)
@@ -51,7 +53,7 @@ class InterestResponse(BaseModel):
     breakdown: Dict[str, Any]
 
 @router.post("/faiz-basit", response_model=InterestResponse)
-def calc_simple_interest(payload: SimpleInterestRequest):
+def calc_simple_interest(payload: SimpleInterestRequest, _auth: Any = Depends(get_current_user)):
     start = _parse_date(payload.start_date)
     end = _parse_date(payload.end_date)
     days = _days_between(start, end)
@@ -73,7 +75,7 @@ class CompoundInterestRequest(BaseModel):
     compounds_per_year: int = Field(gt=0)
 
 @router.post("/faiz-bilesik", response_model=InterestResponse)
-def calc_compound_interest(payload: CompoundInterestRequest):
+def calc_compound_interest(payload: CompoundInterestRequest, _auth: Any = Depends(get_current_user)):
     start = _parse_date(payload.start_date)
     end = _parse_date(payload.end_date)
     days = _days_between(start, end)
@@ -96,11 +98,11 @@ class RateBasedInterestRequest(BaseModel):
     annual_rate: float = Field(gt=0)
 
 @router.post("/faiz-ticari", response_model=InterestResponse)
-def calc_commercial_interest(payload: RateBasedInterestRequest):
+def calc_commercial_interest(payload: RateBasedInterestRequest, _auth: Any = Depends(get_current_user)):
     return calc_simple_interest(SimpleInterestRequest(**payload.dict()))
 
 @router.post("/faiz-temerrut", response_model=InterestResponse)
-def calc_default_interest(payload: RateBasedInterestRequest):
+def calc_default_interest(payload: RateBasedInterestRequest, _auth: Any = Depends(get_current_user)):
     return calc_simple_interest(SimpleInterestRequest(**payload.dict()))
 
 class OvertimeRequest(BaseModel):
@@ -114,7 +116,7 @@ class OvertimeResponse(BaseModel):
     breakdown: Dict[str, Any]
 
 @router.post("/mesai", response_model=OvertimeResponse)
-def calc_overtime(payload: OvertimeRequest):
+def calc_overtime(payload: OvertimeRequest, _auth: Any = Depends(get_current_user)):
     hourly_rate = payload.monthly_salary / 225
     overtime_pay = hourly_rate * payload.overtime_hours * payload.overtime_multiplier
     return OvertimeResponse(
@@ -137,7 +139,7 @@ class SeveranceResponse(BaseModel):
     breakdown: Dict[str, Any]
 
 @router.post("/kidem", response_model=SeveranceResponse)
-def calc_severance(payload: SeveranceRequest):
+def calc_severance(payload: SeveranceRequest, _auth: Any = Depends(get_current_user)):
     total_years = payload.years + payload.months / 12 + payload.days / 365
     base = payload.monthly_salary * total_years
     capped = False
@@ -162,7 +164,7 @@ class NoticeResponse(BaseModel):
     breakdown: Dict[str, Any]
 
 @router.post("/ihbar", response_model=NoticeResponse)
-def calc_notice(payload: NoticeRequest):
+def calc_notice(payload: NoticeRequest, _auth: Any = Depends(get_current_user)):
     y = payload.years_worked
     if y < 0.5:
         weeks = 2
@@ -196,7 +198,7 @@ class LaborClaimsResponse(BaseModel):
     total: float
 
 @router.post("/iscilik", response_model=LaborClaimsResponse)
-def calc_labor_claims(payload: LaborClaimsRequest):
+def calc_labor_claims(payload: LaborClaimsRequest, _auth: Any = Depends(get_current_user)):
     overtime = calc_overtime(OvertimeRequest(
         monthly_salary=payload.monthly_salary,
         overtime_hours=payload.overtime_hours,
@@ -233,7 +235,7 @@ class LimitationResponse(BaseModel):
     is_expired: bool
 
 @router.post("/zamanasimi", response_model=LimitationResponse)
-def calc_limitation(payload: LimitationRequest):
+def calc_limitation(payload: LimitationRequest, _auth: Any = Depends(get_current_user)):
     start = _parse_date(payload.start_date)
     expiry = _add_months(start, payload.period_months)
     expiry = expiry.replace(year=expiry.year + payload.period_years)
@@ -255,12 +257,12 @@ class FeeResponse(BaseModel):
     breakdown: Dict[str, Any]
 
 @router.post("/harc", response_model=FeeResponse)
-def calc_court_fee(payload: FeeRequest):
+def calc_court_fee(payload: FeeRequest, _auth: Any = Depends(get_current_user)):
     fee = payload.amount_in_dispute * payload.rate / 100
     return FeeResponse(fee=round(fee, 2), breakdown={"amount": payload.amount_in_dispute, "rate": payload.rate})
 
 @router.post("/vekalet", response_model=FeeResponse)
-def calc_attorney_fee(payload: FeeRequest):
+def calc_attorney_fee(payload: FeeRequest, _auth: Any = Depends(get_current_user)):
     fee = payload.amount_in_dispute * payload.rate / 100
     return FeeResponse(fee=round(fee, 2), breakdown={"amount": payload.amount_in_dispute, "rate": payload.rate})
 
@@ -276,7 +278,7 @@ class EnforcementCostResponse(BaseModel):
     breakdown: Dict[str, Any]
 
 @router.post("/icra-masraf", response_model=EnforcementCostResponse)
-def calc_enforcement_cost(payload: EnforcementCostRequest):
+def calc_enforcement_cost(payload: EnforcementCostRequest, _auth: Any = Depends(get_current_user)):
     fee = payload.principal * payload.fee_rate / 100
     tax = fee * payload.tax_rate / 100
     total = payload.principal + fee + tax

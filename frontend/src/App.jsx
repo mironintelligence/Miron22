@@ -9,9 +9,9 @@ import Home from "./pages/Home.jsx";
 import Analyze from "./pages/Analyze.jsx";
 import LibraAssistant from "./components/LibraAssistant.jsx";
 import Pleadings from "./pages/Pleadings.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
 import Settings from "./pages/Settings.jsx";
-import Register from "./pages/Register.jsx";
+import Kaydol from "./pages/Kaydol.jsx";
+import DenemeBaslat from "./pages/DenemeBaslat.jsx";
 import Pricing from "./pages/Pricing.jsx";
 import RiskStrategy from "./pages/RiskStrategy";
 import Intro from "./pages/Intro.jsx";
@@ -32,7 +32,6 @@ import Welcome from "./pages/Welcome.jsx";
 import CaseSimulation from "./pages/CaseSimulation.jsx";
 import Contracts from "./pages/Contracts.jsx"; // YENİ
 import AdminRoute from "./components/AdminRoute.jsx";
-import DashboardGate from "./components/DashboardGate.jsx";
 import Notifications from "./pages/Notifications.jsx"; // YENİ
 import About from "./pages/About.jsx"; // YENİ
 import Upgrade from "./pages/Upgrade.jsx";
@@ -295,12 +294,22 @@ export default function App() {
           />
 
           {/* PUBLIC / GUEST ONLY */}
+          <Route path="/register" element={<Navigate to="/kaydol" replace />} />
           <Route
-            path="/register"
+            path="/kaydol"
             element={
               <GuestRoute>
-                <Register />
+                <Kaydol />
               </GuestRoute>
+            }
+          />
+          <Route path="/deneme-baslat" element={<DenemeBaslat />} />
+          <Route
+            path="/sozlesme-analizi"
+            element={
+              <ProtectedRoute>
+                <Navigate to="/contracts/analysis" replace />
+              </ProtectedRoute>
             }
           />
           <Route path="/pricing" element={<Pricing />} />

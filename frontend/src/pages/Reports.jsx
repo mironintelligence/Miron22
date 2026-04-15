@@ -1,7 +1,6 @@
 // src/pages/Reports.jsx
 import React, { useEffect, useState } from "react";
-
-const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+import { authFetch } from "../auth/api";
 
 export default function Reports() {
   const [data, setData] = useState(null);
@@ -11,7 +10,7 @@ export default function Reports() {
   const load = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/reports/overview`);
+      const res = await authFetch("/reports/overview");
       if (!res.ok) throw new Error("Hata");
       const json = await res.json();
       setData(json);

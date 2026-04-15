@@ -1,6 +1,7 @@
 # backend/reports.py
-from fastapi import APIRouter, Query
-from typing import Dict
+from fastapi import APIRouter, Depends, Query
+from typing import Any, Dict
+from user_auth import get_current_user
 from datetime import datetime
 from pathlib import Path
 import json
@@ -18,7 +19,7 @@ def _read_json(path: Path):
         return []
 
 @router.get("/overview")
-def overview():
+def overview(_user: Any = Depends(get_current_user)):
     cases = _read_json(CASES_FILE)
     events = _read_json(EVENTS_FILE)
 

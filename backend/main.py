@@ -492,7 +492,7 @@ def extract_text(filename: str, data: bytes):
 
 
 @app.post("/analyze")
-async def analyze_file(file: UploadFile = File(...)):
+async def analyze_file(file: UploadFile = File(...), _user: dict = Depends(get_current_user)):
     content = await file.read()
     text = extract_text(file.filename, content)
 
@@ -574,7 +574,7 @@ def _run_llm(messages):
     return chat_completions_create(client, temperature=0.2, messages=messages)
 
 @app.post("/assistant-chat")
-def assistant_chat(req: ChatRequest = Body(...)):
+def assistant_chat(req: ChatRequest = Body(...), _user: dict = Depends(get_current_user)):
     global client
     if not client:
         # Try to init again if it failed at startup

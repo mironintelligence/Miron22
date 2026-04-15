@@ -7,71 +7,87 @@ from starlette.responses import Response
 
 logger = logging.getLogger("miron_csrf")
 
+
 class CSRFProtectionMiddleware(BaseHTTPMiddleware):
     """
-    CSRF Protection Middleware
-    - Requires 'X-CSRF-Token' header for state-changing methods (POST, PUT, DELETE, PATCH).
-    - The token must match the 'csrf_token' cookie.
-    - Safe methods (GET, HEAD, OPTIONS) are exempt.
+    CSRF Protection — Cross-domain API mode.
+
+    This backend is consumed by a cross-domain React SPA using Bearer tokens.
+    Traditional double-submit cookie CSRF does not work cross-domain because
+    the cookie is scoped to the backend domain and cannot be read by JS on a
+    different frontend domain. Therefore:
+      1. Any request with a Bearer Authorization header skips CSRF entirely
+         (the bearer token itself prevents CSRF attacks).
+      2. All known /api/* and /writer/* prefixes are also bypassed.
+      3. For residual unsafe requests without auth, the classic cookie check applies.
     """
+
+    SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+    WHITELIST_PREFIXES = (
+        "/api/",
+        "/writer/",
+        "/calc/",
+        "/analyze",
+        "/assistant-chat",
+        "/admin/",
+        "/uyap/",
+        "/reports/",
+        "/stats/",
+        "/health",
+        "/docs",
+        "/openapi",
+        "/redoc",
+    )
+
     def __init__(self, app):
         super().__init__(app)
         self.cookie_name = "csrf_token"
         self.header_name = "X-CSRF-Token"
-        self.safe_methods = {"GET", "HEAD", "OPTIONS"}
+
+    def _should_skip(self, request: Request) -> bool:
+        if request.method in self.SAFE_METHODS:
+            return True
+        auth = request.headers.get("authorization", "")
+        if auth.lower().startswith("bearer "):
+            return True
+        path = request.url.path
+        if any(path.startswith(p) for p in self.WHITELIST_PREFIXES):
+            return True
+        return False
+
+    def _secure_cookie(self) -> bool:
+        explicit = (os.getenv("COOKIE_SECURE") or "").strip().lower()
+        if explicit in ("1", "true", "yes"):
+            return True
+        if explicit in ("0", "false", "no"):
+            return False
+        env = (os.getenv("ENVIRONMENT") or "").lower()
+        return env in ("production", "prod", "staging")
 
     async def dispatch(self, request: Request, call_next):
-        if request.method in self.safe_methods:
-            # Sadece call_next yaparsak response objesine ulasip cookie set edemeyebiliriz
-            # Bu yuzden once next'i cagirip response'a bakmak yerine
-            # Request'te cookie yoksa once olusturup response header'a eklemek daha dogru olur
-            # ANCAK Starlette middleware yapisinda response nesnesi call_next sonucunda doner.
-            
-            response = await call_next(request)
-            
-            # If cookie missing, set it
+        response = await call_next(request)
+
+        if request.method in self.SAFE_METHODS:
             if self.cookie_name not in request.cookies:
-                import secrets
                 token = secrets.token_urlsafe(32)
-                env = (os.getenv("ENVIRONMENT") or "").lower()
-                secure_cookie = (os.getenv("COOKIE_SECURE") or "").lower() == "true"
-                if os.getenv("COOKIE_SECURE") is None:
-                    secure_cookie = env not in {"test", "dev", "development", "local"}
+                secure = self._secure_cookie()
                 response.set_cookie(
                     key=self.cookie_name,
                     value=token,
-                    httponly=False,  # JS needs to read this to send X-CSRF-Token header
-                    samesite="lax",  # Strict blocks navigation from external sites (e.g. email links)
-                    secure=secure_cookie
+                    httponly=False,
+                    samesite="none" if secure else "lax",
+                    secure=secure,
                 )
             return response
 
-        # For unsafe methods, validate the token
-        
-        # --- HOTFIX: BYPASS FOR CRITICAL ENDPOINTS ---
-        # Whitelist endpoints that might be called without CSRF token (e.g. initial login, webhooks)
-        if request.url.path in [
-            "/api/auth/login", 
-            "/api/auth/register", 
-            "/api/auth/refresh", 
-            "/api/auth/forgot-password", 
-            "/api/auth/reset-password",
-            "/admin/login",
-            "/admin/2fa/confirm",
-            "/api/feedback", 
-            "/api/demo-request",
-            "/api/risk/simulate",
-            "/api/contracts/analyze",
-            "/api/notifications/broadcast",
-            "/api/health" # Health check should be public
-        ] or request.url.path.startswith("/api/pricing") or request.url.path.startswith("/api/demo-request"):
-            return await call_next(request)
+        if self._should_skip(request):
+            return response
 
         cookie_token = request.cookies.get(self.cookie_name)
         header_token = request.headers.get(self.header_name)
-        
         if not cookie_token or not header_token or cookie_token != header_token:
-             logger.info("CSRF validation failed", extra={"path": request.url.path})
-             return Response(status_code=403, content="CSRF validation failed")
+            logger.info("CSRF validation failed", extra={"path": request.url.path})
+            return Response(status_code=403, content="CSRF validation failed")
 
-        return await call_next(request)
+        return response

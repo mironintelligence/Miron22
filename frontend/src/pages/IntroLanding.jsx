@@ -167,17 +167,17 @@ export default function IntroLanding() {
               {
                 title: "Hızlı İçtihat Erişimi",
                 desc: "Dosyanızla benzer kararları saniyeler içinde yakalayın, güçlü dayanaklarla ilerleyin.",
-                icon: "🏛️"
+                icon: ""
               },
               {
                 title: "Net Strateji Çerçevesi",
                 desc: "Usul, ispat, karşı argüman ve riskleri tek bir bakışta görün ve karar verin.",
-                icon: "⚖️"
+                icon: ""
               },
               {
                 title: "Müvekkil İletişimi",
                 desc: "Risk ve olasılıkları anlaşılır şekilde sunun, güveni somut veriye dayandırın.",
-                icon: "📜"
+                icon: ""
               }
             ].map((item, i) => (
               <motion.div 
@@ -303,7 +303,7 @@ export default function IntroLanding() {
               <ul className="space-y-4 text-white/70">
                 {["Kronolojik Olay Örgüsü", "Delil Listesi Çıkarımı", "Çelişki Tespiti", "Eksik Evrak Uyarısı"].map((li, i) => (
                   <li key={i} className="flex items-center gap-3">
-                    <span className="text-[var(--miron-gold)]">✓</span> {li}
+                    <span className="text-[var(--miron-gold)]"></span> {li}
                   </li>
                 ))}
               </ul>

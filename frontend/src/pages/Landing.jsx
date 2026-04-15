@@ -36,11 +36,11 @@ export default function Landing() {
         <div className="glass p-6 rounded-2xl">
           <h3 className="text-lg font-semibold mb-3">Öne Çıkan Modüller</h3>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-white">
-            <li className="glass p-3 rounded-xl">📂 Evrak Analizi</li>
-            <li className="glass p-3 rounded-xl">🧾 Dilekçe Oluşturucu</li>
-            <li className="glass p-3 rounded-xl">💬 Akıllı Asistan</li>
-            <li className="glass p-3 rounded-xl">🔒 KVKK Maskeleme</li>
-            <li className="glass p-3 rounded-xl">📊 Raporlama & Olasılık</li>
+            <li className="glass p-3 rounded-xl"> Evrak Analizi</li>
+            <li className="glass p-3 rounded-xl"> Dilekçe Oluşturucu</li>
+            <li className="glass p-3 rounded-xl"> Akıllı Asistan</li>
+            <li className="glass p-3 rounded-xl"> KVKK Maskeleme</li>
+            <li className="glass p-3 rounded-xl"> Raporlama & Olasılık</li>
           </ul>
           <div className="mt-5 text-xs text-subtle">
             Üst seviye deneyim: animasyonlar, cam efektli modern arayüz, hızlı raporlar.

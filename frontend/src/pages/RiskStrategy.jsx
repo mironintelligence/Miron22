@@ -1,7 +1,8 @@
 import React, { useState } from "react";
+import { authFetch } from "../auth/api";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API = `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/risk`;
+// API base defined via authFetch relative path
 
 export default function RiskStrategy() {
   const [file, setFile] = useState(null);
@@ -25,7 +26,7 @@ export default function RiskStrategy() {
       if (file) fd.append("file", file);
       if (caseText.trim()) fd.append("case_text", caseText);
 
-      const r = await fetch(`${API}/analyze`, { method: "POST", body: fd });
+      const r = await authFetch("/api/risk/analyze", { method: "POST", body: fd });
       if (!r.ok) {
         const txt = await r.text().catch(() => "");
         throw new Error(txt || `Sunucu hatası: ${r.status}`);
@@ -155,7 +156,7 @@ export default function RiskStrategy() {
         <div className="space-y-6">
           {!res && !loading && (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center flex flex-col items-center justify-center h-full min-h-[400px]">
-              <div className="text-6xl mb-4 opacity-20">⚖️</div>
+              <div className="text-6xl mb-4 opacity-20"></div>
               <h3 className="text-xl font-semibold text-white/60">Analiz Sonucu Bekleniyor</h3>
               <p className="text-white/30 mt-2 max-w-md">
                 Sol taraftan dosya yükleyin veya metin girerek yapay zeka destekli risk analizini başlatın.
@@ -184,10 +185,10 @@ export default function RiskStrategy() {
 
               {/* Main Analysis Grid */}
               <div className="grid md:grid-cols-2 gap-6">
-                <ListSection title="Kritik Riskler" items={res.key_issues} icon="⚠️" />
-                <ListSection title="Olumlu Sinyaller" items={res.positive_signals} icon="✅" />
-                <ListSection title="Eksik Unsurlar" items={res.missing_elements} icon="🔍" />
-                <ListSection title="Önerilen Aksiyonlar" items={res.recommended_actions} icon="🚀" />
+                <ListSection title="Kritik Riskler" items={res.key_issues} icon="" />
+                <ListSection title="Olumlu Sinyaller" items={res.positive_signals} icon="" />
+                <ListSection title="Eksik Unsurlar" items={res.missing_elements} icon="" />
+                <ListSection title="Önerilen Aksiyonlar" items={res.recommended_actions} icon="" />
               </div>
 
               {/* Strategy Tabs / Sections */}
@@ -195,10 +196,10 @@ export default function RiskStrategy() {
                 <h2 className="text-2xl font-bold text-white border-b border-white/10 pb-2">Stratejik Planlama</h2>
                 
                 <div className="grid md:grid-cols-2 gap-6">
-                  <ListSection title="Taktiksel Strateji (Saldırı)" items={res.tactical_strategy} icon="⚔️" />
-                  <ListSection title="Savunma Stratejisi" items={res.defensive_strategy} icon="🛡️" />
-                  <ListSection title="Karşı Hamle Öngörüsü" items={res.counter_strategy} icon="♟️" />
-                  <ListSection title="Sulh & Anlaşma Analizi" items={res.settlement_analysis} icon="🤝" />
+                  <ListSection title="Taktiksel Strateji (Saldırı)" items={res.tactical_strategy} icon="" />
+                  <ListSection title="Savunma Stratejisi" items={res.defensive_strategy} icon="" />
+                  <ListSection title="Karşı Hamle Öngörüsü" items={res.counter_strategy} icon="" />
+                  <ListSection title="Sulh & Anlaşma Analizi" items={res.settlement_analysis} icon="" />
                 </div>
               </div>
 

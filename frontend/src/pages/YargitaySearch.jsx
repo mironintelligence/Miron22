@@ -13,25 +13,77 @@ const hukukDaireleri = [
   "13. Hukuk Dairesi",
   "YHGK",
 ];
-
 const cezaDaireleri = [
   "1. Ceza Dairesi",
   "5. Ceza Dairesi",
   "11. Ceza Dairesi",
 ];
 
+const sampleSnippets = [
+  { court: "Yargıtay 3. HD", chamber: "3. Hukuk Dairesi", decision_number: "2023/1421", outcome: "ONAMA", year: "2023", summary: "Tahliye taleplerinde ihtar şartı somut olayla birlikte değerlendirilir." },
+  { court: "Yargıtay 11. HD", chamber: "11. Hukuk Dairesi", decision_number: "2022/8834", outcome: "BOZMA", year: "2022", summary: "Ticari defterlerin usulüne uygun tutulması delil değerini artırır." },
+  { court: "Yargıtay 12. HD", chamber: "12. Hukuk Dairesi", decision_number: "2023/4562", outcome: "ONAMA", year: "2023", summary: "İcra takiplerinde tebligat usulü kamu düzenindendir." },
+  { court: "YHGK", chamber: "Genel Kurul", decision_number: "2022/3301", outcome: "ONAMA", year: "2022", summary: "Hakkın kötüye kullanılması iddiasında dürüstlük kuralı esas alınır." },
+  { court: "Yargıtay 4. HD", chamber: "4. Hukuk Dairesi", decision_number: "2023/2219", outcome: "BOZMA", year: "2023", summary: "Manevi tazminatın takdirinde olayın özellikleri belirleyicidir." },
+  { court: "Yargıtay 13. HD", chamber: "13. Hukuk Dairesi", decision_number: "2022/7741", outcome: "ONAMA", year: "2022", summary: "Tüketici uyuşmazlığında ispat yükü somut olgulara göre değişir." },
+];
+
+function DecisionCard({ item }) {
+  const [expanded, setExpanded] = useState(false);
+  const isOnama = (item.outcome || "").toUpperCase().includes("ONAMA");
+  return (
+    <div
+      className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-yellow-500/40 transition-all cursor-pointer group flex flex-col gap-3"
+      onClick={() => setExpanded((v) => !v)}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex flex-wrap gap-1.5 text-[11px] font-mono text-yellow-500/80">
+          <span className="bg-yellow-500/10 px-2 py-0.5 rounded">{item.court || "Yargıtay"}</span>
+          {item.chamber && <span className="bg-yellow-500/10 px-2 py-0.5 rounded">{item.chamber}</span>}
+          {item.decision_number && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.decision_number}</span>}
+          {(item.date || item.year) && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.date || item.year}</span>}
+        </div>
+        {item.final_score != null && (
+          <span className="text-[10px] text-white/30">Skor: {item.final_score.toFixed(2)}</span>
+        )}
+      </div>
+
+      <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-yellow-300 transition-colors line-clamp-3">
+        {item.summary || "Özet bilgisi bulunmuyor."}
+      </h3>
+
+      <div className="flex items-center justify-between mt-auto">
+        {item.outcome && (
+          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${isOnama ? "bg-green-900/40 text-green-300" : "bg-red-900/40 text-red-300"}`}>
+            {item.outcome}
+          </span>
+        )}
+        <span className="text-[10px] text-white/30 ml-auto group-hover:text-yellow-500/60 transition-colors">
+          {expanded ? "▲ Daralt" : "▼ Detay"}
+        </span>
+      </div>
+
+      {expanded && (
+        <div className="mt-2 pt-3 border-t border-white/10">
+          <div className="text-[11px] text-white/40 uppercase tracking-wider mb-2">Tam Metin</div>
+          <div className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap font-serif bg-black/20 p-3 rounded-xl">
+            {item.clean_text || item.summary || "Tam metin bulunamadı."}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function YargitaySearch() {
   const location = useLocation();
   const [query, setQuery] = useState("");
   const [chamber, setChamber] = useState("");
   const [year, setYear] = useState("");
-  const [court, setCourt] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState("");
-  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     const st = location.state?.q;
@@ -45,38 +97,16 @@ export default function YargitaySearch() {
     setError("");
     setResults([]);
     setSearched(false);
-    setExpandedId(null);
-
-    if (!query.trim()) {
-      setError("Lütfen aranacak kelime veya cümle girin.");
-      return;
-    }
-
+    if (!query.trim()) { setError("Lütfen aranacak kelime veya cümle girin."); return; }
     setLoading(true);
     try {
-      // Build query params
       const params = new URLSearchParams();
       params.append("q", query.trim());
       if (chamber) params.append("chamber", chamber);
       if (year) params.append("year", year);
-      if (court) params.append("court", court);
-
-      const res = await authFetch(`/api/search/decisions?${params.toString()}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (res.status === 204) {
-         setResults([]);
-         setSearched(true);
-         return;
-      }
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Arama sırasında hata oluştu.");
-      }
-
+      const res = await authFetch(`/api/search/decisions?${params.toString()}`, { method: "GET" });
+      if (res.status === 204) { setResults([]); setSearched(true); return; }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || "Arama sırasında hata oluştu."); }
       const data = await res.json();
       setResults(data.results || []);
       setSearched(true);
@@ -90,196 +120,119 @@ export default function YargitaySearch() {
       }
 
     } catch (err) {
-      console.error(err);
       setError(err.message || "Bilinmeyen bir hata oluştu.");
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleExpand = (id) => {
-    setExpandedId(expandedId === id ? null : id);
-  };
-
-  const sampleSnippets = [
-    "Yargıtay 3. HD: Tahliye taleplerinde ihtar şartı somut olayla birlikte değerlendirilir.",
-    "Yargıtay 11. HD: Ticari defterlerin usulüne uygun tutulması delil değerini artırır.",
-    "Yargıtay 12. HD: İcra takiplerinde tebligat usulü kamu düzenindendir.",
-    "YHGK: Hakkın kötüye kullanılması iddiasında dürüstlük kuralı esas alınır.",
-    "Yargıtay 4. HD: Manevi tazminatın takdirinde olayın özellikleri belirleyicidir.",
-    "Yargıtay 13. HD: Tüketici uyuşmazlığında ispat yükü somut olgulara göre değişir.",
-  ];
-
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-12">
-      <div className="text-center mb-10">
+    <div className="max-w-[1400px] mx-auto px-4 pb-12">
+      <div className="text-center mb-8">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-600 bg-clip-text text-transparent">
           Karar Arama Motoru
         </h1>
-        <p className="text-white/60 mt-2 max-w-2xl mx-auto">
-          Yapay zeka destekli hibrit arama (Semantik + Anahtar Kelime). 
-          Yargıtay ve Danıştay kararlarında derinlemesine arama yapın.
+        <p className="text-white/55 mt-2 max-w-2xl mx-auto text-sm">
+          Yapay zekâ destekli hibrit arama — Yargıtay ve Danıştay kararlarında derinlemesine arama yapın.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_280px] gap-8">
-        {/* FILTERS SIDEBAR */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 h-fit sticky top-24 backdrop-blur-sm">
-          <form onSubmit={handleSearch} className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+        {/* FILTER SIDEBAR */}
+        <aside className="bg-white/5 border border-white/10 rounded-2xl p-5 h-fit lg:sticky lg:top-24 backdrop-blur-sm">
+          <form onSubmit={handleSearch} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-white/80 mb-2">
-                Arama Metni
-              </label>
+              <label className="block text-xs font-semibold text-white/70 mb-1.5 uppercase tracking-wide">Arama</label>
               <textarea
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none transition resize-none h-32"
-                placeholder="Örn: kira sözleşmesi tahliye birikmiş kira alacağı..."
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-yellow-500 outline-none resize-none h-28"
+                placeholder="kira tahliye ihtar süresi..."
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-white/80 mb-2">
-                Yıl
-              </label>
+              <label className="block text-xs font-semibold text-white/70 mb-1.5 uppercase tracking-wide">Yıl</label>
               <input
                 type="number"
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
-                placeholder="Örn: 2023"
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:ring-2 focus:ring-yellow-500 outline-none"
+                placeholder="2023"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-white/80 mb-2">
-                Mahkeme / Daire
-              </label>
+              <label className="block text-xs font-semibold text-white/70 mb-1.5 uppercase tracking-wide">Daire</label>
               <select
                 value={chamber}
                 onChange={(e) => setChamber(e.target.value)}
-                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-yellow-500 outline-none appearance-none"
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:ring-2 focus:ring-yellow-500 outline-none appearance-none"
               >
                 <option value="">Tüm Daireler</option>
-                <optgroup label="Hukuk Daireleri">
-                  {hukukDaireleri.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
+                <optgroup label="Hukuk">
+                  {hukukDaireleri.map((d) => <option key={d} value={d}>{d}</option>)}
                 </optgroup>
-                <optgroup label="Ceza Daireleri">
-                  {cezaDaireleri.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
+                <optgroup label="Ceza">
+                  {cezaDaireleri.map((d) => <option key={d} value={d}>{d}</option>)}
                 </optgroup>
               </select>
             </div>
-
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-black font-bold shadow-lg transition-all disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-sm shadow-lg transition disabled:opacity-50"
             >
-              {loading ? "Aranıyor..." : "Karar Ara"}
+              {loading ? "Aranıyor…" : "Karar Ara"}
             </button>
           </form>
-        </div>
+        </aside>
 
-        {/* RESULTS AREA */}
-        <div className="space-y-6">
+        {/* MAIN CONTENT */}
+        <div className="min-w-0">
           {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200">
-              {error}
-            </div>
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 text-sm mb-4">{error}</div>
           )}
 
-          {!loading && searched && results.length === 0 && !error && (
-            <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10">
-              <div className="text-4xl mb-4">🔍</div>
-              <h3 className="text-xl font-semibold text-white">Karar Bulunamadı</h3>
-              <p className="text-white/50 mt-2">
-                Arama kriterlerinizi değiştirerek tekrar deneyebilirsiniz.
-              </p>
-            </div>
-          )}
-
-          {results.map((item) => (
-            <div 
-              key={item.id} 
-              className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-yellow-500/30 transition-all cursor-pointer group"
-              onClick={() => toggleExpand(item.id)}
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex flex-wrap gap-2 text-xs font-mono text-yellow-500/80">
-                  <span className="bg-yellow-500/10 px-2 py-1 rounded">{item.court || "Yargıtay"}</span>
-                  <span className="bg-yellow-500/10 px-2 py-1 rounded">{item.chamber}</span>
-                  <span className="bg-yellow-500/10 px-2 py-1 rounded">{item.decision_number}</span>
-                  <span className="bg-yellow-500/10 px-2 py-1 rounded">{item.date}</span>
-                </div>
-                <div className="text-xs text-white/40 flex flex-col items-end">
-                  <span>Skor: {item.final_score?.toFixed(2)}</span>
-                  <span className="text-[10px] opacity-60">
-                    (S: {item.semantic_score?.toFixed(2)} / K: {item.keyword_rank?.toFixed(2)})
-                  </span>
-                </div>
-              </div>
-
-              <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-yellow-400 transition-colors">
-                {item.summary || "Özet bilgisi bulunmuyor."}
-              </h3>
-              
-              <div className="text-sm text-white/70 mb-4 line-clamp-2">
-                 Sonuç: <span className="font-bold text-white">{item.outcome || "Belirtilmemiş"}</span>
-              </div>
-
-              {/* Expanded Content */}
-              {expandedId === item.id && (
-                <div className="mt-4 pt-4 border-t border-white/10 animate-fade-in">
-                  <h4 className="text-xs font-bold text-white/50 uppercase mb-2">Tam Metin</h4>
-                  <div className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap font-serif bg-black/20 p-4 rounded-lg">
-                    {item.clean_text || "Tam metin bulunamadı."}
-                  </div>
+          {/* SEARCH RESULTS — Grid layout */}
+          {(searched || loading) && (
+            <>
+              {loading && (
+                <div className="flex items-center justify-center py-16 text-white/40 text-sm">Aranıyor…</div>
+              )}
+              {!loading && searched && results.length === 0 && !error && (
+                <div className="text-center py-16 bg-white/5 rounded-2xl border border-white/10">
+                  <h3 className="text-lg font-semibold text-white">Karar Bulunamadı</h3>
+                  <p className="text-white/50 mt-1 text-sm">Arama kriterlerinizi genişleterek tekrar deneyin.</p>
                 </div>
               )}
-              
-              <div className="mt-2 text-center">
-                 <span className="text-xs text-white/30 group-hover:text-yellow-500/70 transition-colors">
-                    {expandedId === item.id ? "▲ Daralt" : "▼ Detayları Göster"}
-                 </span>
-              </div>
-            </div>
-          ))}
-        </div>
+              {!loading && results.length > 0 && (
+                <>
+                  <div className="text-xs text-white/40 mb-4">{results.length} karar bulundu</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {results.map((item) => (
+                      <DecisionCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
 
-        <aside className="hidden lg:block bg-white/5 border border-white/10 rounded-2xl p-3 overflow-hidden">
-          <h3 className="text-sm font-semibold text-white/80 mb-3 px-1">Örnek karar özeti</h3>
-          <div className="grid grid-cols-3 gap-2 h-[70vh]">
-            {[0, 1, 2].map((col) => (
-              <div key={col} className="relative overflow-hidden rounded-xl border border-white/10 bg-black/30">
-                <div
-                  className="absolute inset-x-0 top-0 flex flex-col gap-2 px-1 py-1"
-                  style={{
-                    animation: `marqueeUp${col} ${26 + col * 4}s linear infinite`,
-                  }}
-                >
-                  {[...sampleSnippets, ...sampleSnippets, ...sampleSnippets].map((s, i) => (
-                    <div
-                      key={`${col}-${i}-${s.slice(0, 8)}`}
-                      className="rounded-lg border border-white/10 bg-black/50 p-2.5 text-[11px] leading-snug text-white/72"
-                    >
-                      {s}
-                    </div>
-                  ))}
-                </div>
+          {/* INITIAL STATE — Sample decisions grid */}
+          {!searched && !loading && !error && (
+            <>
+              <div className="text-xs font-semibold text-white/35 uppercase tracking-widest mb-4">Örnek Kararlar</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {sampleSnippets.map((item, i) => (
+                  <DecisionCard key={i} item={item} />
+                ))}
               </div>
-            ))}
-          </div>
-        </aside>
+              <p className="text-center text-white/25 text-xs mt-8">
+                Yukarıdaki formu kullanarak gerçek Yargıtay kararlarında arama yapabilirsiniz.
+              </p>
+            </>
+          )}
+        </div>
       </div>
-      <style>{`
-        @keyframes marqueeUp0 { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
-        @keyframes marqueeUp1 { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
-        @keyframes marqueeUp2 { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
-      `}</style>
     </div>
   );
 }

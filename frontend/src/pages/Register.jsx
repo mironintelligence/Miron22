@@ -31,14 +31,14 @@ export default function Register() {
   // single user fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState(""); // ✅ e-posta eklendi
+  const [email, setEmail] = useState(""); //  e-posta eklendi
   const [password, setPassword] = useState("");
 
   // multi user
   const [personCount, setPersonCount] = useState(2);
   const [persons, setPersons] = useState([
-    { firstName: "", lastName: "", email: "", password: "" }, // ✅
-    { firstName: "", lastName: "", email: "", password: "" }, // ✅
+    { firstName: "", lastName: "", email: "", password: "" }, // 
+    { firstName: "", lastName: "", email: "", password: "" }, // 
   ]);
 
   // docs modal
@@ -98,7 +98,7 @@ export default function Register() {
       const next = [...prev];
       if (personCount > next.length) {
         for (let i = next.length; i < personCount; i++) {
-          next.push({ firstName: "", lastName: "", email: "", password: "" }); // ✅
+          next.push({ firstName: "", lastName: "", email: "", password: "" }); // 
         }
       } else if (personCount < next.length) {
         next.length = personCount;
@@ -512,7 +512,7 @@ export default function Register() {
                   />
                 </div>
 
-                {/* ✅ E-POSTA EKLENDİ (görünüş aynı) */}
+                {/*  E-POSTA EKLENDİ (görünüş aynı) */}
                 <div className="sm:col-span-2">
                   <div className="text-sm mb-1">
                     E-posta <span className="text-red-400">*</span>
@@ -583,7 +583,7 @@ export default function Register() {
 
                 {/* Çok kişili uyarı (görünür yerde) */}
                 <div className="mt-4 p-3 rounded-xl border border-red-400/30 bg-red-500/5 text-sm text-red-600">
-                  ⚠️ Lütfen aynı şifreyi birden fazla kişiyle paylaşmayın. Her kullanıcı kendi şifresini belirlemelidir.
+                   Lütfen aynı şifreyi birden fazla kişiyle paylaşmayın. Her kullanıcı kendi şifresini belirlemelidir.
                   Aksi durumda güvenlik riski oluşur.
                 </div>
 
@@ -606,7 +606,7 @@ export default function Register() {
                         className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 mb-2 text-white"
                       />
 
-                      {/* ✅ E-POSTA EKLENDİ (görünüş aynı) */}
+                      {/*  E-POSTA EKLENDİ (görünüş aynı) */}
                       <input
                         value={p.email}
                         onChange={(e) => updatePerson(idx, "email", e.target.value)}
@@ -760,7 +760,7 @@ export default function Register() {
 
               {mode === "multi" && duplicatePw && (
                 <div className="p-3 rounded-xl border border-yellow-400/30 bg-yellow-500/5 text-sm text-yellow-600">
-                  ⚠️ Uyarı: Kayıt edilen kişiler arasında aynı şifre tespit edildi. Her kullanıcı için benzersiz bir şifre
+                   Uyarı: Kayıt edilen kişiler arasında aynı şifre tespit edildi. Her kullanıcı için benzersiz bir şifre
                   belirleyin.
                 </div>
               )}
@@ -822,7 +822,7 @@ export default function Register() {
       </AnimatePresence>
 
       <footer className="mt-8 mb-6 text-center text-xs text-subtle">
-        ©️ 2025 Miron Intelligence — All Rights Reserved
+        © 2025 Miron Intelligence — All Rights Reserved
       </footer>
     </div>
   );

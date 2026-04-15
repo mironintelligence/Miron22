@@ -61,9 +61,17 @@ export default function Navbar() {
     return (
       <nav className="fixed top-0 left-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold tracking-tight text-white">
-            Miron AI
-          </Link>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Link to="/" className="text-xl font-bold tracking-tight text-white">
+              Miron AI
+            </Link>
+            <Link
+              to="/deneme-baslat"
+              className="text-[11px] sm:text-xs font-semibold text-amber-300 hover:text-amber-200 whitespace-nowrap"
+            >
+              15 Günlük Deneme
+            </Link>
+          </div>
 
           <div className="hidden md:flex items-center gap-8">
             <Link to="/about" className="text-sm font-medium text-white/70 hover:text-white transition">
@@ -92,7 +100,7 @@ export default function Navbar() {
 
           <div className="flex items-center gap-4">
             <Link
-              to="/register"
+              to="/kaydol"
               className="hidden sm:inline px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-700 text-black hover:brightness-110 transition"
             >
               Kaydol
@@ -177,7 +185,7 @@ export default function Navbar() {
         </div>
 
         <button type="button" onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-white text-2xl">
-          {menuOpen ? "✕" : "☰"}
+          {menuOpen ? "" : ""}
         </button>
       </div>
 

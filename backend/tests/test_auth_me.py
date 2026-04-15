@@ -49,4 +49,3 @@ def test_auth_me(user_token):
     assert body["status"] == "ok"
     assert body["user"]["email"] == "admin1@example.com"
     assert body["user"]["role"] == "admin"
-

@@ -114,7 +114,7 @@ export default function Pleadings() {
           include_case_law: includeCaseLaw,
           mask_pii: maskPII,
           ai_note: aiNote,
-          format, // ✅ docx | uyap | udf
+          format, //  docx | uyap | udf
         }),
       });
 
@@ -138,37 +138,41 @@ export default function Pleadings() {
 
   return (
     <div className="min-h-screen overflow-y-auto pb-24 px-4">
-      <div className="max-w-5xl mx-auto pt-6">
+      <div className="max-w-7xl mx-auto pt-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-center text-accent mb-2">Dilekçe Oluşturucu</h1>
-        <p className="text-center text-sm text-white/55 mb-8">Kategori seçin; şablonlar ortada listelenir. Tür seçtikten sonra formu doldurun.</p>
+        <p className="text-center text-sm text-white/55 mb-8">Sol panelden kategori seçin; şablonlar ortada listelenir. Tür seçtikten sonra formu doldurun.</p>
 
-        <div className="flex flex-wrap justify-center gap-2 mb-10">
-          {catalog.map((cat) => (
-            <button
-              key={cat.category}
-              type="button"
-              onClick={() => {
-                setActiveCat(cat.category);
-                setActiveTpl(null);
-              }}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition border ${
-                activeCat === cat.category
-                  ? "bg-[var(--miron-gold)] text-black border-[var(--miron-gold)]"
-                  : "bg-white/5 border-white/15 text-white/80 hover:bg-white/10"
-              }`}
-            >
-              {cat.category}
-            </button>
-          ))}
-        </div>
+        <div className="grid lg:grid-cols-[220px_1fr_360px] gap-6 items-start">
+          {/* LEFT: Category sidebar */}
+          <aside className="glass p-4 rounded-2xl lg:sticky lg:top-24 h-fit">
+            <div className="text-xs font-bold text-white/50 uppercase tracking-widest mb-3">Kategoriler</div>
+            <div className="flex flex-col gap-1.5">
+              {catalog.map((cat) => (
+                <button
+                  key={cat.category}
+                  type="button"
+                  onClick={() => {
+                    setActiveCat(cat.category);
+                    setActiveTpl(null);
+                  }}
+                  className={`text-left px-3 py-2 rounded-xl text-sm font-medium transition border ${
+                    activeCat === cat.category
+                      ? "bg-[var(--miron-gold)] text-black border-[var(--miron-gold)]"
+                      : "bg-white/5 border-white/10 text-white/75 hover:bg-white/10"
+                  }`}
+                >
+                  {cat.category}
+                </button>
+              ))}
+            </div>
+          </aside>
 
-        <div className="grid lg:grid-cols-12 gap-6 items-start">
           <motion.section
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-7 glass p-5 rounded-2xl order-2 lg:order-1"
+            className="glass p-5 rounded-2xl"
           >
-            <h3 className="text-sm font-semibold text-white/70 mb-4 text-center lg:text-left">Şablonlar — {activeCat || "—"}</h3>
+            <h3 className="text-sm font-semibold text-white/70 mb-4 text-center">Şablonlar — {activeCat || "—"}</h3>
             {!currentItems.length ? (
               <div className="text-sm text-white/50 text-center py-12">Bu kategoride şablon yok.</div>
             ) : (
@@ -201,7 +205,7 @@ export default function Pleadings() {
           <motion.section
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-5 glass p-5 rounded-2xl space-y-4 order-1 lg:order-2 lg:sticky lg:top-24"
+            className="glass p-5 rounded-2xl space-y-4 lg:sticky lg:top-24"
           >
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="bg-black/30 border border-white/10 rounded-xl p-3">
@@ -306,7 +310,7 @@ export default function Pleadings() {
                 {loading ? "Hazırlanıyor..." : "Önizleme"}
               </button>
 
-              {/* ✅ 3 İNDİRME TUŞU */}
+              {/*  3 İNDİRME TUŞU */}
               <button
                 onClick={() => doExport("docx")}
                 className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20"
@@ -362,7 +366,7 @@ export default function Pleadings() {
         </div>
 
         <footer className="text-center text-xs text-subtle mt-12 py-6 glass border border-white/10 rounded-2xl">
-          ®2025 Miron Intelligence — Tüm hakları saklıdır.
+          © 2025 Miron Intelligence — Tüm hakları saklıdır.
         </footer>
       </div>
     </div>

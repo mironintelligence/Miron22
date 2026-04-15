@@ -37,14 +37,14 @@ export default function Intro() {
       });
 
       if (res.ok) {
-        setMsg("✅ Demo talebiniz alındı. 24 saat içinde geri dönüş yapılacaktır.");
+        setMsg(" Demo talebiniz alındı. 24 saat içinde geri dönüş yapılacaktır.");
         setDemo({ name: "", email: "", city: "", office: "" });
       } else {
         const t = await res.json().catch(() => ({}));
-        setMsg(t.detail || "❌ Demo talebi gönderilemedi. Lütfen tekrar deneyin.");
+        setMsg(t.detail || " Demo talebi gönderilemedi. Lütfen tekrar deneyin.");
       }
     } catch (err) {
-      setMsg("❌ Demo talebi gönderilemedi. Lütfen tekrar deneyin.");
+      setMsg(" Demo talebi gönderilemedi. Lütfen tekrar deneyin.");
     } finally {
       setSending(false);
     }

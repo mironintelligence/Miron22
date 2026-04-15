@@ -42,8 +42,7 @@ export default function CaseSimulation() {
         payload.append("file", file);
       }
 
-      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-      const resp = await fetch(`${base}/api/risk/simulate`, {
+      const resp = await authFetch("/api/risk/simulate", {
         method: "POST",
         body: payload,
       });
@@ -187,7 +186,7 @@ export default function CaseSimulation() {
             {/* Strategic Recommendation */}
             <div className="bg-gradient-to-br from-yellow-900/20 to-black border border-yellow-500/30 rounded-2xl p-8">
               <h3 className="text-xl font-bold text-yellow-400 mb-4 flex items-center gap-2">
-                <span>🎯</span> Stratejik Tavsiye
+                <span></span> Stratejik Tavsiye
               </h3>
               <p className="text-white/90 leading-relaxed text-lg">
                 {result.strategic_recommendation}
@@ -197,7 +196,7 @@ export default function CaseSimulation() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">
-                  🧩 Zorunlu Yapısal Katmanlar
+                   Zorunlu Yapısal Katmanlar
                 </h3>
                 <div className="space-y-4 text-white/85">
                   <div>
@@ -246,7 +245,7 @@ export default function CaseSimulation() {
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">
-                  🧭 Alternatif Hukuki Niteleme
+                   Alternatif Hukuki Niteleme
                 </h3>
                 <div className="space-y-4 text-white/85">
                   <div>
@@ -284,7 +283,7 @@ export default function CaseSimulation() {
               <div className="space-y-8">
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                   <h3 className="text-lg font-semibold text-white mb-4 border-b border-white/10 pb-2">
-                    ⚖️ Yargı Yeri ve Usul
+                     Yargı Yeri ve Usul
                   </h3>
                   <div className="space-y-4">
                     <div>
@@ -300,7 +299,7 @@ export default function CaseSimulation() {
 
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                   <h3 className="text-lg font-semibold text-red-400 mb-4 border-b border-white/10 pb-2">
-                    ⚠️ Risk Faktörleri
+                     Risk Faktörleri
                   </h3>
                   <ul className="space-y-2">
                     {result.risk_factors?.map((risk, i) => (
@@ -317,7 +316,7 @@ export default function CaseSimulation() {
               <div className="space-y-8">
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                   <h3 className="text-lg font-semibold text-blue-400 mb-4 border-b border-white/10 pb-2">
-                    🔮 Senaryolar
+                     Senaryolar
                   </h3>
                   <div className="space-y-4">
                     <div className="p-3 bg-green-500/5 border border-green-500/10 rounded-lg">
@@ -337,7 +336,7 @@ export default function CaseSimulation() {
 
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                   <h3 className="text-lg font-semibold text-orange-400 mb-4 border-b border-white/10 pb-2">
-                    🛡️ Karşı Taraf Argümanları
+                     Karşı Taraf Argümanları
                   </h3>
                   <ul className="space-y-2">
                     {result.counter_arguments?.map((arg, i) => (

@@ -3,26 +3,6 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 
-function GavelMark() {
-  return (
-    <svg viewBox="0 0 240 240" className="w-[220px] h-[220px]">
-      <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="rgba(255,215,0,0.85)" />
-          <stop offset="1" stopColor="rgba(255,215,0,0.25)" />
-        </linearGradient>
-      </defs>
-      <g fill="none" stroke="url(#g)" strokeWidth="2">
-        <path d="M78 84l22-22 38 38-22 22z" />
-        <path d="M104 58l10-10 38 38-10 10z" />
-        <path d="M124 98l46 46" />
-        <path d="M156 156l28 28" />
-        <path d="M62 182c36-10 78-10 116 0" opacity="0.7" />
-      </g>
-    </svg>
-  );
-}
-
 export default function Welcome() {
   const { user, consumeLastLoginMeta } = useAuth();
   const navigate = useNavigate();
@@ -36,24 +16,21 @@ export default function Welcome() {
     const fromMeta = metaRef.current?.name || "";
     if (fromMeta) return fromMeta;
     const full = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
-    return full || user?.email || "Welcome";
+    return full || user?.email || "Merhaba";
   }, [user]);
 
   useEffect(() => {
     const t = setTimeout(() => {
-      navigate("/dashboard", { replace: true });
-    }, 1000);
+      navigate("/contracts/analysis", { replace: true });
+    }, 1600);
     return () => clearTimeout(t);
   }, [navigate]);
 
   return (
-    <div className="min-h-[calc(100vh-160px)] flex items-center justify-center py-16">
-      <div className="relative w-full max-w-3xl mx-auto px-6">
+    <div className="fixed inset-0 top-20 bottom-20 flex items-center justify-center px-6 z-0">
+      <div className="relative w-full max-w-xl mx-auto">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-black" />
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full bg-[rgba(255,215,0,0.08)] blur-3xl" />
-          <div className="absolute inset-x-0 top-10 h-px bg-[rgba(255,215,0,0.35)]" />
-          <div className="absolute inset-x-0 bottom-10 h-px bg-[rgba(255,215,0,0.18)]" />
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] rounded-full bg-[rgba(255,215,0,0.08)] blur-3xl" />
         </div>
 
         <div className="glass px-8 py-10 overflow-hidden">
@@ -92,22 +69,13 @@ export default function Welcome() {
             </div>
 
             <motion.div
-              aria-hidden="true"
-              className="relative justify-self-center"
-              initial={{ opacity: 0, rotate: -6, scale: 0.96 }}
-              animate={{ opacity: 1, rotate: 0, scale: 1 }}
-              transition={{ duration: 0.55, ease: "easeOut" }}
-            >
-              <motion.div
-                animate={{ rotate: [0, -1.5, 0], y: [0, 2, 0] }}
-                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-                className="drop-shadow-[0_0_18px_rgba(255,215,0,0.12)]"
-              >
-                <GavelMark />
-              </motion.div>
-            </motion.div>
-          </div>
-        </div>
+              className="h-full w-1/2 bg-[rgba(255,215,0,0.9)]"
+              initial={{ x: "-100%" }}
+              animate={{ x: "200%" }}
+              transition={{ duration: 1.2, ease: "easeInOut" }}
+            />
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   );
