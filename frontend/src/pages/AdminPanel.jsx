@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import LoadingScreen from "../components/LoadingScreen.jsx";
 import { authFetch } from "../auth/api";
 
 const API_BASE =
@@ -729,17 +731,10 @@ export default function AdminPanel() {
   };
 
   if (status === "loading") {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center px-6">
-        <div className="text-center space-y-3">
-          <div className="animate-pulse text-white/60 text-sm">Yükleniyor…</div>
-          <div className="text-[11px] text-white/35">Oturum kontrol ediliyor</div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen variant="full" />;
   }
-  if (status !== "authed") return null;
-  if (user?.role !== "admin") return null;
+  if (status !== "authed") return <Navigate to="/" replace />;
+  if (user?.role !== "admin") return <Navigate to="/unauthorized" replace />;
 
   if (panelGate.phase === "loading") {
     return (

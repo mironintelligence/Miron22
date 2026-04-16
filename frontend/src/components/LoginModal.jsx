@@ -4,6 +4,8 @@ import { useAuth } from "../auth/AuthProvider";
 
 export default function LoginModal({ open, onClose, onSuccess }) {
   const { login } = useAuth();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -12,6 +14,10 @@ export default function LoginModal({ open, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Ad ve soyad zorunludur.");
+      return;
+    }
     if (!email.trim() || !password.trim()) {
       setError("E-posta ve şifre zorunludur.");
       return;
@@ -48,6 +54,32 @@ export default function LoginModal({ open, onClose, onSuccess }) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-subtle mb-1">Ad</label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              disabled={loading}
+              autoComplete="given-name"
+              className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
+              placeholder="Adınız"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-subtle mb-1">Soyad</label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              disabled={loading}
+              autoComplete="family-name"
+              className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
+              placeholder="Soyadınız"
+            />
+          </div>
+        </div>
         <div>
           <label className="block text-sm text-subtle mb-1">E-posta</label>
           <input

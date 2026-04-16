@@ -91,7 +91,7 @@ export function AuthProvider({ children }) {
   }, [bootstrap]);
 
   const login = async (email, password, nameHint) => {
-    const data = await apiLogin(email, password);
+    const data = await apiLogin(email, password, nameHint);
     const tok = data?.access_token || "";
     if (tok) setAccessToken(tok);
     const meta = data?.user || {};
