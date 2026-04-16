@@ -39,8 +39,17 @@ function normalizeUser(meta) {
 export function AuthProvider({ children }) {
   const [status, setStatus] = useState("loading");
   const [user, setUser] = useState(null);
-  const [accessToken, setAccessToken] = useState(null);
+  const [accessToken, setAccessTokenState] = useState(null);
   const [lastLoginMeta, setLastLoginMeta] = useState(null);
+  /** authFetch aynı tick içinde çalışır; getter closure'ı React render'ını bekleyemez. */
+  const accessTokenRef = useRef(null);
+
+  const setAccessToken = useCallback((t) => {
+    const v = t ? String(t) : null;
+    accessTokenRef.current = v;
+    setAccessTokenState(v);
+  }, []);
+
   const setAccessTokenRef = useRef(setAccessToken);
   setAccessTokenRef.current = setAccessToken;
 
@@ -49,8 +58,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    registerAccessTokenGetter(() => accessToken);
-  }, [accessToken]);
+    registerAccessTokenGetter(() => accessTokenRef.current);
+  }, []);
 
   const bootstrap = useCallback(async () => {
     purgeLegacyTokenStorage();

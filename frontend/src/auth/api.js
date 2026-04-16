@@ -1,7 +1,14 @@
 import axios from "axios";
 
-const API =
-  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+function resolveApiBase() {
+  const raw = String(
+    import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com"
+  ).trim();
+  if (!raw) return "https://miron22.onrender.com";
+  return raw.replace(/\/+$/, "");
+}
+
+const API = resolveApiBase();
 
 const REFRESH_STORAGE_KEY = "miron_refresh_token";
 
