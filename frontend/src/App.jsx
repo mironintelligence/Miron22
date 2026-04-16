@@ -40,6 +40,8 @@ import Unauthorized from "./pages/Unauthorized.jsx";
 
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import DashboardGate from "./components/DashboardGate.jsx";
 import { useAuth } from "./auth/AuthProvider";
 
 export default function App() {
@@ -55,7 +57,10 @@ export default function App() {
         return;
       }
       setLoginOpen(true);
+      return;
     }
+    /* /login dışına çıkınca modalı kapat; aksi halde overlay "/" gibi sayfalarda siyah ekran gibi kalır */
+    setLoginOpen(false);
   }, [location.pathname, status, navigate]);
 
   useEffect(() => {
@@ -355,7 +360,7 @@ export default function App() {
       </div>
 
       <footer className="fixed bottom-0 left-0 w-full text-center text-xs py-3 bg-black/40 backdrop-blur-xl border-t border-white/10 text-white/70 pointer-events-none">
-        ⚠ Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
+        Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
       </footer>
     </div>
   );

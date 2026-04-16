@@ -254,7 +254,13 @@ export default function CaseDetail() {
     );
   }
 
-  if (!caseData) return null;
+  if (!caseData) {
+    return (
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="glass px-5 py-4 text-xs text-subtle">Hazırlanıyor…</div>
+      </div>
+    );
+  }
 
   const statusLabel =
     STATUS_OPTIONS.find((s) => s.value === caseData.status)?.label ||

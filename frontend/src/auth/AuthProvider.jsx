@@ -39,8 +39,17 @@ function normalizeUser(meta) {
 export function AuthProvider({ children }) {
   const [status, setStatus] = useState("loading");
   const [user, setUser] = useState(null);
-  const [accessToken, setAccessToken] = useState(null);
+  const [accessToken, setAccessTokenState] = useState(null);
   const [lastLoginMeta, setLastLoginMeta] = useState(null);
+  /** authFetch aynı tick içinde çalışır; getter closure'ı React render'ını bekleyemez. */
+  const accessTokenRef = useRef(null);
+
+  const setAccessToken = useCallback((t) => {
+    const v = t ? String(t) : null;
+    accessTokenRef.current = v;
+    setAccessTokenState(v);
+  }, []);
+
   const setAccessTokenRef = useRef(setAccessToken);
   setAccessTokenRef.current = setAccessToken;
 
@@ -49,8 +58,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    registerAccessTokenGetter(() => accessToken);
-  }, [accessToken]);
+    registerAccessTokenGetter(() => accessTokenRef.current);
+  }, []);
 
   const bootstrap = useCallback(async () => {
     purgeLegacyTokenStorage();
@@ -73,11 +82,25 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    bootstrap();
+    let cancelled = false;
+    const safety = window.setTimeout(() => {
+      if (cancelled) return;
+      setStatus((s) => (s === "loading" ? "guest" : s));
+      setAccessToken(null);
+      setUser(null);
+    }, 15000);
+    bootstrap().finally(() => {
+      cancelled = true;
+      window.clearTimeout(safety);
+    });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(safety);
+    };
   }, [bootstrap]);
 
   const login = async (email, password, nameHint) => {
-    const data = await apiLogin(email, password);
+    const data = await apiLogin(email, password, nameHint);
     const tok = data?.access_token || "";
     if (tok) setAccessToken(tok);
     const meta = data?.user || {};

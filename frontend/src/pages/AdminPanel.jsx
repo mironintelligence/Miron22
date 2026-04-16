@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import LoadingScreen from "../components/LoadingScreen.jsx";
 import { authFetch } from "../auth/api";
 
 const API_BASE =
@@ -728,9 +730,11 @@ export default function AdminPanel() {
     }
   };
 
-  if (status === "loading") return null;
-  if (status !== "authed") return null;
-  if (user?.role !== "admin") return null;
+  if (status === "loading") {
+    return <LoadingScreen variant="full" />;
+  }
+  if (status !== "authed") return <Navigate to="/" replace />;
+  if (user?.role !== "admin") return <Navigate to="/unauthorized" replace />;
 
   if (panelGate.phase === "loading") {
     return (

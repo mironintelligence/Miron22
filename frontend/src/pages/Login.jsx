@@ -45,7 +45,10 @@ const Login = () => {
 
     try {
       purgeLegacyTokenStorage();
-      await login(email.trim(), password);
+      await login(email.trim(), password, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      });
       navigate("/welcome", { replace: true });
     } catch (err) {
       setError(err.message);

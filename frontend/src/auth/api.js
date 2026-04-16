@@ -1,7 +1,14 @@
 import axios from "axios";
 
-const API =
-  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+function resolveApiBase() {
+  const raw = String(
+    import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com"
+  ).trim();
+  if (!raw) return "https://miron22.onrender.com";
+  return raw.replace(/\/+$/, "");
+}
+
+const API = resolveApiBase();
 
 const REFRESH_STORAGE_KEY = "miron_refresh_token";
 
@@ -72,6 +79,28 @@ function authHeaders(method, extra = {}) {
 
 let _refreshChain = null;
 
+/** Kimlik doğrulamalı API istekleri için varsayılan üst süre (AbortController). */
+const AUTH_FETCH_TIMEOUT_MS = 25000;
+
+async function fetchWithTimeout(url, options = {}) {
+  const outer = options.signal;
+  if (outer) {
+    return fetch(url, options);
+  }
+  const ac = new AbortController();
+  const tid = setTimeout(() => ac.abort(), AUTH_FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: ac.signal });
+  } catch (e) {
+    if (e?.name === "AbortError") {
+      throw new Error("Sunucuya ulaşılamadı (zaman aşımı).");
+    }
+    throw e;
+  } finally {
+    clearTimeout(tid);
+  }
+}
+
 /**
  * HttpOnly refresh çerezi ile yeni access token alır; bellekteki token'ı günceller.
  */
@@ -79,12 +108,26 @@ export async function refreshSession() {
   if (!_refreshChain) {
     _refreshChain = (async () => {
       const stored = readStoredRefresh();
-      const r = await fetch(`${API}/api/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
-        headers: stored ? { "Content-Type": "application/json" } : {},
-        body: stored ? JSON.stringify({ refresh_token: stored }) : undefined,
-      });
+      const controller = new AbortController();
+      const timeoutMs = 12000;
+      const tid = setTimeout(() => controller.abort(), timeoutMs);
+      let r;
+      try {
+        r = await fetch(`${API}/api/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+          headers: stored ? { "Content-Type": "application/json" } : {},
+          body: stored ? JSON.stringify({ refresh_token: stored }) : undefined,
+          signal: controller.signal,
+        });
+      } catch (e) {
+        if (e?.name === "AbortError") {
+          throw new Error("Oturum sunucusuna ulaşılamadı (zaman aşımı).");
+        }
+        throw e;
+      } finally {
+        clearTimeout(tid);
+      }
       if (!r.ok) {
         const t = await r.json().catch(() => ({}));
         throw new Error(detailMessage(t) || "Oturum yenilenemedi");
@@ -111,11 +154,16 @@ function shouldSkip401Retry(path) {
   );
 }
 
-export async function login(email, password) {
+export async function login(email, password, nameHint = null) {
+  const body = { email, password };
+  if (nameHint && (nameHint.firstName || nameHint.lastName)) {
+    body.firstName = String(nameHint.firstName || "").trim();
+    body.lastName = String(nameHint.lastName || "").trim();
+  }
   const r = await fetch(`${API}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(body),
     credentials: "include",
   });
   if (!r.ok) {
@@ -197,23 +245,19 @@ export async function authFetch(path, options = {}) {
   const headers = authHeaders(method, options.headers || {});
   const url = `${API}${path}`;
 
-  const exec = () =>
-    fetch(url, {
+  const exec = (hdrs) =>
+    fetchWithTimeout(url, {
       ...options,
-      headers,
+      headers: hdrs,
       credentials: "include",
     });
 
-  let res = await exec();
+  let res = await exec(headers);
   if (res.status === 401 && !shouldSkip401Retry(path)) {
     try {
       await refreshSession();
       const retryHeaders = authHeaders(method, options.headers || {});
-      res = await fetch(url, {
-        ...options,
-        headers: retryHeaders,
-        credentials: "include",
-      });
+      res = await exec(retryHeaders);
     } catch {
       /* orijinal 401 */
     }

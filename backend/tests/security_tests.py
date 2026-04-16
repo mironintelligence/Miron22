@@ -77,7 +77,11 @@ def test_refresh_token_rotation():
     assert res_ref1.status_code == 200
     new_refresh_token = res_ref1.cookies["refresh_token"]
     assert new_refresh_token != refresh_token
-    
+
+    # TestClient önceki yanıttaki Set-Cookie ile kavanozda yeni refresh tutar; eski token replay
+    # testinde yalnızca eski çerezin gitmesi için kavanozu temizle.
+    client.cookies.pop("refresh_token", None)
+
     # Replay Old Token (Attack)
     res_replay = client.post("/api/auth/refresh", cookies={"refresh_token": refresh_token})
     assert res_replay.status_code == 401 # Should be rejected
