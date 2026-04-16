@@ -73,7 +73,21 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    bootstrap();
+    let cancelled = false;
+    const safety = window.setTimeout(() => {
+      if (cancelled) return;
+      setStatus((s) => (s === "loading" ? "guest" : s));
+      setAccessToken(null);
+      setUser(null);
+    }, 15000);
+    bootstrap().finally(() => {
+      cancelled = true;
+      window.clearTimeout(safety);
+    });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(safety);
+    };
   }, [bootstrap]);
 
   const login = async (email, password, nameHint) => {

@@ -79,12 +79,26 @@ export async function refreshSession() {
   if (!_refreshChain) {
     _refreshChain = (async () => {
       const stored = readStoredRefresh();
-      const r = await fetch(`${API}/api/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
-        headers: stored ? { "Content-Type": "application/json" } : {},
-        body: stored ? JSON.stringify({ refresh_token: stored }) : undefined,
-      });
+      const controller = new AbortController();
+      const timeoutMs = 12000;
+      const tid = setTimeout(() => controller.abort(), timeoutMs);
+      let r;
+      try {
+        r = await fetch(`${API}/api/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+          headers: stored ? { "Content-Type": "application/json" } : {},
+          body: stored ? JSON.stringify({ refresh_token: stored }) : undefined,
+          signal: controller.signal,
+        });
+      } catch (e) {
+        if (e?.name === "AbortError") {
+          throw new Error("Oturum sunucusuna ulaşılamadı (zaman aşımı).");
+        }
+        throw e;
+      } finally {
+        clearTimeout(tid);
+      }
       if (!r.ok) {
         const t = await r.json().catch(() => ({}));
         throw new Error(detailMessage(t) || "Oturum yenilenemedi");
