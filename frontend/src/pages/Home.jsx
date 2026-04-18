@@ -94,12 +94,6 @@ export default function Home() {
         to: "/admin",
         disabled: false,
       });
-      list.splice(1, 0, {
-        title: "Raporlama Paneli",
-        desc: "Kullanım istatistikleri ve grafikler (yönetici).",
-        to: "/admin/metrics",
-        disabled: false,
-      });
     }
     return list;
   }, [user?.role]);
@@ -116,43 +110,6 @@ export default function Home() {
 
   return (
     <div className="pb-28 max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="rounded-2xl bg-gradient-to-br from-[#1e3a5f] to-[#2d6a9f] px-6 sm:px-8 py-7 text-white shadow-lg border border-white/10"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Hoş geldiniz</h2>
-            <p className="text-sm opacity-85 mt-1">
-              Miron Hukuk Asistanı — modüllere buradan hızlıca erişin.
-            </p>
-            {(user?.firstName || user?.lastName) && (
-              <p className="text-xs opacity-75 mt-2">
-                {user.firstName} {user.lastName}
-              </p>
-            )}
-          </div>
-        </div>
-      </motion.div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Aktif modül", value: "—" },
-          { label: "Son oturum", value: "—" },
-          { label: "Bildirimler", value: "—" },
-        ].map((s) => (
-          <div
-            key={s.label}
-            className="glass rounded-xl px-4 py-4 border border-white/10 flex flex-col gap-1"
-          >
-            <div className="text-[11px] uppercase tracking-wide text-subtle">{s.label}</div>
-            <div className="text-lg font-semibold text-white">{s.value}</div>
-          </div>
-        ))}
-      </div>
-
       {recentQueries.length > 0 ? (
         <div className="glass rounded-2xl px-5 py-4 border border-white/10">
           <div className="text-xs font-semibold text-subtle mb-2">Son aramalar</div>

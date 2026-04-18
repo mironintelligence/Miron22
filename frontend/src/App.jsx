@@ -25,8 +25,6 @@ const Pricing = lazy(() => import("./pages/Pricing.jsx"));
 const RiskStrategy = lazy(() => import("./pages/RiskStrategy"));
 const Intro = lazy(() => import("./pages/Intro.jsx"));
 const IntroLanding = lazy(() => import("./pages/IntroLanding.jsx"));
-const DashboardGate = lazy(() => import("./components/DashboardGate.jsx"));
-const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Privacy = lazy(() => import("./pages/Privacy.jsx"));
 const Terms = lazy(() => import("./pages/Terms.jsx"));
 const DemoRequest = lazy(() => import("./pages/DemoRequest.jsx"));
@@ -187,16 +185,6 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Upgrade />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/metrics"
-              element={
-                <ProtectedRoute>
-                  <DashboardGate>
-                    <Dashboard />
-                  </DashboardGate>
                 </ProtectedRoute>
               }
             />

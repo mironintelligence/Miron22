@@ -203,6 +203,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 _origins_env = os.getenv("FRONTEND_ORIGINS")
 _allowed_origins = [
     "https://miron22.vercel.app",
+    "https://mironintelligence.vercel.app",
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:3000",

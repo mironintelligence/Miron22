@@ -22,7 +22,7 @@ export default function NotificationToasts() {
   // the navbar badge handles the faster pulse.
   useVisiblePolling(
     async (signal) => {
-      const res = await authFetch("/api/notifications");
+      const res = await authFetch("/api/notifications/");
       if (!res.ok) return;
       const list = await res.json();
       if (signal.cancelled || !Array.isArray(list)) return;
