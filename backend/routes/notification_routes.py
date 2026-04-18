@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Depends, Body, BackgroundTasks
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -8,6 +10,7 @@ from user_auth import get_current_user
 from services.notification_delivery import send_email
 
 router = APIRouter(prefix="/api/notifications", tags=["Bildirimler"])
+logger = logging.getLogger("miron_notifications")
 
 
 def _send_email_safely(email: str, title: str, message: str) -> None:
@@ -21,30 +24,9 @@ def _send_email_safely(email: str, title: str, message: str) -> None:
         # already committed and is the source of truth.
         pass
 
-class NotificationCreate(BaseModel):
-    user_id: Optional[str] = None # If None, system-wide or specific target logic needed
-    type: str # 'system', 'admin', 'case_reminder'
-    title: str
-    message: str
 
-# --- Kullanıcı Endpointleri ---
-
-@router.get("/")
-def get_my_notifications(
-    background_tasks: BackgroundTasks,
-    user: Dict[str, Any] = Depends(get_current_user),
-):
-    """List the caller's notifications.
-
-    This endpoint is polled every minute by every authed browser tab, so it is
-    the single hottest read in the system. Two rules:
-      1. Keep the query plan narrow: one composite index hit for the SELECT.
-      2. Never do a blocking network call (SMTP) while holding a DB cursor.
-         Email delivery is scheduled via BackgroundTasks.
-    """
-    user_id = user.get("id")
-    pending_emails: list[tuple[str, str, str]] = []
-
+def _fanout_due_reminders(user_id: str, pending_emails: list[tuple[str, str, str]]) -> None:
+    """Create in-app rows for due reminders; append email jobs to pending_emails."""
     with get_db_cursor() as cur:
         try:
             cur.execute(
@@ -125,6 +107,39 @@ def get_my_notifications(
                     (r.get("id"),),
                 )
 
+
+class NotificationCreate(BaseModel):
+    user_id: Optional[str] = None # If None, system-wide or specific target logic needed
+    type: str # 'system', 'admin', 'case_reminder'
+    title: str
+    message: str
+
+# --- Kullanıcı Endpointleri ---
+
+@router.get("/")
+def get_my_notifications(
+    background_tasks: BackgroundTasks,
+    user: Dict[str, Any] = Depends(get_current_user),
+):
+    """List the caller's notifications.
+
+    This endpoint is polled every minute by every authed browser tab, so it is
+    the single hottest read in the system. Two rules:
+      1. Keep the query plan narrow: one composite index hit for the SELECT.
+      2. Never do a blocking network call (SMTP) while holding a DB cursor.
+         Email delivery is scheduled via BackgroundTasks.
+    """
+    user_id = user.get("id")
+    pending_emails: list[tuple[str, str, str]] = []
+
+    try:
+        _fanout_due_reminders(str(user_id), pending_emails)
+    except Exception:
+        logger.exception(
+            "reminder fan-out failed (continuing to list notifications) user_id=%s",
+            user_id,
+        )
+
     # SMTP after the DB cursor is released and after the response is queued —
     # the client never waits for the mail server.
     for email_addr, title, msg in pending_emails:
@@ -136,9 +151,13 @@ def get_my_notifications(
         ORDER BY created_at DESC
         LIMIT 50
     """
-    with get_db_cursor() as cur:
-        cur.execute(sql, (user_id,))
-        return cur.fetchall()
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(sql, (user_id,))
+            return cur.fetchall()
+    except Exception:
+        logger.exception("notification list fetch failed user_id=%s", user_id)
+        return []
 
 
 @router.get("/unread-count")

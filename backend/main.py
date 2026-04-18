@@ -218,6 +218,23 @@ if _origins_env:
 
 _origin_regex = (os.getenv("FRONTEND_ORIGIN_REGEX") or "").strip() or None
 
+# CORS middleware is registered *after* the stack below so it wraps every
+# other middleware. Inner layers (Chaos, Timeout, CSRF, Idempotency, …) may
+# return a plain Response without reaching the FastAPI app; those responses
+# previously skipped the inner CORS layer, so Chrome reported "blocked by
+# CORS" even for 403/500/504 bodies that were not cross-origin policy blocks.
+
+# 3. Security Middlewares (Order Matters!)
+app.add_middleware(BotProtectionMiddleware)
+app.add_middleware(ChaosMiddleware) # Failure Injection (First to intercept everything)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(CSRFProtectionMiddleware) # Double Submit Cookie
+app.add_middleware(IdempotencyMiddleware)
+app.add_middleware(TimeoutMiddleware) # Global Timeout
+app.add_middleware(PrometheusMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(LoggingMiddleware) # Request logger (still inside CORS)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
@@ -236,16 +253,6 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
     max_age=600,
 )
-# 3. Security Middlewares (Order Matters!)
-app.add_middleware(BotProtectionMiddleware)
-app.add_middleware(ChaosMiddleware) # Failure Injection (First to intercept everything)
-app.add_middleware(RateLimitMiddleware)
-app.add_middleware(CSRFProtectionMiddleware) # Double Submit Cookie
-app.add_middleware(IdempotencyMiddleware)
-app.add_middleware(TimeoutMiddleware) # Global Timeout
-app.add_middleware(PrometheusMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(LoggingMiddleware) # Outermost logger
 
 
 @app.middleware("http")
