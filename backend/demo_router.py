@@ -18,7 +18,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 DEMO_REQUESTS_FILE = DATA_DIR / "demo_requests.json"
 DEMO_USERS_FILE = DATA_DIR / "demo_users.json"
 
-ADMIN_TOKEN = (os.getenv("ADMIN_TOKEN") or "admintoken123").strip()
+ADMIN_TOKEN = (os.getenv("ADMIN_TOKEN") or "").strip()
 
 
 def now_utc() -> datetime:
@@ -28,6 +28,10 @@ def now_utc_iso() -> str:
     return now_utc().isoformat()
 
 def verify_admin(token: str) -> None:
+    # Fail closed: if ADMIN_TOKEN is not configured, refuse all requests
+    # to avoid accidental exposure of admin endpoints with a default secret.
+    if not ADMIN_TOKEN:
+        raise HTTPException(status_code=503, detail="Admin token yapılandırılmamış.")
     if (token or "").strip() != ADMIN_TOKEN:
         raise HTTPException(status_code=403, detail="Admin token geçersiz.")
 

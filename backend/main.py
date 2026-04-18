@@ -23,8 +23,12 @@ BASE_DIR = pathlib.Path(__file__).resolve().parent  # .../backend
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-# .env'i backend/.env'ten yükle
-load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
+# .env'i backend/.env'ten yükle. Shell env (CI/prod deploy platformu veya
+# pytest fixture'ları) varsa onu koru; .env yalnızca eksik değerler için
+# fallback gibi davransın. Böylece production'da Render/Vercel env vars
+# güvende, testlerde ise ENVIRONMENT=test gibi shell değerleri .env
+# tarafından sessizce ezilmez.
+load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
 
 # ---------------------------
 # OpenAI client (tek kaynak)
@@ -190,6 +194,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 # CORS
 # ---------------------------
 
+# CORS — only explicitly allowed origins may send credentialed requests.
+# Previously `allow_origin_regex` defaulted to `^https://.*\.vercel\.app$`,
+# which combined with `allow_credentials=True` let ANY attacker deploy to
+# Vercel and issue cross-origin credentialed requests to this API. We now
+# require the operator to opt in explicitly via FRONTEND_ORIGIN_REGEX, and
+# keep a narrow default allowlist.
 _origins_env = os.getenv("FRONTEND_ORIGINS")
 _allowed_origins = [
     "https://miron22.vercel.app",
@@ -205,13 +215,25 @@ if _origins_env:
         if o and o not in _allowed_origins:
             _allowed_origins.append(o)
 
+_origin_regex = (os.getenv("FRONTEND_ORIGIN_REGEX") or "").strip() or None
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
-    allow_origin_regex=os.getenv("FRONTEND_ORIGIN_REGEX", r"^https:\/\/.*\.vercel\.app$"),
+    allow_origin_regex=_origin_regex,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    # Explicit header allowlist — "*" is ignored by browsers when credentials
+    # are included, and being explicit lets the preflight cache be cleaner.
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-CSRF-Token",
+        "X-Idempotency-Key",
+        "X-Requested-With",
+    ],
+    expose_headers=["X-Request-ID"],
+    max_age=600,
 )
 # 3. Security Middlewares (Order Matters!)
 app.add_middleware(BotProtectionMiddleware)
@@ -491,10 +513,35 @@ def extract_text(filename: str, data: bytes):
     return data.decode("utf-8", errors="ignore")
 
 
+MAX_ANALYZE_BYTES = int(os.getenv("MAX_ANALYZE_BYTES", str(15 * 1024 * 1024)))  # 15 MB default
+_ALLOWED_ANALYZE_EXTS = {".pdf", ".docx", ".txt"}
+
+
 @app.post("/analyze")
 async def analyze_file(file: UploadFile = File(...), _user: dict = Depends(get_current_user)):
-    content = await file.read()
-    text = extract_text(file.filename, content)
+    filename = (file.filename or "").strip()
+    if not filename:
+        raise HTTPException(status_code=400, detail="Dosya adı gerekli.")
+    ext = pathlib.Path(filename).suffix.lower()
+    if ext and ext not in _ALLOWED_ANALYZE_EXTS:
+        raise HTTPException(status_code=415, detail="Yalnızca PDF, DOCX veya TXT desteklenir.")
+
+    # Read in bounded chunks so a malicious client cannot exhaust memory
+    # by streaming a large file past the size cap.
+    buf = bytearray()
+    chunk_size = 64 * 1024
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        if len(buf) + len(chunk) > MAX_ANALYZE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Dosya çok büyük. Maksimum {MAX_ANALYZE_BYTES // (1024 * 1024)} MB.",
+            )
+        buf.extend(chunk)
+    content = bytes(buf)
+    text = extract_text(filename, content)
 
     lower = text.lower()
     if "tazminat" in lower:
@@ -506,7 +553,7 @@ async def analyze_file(file: UploadFile = File(...), _user: dict = Depends(get_c
     else:
         dava_turu = "Genel Hukuk Dosyası"
 
-    formatted, summary, structured = smart_format(text, file.filename, dava_turu)
+    formatted, summary, structured = smart_format(text, filename, dava_turu)
 
     return {
         "analysis": formatted,
@@ -522,9 +569,9 @@ async def analyze_file(file: UploadFile = File(...), _user: dict = Depends(get_c
 # =============================
 
 class ChatRequest(BaseModel):
-    chat_id: Optional[str] = None
-    message: str = Field(..., min_length=1)
-    context: Optional[str] = None
+    chat_id: Optional[str] = Field(default=None, max_length=80)
+    message: str = Field(..., min_length=1, max_length=8000)
+    context: Optional[str] = Field(default=None, max_length=12000)
 
 SYSTEM_PROMPT = """
 Senin adın *Miron AI Legal Assistant*.
@@ -628,8 +675,13 @@ if assistant_router: app.include_router(assistant_router)
 if stats_router:    app.include_router(stats_router)
 if risk_router:     app.include_router(risk_router)
 if admin_router:
-    app.include_router(admin_router, prefix="/admin")
-    app.include_router(admin_router, prefix="/api/admin")
+    # Admin API is exposed under both prefixes for backward-compat:
+    #   /api/admin/* — preferred (used by the SPA + external clients)
+    #   /admin/*     — legacy (still referenced by older tests/tools)
+    # The two prefixes register the same handlers; keep tags separate so
+    # OpenAPI docs group them clearly.
+    app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
+    app.include_router(admin_router, prefix="/admin", tags=["admin-legacy"])
 if calc_router:     app.include_router(calc_router)
 if reports_router:  app.include_router(reports_router)
 if yargitay_router: app.include_router(yargitay_router)

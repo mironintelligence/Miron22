@@ -110,6 +110,22 @@ export function AuthProvider({ children }) {
     };
   }, [bootstrap]);
 
+  // Global session-expired listener. authFetch emits this when a 401 retry
+  // via refresh either fails or keeps returning 401 (e.g. password changed,
+  // token_version bumped, refresh revoked). Without this, pages in authed
+  // state keep hitting the API and silently failing.
+  useEffect(() => {
+    const onExpired = () => {
+      setAccessToken(null);
+      setUser(null);
+      setStatus((s) => (s === "authed" ? "guest" : s));
+      setLastLoginMeta(null);
+      emitToast("Oturumunuzun süresi dolmuş. Lütfen tekrar giriş yapın.", "error");
+    };
+    window.addEventListener("miron:session-expired", onExpired);
+    return () => window.removeEventListener("miron:session-expired", onExpired);
+  }, [setAccessToken]);
+
   /** PKCE / magic link sonrası ve Supabase token yenileme */
   useEffect(() => {
     let alive = true;
@@ -154,7 +170,7 @@ export function AuthProvider({ children }) {
     };
   }, [setAccessToken]);
 
-  const login = async (email, password, nameHint) => {
+  const login = useCallback(async (email, password, nameHint) => {
     const data = await apiLogin(email, password, nameHint);
     const tok = data?.access_token || "";
     if (tok) setAccessToken(tok);
@@ -180,13 +196,11 @@ export function AuthProvider({ children }) {
         email,
     });
     return normalized;
-  };
+  }, [setAccessToken]);
 
-  const register = async (payload) => {
-    return apiRegister(payload);
-  };
+  const register = useCallback(async (payload) => apiRegister(payload), []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await apiLogout();
     } catch (e) {
@@ -197,23 +211,23 @@ export function AuthProvider({ children }) {
     setStatus("guest");
     setLastLoginMeta(null);
     purgeLegacyTokenStorage();
-  };
+  }, [setAccessToken]);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const d = await apiMe();
       setUser(normalizeUser(d?.user));
     } catch (e) {
       emitToast(e?.message || "Profil yenilenemedi", "error");
     }
-  };
+  }, []);
 
-  const consumeLastLoginMeta = () => {
+  const consumeLastLoginMeta = useCallback(() => {
     if (!lastLoginMeta) return null;
     const meta = lastLoginMeta;
     setLastLoginMeta(null);
     return meta;
-  };
+  }, [lastLoginMeta]);
 
   const value = useMemo(
     () => ({
@@ -227,7 +241,7 @@ export function AuthProvider({ children }) {
       lastLoginMeta,
       consumeLastLoginMeta,
     }),
-    [status, user, accessToken, lastLoginMeta]
+    [status, user, accessToken, lastLoginMeta, login, logout, register, refreshUser, consumeLastLoginMeta]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

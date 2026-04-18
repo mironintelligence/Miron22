@@ -38,6 +38,7 @@ from security import (
     verify_password,
 )
 from user_auth import get_current_user
+from utils.request_meta import client_ip, client_meta, cookie_secure
 from legal_compliance import document_version_hash, luhn_valid, card_last_four
 
 try:
@@ -124,9 +125,7 @@ def complete_registration(
     if not u:
         raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
 
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient":
-        ip = "127.0.0.1"
+    ip, _ua = client_meta(request)
 
     cp = payload.consents
     if not cp or not (cp.saas and cp.mss and cp.preinfo and cp.kvkk):
@@ -225,10 +224,7 @@ def attach_payment(body: AttachPaymentIn, request: Request, user: Dict[str, Any]
     if not body.card or not luhn_valid(body.card.number):
         raise HTTPException(status_code=400, detail="Geçersiz kart.")
     uid = str(user.get("id"))
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient":
-        ip = "127.0.0.1"
-    ua = request.headers.get("user-agent", "unknown")
+    ip, ua = client_meta(request)
     if (os.getenv("ENVIRONMENT") or "").lower() != "test" or (
         os.getenv("TEST_USE_INMEMORY_PG_STORE", "true") or ""
     ).lower() == "false":
@@ -255,12 +251,23 @@ def verify_email_endpoint(token: str = Body(..., embed=True)):
     raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş token.")
 
 
+class ForgotPasswordBody(BaseModel):
+    # EmailStr validates format server-side and rejects header-injection
+    # payloads (e.g. "a@b\r\nBcc: attacker@x"). The previous endpoint took a
+    # raw str and forwarded it straight into the SMTP pipeline.
+    email: EmailStr
+
+
 @router.post("/forgot-password")
-def forgot_password(email: str = Body(..., embed=True)):
-    email_norm = (email or "").strip().lower()
+def forgot_password(body: ForgotPasswordBody):
+    email_norm = str(body.email).strip().lower()
     user = find_user_by_email(email_norm)
+    # Always respond with the same generic message to prevent account
+    # enumeration. The caller cannot distinguish "no such email" from
+    # "email sent".
+    generic = {"status": "ok", "message": "Eğer kayıtlıysa şifre sıfırlama bağlantısı gönderildi."}
     if not user:
-        return {"status": "ok", "message": "Eğer kayıtlıysa şifre sıfırlama bağlantısı gönderildi."}
+        return generic
 
     reset_token = secrets.token_urlsafe(32)
     with get_db_cursor() as cur:
@@ -269,8 +276,34 @@ def forgot_password(email: str = Body(..., embed=True)):
             (reset_token, user["id"]),
         )
 
-    send_reset_password_email(email, reset_token)
-    return {"status": "ok", "message": "Şifre sıfırlama bağlantısı gönderildi."}
+    try:
+        send_reset_password_email(email_norm, reset_token)
+    except Exception:
+        # Do not leak SMTP failures to the caller — log internally only.
+        pass
+    return generic
+
+
+def _validate_password_complexity(password: str) -> str:
+    """Shared password complexity check (used by reset + register).
+    Enforced unless PASSWORD_STRICT=false is set (e.g. for test/dev)."""
+    pw = (password or "").strip()
+    strict = (os.getenv("PASSWORD_STRICT", "true") or "").strip().lower() != "false"
+    if not strict:
+        if len(pw) < 8:
+            raise ValueError("Şifre en az 8 karakter olmalıdır.")
+        return pw
+    if len(pw) < 8:
+        raise ValueError("Şifre en az 8 karakter olmalıdır.")
+    if not re.search(r"[A-Z]", pw):
+        raise ValueError("Şifre en az bir büyük harf içermelidir.")
+    if not re.search(r"[a-z]", pw):
+        raise ValueError("Şifre en az bir küçük harf içermelidir.")
+    if not re.search(r"\d", pw):
+        raise ValueError("Şifre en az bir rakam içermelidir.")
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", pw):
+        raise ValueError("Şifre en az bir özel karakter içermelidir.")
+    return pw
 
 
 class ResetPasswordBody(BaseModel):
@@ -279,16 +312,7 @@ class ResetPasswordBody(BaseModel):
 
     @validator("new_password")
     def validate_password_strength(cls, v):
-        new_password = (v or "").strip()
-        if not re.search(r"[A-Z]", new_password):
-            raise ValueError("Şifre en az bir büyük harf içermelidir.")
-        if not re.search(r"[a-z]", new_password):
-            raise ValueError("Şifre en az bir küçük harf içermelidir.")
-        if not re.search(r"\d", new_password):
-            raise ValueError("Şifre en az bir rakam içermelidir.")
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", new_password):
-            raise ValueError("Şifre en az bir özel karakter içermelidir.")
-        return new_password
+        return _validate_password_complexity(v)
 
 
 @router.post("/reset-password")
@@ -304,25 +328,8 @@ def reset_password_endpoint(body: ResetPasswordBody):
     return {"status": "ok", "message": "Şifreniz başarıyla güncellendi."}
 
 
-def _client_ip(request: Request) -> str:
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient":
-        ip = "127.0.0.1"
-    return ip
-
-
-def _cookie_secure() -> bool:
-    explicit = (os.getenv("COOKIE_SECURE") or "").strip().lower()
-    if explicit in ("1", "true", "yes"):
-        return True
-    if explicit in ("0", "false", "no"):
-        return False
-    env = (os.getenv("ENVIRONMENT") or "").lower()
-    return env in ("production", "prod", "staging")
-
-
 def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
-    secure = _cookie_secure()
+    secure = cookie_secure()
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -335,7 +342,7 @@ def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
 
 
 def _clear_refresh_cookie(response: Response) -> None:
-    secure = _cookie_secure()
+    secure = cookie_secure()
     response.delete_cookie(
         key="refresh_token",
         path="/",
@@ -361,6 +368,10 @@ class RegisterRequest(BaseModel):
     discountCode: Optional[str] = None
     consents: Optional[Dict[str, Any]] = None
     card: Optional[Dict[str, Any]] = None
+
+    @validator("password")
+    def _validate_register_password(cls, v):
+        return _validate_password_complexity(v)
 
 
 class LoginRequest(BaseModel):
@@ -388,7 +399,7 @@ def register_account(payload: RegisterRequest, request: Request):
             "is_verified": True,
         }
     )
-    ip = _client_ip(request)
+    ip = client_ip(request)
     ua = request.headers.get("user-agent", "unknown")
     try:
         log_audit(None, "USER_REGISTER", email_norm, {"email": email_norm}, ip, ua)
@@ -400,7 +411,7 @@ def register_account(payload: RegisterRequest, request: Request):
 @router.post("/login")
 def login_account(payload: LoginRequest, request: Request, response: Response):
     email_norm = str(payload.email).strip().lower()
-    ip = _client_ip(request)
+    ip = client_ip(request)
     ua = request.headers.get("user-agent", "unknown")
 
     user = find_user_by_email(email_norm)
@@ -506,7 +517,7 @@ async def refresh_session_endpoint(request: Request, response: Response):
 
     new_access = create_access_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
     new_refresh = create_refresh_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
-    ip = _client_ip(request)
+    ip = client_ip(request)
     ua = request.headers.get("user-agent", "unknown")
     new_hash = hmac_hash(new_refresh, os.getenv("DATA_HASH_KEY", ""))
     fingerprint = token_fingerprint(ua, ip)

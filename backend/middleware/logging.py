@@ -5,6 +5,7 @@ import uuid
 import logging
 from logging.handlers import RotatingFileHandler
 from collections import deque
+from utils.request_meta import client_meta
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
@@ -58,9 +59,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # Attach request_id to request state for other middlewares/routers
         request.state.request_id = request_id
         
-        ip = request.client.host if request.client else "127.0.0.1"
-        if ip == "testclient": ip = "127.0.0.1"
-        ua = request.headers.get("user-agent", "unknown")
+        ip, ua = client_meta(request)
         method = request.method
         path = request.url.path
         

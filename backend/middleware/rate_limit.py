@@ -35,18 +35,32 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Config
         self.window_seconds = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
         self.max_requests = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "120"))
+        # Only honour X-Forwarded-For when the direct client is a configured
+        # trusted proxy. Without this, an attacker can spoof their client IP
+        # on every request and bypass rate limits entirely. Value is a comma
+        # separated list of proxy IPs/CIDRs, e.g. "127.0.0.1,10.0.0.0/8".
+        self.trusted_proxies = [
+            p.strip() for p in (os.getenv("TRUSTED_PROXIES") or "").split(",") if p.strip()
+        ]
 
     async def dispatch(self, request: Request, call_next):
         is_test = os.getenv("ENVIRONMENT") == "test"
         if is_test and (os.getenv("RATE_LIMIT_DISABLE_IN_TEST", "true") or "").lower() == "true":
             return await call_next(request)
 
-        # Identify client (IP or User ID if authenticated)
+        # Identify client IP. X-Forwarded-For can be trivially spoofed, so we
+        # only trust it if the direct peer is in TRUSTED_PROXIES.
+        direct_ip = request.client.host if request.client else "unknown"
+        ip = direct_ip
         forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            ip = forwarded.split(",")[0].strip()
-        else:
-            ip = request.client.host if request.client else "unknown"
+        if forwarded and self._is_trusted_proxy(direct_ip):
+            # Pick the right-most IP injected by *our* proxy chain, not the
+            # left-most client-supplied value.
+            chain = [p.strip() for p in forwarded.split(",") if p.strip()]
+            for candidate in reversed(chain):
+                if not self._is_trusted_proxy(candidate):
+                    ip = candidate
+                    break
             
         # Try to identify user if authenticated (e.g., from request.state or manually parsing token)
         # Note: Middleware runs before route handler, so dependency injection hasn't run yet.
@@ -72,19 +86,28 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Determine Rate Limit Policy based on path
         path = request.url.path
-        if path.endswith("/api/auth/login"):
+        if path.endswith("/api/auth/login") or path.endswith("/auth/login"):
             limit = 50 if is_test else 5
-            window = 60 # 1 minute (Strict 5/min)
+            window = 60
             policy_name = "login"
-        elif path.endswith("/api/auth/register"):
+        elif path.endswith("/api/auth/register") or path.endswith("/auth/register"):
             limit = 30 if is_test else 3
-            window = 3600 # 1 hour
+            window = 3600
             policy_name = "register"
+        elif path.endswith("/auth/forgot-password") or path.endswith("/api/auth/forgot-password"):
+            # Abuse of this endpoint = email bombing + user enumeration probing.
+            limit = 20 if is_test else 3
+            window = 3600
+            policy_name = "forgot_password"
+        elif path.endswith("/auth/reset-password") or path.endswith("/api/auth/reset-password"):
+            limit = 30 if is_test else 5
+            window = 3600
+            policy_name = "reset_password"
         elif path.startswith("/admin"):
-            limit = 300 if is_test else 30 
+            limit = 300 if is_test else 30
             window = 60
             policy_name = "admin"
-        elif path.endswith("/api/auth/refresh"):
+        elif path.endswith("/api/auth/refresh") or path.endswith("/auth/refresh"):
             limit = 10
             window = 60
             policy_name = "refresh"
@@ -124,6 +147,28 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await self._memory_check(ip, call_next, request, limit, window, policy_name)
 
         return await call_next(request)
+
+
+    def _is_trusted_proxy(self, ip: str) -> bool:
+        if not ip or ip == "unknown":
+            return False
+        if not self.trusted_proxies:
+            return False
+        try:
+            import ipaddress
+            addr = ipaddress.ip_address(ip)
+        except ValueError:
+            return False
+        for entry in self.trusted_proxies:
+            try:
+                if "/" in entry:
+                    if addr in ipaddress.ip_network(entry, strict=False):
+                        return True
+                elif addr == ipaddress.ip_address(entry):
+                    return True
+            except ValueError:
+                continue
+        return False
 
     async def _memory_check(self, ip, call_next, request, limit, window, policy_name):
         from collections import deque

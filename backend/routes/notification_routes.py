@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Body
+from fastapi import APIRouter, HTTPException, Depends, Body, BackgroundTasks
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pydantic import BaseModel
@@ -9,6 +9,18 @@ from services.notification_delivery import send_email
 
 router = APIRouter(prefix="/api/notifications", tags=["Bildirimler"])
 
+
+def _send_email_safely(email: str, title: str, message: str) -> None:
+    """Fire-and-forget SMTP call used from BackgroundTasks so a slow/broken
+    mail server never blocks the HTTP response — this endpoint is polled
+    every minute by every authed user."""
+    try:
+        send_email(email, title, message)
+    except Exception:
+        # Delivery failures are best-effort; the in-app notification row is
+        # already committed and is the source of truth.
+        pass
+
 class NotificationCreate(BaseModel):
     user_id: Optional[str] = None # If None, system-wide or specific target logic needed
     type: str # 'system', 'admin', 'case_reminder'
@@ -18,14 +30,27 @@ class NotificationCreate(BaseModel):
 # --- Kullanıcı Endpointleri ---
 
 @router.get("/")
-def get_my_notifications(user: Dict[str, Any] = Depends(get_current_user)):
-    """Kullanıcının kendi bildirimlerini listele"""
+def get_my_notifications(
+    background_tasks: BackgroundTasks,
+    user: Dict[str, Any] = Depends(get_current_user),
+):
+    """List the caller's notifications.
+
+    This endpoint is polled every minute by every authed browser tab, so it is
+    the single hottest read in the system. Two rules:
+      1. Keep the query plan narrow: one composite index hit for the SELECT.
+      2. Never do a blocking network call (SMTP) while holding a DB cursor.
+         Email delivery is scheduled via BackgroundTasks.
+    """
     user_id = user.get("id")
+    pending_emails: list[tuple[str, str, str]] = []
+
     with get_db_cursor() as cur:
         try:
             cur.execute(
                 """
-                SELECT t.id AS trigger_id, t.channel, r.id AS reminder_id, r.title, r.details, r.due_at, r.case_number, r.court, t.trigger_at
+                SELECT t.id AS trigger_id, t.channel, r.id AS reminder_id,
+                       r.title, r.details, r.due_at, r.case_number, r.court, t.trigger_at
                 FROM case_reminder_triggers t
                 JOIN case_reminders r ON r.id = t.reminder_id
                 WHERE t.user_id = %s
@@ -38,6 +63,14 @@ def get_my_notifications(user: Dict[str, Any] = Depends(get_current_user)):
                 (user_id,),
             )
             due = cur.fetchall() or []
+            email_addr: Optional[str] = None
+            needs_email = any(
+                str(r.get("channel") or "in_app").strip().lower() == "email" for r in due
+            )
+            if needs_email:
+                cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+                u = cur.fetchone() or {}
+                email_addr = str(u.get("email") or "").strip() or None
             for r in due:
                 title = str(r.get("title") or "Dava Hatırlatıcı")
                 details = str(r.get("details") or "").strip()
@@ -58,13 +91,12 @@ def get_my_notifications(user: Dict[str, Any] = Depends(get_current_user)):
                     "INSERT INTO notifications (user_id, type, title, message) VALUES (%s, %s, %s, %s)",
                     (user_id, "case_reminder", title, msg),
                 )
-                if channel == "email":
-                    cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
-                    u = cur.fetchone() or {}
-                    email = str(u.get("email") or "").strip()
-                    if email:
-                        send_email(email, title, msg)
-                cur.execute("UPDATE case_reminder_triggers SET sent_at = NOW() WHERE id = %s", (r.get("trigger_id"),))
+                if channel == "email" and email_addr:
+                    pending_emails.append((email_addr, title, msg))
+                cur.execute(
+                    "UPDATE case_reminder_triggers SET sent_at = NOW() WHERE id = %s",
+                    (r.get("trigger_id"),),
+                )
         except Exception:
             cur.execute(
                 """
@@ -88,12 +120,20 @@ def get_my_notifications(user: Dict[str, Any] = Depends(get_current_user)):
                     "INSERT INTO notifications (user_id, type, title, message) VALUES (%s, %s, %s, %s)",
                     (user_id, "case_reminder", title, msg),
                 )
-                cur.execute("UPDATE case_reminders SET notified_at = NOW() WHERE id = %s", (r.get("id"),))
+                cur.execute(
+                    "UPDATE case_reminders SET notified_at = NOW() WHERE id = %s",
+                    (r.get("id"),),
+                )
+
+    # SMTP after the DB cursor is released and after the response is queued —
+    # the client never waits for the mail server.
+    for email_addr, title, msg in pending_emails:
+        background_tasks.add_task(_send_email_safely, email_addr, title, msg)
 
     sql = """
-        SELECT * FROM notifications 
-        WHERE user_id = %s 
-        ORDER BY created_at DESC 
+        SELECT * FROM notifications
+        WHERE user_id = %s
+        ORDER BY created_at DESC
         LIMIT 50
     """
     with get_db_cursor() as cur:

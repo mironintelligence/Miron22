@@ -1,6 +1,19 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { authFetch } from "../auth/api";
+import { emitToast } from "../utils/toastBus";
+
+// Strip emoji + pictographs + variation selectors. Two passes so the
+// combined character class does not trip eslint no-misleading-character-class
+// (an emoji like ❤️ is base + VS-16 and must not share a class).
+const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu;
+const VARIATION_SELECTOR_RE = /[\u{FE00}-\u{FE0F}\u{FE20}-\u{FE2F}]/gu;
+function stripEmoji(text) {
+  return String(text || "")
+    .replace(EMOJI_RE, "")
+    .replace(VARIATION_SELECTOR_RE, "")
+    .trim();
+}
 
 export default function Contracts({ forcedTab = null, pageMode = null }) {
   const [categories, setCategories] = useState([]);
@@ -65,9 +78,16 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
         setCategories(cats);
         setTemplates(tpls);
         if (!activeCategory && cats.length) setActiveCategory(String(cats[0].key || ""));
+        return;
+      }
+      if (res.status === 401) {
+        emitToast("Oturumunuzun süresi dolmuş. Lütfen tekrar giriş yapın.", "error");
+      } else {
+        emitToast("Sözleşme şablonları yüklenemedi.", "error");
       }
     } catch (e) {
       console.error("Templates error:", e);
+      emitToast("Sözleşme şablonları yüklenemedi.", "error");
     } finally {
       setLoading(false);
     }
@@ -85,11 +105,15 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Sözleşme Analizi", content: analysisText }),
       });
-      if (res.ok) {
-        setAnalysisResult(await res.json());
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = typeof data?.detail === "string" ? data.detail : null;
+        throw new Error(detail || `Analiz başarısız (HTTP ${res.status}).`);
       }
+      setAnalysisResult(data);
     } catch (e) {
       console.error("Analysis error:", e);
+      emitToast(e?.message || "Sözleşme analizi yapılamadı.", "error");
     } finally {
       setAnalyzing(false);
     }
@@ -114,7 +138,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
       }
     } catch (e) {
       console.error("Analyze file error:", e);
-      alert(e.message || "Dosya analizi yapılamadı.");
+      emitToast(e.message || "Dosya analizi yapılamadı.", "error");
     } finally {
       setAnalyzing(false);
     }
@@ -140,7 +164,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
       setCompareResult(data);
     } catch (e) {
       console.error("Compare error:", e);
-      alert(e.message || "Karşılaştırma yapılamadı.");
+      emitToast(e.message || "Karşılaştırma yapılamadı.", "error");
     } finally {
       setComparing(false);
     }
@@ -203,9 +227,12 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
       if (res.ok) {
         const data = await res.json();
         setTemplateDetail(data);
+        return;
       }
+      emitToast("Şablon yüklenemedi.", "error");
     } catch (e) {
       console.error("Template detail error:", e);
+      emitToast("Şablon yüklenemedi.", "error");
     }
   };
 
@@ -228,7 +255,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
       setGeneratedText(data.generated || "");
     } catch (e) {
       console.error("Generate error:", e);
-      alert(e.message || "Sözleşme oluşturulamadı.");
+      emitToast(e.message || "Sözleşme oluşturulamadı.", "error");
     } finally {
       setGenerating(false);
     }
@@ -254,7 +281,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
       setGeneratedText((p) => (p ? `${p}\n\n${clause}` : clause));
     } catch (e) {
       console.error("Clause error:", e);
-      alert(e.message || "Madde oluşturulamadı.");
+      emitToast(e.message || "Madde oluşturulamadı.", "error");
     } finally {
       setClauseLoading(false);
     }
@@ -288,7 +315,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
       downloadBlob(blob, `sozlesme.${format}`);
     } catch (e) {
       console.error("Export error:", e);
-      alert(e.message || "Export başarısız.");
+      emitToast(e.message || "Export başarısız.", "error");
     } finally {
       setExporting(false);
     }
@@ -322,7 +349,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
       setReportPreview(String(data.report || ""));
     } catch (e) {
       console.error("Report preview error:", e);
-      alert(e.message || "Önizleme oluşturulamadı.");
+      emitToast(e.message || "Önizleme oluşturulamadı.", "error");
     } finally {
       setReportLoading(false);
     }
@@ -348,7 +375,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
       downloadBlob(blob, `sozlesme_analiz_raporu.${ext}`);
     } catch (e) {
       console.error("Report download error:", e);
-      alert(e.message || "Rapor indirilemedi.");
+      emitToast(e.message || "Rapor indirilemedi.", "error");
     } finally {
       setReportDownloading(false);
     }
@@ -458,7 +485,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
                         {t.subcategory && <div className="text-[11px] text-white/45">{t.subcategory}</div>}
                       </div>
                       <h3 className="text-lg font-bold mb-2 group-hover:text-[var(--miron-gold)] transition-colors">
-                        {(t.title || "").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}]/gu, "").trim()}
+                        {stripEmoji(t.title)}
                       </h3>
                       <p className="text-white/60 text-sm mb-4 line-clamp-3">{t.description}</p>
                       <div className="flex items-center justify-between gap-3 mb-5 text-[11px] text-white/45">
@@ -499,7 +526,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
                 <option value="">Şablon seçin</option>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {(t.category || "").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}]/gu, "").trim()} — {(t.title || "").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}]/gu, "").trim()}
+                    {stripEmoji(t.category)} — {stripEmoji(t.title)}
                   </option>
                 ))}
               </select>

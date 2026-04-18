@@ -20,7 +20,9 @@ def _load_env() -> None:
     if load_dotenv is None:
         return
     env_path = Path(__file__).resolve().parent / ".env"
-    load_dotenv(dotenv_path=env_path, override=True)
+    # Preserve shell env (production platforms and pytest fixtures) — only
+    # fill in missing values from the local .env file.
+    load_dotenv(dotenv_path=env_path, override=False)
 
 
 def _clean_key(k: str) -> str:

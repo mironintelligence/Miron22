@@ -3,6 +3,71 @@ from db import get_db_cursor
 
 def ensure_schema() -> None:
     statements = [
+        # ------------------------------------------------------------------
+        # Core identity / audit / session tables.
+        # These are also created by migration 005 but we recreate them here
+        # idempotently so `ensure_schema` alone is enough to boot a fresh
+        # environment (e.g. local Docker without running the migration set).
+        # ------------------------------------------------------------------
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT,
+            first_name TEXT,
+            last_name TEXT,
+            role TEXT DEFAULT 'user',
+            is_active BOOLEAN DEFAULT TRUE,
+            is_verified BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW(),
+            last_login_at TIMESTAMPTZ,
+            last_login_ip TEXT,
+            refresh_token_hash TEXT,
+            failed_login_attempts INT DEFAULT 0,
+            locked_until TIMESTAMPTZ,
+            token_version INT DEFAULT 1,
+            password_updated_at TIMESTAMPTZ
+        );
+        """,
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INT DEFAULT 1;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_updated_at TIMESTAMPTZ;",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));",
+        "CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);",
+        "CREATE INDEX IF NOT EXISTS idx_users_locked_until ON users(locked_until) WHERE locked_until IS NOT NULL;",
+        """
+        CREATE TABLE IF NOT EXISTS sessions (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            refresh_token_hash TEXT NOT NULL,
+            device_fingerprint TEXT,
+            ip_address TEXT,
+            user_agent TEXT,
+            expires_at TIMESTAMPTZ NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            is_revoked BOOLEAN DEFAULT FALSE,
+            revoked_at TIMESTAMPTZ,
+            revoked_reason TEXT
+        );
+        """,
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_refresh_hash_unique ON sessions(refresh_token_hash);",
+        "CREATE INDEX IF NOT EXISTS idx_sessions_user_active ON sessions(user_id, is_revoked, expires_at);",
+        """
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+            action TEXT NOT NULL,
+            resource TEXT,
+            details JSONB,
+            ip_address TEXT,
+            user_agent TEXT,
+            severity TEXT DEFAULT 'INFO',
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_created ON audit_logs(user_id, created_at DESC);",
+        "CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);",
         """
         CREATE TABLE IF NOT EXISTS demo_requests (
             id UUID PRIMARY KEY,
@@ -36,6 +101,10 @@ def ensure_schema() -> None:
         """,
         "CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);",
         "CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);",
+        # Unread-count and "my notifications" are polled every minute by every
+        # authed tab. A narrow composite index lets both queries plan on an
+        # index-only scan without touching the heap.
+        "CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read, created_at DESC);",
         """
         CREATE TABLE IF NOT EXISTS case_reminders (
             id UUID PRIMARY KEY,
@@ -49,6 +118,9 @@ def ensure_schema() -> None:
         """,
         "CREATE INDEX IF NOT EXISTS idx_case_reminders_user_due ON case_reminders(user_id, due_at);",
         "CREATE INDEX IF NOT EXISTS idx_case_reminders_notified_at ON case_reminders(notified_at);",
+        # Supporting the JOIN in /api/notifications which filters by
+        # (user_id, sent_at IS NULL, trigger_at <= NOW()).
+        "CREATE INDEX IF NOT EXISTS idx_case_reminder_triggers_pending ON case_reminder_triggers(user_id, trigger_at) WHERE sent_at IS NULL;",
         """
         CREATE TABLE IF NOT EXISTS contract_templates (
             id SERIAL PRIMARY KEY,

@@ -1,9 +1,12 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import Modal from "./Modal.jsx";
 import { useAuth } from "../auth/AuthProvider";
 
 export default function LoginModal({ open, onClose, onSuccess }) {
   const { login } = useAuth();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,10 +26,10 @@ export default function LoginModal({ open, onClose, onSuccess }) {
     setError("");
     setLoading(true);
     try {
-      await login(email.trim(), password, {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-      });
+      const fn = firstName.trim();
+      const ln = lastName.trim();
+      const nameHint = fn || ln ? { firstName: fn, lastName: ln } : null;
+      await login(email.trim(), password, nameHint);
       setFirstName("");
       setLastName("");
       setEmail("");
@@ -48,6 +51,32 @@ export default function LoginModal({ open, onClose, onSuccess }) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm text-subtle mb-1">Ad <span className="text-white/40">(opsiyonel)</span></label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              disabled={loading}
+              autoComplete="given-name"
+              className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
+              placeholder="Ad"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-subtle mb-1">Soyad <span className="text-white/40">(opsiyonel)</span></label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              disabled={loading}
+              autoComplete="family-name"
+              className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
+              placeholder="Soyad"
+            />
+          </div>
+        </div>
         <div>
           <label className="block text-sm text-subtle mb-1">E-posta</label>
           <input
@@ -55,6 +84,9 @@ export default function LoginModal({ open, onClose, onSuccess }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
+            autoFocus
+            autoComplete="email"
+            inputMode="email"
             className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
             placeholder="ornek@firma.com"
           />
@@ -66,6 +98,7 @@ export default function LoginModal({ open, onClose, onSuccess }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
+            autoComplete="current-password"
             className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
             placeholder="••••••••"
           />
@@ -73,6 +106,15 @@ export default function LoginModal({ open, onClose, onSuccess }) {
         <button type="submit" disabled={loading} className="w-full btn-primary disabled:opacity-60">
           {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
         </button>
+
+        <div className="flex items-center justify-between text-xs text-white/60 pt-1">
+          <Link to="/forgot-password" onClick={onClose} className="hover:text-white underline-offset-2 hover:underline">
+            Şifremi unuttum
+          </Link>
+          <Link to="/kaydol" onClick={onClose} className="hover:text-white underline-offset-2 hover:underline">
+            Hesap oluştur
+          </Link>
+        </div>
       </form>
     </Modal>
   );

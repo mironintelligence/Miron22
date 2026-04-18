@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { authFetch } from "../auth/api";
+import { emitToast } from "../utils/toastBus";
 
 export default function Pleadings() {
   const [catalog, setCatalog] = useState([]);
@@ -20,11 +21,21 @@ export default function Pleadings() {
     (async () => {
       try {
         const r = await authFetch("/writer/catalog");
+        if (!r.ok) {
+          if (r.status === 401) {
+            emitToast("Oturumunuzun süresi dolmuş. Lütfen tekrar giriş yapın.", "error");
+          } else {
+            emitToast("Dilekçe kataloğu yüklenemedi.", "error");
+          }
+          return;
+        }
         const data = await r.json();
+        if (!Array.isArray(data)) return;
         setCatalog(data);
-        if (data?.length) setActiveCat(data[0].category);
+        if (data.length) setActiveCat(data[0].category);
       } catch (e) {
         console.error(e);
+        emitToast("Dilekçe kataloğu yüklenemedi.", "error");
       }
     })();
   }, []);
@@ -34,6 +45,10 @@ export default function Pleadings() {
     (async () => {
       try {
         const r = await authFetch(`/writer/fields/${activeTpl}`);
+        if (!r.ok) {
+          emitToast("Şablon alanları yüklenemedi.", "error");
+          return;
+        }
         const data = await r.json();
         setFields(data.fields || []);
         const init = {};
@@ -44,6 +59,7 @@ export default function Pleadings() {
         setPreview(null);
       } catch (e) {
         console.error(e);
+        emitToast("Şablon alanları yüklenemedi.", "error");
       }
     })();
   }, [activeTpl]);

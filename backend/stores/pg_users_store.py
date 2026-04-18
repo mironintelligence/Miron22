@@ -231,18 +231,23 @@ def update_user_login(user_id: str, ip: str, refresh_hash: str):
         cur.execute(sql, (ip, refresh_hash, user_id))
 
 def get_user_token_version(user_id: str) -> int:
+    """Returns current token_version; returns -1 for a missing user row so
+    comparisons with incoming token claims fail closed (prevents ghost auth
+    after account deletion)."""
     if _use_inmemory():
         uid = str(user_id)
         with _mem_lock:
             u = _mem_users_by_id.get(uid)
-            return int(u.get("token_version") or 1) if u else 1
+            if not u:
+                return -1
+            return int(u.get("token_version") or 1)
     sql = "SELECT token_version FROM users WHERE id = %s"
     with get_db_cursor() as cur:
         cur.execute(sql, (user_id,))
         row = cur.fetchone()
-        if row and row.get("token_version"):
-            return int(row["token_version"])
-        return 1
+        if not row:
+            return -1
+        return int(row.get("token_version") or 1)
 
 def increment_token_version(user_id: str):
     """Global Logout: Invalidates all existing tokens"""
@@ -480,21 +485,58 @@ def update_user_profile(
         return cur.fetchone() is not None
 
 
+# Whitelist of columns allowed to be updated via update_user_fields_by_id.
+# Keeping this explicit prevents arbitrary column writes if a caller ever
+# forwards untrusted keys (defense in depth against SQL-injection via
+# identifier interpolation).
+_ALLOWED_USER_UPDATE_COLUMNS = {
+    "first_name",
+    "last_name",
+    "email",
+    "role",
+    "is_active",
+    "is_verified",
+    "payment_card_on_file",
+    "trial_ends_at",
+    "demo_expires_at",
+    "used_discount_code",
+    "subscription_plan",
+    "subscription_status",
+    "last_login_at",
+    "last_login_ip",
+    "refresh_token_hash",
+    "failed_login_attempts",
+    "locked_until",
+    "reset_password_token",
+    "reset_password_expires_at",
+    "verification_token",
+    "mfa_enabled",
+    "mfa_secret",
+    "enterprise_inquiry",
+}
+
+
 def update_user_fields_by_id(user_id: str, fields: Dict[str, Any]) -> bool:
     if not fields:
         return True
     uid = str(user_id)
+    safe_fields = {k: v for k, v in fields.items() if k in _ALLOWED_USER_UPDATE_COLUMNS}
+    rejected = set(fields.keys()) - set(safe_fields.keys())
+    if rejected:
+        logger.warning("update_user_fields_by_id: rejected columns %s", sorted(rejected))
+    if not safe_fields:
+        return True
     if _use_inmemory():
         with _mem_lock:
             u = _mem_users_by_id.get(uid)
             if not u:
                 return False
-            for k, v in fields.items():
+            for k, v in safe_fields.items():
                 u[k] = v
             return True
     cols = []
     params: List[Any] = []
-    for k, v in fields.items():
+    for k, v in safe_fields.items():
         cols.append(f"{k} = %s")
         params.append(v)
     params.append(uid)
@@ -641,8 +683,12 @@ def get_user_by_reset_token(token: str) -> Optional[Dict[str, Any]]:
         return _row_to_user(row)
 
 def update_password(user_id: str, hashed_password: str):
+    """Updates the password and invalidates every existing session/access
+    token by bumping token_version and revoking all outstanding sessions.
+    This prevents a stolen pre-reset refresh or access token from surviving
+    a password change."""
+    uid = str(user_id)
     if _use_inmemory():
-        uid = str(user_id)
         with _mem_lock:
             if uid not in _mem_users_by_id:
                 return
@@ -650,10 +696,36 @@ def update_password(user_id: str, hashed_password: str):
             u["password_hash"] = hashed_password
             u["reset_password_token"] = None
             u["reset_password_expires_at"] = None
+            u["token_version"] = int(u.get("token_version") or 1) + 1
+            now = _now_utc()
+            for h, s in list(_mem_sessions_by_hash.items()):
+                if str(s.get("user_id")) == uid and not s.get("is_revoked"):
+                    s["is_revoked"] = True
+                    s["revoked_at"] = now
+                    s["revoked_reason"] = "password_reset"
         return
-    sql = "UPDATE users SET password_hash = %s, reset_password_token = NULL, reset_password_expires_at = NULL WHERE id = %s"
     with get_db_cursor() as cur:
-        cur.execute(sql, (hashed_password, user_id))
+        cur.execute(
+            """
+            UPDATE users
+            SET password_hash = %s,
+                reset_password_token = NULL,
+                reset_password_expires_at = NULL,
+                token_version = COALESCE(token_version, 1) + 1
+            WHERE id = %s
+            """,
+            (hashed_password, uid),
+        )
+        cur.execute(
+            """
+            UPDATE sessions
+            SET is_revoked = TRUE,
+                revoked_at = NOW(),
+                revoked_reason = COALESCE(revoked_reason, 'password_reset')
+            WHERE user_id = %s AND is_revoked = FALSE
+            """,
+            (uid,),
+        )
 
 
 def get_user_mfa(user_id: Optional[str] = None, email: Optional[str] = None) -> Dict[str, Any]:

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { authFetch } from "../auth/api";
+import { emitToast } from "../utils/toastBus";
 
 export default function Reminders() {
   const [items, setItems] = useState([]);
@@ -25,7 +26,15 @@ export default function Reminders() {
       const res = await authFetch("/api/reminders");
       if (res.ok) {
         setItems(await res.json());
+        return;
       }
+      if (res.status === 401) {
+        emitToast("Oturumunuzun süresi dolmuş. Lütfen tekrar giriş yapın.", "error");
+      } else {
+        emitToast("Hatırlatıcılar yüklenemedi.", "error");
+      }
+    } catch (e) {
+      emitToast(e?.message || "Hatırlatıcılar yüklenemedi.", "error");
     } finally {
       setLoading(false);
     }
@@ -75,28 +84,44 @@ export default function Reminders() {
       setNotifyEmail(false);
       setNotifySms(false);
       setNotifyPush(false);
+      emitToast("Hatırlatıcı kaydedildi.", "success");
       await load();
     } catch (e) {
-      alert(e.message || "Hatırlatıcı kaydedilemedi.");
+      emitToast(e.message || "Hatırlatıcı kaydedilemedi.", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const remove = async (id) => {
-    const res = await authFetch(`/api/reminders/${encodeURIComponent(id)}`, { method: "DELETE" });
-    if (res.ok) load();
+  const handleAction = async (label, fn) => {
+    try {
+      const res = await fn();
+      if (res.ok) {
+        await load();
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      const detail = typeof data?.detail === "string" ? data.detail : null;
+      emitToast(detail || `${label} işlemi başarısız (HTTP ${res.status}).`, "error");
+    } catch (e) {
+      emitToast(e?.message || `${label} işlemi başarısız.`, "error");
+    }
   };
 
-  const archive = async (id) => {
-    const res = await authFetch(`/api/reminders/${encodeURIComponent(id)}/archive`, { method: "POST" });
-    if (res.ok) load();
-  };
+  const remove = (id) =>
+    handleAction("Silme", () =>
+      authFetch(`/api/reminders/${encodeURIComponent(id)}`, { method: "DELETE" })
+    );
 
-  const unarchive = async (id) => {
-    const res = await authFetch(`/api/reminders/${encodeURIComponent(id)}/unarchive`, { method: "POST" });
-    if (res.ok) load();
-  };
+  const archive = (id) =>
+    handleAction("Arşivleme", () =>
+      authFetch(`/api/reminders/${encodeURIComponent(id)}/archive`, { method: "POST" })
+    );
+
+  const unarchive = (id) =>
+    handleAction("Geri alma", () =>
+      authFetch(`/api/reminders/${encodeURIComponent(id)}/unarchive`, { method: "POST" })
+    );
 
   const upcoming = items.filter((x) => !x.archived_at);
   const archived = items.filter((x) => !!x.archived_at);

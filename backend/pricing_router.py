@@ -125,7 +125,25 @@ class DiscountCodeCreate(BaseModel):
         return v
 
 
-def _load_config() -> Dict[str, Any]:
+# Pricing config is read on every pricing page view and every checkout but is
+# only mutated by admins. Hitting the DB on each read caused connection-pool
+# exhaustion under load (observed 504s in concurrency tests). Cache the merged
+# config in-process with a short TTL; writes invalidate the cache immediately.
+_CONFIG_CACHE: Dict[str, Any] = {"value": None, "expires_at": 0.0}
+def _default_config_cache_ttl() -> float:
+    env = (os.getenv("ENVIRONMENT") or "").strip().lower()
+    if env in {"test", "testing"} or os.getenv("PYTEST_CURRENT_TEST"):
+        return 0.0
+    try:
+        return float(os.getenv("PRICING_CONFIG_CACHE_TTL", "30"))
+    except (TypeError, ValueError):
+        return 30.0
+
+
+_CONFIG_CACHE_TTL_SECONDS = _default_config_cache_ttl()
+
+
+def _compute_config() -> Dict[str, Any]:
     db_cfg = _load_config_from_db()
     base = dict(DEFAULT_CONFIG)
     if not PRICING_CONFIG_FILE.exists():
@@ -141,11 +159,32 @@ def _load_config() -> Dict[str, Any]:
     return base
 
 
+def _invalidate_config_cache() -> None:
+    _CONFIG_CACHE["value"] = None
+    _CONFIG_CACHE["expires_at"] = 0.0
+
+
+def _load_config() -> Dict[str, Any]:
+    import time
+    ttl = _default_config_cache_ttl()
+    if ttl <= 0:
+        return _compute_config()
+    now = time.time()
+    cached = _CONFIG_CACHE.get("value")
+    if cached is not None and now < float(_CONFIG_CACHE.get("expires_at", 0.0)):
+        return dict(cached)
+    value = _compute_config()
+    _CONFIG_CACHE["value"] = value
+    _CONFIG_CACHE["expires_at"] = now + ttl
+    return dict(value)
+
+
 def _save_config(config: Dict[str, Any]) -> None:
     try:
         _save_config_to_db(config)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save config to database: {str(e)}")
+    _invalidate_config_cache()
     PRICING_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = PRICING_CONFIG_FILE.with_suffix(".tmp")
     try:

@@ -28,8 +28,8 @@ const Login = () => {
     setError("");
     setSuccess("");
 
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
-      setError("Tüm alanlar zorunludur.");
+    if (!email.trim() || !password.trim()) {
+      setError("E-posta ve şifre zorunludur.");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -45,7 +45,10 @@ const Login = () => {
 
     try {
       purgeLegacyTokenStorage();
-      await login(email.trim(), password);
+      const fn = firstName.trim();
+      const ln = lastName.trim();
+      const nameHint = fn || ln ? { firstName: fn, lastName: ln } : null;
+      await login(email.trim(), password, nameHint);
       navigate("/welcome", { replace: true });
     } catch (err) {
       setError(err.message);
@@ -70,7 +73,7 @@ const Login = () => {
         <form onSubmit={handleLogin} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-subtle mb-1">Ad</label>
+              <label className="block text-sm text-subtle mb-1">Ad <span className="text-white/40">(opsiyonel)</span></label>
               <input
                 type="text"
                 value={firstName}
@@ -81,7 +84,7 @@ const Login = () => {
               />
             </div>
             <div>
-              <label className="block text-sm text-subtle mb-1">Soyad</label>
+              <label className="block text-sm text-subtle mb-1">Soyad <span className="text-white/40">(opsiyonel)</span></label>
               <input
                 type="text"
                 value={lastName}

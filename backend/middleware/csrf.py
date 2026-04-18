@@ -1,6 +1,6 @@
-import os
 import secrets
 import logging
+from utils.request_meta import cookie_secure as _cookie_secure_util
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -24,20 +24,38 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
 
     SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
+    # Only genuinely public endpoints are whitelisted. Previously this list
+    # included "/api/", "/admin/" and "/writer/" as blanket prefixes, which
+    # meant cookie-authenticated state-changing requests (e.g. /auth/refresh,
+    # POST /auth/logout) bypassed CSRF entirely. Authenticated requests that
+    # use a Bearer token are still exempted separately in _should_skip.
+    # Paths that are exempt even without a bearer token.
+    #   - Fully public GET endpoints (docs, health).
+    #   - Pre-auth login/register/verify/reset flows: there is no session to
+    #     ride for CSRF — these requests create auth state, they do not
+    #     consume existing victim session cookies.
+    #   - Public intake endpoints that capture no victim session.
+    # /auth/refresh and /auth/logout are intentionally NOT whitelisted: they
+    # rely on the refresh_token cookie and therefore need CSRF protection.
     WHITELIST_PREFIXES = (
-        "/api/",
-        "/writer/",
-        "/calc/",
-        "/analyze",
-        "/assistant-chat",
-        "/admin/",
-        "/uyap/",
-        "/reports/",
-        "/stats/",
         "/health",
+        "/api/health",
         "/docs",
         "/openapi",
         "/redoc",
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/verify-email",
+        "/api/auth/forgot-password",
+        "/api/auth/reset-password",
+        "/auth/login",
+        "/auth/register",
+        "/auth/verify-email",
+        "/auth/forgot-password",
+        "/auth/reset-password",
+        "/api/feedback",
+        "/api/demo-request",
+        "/api/pricing/calculate",
     )
 
     def __init__(self, app):
@@ -57,37 +75,32 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         return False
 
     def _secure_cookie(self) -> bool:
-        explicit = (os.getenv("COOKIE_SECURE") or "").strip().lower()
-        if explicit in ("1", "true", "yes"):
-            return True
-        if explicit in ("0", "false", "no"):
-            return False
-        env = (os.getenv("ENVIRONMENT") or "").lower()
-        return env in ("production", "prod", "staging")
+        return _cookie_secure_util()
 
     async def dispatch(self, request: Request, call_next):
+        # Validate BEFORE invoking the handler. The previous order (call_next
+        # first, check second) meant a forged cross-origin unsafe request
+        # still executed its side effects - e.g. /auth/refresh would rotate
+        # the victim's refresh token - and only then get wrapped in a 403.
+        if request.method not in self.SAFE_METHODS and not self._should_skip(request):
+            cookie_token = request.cookies.get(self.cookie_name)
+            header_token = request.headers.get(self.header_name)
+            if not cookie_token or not header_token or cookie_token != header_token:
+                logger.info("CSRF validation failed", extra={"path": request.url.path})
+                return Response(status_code=403, content="CSRF validation failed")
+
         response = await call_next(request)
 
-        if request.method in self.SAFE_METHODS:
-            if self.cookie_name not in request.cookies:
-                token = secrets.token_urlsafe(32)
-                secure = self._secure_cookie()
-                response.set_cookie(
-                    key=self.cookie_name,
-                    value=token,
-                    httponly=False,
-                    samesite="none" if secure else "lax",
-                    secure=secure,
-                )
-            return response
-
-        if self._should_skip(request):
-            return response
-
-        cookie_token = request.cookies.get(self.cookie_name)
-        header_token = request.headers.get(self.header_name)
-        if not cookie_token or not header_token or cookie_token != header_token:
-            logger.info("CSRF validation failed", extra={"path": request.url.path})
-            return Response(status_code=403, content="CSRF validation failed")
-
+        # Issue a fresh csrf_token cookie on safe responses if the client
+        # doesn't already have one - this is how SPAs bootstrap the token.
+        if request.method in self.SAFE_METHODS and self.cookie_name not in request.cookies:
+            token = secrets.token_urlsafe(32)
+            secure = self._secure_cookie()
+            response.set_cookie(
+                key=self.cookie_name,
+                value=token,
+                httponly=False,
+                samesite="none" if secure else "lax",
+                secure=secure,
+            )
         return response

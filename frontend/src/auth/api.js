@@ -56,7 +56,7 @@ export function registerAccessTokenSetter(fn) {
   _setAccessToken = typeof fn === "function" ? fn : () => {};
 }
 
-function readCsrfToken() {
+export function readCsrfToken() {
   if (typeof document === "undefined") return "";
   const csrf = String(document.cookie || "")
     .split(";")
@@ -289,12 +289,35 @@ export async function authFetch(path, options = {}) {
 
   let res = await exec(headers);
   if (res.status === 401 && !shouldSkip401Retry(path)) {
+    let refreshFailed = false;
     try {
       await refreshSession();
       const retryHeaders = authHeaders(method, options.headers || {});
       res = await exec(retryHeaders);
     } catch {
-      /* orijinal 401 */
+      refreshFailed = true;
+    }
+    // If the refresh itself failed OR the retry still comes back 401,
+    // the session is unrecoverable. Broadcast a signal so AuthProvider can
+    // drop the authed state instead of leaving the UI stuck on pages whose
+    // API calls will keep silently 401'ing.
+    if (refreshFailed || res.status === 401) {
+      try {
+        writeStoredRefresh("");
+      } catch {
+        /* ignore */
+      }
+      if (typeof window !== "undefined") {
+        try {
+          window.dispatchEvent(
+            new CustomEvent("miron:session-expired", {
+              detail: { path, status: res.status },
+            })
+          );
+        } catch {
+          /* ignore */
+        }
+      }
     }
   }
   return res;

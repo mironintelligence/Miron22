@@ -39,6 +39,10 @@ def _cleanup_dependency_overrides():
 
 @pytest.fixture
 def admin_headers():
+    """Grants admin access for the duration of the test and cleans up the
+    dependency overrides afterwards so that subsequent tests (e.g. the ones
+    that verify `require_admin` actually rejects anonymous callers) see the
+    real guard instead of the stub."""
     os.environ["ADMIN_TOKEN"] = ADMIN_TOKEN
     import admin_auth
     from admin_auth import require_admin as require_admin_backend
@@ -47,14 +51,17 @@ def admin_headers():
     app.dependency_overrides[admin_auth.require_admin] = lambda: fake_admin
     app.dependency_overrides[require_admin_backend] = lambda: fake_admin
 
-    # CSRF cookie for unsafe requests (tests use the same approach as other admin tests)
     client.get("/")
     token = client.cookies.get("csrf_token")
     headers = {"Authorization": f"Bearer {ADMIN_TOKEN}"}
     if token:
         headers["X-CSRF-Token"] = token
 
-    return headers
+    try:
+        yield headers
+    finally:
+        app.dependency_overrides.pop(admin_auth.require_admin, None)
+        app.dependency_overrides.pop(require_admin_backend, None)
 
 
 @pytest.fixture
@@ -114,7 +121,12 @@ def test_admin_contract_template_crud(admin_headers):
 
 
 def test_admin_contract_template_requires_admin(created_template_id):
-    # No admin_headers -> require_admin should block
+    """The `created_template_id` fixture uses admin_headers to create a
+    row, but for this test we must exercise the *real* require_admin guard.
+    The admin_headers fixture injects a dependency override that grants
+    admin; we clear it here before issuing the unauthenticated request so
+    the endpoint's real `Depends(require_admin)` is evaluated."""
+    app.dependency_overrides = {}
     res = client.put(
         f"/api/contracts/templates/{created_template_id}",
         json={"title": "x", "category": "Test", "content": "y", "description": None},

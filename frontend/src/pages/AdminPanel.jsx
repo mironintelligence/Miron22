@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
-import { authFetch } from "../auth/api";
+import { authFetch, readCsrfToken } from "../auth/api";
 
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
@@ -243,14 +243,7 @@ export default function AdminPanel() {
     try {
       const method = String(options.method || "GET").toUpperCase();
       const unsafe = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
-      const csrf =
-        typeof document !== "undefined"
-          ? String(document.cookie || "")
-              .split(";")
-              .map((c) => c.trim())
-              .find((c) => c.startsWith("csrf_token="))
-          : null;
-      const csrfToken = csrf ? decodeURIComponent(csrf.split("=", 2)[1] || "") : "";
+      const csrfToken = readCsrfToken();
       const res = await fetch(`${API_BASE}${url}`, {
         ...options,
         headers: {

@@ -1,16 +1,31 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { subscribeToast } from "../utils/toastBus";
 
 export default function GlobalToast() {
   const [toast, setToast] = useState(null);
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
-    return subscribeToast((t) => {
+    const unsubscribe = subscribeToast((t) => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       setToast(t);
-      const ms = t.variant === "error" ? 6000 : 4000;
-      window.setTimeout(() => setToast(null), ms);
+      const ms = t?.variant === "error" ? 6000 : 4000;
+      timeoutRef.current = window.setTimeout(() => {
+        setToast(null);
+        timeoutRef.current = null;
+      }, ms);
     });
+    return () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      unsubscribe?.();
+    };
   }, []);
 
   return (
@@ -18,6 +33,7 @@ export default function GlobalToast() {
       {toast && (
         <motion.div
           role="alert"
+          aria-live="polite"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 12 }}

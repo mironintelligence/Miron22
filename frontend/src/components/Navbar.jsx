@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Bell } from "lucide-react";
+import { Bell, Menu, X } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { authFetch } from "../auth/api";
+import { useVisiblePolling } from "../hooks/useVisiblePolling";
 
 function BetaBadge() {
   return (
@@ -29,28 +30,25 @@ export default function Navbar() {
 
   const navLinks = baseNavLinks;
 
-  React.useEffect(() => {
-    if (status !== "authed") return;
-    let mounted = true;
-    const run = async () => {
+  // 60s cadence is enough for a "you have unread" badge; the old 12s loop ran
+  // ~5x/minute/user with no visibility gating.
+  useVisiblePolling(
+    async (signal) => {
       try {
         const res = await authFetch("/api/notifications/unread-count");
         const data = await res.json().catch(() => ({}));
-        if (mounted) setUnreadCount(Number(data?.count || 0));
+        if (!signal.cancelled) setUnreadCount(Number(data?.count || 0));
       } catch {
-        if (mounted) setUnreadCount(0);
+        if (!signal.cancelled) setUnreadCount(0);
       }
-    };
-    run();
-    const iv = setInterval(run, 12000);
-    const onChanged = () => run();
-    window.addEventListener("notifications:changed", onChanged);
-    return () => {
-      mounted = false;
-      clearInterval(iv);
-      window.removeEventListener("notifications:changed", onChanged);
-    };
-  }, [status]);
+    },
+    {
+      enabled: status === "authed",
+      intervalMs: 60000,
+      refetchOnEvents: ["notifications:changed"],
+    },
+    [status]
+  );
 
   const handleLogout = async () => {
     await logout();
@@ -184,8 +182,14 @@ export default function Navbar() {
           </div>
         </div>
 
-        <button type="button" onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-white text-2xl">
-          {menuOpen ? "" : ""}
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          className="md:hidden text-white p-2 -mr-2 rounded hover:bg-white/10 transition"
+          aria-label={menuOpen ? "Menüyü kapat" : "Menüyü aç"}
+          aria-expanded={menuOpen}
+        >
+          {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 

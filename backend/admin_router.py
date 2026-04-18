@@ -5,12 +5,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from utils.request_meta import client_meta
 from fastapi import APIRouter, Depends, HTTPException, Body, Request, Header
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 
 from admin_auth import require_admin, issue_admin_token
 from security import hash_password, verify_password, sanitize_user_for_response
+from auth_router import _validate_password_complexity
 from stores.pg_users_store import (
     create_user, find_user_by_email, find_user_by_id, list_users,
     delete_user, update_user_role, update_user_password, update_user_active,
@@ -75,11 +77,17 @@ def _atomic_write_json(path: Path, data) -> None:
 # Models
 # ------------------------
 class SetPasswordIn(BaseModel):
-    password: str = Field(min_length=4, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
+
+    @validator("password")
+    def _check(cls, v):
+        return _validate_password_complexity(v)
 
 class AdminLoginIn(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=4, max_length=128)
+    # Accept any plausible password length at login; complexity is enforced
+    # when setting/changing passwords, not when presenting them.
+    password: str = Field(min_length=1, max_length=256)
     otp: Optional[str] = Field(default=None, max_length=12)
 
 class CreateUserIn(BaseModel):
@@ -87,9 +95,13 @@ class CreateUserIn(BaseModel):
     lastName: str = Field(default="", max_length=64)
     username: str = Field(default="", max_length=128)
     email: EmailStr
-    password: str = Field(min_length=4, max_length=128)
-    role: str = "user"
+    password: str = Field(min_length=8, max_length=128)
+    role: str = Field(default="user", pattern="^(user|admin|demo)$")
     is_active: bool = True
+
+    @validator("password")
+    def _check(cls, v):
+        return _validate_password_complexity(v)
 
 class UpdateRoleIn(BaseModel):
     role: str = Field(..., pattern="^(user|admin|demo)$")
@@ -104,7 +116,13 @@ class BulkUsersIn(BaseModel):
     action: str = Field(..., pattern="^(activate|suspend|set_role|delete|set_password)$")
     emails: List[EmailStr] = Field(min_length=1, max_length=1000)
     role: Optional[str] = Field(default=None, pattern="^(user|admin|demo)$")
-    password: Optional[str] = Field(default=None, min_length=4, max_length=128)
+    password: Optional[str] = Field(default=None, min_length=8, max_length=128)
+
+    @validator("password")
+    def _check(cls, v):
+        if v is None:
+            return v
+        return _validate_password_complexity(v)
 
 class ImportUsersIn(BaseModel):
     mode: str = Field(default="skip", pattern="^(skip|upsert)$")
@@ -165,10 +183,7 @@ def admin_panel_unlock(body: AdminPanelUnlockIn, request: Request, user: Dict[st
     if not expected:
         raise HTTPException(status_code=503, detail="ADMIN_PANEL_PASSWORD sunucuda ayarlı değil.")
 
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient":
-        ip = "127.0.0.1"
-    ua = request.headers.get("user-agent", "unknown")
+    ip, ua = client_meta(request)
 
     if not secrets.compare_digest(body.password, expected):
         log_audit(str(user.get("id")), "ADMIN_PANEL_GATE_FAIL", "auth", {"reason": "invalid_password"}, ip, ua)
@@ -205,10 +220,7 @@ def _admin_exchange_payload(request: Request, user: Dict[str, Any], otp: Optiona
     if (user.get("role") or "") != "admin":
         raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
 
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient":
-        ip = "127.0.0.1"
-    ua = request.headers.get("user-agent", "unknown")
+    ip, ua = client_meta(request)
 
     mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "true") or "").lower() == "true"
     mfa = get_user_mfa(user_id=str(user.get("id")))
@@ -241,10 +253,7 @@ def admin_panel_bootstrap(body: AdminPanelBootstrapIn, request: Request, user: D
     if not expected:
         raise HTTPException(status_code=503, detail="ADMIN_PANEL_PASSWORD sunucuda ayarlı değil.")
 
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient":
-        ip = "127.0.0.1"
-    ua = request.headers.get("user-agent", "unknown")
+    ip, ua = client_meta(request)
 
     if not secrets.compare_digest(body.password, expected):
         log_audit(str(user.get("id")), "ADMIN_PANEL_GATE_FAIL", "auth", {"reason": "invalid_password"}, ip, ua)
@@ -332,13 +341,16 @@ def admin_login(body: AdminLoginIn, request: Request):
     email = str(body.email).strip().lower()
     user = find_user_by_email(email)
     
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient": ip = "127.0.0.1"
-    ua = request.headers.get("user-agent", "unknown")
+    ip, ua = client_meta(request)
 
     if (os.getenv("BOOTSTRAP_MODE", "false") or "").lower() == "true":
         default_email = os.getenv("DEFAULT_ADMIN_EMAIL") or "cdtmiron@gmail.com"
-        if email == default_email and body.password == os.getenv("DEFAULT_ADMIN_PASSWORD"):
+        default_pw = os.getenv("DEFAULT_ADMIN_PASSWORD") or ""
+        # secrets.compare_digest avoids password-length timing leaks on the
+        # default admin bootstrap path.
+        if email == default_email and default_pw and secrets.compare_digest(
+            body.password or "", default_pw
+        ):
             if not user:
                 raise HTTPException(status_code=401, detail="Admin kullanıcı bulunamadı. Önce bootstrap tamamlanmalı.")
 
@@ -377,7 +389,10 @@ def admin_login(body: AdminLoginIn, request: Request):
 
 class AdminMfaConfirmIn(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=4, max_length=128)
+    # Admin MFA confirmation accepts the CURRENT password, which may pre-date
+    # the strict complexity rule. Do not re-validate here; verify_password
+    # handles the real check.
+    password: str = Field(min_length=1, max_length=256)
     secret: str = Field(min_length=10, max_length=128)
     otp: str = Field(min_length=6, max_length=12)
 
@@ -386,10 +401,7 @@ class AdminMfaConfirmIn(BaseModel):
 def admin_mfa_confirm(body: AdminMfaConfirmIn, request: Request):
     email = str(body.email).strip().lower()
     user = find_user_by_email(email)
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient":
-        ip = "127.0.0.1"
-    ua = request.headers.get("user-agent", "unknown")
+    ip, ua = client_meta(request)
 
     if not user or not verify_password(body.password, user.get("password_hash") or user.get("hashed_password")):
         log_audit(None, "ADMIN_MFA_CONFIRM_FAILED", email, {"reason": "invalid_credentials"}, ip, ua)
@@ -420,10 +432,7 @@ def admin_mfa_setup(body: AdminMfaSetupIn, request: Request, user: Dict[str, Any
     if (user.get("role") or "") != "admin":
         raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
 
-    ip = request.client.host if request.client else "127.0.0.1"
-    if ip == "testclient":
-        ip = "127.0.0.1"
-    ua = request.headers.get("user-agent", "unknown")
+    ip, ua = client_meta(request)
 
     secret = str(body.secret or "").strip()
     if not verify_totp(secret, str(body.otp or "")):

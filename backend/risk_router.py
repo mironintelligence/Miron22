@@ -2,7 +2,8 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query, Dep
 from user_auth import get_current_user
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-import os, io, json, re
+import asyncio
+import os, io, json
 
 try:
     from openai_client import get_openai_client
@@ -23,6 +24,42 @@ router = APIRouter(prefix="/api/risk", tags=["Risk & Strateji Analizi"])
 # Use advanced model for simulation
 SIMULATION_MODEL = "gpt-4o"
 
+# Upload hardening. Keep in sync with the frontend validator in Risk.jsx.
+_ALLOWED_RISK_EXTS = {".pdf", ".docx", ".txt"}
+_MAX_RISK_BYTES = 15 * 1024 * 1024  # 15 MB
+
+
+async def _read_upload_limited(file: UploadFile) -> bytes:
+    """Read an upload while enforcing the size cap.
+
+    Without this, a malicious client can stream arbitrary bytes into server
+    memory and trigger OOM. We also validate the extension against a strict
+    allowlist — the LLM pipeline does not need to parse anything else.
+    """
+    name = (file.filename or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Dosya adı gerekli.")
+    import os as _os
+    ext = _os.path.splitext(name)[1].lower()
+    if ext not in _ALLOWED_RISK_EXTS:
+        raise HTTPException(
+            status_code=415,
+            detail="Yalnızca PDF, DOCX veya TXT desteklenir.",
+        )
+    buf = bytearray()
+    chunk_size = 64 * 1024
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        if len(buf) + len(chunk) > _MAX_RISK_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Dosya çok büyük. Maksimum {_MAX_RISK_BYTES // (1024 * 1024)} MB.",
+            )
+        buf.extend(chunk)
+    return bytes(buf)
+
 @router.post("/simulate", response_model=dict)
 async def simulate_case(
     case_description: Optional[str] = Form(None),
@@ -38,24 +75,26 @@ async def simulate_case(
     if not client:
         raise HTTPException(status_code=500, detail="AI Client init failed.")
     
-    # 1. Dosya varsa oku ve metne ekle
+    # 1. Dosya varsa oku ve metne ekle (size-limited, type-restricted).
     file_content = ""
     if file:
+        raw = await _read_upload_limited(file)
+        safe_name = _safe_basename(file.filename or "")
         try:
-            raw = await file.read()
-            if file.filename.lower().endswith(".pdf"):
+            lower_name = safe_name.lower()
+            if lower_name.endswith(".pdf"):
                 with pdfplumber.open(io.BytesIO(raw)) as pdf:
                     file_content = "\n".join([p.extract_text() or "" for p in pdf.pages])
-            elif file.filename.lower().endswith(".docx"):
-                 doc = Document(io.BytesIO(raw))
-                 file_content = "\n".join([p.text for p in doc.paragraphs])
+            elif lower_name.endswith(".docx"):
+                doc = Document(io.BytesIO(raw))
+                file_content = "\n".join([p.text for p in doc.paragraphs])
             else:
-                 # Try decoding as text
-                 file_content = raw.decode("utf-8", errors="ignore")
-            
-            file_content = f"\n\n[EK DOSYA İÇERİĞİ ({file.filename})]:\n{file_content[:10000]}"
-        except Exception as e:
-            print(f"File read error in simulation: {e}")
+                file_content = raw.decode("utf-8", errors="ignore")
+
+            file_content = f"\n\n[EK DOSYA İÇERİĞİ ({safe_name})]:\n{file_content[:10000]}"
+        except Exception:
+            # Never surface parser exceptions; treat as empty content.
+            file_content = ""
 
     text_part = (case_description or "").strip()
     if not text_part and not file_content:
@@ -125,7 +164,11 @@ async def simulate_case(
     """
     
     try:
-        completion = chat_completions_create(client,
+        # Blocking OpenAI call inside an async endpoint — offload to a thread
+        # so the event loop remains free for other concurrent requests.
+        completion = await asyncio.to_thread(
+            chat_completions_create,
+            client,
             model=SIMULATION_MODEL,
             messages=[
                 {"role": "system", "content": "Kıdemli bir stratejik hukuk danışmanısın. Sadece geçerli JSON üret. Uydurma yapma. Tüm metinler Türkçe olmalı."},
@@ -136,8 +179,10 @@ async def simulate_case(
         )
         result = json.loads(completion.choices[0].message.content)
         return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Simulation failed")
+    except Exception:
+        # Never leak the raw exception chain to the client in production,
+        # and avoid the unused-`e` pyflakes warning.
+        raise HTTPException(status_code=500, detail="Simulation failed") from None
 
 # ------- Helpers -------
 
@@ -194,9 +239,10 @@ async def risk_analyze(
         raise HTTPException(status_code=400, detail="Dosya veya metin (case_text) gereklidir.")
 
     if file:
-        raw = await file.read()
-        text = extract_text_from_bytes(file.filename, raw)
-        source = _safe_basename(file.filename)
+        raw = await _read_upload_limited(file)
+        safe_name = _safe_basename(file.filename or "")
+        text = extract_text_from_bytes(safe_name, raw)
+        source = safe_name or "dosya"
     else:
         text = case_text.strip()
         source = "metin"

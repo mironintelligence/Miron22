@@ -33,11 +33,16 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 
 class TimeoutMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        # Starlette doesn't support easy timeout wrapper around await call_next
-        # because it's already running. We need `asyncio.wait_for`.
         import asyncio
-        
+
+        path = request.url.path or ""
+        long_prefixes = getattr(settings, "LONG_REQUEST_PATH_PREFIXES", ()) or ()
+        if any(path.startswith(pref) for pref in long_prefixes):
+            timeout = getattr(settings, "LONG_REQUEST_TIMEOUT", settings.GLOBAL_REQUEST_TIMEOUT)
+        else:
+            timeout = settings.GLOBAL_REQUEST_TIMEOUT
+
         try:
-            return await asyncio.wait_for(call_next(request), timeout=settings.GLOBAL_REQUEST_TIMEOUT)
+            return await asyncio.wait_for(call_next(request), timeout=timeout)
         except asyncio.TimeoutError:
             return Response(status_code=504, content="Request Timeout")

@@ -6,7 +6,12 @@ import jwt
 from fastapi import Header, HTTPException, status
 
 from security import decode_token
-from stores.pg_users_store import find_user_by_id, get_user_token_version, is_account_locked
+from stores.pg_users_store import (
+    find_user_by_email,
+    find_user_by_id,
+    get_user_token_version,
+    is_account_locked,
+)
 from supabase_jwt import decode_supabase_access_token
 
 
@@ -67,7 +72,12 @@ def authenticate_bearer(authorization: Optional[str]) -> Dict[str, Any]:
     if not uid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Geçersiz token.")
     email = (payload.get("email") or "").strip().lower()
+    # Primary lookup: Supabase "sub" == local user.id.
+    # Fallback: when accounts were created via the legacy local flow,
+    # ids differ but the verified email still resolves the same principal.
     u = find_user_by_id(uid)
+    if not u and email:
+        u = find_user_by_email(email)
     if not u:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı.")
     row_email = _norm_email(u.get("email"))
@@ -77,7 +87,8 @@ def authenticate_bearer(authorization: Optional[str]) -> Dict[str, Any]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hesap askıya alındı.")
     if row_email and is_account_locked(row_email):
         raise HTTPException(status_code=423, detail="Hesap geçici olarak kilitli.")
-    return {"id": str(uid), "email": row_email or email, "role": u.get("role")}
+    resolved_id = str(u.get("id") or uid)
+    return {"id": resolved_id, "email": row_email or email, "role": u.get("role")}
 
 
 def _norm_email(v: Any) -> str:

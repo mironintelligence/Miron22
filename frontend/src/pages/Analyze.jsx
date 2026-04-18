@@ -3,7 +3,18 @@ import React, { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { authFetch } from "../auth/api";
 
-const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+// Backend kabul listesiyle hizalı; aksi halde UploadFile 415 dönüp
+// kullanıcıya görünmez hata yaratıyor.
+const ALLOWED_EXTS = [".pdf", ".docx", ".txt"];
+const ACCEPT_ATTR = ALLOWED_EXTS.join(",");
+const MAX_FILE_BYTES = 15 * 1024 * 1024; // backend cap
+
+function prettyBytes(n) {
+  if (!Number.isFinite(n)) return "?";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 /* ------------------------ helpers ------------------------ */
 function pickFirstLine(val) {
@@ -147,6 +158,7 @@ export default function Analyze() {
   const [structured, setStructured] = useState(null);
 
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const fields = useMemo(() => {
     if (structured && typeof structured === "object") {
@@ -166,10 +178,11 @@ export default function Analyze() {
 
   const handleAnalyze = async () => {
     if (!file) {
-      alert("Lütfen bir dosya seçin.");
+      setErrorMsg("Lütfen bir dosya seçin.");
       return;
     }
 
+    setErrorMsg("");
     setLoading(true);
 
     try {
@@ -183,16 +196,38 @@ export default function Analyze() {
 
       const data = await r.json().catch(() => ({}));
 
-      // Backend alan adları farklı olabilir -> hepsini destekle
+      if (!r.ok) {
+        // Prefer the backend's structured detail; fall back to status-based copy.
+        const detail =
+          typeof data?.detail === "string"
+            ? data.detail
+            : Array.isArray(data?.detail)
+              ? data.detail.map((d) => d?.msg || d).join("; ")
+              : "";
+        const msg =
+          detail ||
+          (r.status === 401
+            ? "Oturumunuzun süresi dolmuş olabilir, lütfen tekrar giriş yapın."
+            : r.status === 413
+              ? `Dosya çok büyük (maks. ${prettyBytes(MAX_FILE_BYTES)}).`
+              : r.status === 415
+                ? "Desteklenmeyen dosya türü. PDF, DOCX veya TXT yükleyin."
+                : r.status >= 500
+                  ? "Sunucu hatası oluştu. Lütfen birazdan tekrar deneyin."
+                  : "Analiz başarısız oldu.");
+        throw new Error(msg);
+      }
+
       setAnalysisText(data.analysis || data.text || data.raw_text || "");
       setSummary(data.summary || data.ozet || "");
       setCaseType(data.dava_turu || data.case_type || data.caseType || "");
       setStructured(data.structured || null);
     } catch (e) {
       setAnalysisText("");
-      setSummary("Sunucu hatası / bağlantı sorunu.");
+      setSummary("");
       setCaseType("");
       setStructured(null);
+      setErrorMsg(e?.message || "Sunucu hatası / bağlantı sorunu.");
     } finally {
       setLoading(false);
     }
@@ -225,12 +260,37 @@ export default function Analyze() {
               Dosya Seç
               <input
                 type="file"
-                accept=".pdf,.docx,.txt,.rtf,.odt"
+                accept={ACCEPT_ATTR}
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0] || null;
+                  setErrorMsg("");
+                  if (!f) {
+                    setFile(null);
+                    setFileName("");
+                    return;
+                  }
+                  const lower = f.name.toLowerCase();
+                  const okExt = ALLOWED_EXTS.some((ext) => lower.endsWith(ext));
+                  if (!okExt) {
+                    setFile(null);
+                    setFileName("");
+                    setErrorMsg("Desteklenmeyen dosya türü. PDF, DOCX veya TXT yükleyin.");
+                    return;
+                  }
+                  if (f.size > MAX_FILE_BYTES) {
+                    setFile(null);
+                    setFileName("");
+                    setErrorMsg(`Dosya çok büyük (maks. ${prettyBytes(MAX_FILE_BYTES)}).`);
+                    return;
+                  }
                   setFile(f);
-                  setFileName(f ? f.name : "");
+                  setFileName(f.name);
+                  // Önceki sonuçlar karışmasın diye temizle.
+                  setAnalysisText("");
+                  setSummary("");
+                  setCaseType("");
+                  setStructured(null);
                 }}
               />
             </label>
@@ -244,6 +304,15 @@ export default function Analyze() {
             </button>
           </div>
         </div>
+
+        {errorMsg ? (
+          <div
+            role="alert"
+            className="mt-6 rounded-xl border border-red-500/40 bg-red-950/40 text-red-100 text-sm px-4 py-3"
+          >
+            {errorMsg}
+          </div>
+        ) : null}
 
         {/* RESULTS */}
         {hasResult && (

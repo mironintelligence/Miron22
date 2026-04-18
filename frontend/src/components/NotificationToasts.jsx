@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { authFetch } from "../auth/api";
+import { useVisiblePolling } from "../hooks/useVisiblePolling";
 import { useAuth } from "../auth/AuthProvider";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -17,49 +18,39 @@ export default function NotificationToasts() {
   const seenRef = useRef(new Set());
   const [toasts, setToasts] = useState([]);
 
-  useEffect(() => {
-    if (status !== "authed") return;
-    let cancelled = false;
+  // Was 8s (7.5 req/min/user). 60s is fine for a "new notification" toast;
+  // the navbar badge handles the faster pulse.
+  useVisiblePolling(
+    async (signal) => {
+      const res = await authFetch("/api/notifications");
+      if (!res.ok) return;
+      const list = await res.json();
+      if (signal.cancelled || !Array.isArray(list)) return;
 
-    const tick = async () => {
-      try {
-        const res = await authFetch("/api/notifications");
-        if (!res.ok) return;
-        const list = await res.json();
-        if (cancelled || !Array.isArray(list)) return;
-
-        const now = Date.now();
-        const next = [];
-        for (const n of list.slice(0, 20)) {
-          if (!n?.id) continue;
-          if (n.is_read) continue;
-          if (seenRef.current.has(n.id)) continue;
-          seenRef.current.add(n.id);
-          const createdAt = n.created_at ? Date.parse(n.created_at) : now;
-          const recent = now - createdAt < 24 * 60 * 60 * 1000;
-          if (!recent) continue;
-          next.push({
-            id: n.id,
-            title: n.title || "Bildirim",
-            message: n.message || "",
-            type: n.type || "system",
-          });
-        }
-        if (next.length) {
-          setToasts((prev) => [...next.slice(0, 3), ...prev].slice(0, 3));
-        }
-      } catch {
-        return;
+      const now = Date.now();
+      const next = [];
+      for (const n of list.slice(0, 20)) {
+        if (!n?.id) continue;
+        if (n.is_read) continue;
+        if (seenRef.current.has(n.id)) continue;
+        seenRef.current.add(n.id);
+        const createdAt = n.created_at ? Date.parse(n.created_at) : now;
+        const recent = now - createdAt < 24 * 60 * 60 * 1000;
+        if (!recent) continue;
+        next.push({
+          id: n.id,
+          title: n.title || "Bildirim",
+          message: n.message || "",
+          type: n.type || "system",
+        });
       }
-    };
-
-    tick();
-    const iv = setInterval(tick, 8000);
-    return () => {
-      cancelled = true;
-      clearInterval(iv);
-    };
-  }, [status]);
+      if (next.length) {
+        setToasts((prev) => [...next.slice(0, 3), ...prev].slice(0, 3));
+      }
+    },
+    { enabled: status === "authed", intervalMs: 60000 },
+    [status]
+  );
 
   useEffect(() => {
     if (!toasts.length) return;

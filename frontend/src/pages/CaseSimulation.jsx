@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { authFetch } from "../auth/api";
 
 export default function CaseSimulation() {
   const [formData, setFormData] = useState({

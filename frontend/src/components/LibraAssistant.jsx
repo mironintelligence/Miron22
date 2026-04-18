@@ -1,15 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { authFetch } from "../auth/api";
+import { useAuth } from "../auth/AuthProvider";
 
 export default function LibraAssistant({ show = true, onClose, caseText = "" }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // -----------------------------
-  // LocalStorage Keys
-  // -----------------------------
-  const LS_CHATS = "libraChats";
-  const LS_CURRENT = "libraCurrentChatId";
+  // LocalStorage keys are scoped per-user so different accounts sharing a
+  // browser don't see each other's chat history.
+  const userScope = user?.id ? String(user.id) : "anon";
+  const LS_CHATS = `libraChats::${userScope}`;
+  const LS_CURRENT = `libraCurrentChatId::${userScope}`;
 
   const trDate = () => new Date().toLocaleDateString("tr-TR");
 
@@ -25,6 +28,18 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
     const saved = localStorage.getItem(LS_CURRENT);
     return saved ? Number(saved) : null;
   });
+
+  // Re-hydrate state when the logged-in user changes (scoped keys).
+  useEffect(() => {
+    try {
+      const nextChats = JSON.parse(localStorage.getItem(LS_CHATS) || "[]");
+      setChats(Array.isArray(nextChats) ? nextChats : []);
+    } catch {
+      setChats([]);
+    }
+    const saved = localStorage.getItem(LS_CURRENT);
+    setCurrentChatId(saved ? Number(saved) : null);
+  }, [userScope]);
 
   const currentChat = useMemo(
     () => chats.find((c) => c.id === currentChatId) || null,
@@ -64,7 +79,8 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
   useEffect(() => {
     if (!show) return;
 
-    if (chats.length === 0 || currentChatId === null) {
+    // If there is no chat at all, seed the very first one.
+    if (chats.length === 0) {
       const newChat = {
         id: Date.now(),
         name: "Sohbet 1",
@@ -75,8 +91,16 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
       };
       setChats([newChat]);
       setCurrentChatId(newChat.id);
+      return;
     }
-  }, [show]);
+
+    // If we have chats but no selection (or the saved id no longer exists),
+    // select the most recent one instead of nuking the whole history.
+    const hasCurrent = chats.some((c) => c.id === currentChatId);
+    if (!hasCurrent) {
+      setCurrentChatId(chats[0].id);
+    }
+  }, [show, chats, currentChatId]);
 
   // -----------------------------
   // Close outside menu
@@ -205,17 +229,14 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
   // Backend call: try routes (404 fallback)
   // -----------------------------
   const postAssistant = async (payload) => {
-    const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-    const urls = [
-      `${base}/assistant-chat`,
-      `${base}/assistant/assistant-chat`,
-    ];
-
+    // Routes to try in order — first one that responds wins. authFetch handles
+    // Authorization + CSRF + 401 refresh automatically.
+    const paths = ["/assistant-chat", "/api/assistant-chat", "/assistant/assistant-chat"];
     let lastErr = null;
 
-    for (const url of urls) {
+    for (const path of paths) {
       try {
-        const res = await fetch(url, {
+        const res = await authFetch(path, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -226,14 +247,17 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-          const detail =
-            data?.detail
-              ? typeof data.detail === "string"
-                ? data.detail
+          const detail = data?.detail
+            ? typeof data.detail === "string"
+              ? data.detail
+              : Array.isArray(data.detail)
+                ? data.detail.map((d) => d?.msg || d).join("; ")
                 : JSON.stringify(data.detail)
-              : data?.reply
+            : data?.reply
               ? String(data.reply)
-              : `HTTP ${res.status}`;
+              : res.status === 401
+                ? "Oturumunuzun süresi dolmuş olabilir. Lütfen tekrar giriş yapın."
+                : `HTTP ${res.status}`;
           throw new Error(detail);
         }
 

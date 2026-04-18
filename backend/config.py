@@ -34,7 +34,23 @@ class Settings:
     ENABLE_OPENTELEMETRY = os.getenv("ENABLE_OPENTELEMETRY", "false").lower() == "true"
     
     # 5) CONCURRENCY
-    GLOBAL_REQUEST_TIMEOUT = 30.0 # seconds (Increased for test env latency)
+    GLOBAL_REQUEST_TIMEOUT = float(os.getenv("GLOBAL_REQUEST_TIMEOUT", "30.0")) # seconds
+    # Long-running endpoints that talk to LLM / large docs - extended budget (seconds).
+    LONG_REQUEST_TIMEOUT = float(os.getenv("LONG_REQUEST_TIMEOUT", "120.0"))
+    # Path prefixes that should use the extended timeout instead of GLOBAL_REQUEST_TIMEOUT.
+    LONG_REQUEST_PATH_PREFIXES = (
+        "/api/analyze",
+        "/api/assistant-chat",
+        "/api/writer",
+        "/api/risk",
+        "/api/contracts/generate",
+        "/api/case-simulation",
+        "/api/search",
+        # Legacy (un-prefixed) endpoints still mounted in main.py
+        "/analyze",
+        "/assistant-chat",
+        "/writer",
+    )
     IDEMPOTENCY_HEADER = "X-Idempotency-Key"
     IDEMPOTENCY_EXPIRY = 3600 # 1 hour
     
@@ -43,15 +59,20 @@ class Settings:
     REDIS_CLUSTER_NODES = os.getenv("REDIS_CLUSTER_NODES", "") # comma separated host:port
     
     # 7) SECURITY
+    # CSP applies to HTML surfaces served by the backend (Swagger, ReDoc,
+    # error pages). The SPA is hosted on Vercel and has its own CSP. We do
+    # not need 'unsafe-inline' for scripts here — any reflected payload on
+    # an API response would otherwise be executable in Swagger/ReDoc.
     CSP_POLICY = {
         "default-src": "'self'",
-        "script-src": "'self' 'unsafe-inline'", # Nonce support requires dynamic injection
+        "script-src": "'self'",
         "style-src": "'self' 'unsafe-inline'",
         "img-src": "'self' data:",
         "connect-src": "'self' https://api.openai.com https://*.supabase.co",
         "frame-ancestors": "'none'",
+        "form-action": "'self'",
         "object-src": "'none'",
-        "base-uri": "'self'"
+        "base-uri": "'self'",
     }
     HSTS_MAX_AGE = 63072000 # 2 years
     HSTS_INCLUDE_SUBDOMAINS = True

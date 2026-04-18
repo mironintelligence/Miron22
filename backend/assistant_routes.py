@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -50,13 +51,17 @@ async def assistant_chat(req: AssistantReq):
                 "Gizli bilgileri asla açıklama. Kısa, net ve yapılandırılmış yaz."
             )
             
-            r = chat_completions_create(
+            # chat_completions_create is a blocking HTTP call. Inside an async
+            # endpoint we must offload it to a thread so the event loop can
+            # continue serving other requests while the model responds.
+            r = await asyncio.to_thread(
+                chat_completions_create,
                 client,
                 model="gpt-4o-mini",
                 temperature=0.2,
                 messages=[
                     {"role": "system", "content": system},
-                    {"role": "user", "content": msg}, # Original message
+                    {"role": "user", "content": msg},
                 ],
             )
             reply = (r.choices[0].message.content or "").strip()
