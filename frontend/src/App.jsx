@@ -55,7 +55,9 @@ export default function App() {
         return;
       }
       setLoginOpen(true);
+      return;
     }
+    setLoginOpen(false);
   }, [location.pathname, status, navigate]);
 
   useEffect(() => {

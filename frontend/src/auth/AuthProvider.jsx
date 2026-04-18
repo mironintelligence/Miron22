@@ -39,8 +39,17 @@ function normalizeUser(meta) {
 export function AuthProvider({ children }) {
   const [status, setStatus] = useState("loading");
   const [user, setUser] = useState(null);
-  const [accessToken, setAccessToken] = useState(null);
+  const [accessToken, setAccessTokenState] = useState(null);
   const [lastLoginMeta, setLastLoginMeta] = useState(null);
+  /** authFetch aynı tick içinde çalışır; getter closure'ı React render'ını bekleyemez. */
+  const accessTokenRef = useRef(null);
+
+  const setAccessToken = useCallback((t) => {
+    const v = t ? String(t) : null;
+    accessTokenRef.current = v;
+    setAccessTokenState(v);
+  }, []);
+
   const setAccessTokenRef = useRef(setAccessToken);
   setAccessTokenRef.current = setAccessToken;
 
@@ -49,12 +58,23 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    registerAccessTokenGetter(() => accessToken);
-  }, [accessToken]);
+    registerAccessTokenGetter(() => accessTokenRef.current);
+  }, []);
 
   const bootstrap = useCallback(async () => {
     purgeLegacyTokenStorage();
     try {
+      const mod = await import("../lib/supabaseClient.js");
+      if (mod.isSupabaseConfigured && mod.supabase) {
+        const { data, error } = await mod.supabase.auth.getSession();
+        if (!error && data.session?.access_token) {
+          setAccessToken(data.session.access_token);
+          const d = await apiMe();
+          setUser(normalizeUser(d?.user));
+          setStatus("authed");
+          return;
+        }
+      }
       const ref = await apiRefresh();
       const tok = ref?.access_token || "";
       if (tok) setAccessToken(tok);
@@ -70,14 +90,72 @@ export function AuthProvider({ children }) {
         emitToast(String(e.message || "Oturum başlatılamadı"), "error");
       }
     }
-  }, []);
+  }, [setAccessToken]);
 
   useEffect(() => {
-    bootstrap();
+    let cancelled = false;
+    const safety = window.setTimeout(() => {
+      if (cancelled) return;
+      setStatus((s) => (s === "loading" ? "guest" : s));
+      setAccessToken(null);
+      setUser(null);
+    }, 15000);
+    bootstrap().finally(() => {
+      cancelled = true;
+      window.clearTimeout(safety);
+    });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(safety);
+    };
   }, [bootstrap]);
 
+  /** PKCE / magic link sonrası ve Supabase token yenileme */
+  useEffect(() => {
+    let alive = true;
+    let subscription = null;
+    (async () => {
+      const mod = await import("../lib/supabaseClient.js");
+      if (!mod.isSupabaseConfigured || !mod.supabase) return;
+      const {
+        data: { subscription: sub },
+      } = mod.supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!alive) return;
+        if (event === "INITIAL_SESSION") return;
+        if (event === "TOKEN_REFRESHED" && session?.access_token) {
+          setAccessToken(session.access_token);
+          return;
+        }
+        if (event === "SIGNED_IN" && session?.access_token) {
+          setAccessToken(session.access_token);
+          try {
+            const d = await apiMe();
+            setUser(normalizeUser(d?.user));
+            setStatus("authed");
+          } catch {
+            setAccessToken(null);
+            setUser(null);
+            setStatus("guest");
+          }
+          return;
+        }
+        if (event === "SIGNED_OUT") {
+          setAccessToken(null);
+          setUser(null);
+          setStatus("guest");
+          setLastLoginMeta(null);
+        }
+      });
+      subscription = sub;
+    })();
+    return () => {
+      alive = false;
+      subscription?.unsubscribe();
+    };
+  }, [setAccessToken]);
+
   const login = async (email, password, nameHint) => {
-    const data = await apiLogin(email, password);
+    const data = await apiLogin(email, password, nameHint);
     const tok = data?.access_token || "";
     if (tok) setAccessToken(tok);
     const meta = data?.user || {};

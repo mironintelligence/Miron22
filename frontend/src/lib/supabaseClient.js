@@ -1,14 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
-const url = import.meta.env.VITE_SUPABASE_URL || "";
-const anon = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const url = String(import.meta.env.VITE_SUPABASE_URL || "").trim();
+const anon = String(import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
 
-export const supabase = url && anon
+/** Vercel’de env boş string olabildiği için trim + ikisi de dolu olmalı */
+export const isSupabaseConfigured = Boolean(url && anon);
+
+export const supabase = isSupabaseConfigured
   ? createClient(url, anon, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
+        flowType: "pkce",
       },
     })
   : null;
