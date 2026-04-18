@@ -177,6 +177,7 @@ async def shutdown_event():
 # ---------------------------
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
+from starlette.middleware.base import BaseHTTPMiddleware
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -204,6 +205,7 @@ _origins_env = os.getenv("FRONTEND_ORIGINS")
 _allowed_origins = [
     "https://miron22.vercel.app",
     "https://mironintelligence.vercel.app",
+    "https://www.mironintelligence.vercel.app",
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:3000",
@@ -217,6 +219,25 @@ if _origins_env:
             _allowed_origins.append(o)
 
 _origin_regex = (os.getenv("FRONTEND_ORIGIN_REGEX") or "").strip() or None
+
+
+async def strict_api_admin_rbac(request: Request, call_next):
+    """RBAC for /api/admin/*. Registered as BaseHTTPMiddleware *inside* CORS so
+    JSONResponse short-circuits still get Access-Control-Allow-Origin."""
+    if request.url.path.startswith("/api/admin"):
+        auth = (request.headers.get("authorization") or "").strip()
+        if not auth.lower().startswith("bearer "):
+            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+        try:
+            user = get_current_user(auth)
+            if (user.get("role") or "").lower() != "admin":
+                return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+        except HTTPException as exc:
+            return JSONResponse(status_code=int(exc.status_code), content={"detail": str(exc.detail)})
+        except Exception:
+            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+    return await call_next(request)
+
 
 # CORS middleware is registered *after* the stack below so it wraps every
 # other middleware. Inner layers (Chaos, Timeout, CSRF, Idempotency, …) may
@@ -234,6 +255,7 @@ app.add_middleware(TimeoutMiddleware) # Global Timeout
 app.add_middleware(PrometheusMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(LoggingMiddleware) # Request logger (still inside CORS)
+app.add_middleware(BaseHTTPMiddleware, dispatch=strict_api_admin_rbac)
 
 app.add_middleware(
     CORSMiddleware,
@@ -254,26 +276,6 @@ app.add_middleware(
     max_age=600,
 )
 
-
-@app.middleware("http")
-async def strict_api_admin_rbac(request: Request, call_next):
-    """
-    /api/admin/* uçlarında ek RBAC kontrolü.
-    Geçersiz veya eksik JWT: 401; geçerli ama admin değil: 403.
-    """
-    if request.url.path.startswith("/api/admin"):
-        auth = (request.headers.get("authorization") or "").strip()
-        if not auth.lower().startswith("bearer "):
-            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
-        try:
-            user = get_current_user(auth)
-            if (user.get("role") or "").lower() != "admin":
-                return JSONResponse(status_code=403, content={"detail": "Forbidden"})
-        except HTTPException as exc:
-            return JSONResponse(status_code=int(exc.status_code), content={"detail": str(exc.detail)})
-        except Exception:
-            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
-    return await call_next(request)
 
 @app.get("/health")
 def health():
