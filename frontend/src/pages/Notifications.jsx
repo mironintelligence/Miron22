@@ -11,7 +11,7 @@ export default function Notifications() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await authFetch("/api/notifications");
+      const res = await authFetch("/api/notifications/");
       if (res.ok) {
         setNotifications(await res.json());
       }

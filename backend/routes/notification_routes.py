@@ -116,6 +116,8 @@ class NotificationCreate(BaseModel):
 
 # --- Kullanıcı Endpointleri ---
 
+# Hem /api/notifications hem /api/notifications/ (307 yönlendirmesiz).
+@router.get("", include_in_schema=False)
 @router.get("/")
 def get_my_notifications(
     background_tasks: BackgroundTasks,
