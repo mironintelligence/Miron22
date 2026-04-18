@@ -17,6 +17,8 @@ import RiskStrategy from "./pages/RiskStrategy";
 import Intro from "./pages/Intro.jsx";
 import IntroLanding from "./pages/IntroLanding.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import DashboardGate from "./components/DashboardGate.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 import Privacy from "./pages/Privacy.jsx";
 import Terms from "./pages/Terms.jsx";
 import DemoRequest from "./pages/DemoRequest.jsx";
