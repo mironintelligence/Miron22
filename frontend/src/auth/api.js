@@ -82,6 +82,25 @@ let _refreshChain = null;
 /** Kimlik doğrulamalı API istekleri için varsayılan üst süre (AbortController). */
 const AUTH_FETCH_TIMEOUT_MS = 25000;
 
+/** İlk çağrıda tarayıcıda csrf_token yoksa GET ile çerezi al (CSRF middleware). */
+async function ensureCsrfCookie() {
+  if (typeof document === "undefined") return;
+  if (readCsrfToken()) return;
+  try {
+    await fetchWithTimeout(`${API}/api/health`, { method: "GET", credentials: "include" });
+  } catch {
+    /* ignore */
+  }
+}
+
+function csrfPostHeaders() {
+  const h = { "Content-Type": "application/json" };
+  const csrf = readCsrfToken();
+  if (csrf) h["X-CSRF-Token"] = csrf;
+  return h;
+}
+
+
 /** Supabase oturumu varsa token döndür; süresi dolmak üzereyse GoTrue refresh. */
 async function trySupabaseRefresh() {
   try {
@@ -137,15 +156,20 @@ export async function refreshSession() {
         return fromSb;
       }
       const stored = readStoredRefresh();
+      await ensureCsrfCookie();
       const controller = new AbortController();
       const timeoutMs = 25000;
       const tid = setTimeout(() => controller.abort(), timeoutMs);
       let r;
       try {
+        const hdrs = csrfPostHeaders();
+        if (!stored) {
+          delete hdrs["Content-Type"];
+        }
         r = await fetch(`${API}/api/auth/refresh`, {
           method: "POST",
           credentials: "include",
-          headers: stored ? { "Content-Type": "application/json" } : {},
+          headers: hdrs,
           body: stored ? JSON.stringify({ refresh_token: stored }) : undefined,
           signal: controller.signal,
         });
@@ -159,7 +183,10 @@ export async function refreshSession() {
       }
       if (!r.ok) {
         const t = await r.json().catch(() => ({}));
-        throw new Error(detailMessage(t) || "Oturum yenilenemedi");
+        const msg = detailMessage(t) || "Oturum yenilenemedi";
+        const err = new Error(msg);
+        if (msg === "DEMO_EXPIRED") err.code = "DEMO_EXPIRED";
+        throw err;
       }
       const j = await r.json();
       const tok = j?.access_token || "";
@@ -197,7 +224,10 @@ export async function login(email, password, nameHint = null) {
   });
   if (!r.ok) {
     const t = await r.json().catch(() => ({}));
-    throw new Error(detailMessage(t) || "Giriş başarısız");
+    const msg = detailMessage(t) || "Giriş başarısız";
+    const err = new Error(msg);
+    if (msg === "DEMO_EXPIRED") err.code = "DEMO_EXPIRED";
+    throw err;
   }
   const data = await r.json();
   const tok = data?.access_token || "";
@@ -235,9 +265,11 @@ export async function refresh() {
 }
 
 export async function logout() {
+  await ensureCsrfCookie();
   const r = await fetch(`${API}/api/auth/logout`, {
     method: "POST",
     credentials: "include",
+    headers: csrfPostHeaders(),
   });
   writeStoredRefresh("");
   try {

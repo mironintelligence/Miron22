@@ -19,7 +19,7 @@ export default function DenemeBaslat() {
         <Link to="/kaydol" className="px-6 py-3 rounded-full btn-primary text-center font-bold">
           Kaydol
         </Link>
-        <Link to="/pricing" className="px-6 py-3 rounded-full border border-amber-500/50 text-amber-200 font-semibold hover:bg-amber-500/10 transition text-center">
+        <Link to="/kaydol" className="px-6 py-3 rounded-full border border-amber-500/50 text-amber-200 font-semibold hover:bg-amber-500/10 transition text-center">
           Fiyatlandırma
         </Link>
       </div>

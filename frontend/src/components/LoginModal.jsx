@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Modal from "./Modal.jsx";
+import { emitToast } from "../utils/toastBus";
 import { useAuth } from "../auth/AuthProvider";
 
 export default function LoginModal({ open, onClose, onSuccess }) {
+  const navigate = useNavigate();
   const { login } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -15,6 +17,10 @@ export default function LoginModal({ open, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Ad ve soyad zorunludur.");
+      return;
+    }
     if (!email.trim() || !password.trim()) {
       setError("E-posta ve şifre zorunludur.");
       return;
@@ -28,14 +34,19 @@ export default function LoginModal({ open, onClose, onSuccess }) {
     try {
       const fn = firstName.trim();
       const ln = lastName.trim();
-      const nameHint = fn || ln ? { firstName: fn, lastName: ln } : null;
-      await login(email.trim(), password, nameHint);
+      await login(email.trim(), password, { firstName: fn, lastName: ln });
       setFirstName("");
       setLastName("");
       setEmail("");
       setPassword("");
       onSuccess?.();
     } catch (err) {
+      if (err?.code === "DEMO_EXPIRED") {
+        emitToast("Demo hesabınızın süresi doldu. Satın alma sayfasına yönlendiriliyorsunuz.", "error");
+        navigate("/pricing", { replace: true, state: { demoExpired: true } });
+        onClose?.();
+        return;
+      }
       setError(err?.message || "Giriş başarısız oldu.");
     } finally {
       setLoading(false);
@@ -53,7 +64,7 @@ export default function LoginModal({ open, onClose, onSuccess }) {
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm text-subtle mb-1">Ad <span className="text-white/40">(opsiyonel)</span></label>
+            <label className="block text-sm text-subtle mb-1">Ad <span className="text-red-400">*</span></label>
             <input
               type="text"
               value={firstName}
@@ -65,7 +76,7 @@ export default function LoginModal({ open, onClose, onSuccess }) {
             />
           </div>
           <div>
-            <label className="block text-sm text-subtle mb-1">Soyad <span className="text-white/40">(opsiyonel)</span></label>
+            <label className="block text-sm text-subtle mb-1">Soyad <span className="text-red-400">*</span></label>
             <input
               type="text"
               value={lastName}

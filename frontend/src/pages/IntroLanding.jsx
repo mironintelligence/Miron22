@@ -85,17 +85,17 @@ export default function IntroLanding() {
 
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <Link
-              to="/register"
+              to="/kaydol"
               className="group relative px-10 py-5 bg-white text-black font-bold rounded-full overflow-hidden hover:scale-105 transition-transform duration-300"
             >
-              <span className="relative z-10">Hemen Başla</span>
+              <span className="relative z-10">15 günlük ücretsiz deneme</span>
               <div className="absolute inset-0 bg-[var(--miron-gold)] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
             </Link>
             <Link
-              to="/pricing"
+              to="/kaydol"
               className="px-10 py-5 bg-transparent border border-white/10 text-white font-bold rounded-full hover:bg-white/5 transition-all hover:border-white/30"
             >
-              Fiyatları Gör
+              Kaydol
             </Link>
           </motion.div>
         </div>

@@ -75,7 +75,7 @@ export default function Kaydol() {
   return (
     <div className="min-h-screen px-6 sm:px-10 md:px-16 pb-16 flex flex-col items-center">
       <div className="w-full max-w-lg glass p-8 sm:p-10 rounded-2xl mt-4">
-        <h1 className="text-4xl sm:text-5xl font-black text-white text-center mb-2 tracking-tight">Kaydol</h1>
+        <h1 className="text-4xl sm:text-5xl font-black text-white text-center mb-2 tracking-tight">15 günlük ücretsiz deneme</h1>
         <p className="text-center text-sm text-subtle mb-8">Miron AI hesabı oluşturun. Deneme için kart gerekmez.</p>
 
         <div className="space-y-4 mb-6">
@@ -86,7 +86,7 @@ export default function Kaydol() {
           </label>
           <label className="flex items-center gap-2">
             <input type="radio" name="mode" checked={mode === "demo"} onChange={() => setMode("demo")} />
-            <span>Onaylı demo</span>
+            <span>15 günlük demo hesabı (anında aktif)</span>
           </label>
         </div>
 
@@ -204,7 +204,7 @@ export default function Kaydol() {
           disabled={disabled || submitting}
           className="mt-8 w-full py-4 rounded-2xl bg-white text-black text-lg font-black hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
-          {submitting ? "Kaydediliyor…" : "Kaydol"}
+          {submitting ? "Kaydediliyor…" : "Hesap oluştur"}
         </button>
 
         <p className="mt-6 text-center text-xs text-subtle">

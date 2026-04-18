@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { purgeLegacyTokenStorage } from "../utils/auth";
+import { emitToast } from "../utils/toastBus";
 
 const Login = () => {
   const [firstName, setFirstName] = useState("");
@@ -28,6 +29,10 @@ const Login = () => {
     setError("");
     setSuccess("");
 
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Ad ve soyad zorunludur.");
+      return;
+    }
     if (!email.trim() || !password.trim()) {
       setError("E-posta ve şifre zorunludur.");
       return;
@@ -47,10 +52,14 @@ const Login = () => {
       purgeLegacyTokenStorage();
       const fn = firstName.trim();
       const ln = lastName.trim();
-      const nameHint = fn || ln ? { firstName: fn, lastName: ln } : null;
-      await login(email.trim(), password, nameHint);
+      await login(email.trim(), password, { firstName: fn, lastName: ln });
       navigate("/welcome", { replace: true });
     } catch (err) {
+      if (err?.code === "DEMO_EXPIRED") {
+        emitToast("Demo hesabınızın süresi doldu. Satın alma sayfasına yönlendiriliyorsunuz.", "error");
+        navigate("/pricing", { replace: true, state: { demoExpired: true } });
+        return;
+      }
       setError(err.message);
     } finally {
       setLoading(false);
@@ -73,7 +82,7 @@ const Login = () => {
         <form onSubmit={handleLogin} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-subtle mb-1">Ad <span className="text-white/40">(opsiyonel)</span></label>
+              <label className="block text-sm text-subtle mb-1">Ad <span className="text-red-400">*</span></label>
               <input
                 type="text"
                 value={firstName}
@@ -84,7 +93,7 @@ const Login = () => {
               />
             </div>
             <div>
-              <label className="block text-sm text-subtle mb-1">Soyad <span className="text-white/40">(opsiyonel)</span></label>
+              <label className="block text-sm text-subtle mb-1">Soyad <span className="text-red-400">*</span></label>
               <input
                 type="text"
                 value={lastName}

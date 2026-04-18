@@ -11,6 +11,7 @@ from stores.pg_users_store import (
     find_user_by_id,
     get_user_token_version,
     is_account_locked,
+    purge_if_demo_expired,
 )
 from supabase_jwt import decode_supabase_access_token
 
@@ -61,6 +62,8 @@ def authenticate_bearer(authorization: Optional[str]) -> Dict[str, Any]:
         u = find_user_by_id(str(uid))
         if not u:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı.")
+        if purge_if_demo_expired(u):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="DEMO_EXPIRED")
         if u.get("is_active") is False:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hesap askıya alındı.")
         current_tv = get_user_token_version(str(uid))
@@ -80,6 +83,8 @@ def authenticate_bearer(authorization: Optional[str]) -> Dict[str, Any]:
         u = find_user_by_email(email)
     if not u:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı.")
+    if purge_if_demo_expired(u):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="DEMO_EXPIRED")
     row_email = _norm_email(u.get("email"))
     if email and row_email and row_email != email:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token e-posta eşleşmiyor.")

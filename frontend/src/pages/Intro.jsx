@@ -70,7 +70,7 @@ export default function Intro() {
 
             <div className="flex gap-3">
               <Link to="/login" className="px-4 py-2 rounded bg-yellow-400 text-black hover:bg-yellow-500 transition">Giriş Yap</Link>
-              <Link to="/register" className="px-4 py-2 rounded border border-white/20 text-white">Kaydol</Link>
+              <Link to="/kaydol" className="px-4 py-2 rounded border border-white/20 text-white">15 günlük ücretsiz deneme</Link>
             </div>
           </div>
 

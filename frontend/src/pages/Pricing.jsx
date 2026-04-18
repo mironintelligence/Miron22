@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 function tl(n) {
   return n.toLocaleString("tr-TR") + " TL";
 }
 
 export default function Pricing() {
+  const location = useLocation();
   const [people, setPeople] = useState(3);
   const [pricingData, setPricingData] = useState(null);
   const [settings, setSettings] = useState({ base_price: 6999, bulk_discount_rate: 12.5, bulk_threshold: 3 });
@@ -64,6 +66,11 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen px-6 sm:px-10 md:px-16 pb-12 bg-black text-white">
+      {location.state?.demoExpired ? (
+        <div className="max-w-6xl mx-auto mb-6 p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-100 text-sm text-center">
+          Demo hesabınızın süresi doldu. Aşağıdan paket seçerek devam edebilir veya yeni hesap oluşturabilirsiniz.
+        </div>
+      ) : null}
       <section className="max-w-6xl mx-auto mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="glass p-6 rounded-2xl border border-white/10 flex flex-col">
           <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-2">Aylık</div>
@@ -76,7 +83,7 @@ export default function Pricing() {
             <li> Tüm çekirdek modüller</li>
             <li> E-posta destek</li>
           </ul>
-          <a href="/kaydol" className="btn-primary text-center block">Kaydol</a>
+          <a href="/kaydol" className="btn-primary text-center block">15 günlük ücretsiz deneme</a>
         </div>
         <div className="glass p-6 rounded-2xl border-2 border-amber-500/50 relative flex flex-col scale-[1.02] shadow-xl shadow-amber-900/20">
           <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-amber-500 text-black px-3 py-1 rounded-full">
@@ -89,7 +96,7 @@ export default function Pricing() {
             <li> Aylık plana göre önemli tasarruf</li>
             <li> Öncelikli erişim</li>
           </ul>
-          <a href="/kaydol" className="btn-primary text-center block">Kaydol</a>
+          <a href="/kaydol" className="btn-primary text-center block">15 günlük ücretsiz deneme</a>
         </div>
       </section>
 
@@ -194,7 +201,7 @@ export default function Pricing() {
               </div>
             </div>
 
-            <a href="/kaydol" className="mt-5 w-full btn-primary block text-center">Kaydol</a>
+            <a href="/kaydol" className="mt-5 w-full btn-primary block text-center">15 günlük ücretsiz deneme</a>
 
             <div className="text-[11px] text-subtle mt-3">
               {loadingPrice ? "Hesaplama yapılıyor..." : "Toplam tutar canlı güncellenir."}

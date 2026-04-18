@@ -50,8 +50,6 @@ function markAdminPanelSession(ok) {
 export default function AdminPanel() {
   const { status, user } = useAuth();
   const [token, setToken] = useState(readAdminToken());
-  const [otp, setOtp] = useState("");
-  const [mfaSetup, setMfaSetup] = useState(null);
   const [authed, setAuthed] = useState(false);
   /** Admin panel password gate (server-side cookie + ADMIN_PANEL_PASSWORD) */
   const [panelGate, setPanelGate] = useState({ phase: "loading", configured: true });
@@ -161,7 +159,7 @@ export default function AdminPanel() {
       const res = await authFetch("/admin/panel-bootstrap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: panelPassword, otp: otp.trim() || undefined }),
+        body: JSON.stringify({ password: panelPassword }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -171,20 +169,12 @@ export default function AdminPanel() {
       }
       if (data?.ok && data?.token) {
         setPanelPassword("");
-        setOtp("");
         setToken(data.token);
         persistAdminToken(data.token);
         markAdminPanelSession(true);
-        setMfaSetup(null);
         setAuthed(true);
         setPanelGate({ phase: "ready", configured: true });
         refreshAll();
-        return;
-      }
-      if (data?.mfa_setup_required) {
-        setPanelPassword("");
-        setMfaSetup({ secret: data.secret, otpauth_url: data.otpauth_url });
-        showMsg("Authenticator ile 2FA kurulumunu tamamlayın.", "error");
         return;
       }
       setPanelGateError("Beklenmeyen yanıt.");
@@ -201,7 +191,7 @@ export default function AdminPanel() {
       clearAdminToken();
       setToken("");
     }
-    await exchangeAdminToken("");
+    await exchangeAdminToken();
   };
 
   const checkAuthWithToken = async (t) => {
@@ -391,12 +381,12 @@ export default function AdminPanel() {
     setSessions(Array.isArray(data?.sessions) ? data.sessions : []);
   };
 
-  const exchangeAdminToken = async (otpValue) => {
+  const exchangeAdminToken = async () => {
     try {
       const res = await authFetch("/admin/exchange", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ otp: otpValue || undefined }),
+        body: JSON.stringify({}),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data?.ok && data?.token) {
@@ -404,40 +394,16 @@ export default function AdminPanel() {
         persistAdminToken(data.token);
         markAdminPanelSession(true);
         setAuthed(true);
-        setMfaSetup(null);
-        setOtp("");
         refreshAll();
         return;
       }
-      if (res.ok && data?.mfa_setup_required) {
-        setMfaSetup({ secret: data.secret, otpauth_url: data.otpauth_url });
-        showMsg("2FA kurulumu gerekli. Authenticator uygulamanıza ekleyip kodu girin.", "error");
-        return;
-      }
       if (res.status === 401) {
-        showMsg("2FA kodu gerekli veya hatalı.", "error");
+        showMsg("Yetkisiz veya panel kilidi gerekli.", "error");
         return;
       }
       showMsg(data?.detail || "Yetkisiz erişim", "error");
     } catch (e) {
       showMsg("Bağlantı hatası", "error");
-    }
-  };
-
-  const confirmMfaSetup = async () => {
-    if (!mfaSetup?.secret || !otp) return showMsg("2FA kodu gerekli", "error");
-    try {
-      const res = await authFetch("/admin/2fa/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret: mfaSetup.secret, otp }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || "2FA doğrulanamadı");
-      showMsg(" 2FA aktif edildi", "success");
-      await exchangeAdminToken(otp);
-    } catch (e) {
-      showMsg(e.message || "2FA doğrulanamadı", "error");
     }
   };
 
@@ -752,70 +718,29 @@ export default function AdminPanel() {
         <div className="p-10 border border-amber-900/30 bg-black rounded-2xl shadow-2xl max-w-md w-full">
           <h1 className="text-2xl font-bold mb-3 text-center tracking-widest">YÖNETİCİ PANELİ</h1>
           <p className="text-xs text-zinc-500 text-center mb-6">
-            Tek adımda panel şifresi ve (etkinse) 2FA kodu. Doğrulama sunucuda yapılır.
+            Panel şifresi ile giriş. (2FA kapatıldı.)
           </p>
           {panelGateError ? <div className="mb-4 text-sm text-red-500 text-center">{panelGateError}</div> : null}
           {msg ? <div className="mb-4 text-sm text-red-500 text-center">{msg}</div> : null}
 
-          {mfaSetup?.secret && (
-            <div className="border border-amber-900/30 rounded-xl p-4 bg-amber-900/5 text-xs text-amber-200/80 space-y-2 mb-4">
-              <div className="font-bold text-amber-400">2FA Kurulumu</div>
-              <div>Authenticator uygulamanıza ekleyin:</div>
-              <div className="font-mono break-all">{mfaSetup.otpauth_url}</div>
-              <div className="font-mono">Secret: {mfaSetup.secret}</div>
-            </div>
-          )}
-
-          {!mfaSetup?.secret && (
-            <>
-              <input
-                type="password"
-                autoComplete="current-password"
-                className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none mb-3"
-                placeholder="Panel şifresi"
-                value={panelPassword}
-                onChange={(e) => setPanelPassword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") submitPanelBootstrap();
-                }}
-              />
-              <input
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none mb-4"
-                placeholder="2FA kodu (Authenticator etkinse)"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={submitPanelBootstrap}
-                className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition mb-3"
-              >
-                Panele gir
-              </button>
-            </>
-          )}
-
-          {mfaSetup?.secret ? (
-            <div className="space-y-3">
-              <input
-                type="text"
-                placeholder="Authenticator kodu (6 hane)"
-                className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={confirmMfaSetup}
-                className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition"
-              >
-                2FA kur ve devam et
-              </button>
-            </div>
-          ) : null}
+          <input
+            type="password"
+            autoComplete="current-password"
+            className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none mb-3"
+            placeholder="Panel şifresi"
+            value={panelPassword}
+            onChange={(e) => setPanelPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submitPanelBootstrap();
+            }}
+          />
+          <button
+            type="button"
+            onClick={submitPanelBootstrap}
+            className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition mb-3"
+          >
+            Panele gir
+          </button>
         </div>
       </div>
     );

@@ -216,28 +216,11 @@ def admin_panel_unlock_logout(request: Request, user: Dict[str, Any] = Depends(g
 
 
 def _admin_exchange_payload(request: Request, user: Dict[str, Any], otp: Optional[str], via: str = "exchange") -> Dict[str, Any]:
-    """Panel kilidi aşılmış kabul edilir; MFA ve admin token üretimi."""
+    """Panel kilidi aşılmış kabul edilir; admin JWT üretimi (2FA kapatıldı)."""
     if (user.get("role") or "") != "admin":
         raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
 
     ip, ua = client_meta(request)
-
-    mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "true") or "").lower() == "true"
-    mfa = get_user_mfa(user_id=str(user.get("id")))
-
-    if mfa_required and not bool(mfa.get("enabled")):
-        secret = generate_base32_secret()
-        issuer = (os.getenv("MFA_ISSUER") or "Miron AI").strip()
-        email = (user.get("email") or "").strip().lower()
-        label = f"{issuer}:{email or 'admin'}"
-        otpauth_url = f"otpauth://totp/{label}?secret={secret}&issuer={issuer}"
-        log_audit(str(user.get("id")), "ADMIN_MFA_SETUP_REQUIRED", "auth", {"via": via}, ip, ua)
-        return {"ok": False, "mfa_setup_required": True, "secret": secret, "otpauth_url": otpauth_url}
-
-    if bool(mfa.get("enabled")):
-        if not otp or not verify_totp(str(mfa.get("secret") or ""), str(otp or "")):
-            log_audit(str(user.get("id")), "ADMIN_MFA_FAILED", "auth", {"via": via}, ip, ua)
-            raise HTTPException(status_code=401, detail="2FA doğrulaması gerekli.")
 
     token = issue_admin_token(admin_id=str(user.get("id")), ip=ip, ua=ua)
     log_audit(str(user.get("id")), "ADMIN_EXCHANGE_SUCCESS", "auth", None, ip, ua)
@@ -361,21 +344,6 @@ def admin_login(body: AdminLoginIn, request: Request):
     if user.get("role") != "admin":
         log_audit(str(user["id"]), "ADMIN_LOGIN_DENIED", email, {"reason": "not_admin"}, ip, ua)
         raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
-
-    mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "true") or "").lower() == "true"
-    mfa = get_user_mfa(user_id=str(user.get("id")))
-    if mfa_required and not bool(mfa.get("enabled")):
-        secret = generate_base32_secret()
-        issuer = (os.getenv("MFA_ISSUER") or "Miron AI").strip()
-        label = f"{issuer}:{email}"
-        otpauth_url = f"otpauth://totp/{label}?secret={secret}&issuer={issuer}"
-        log_audit(str(user["id"]), "ADMIN_MFA_SETUP_REQUIRED", "auth", {"email": email}, ip, ua)
-        return {"ok": False, "mfa_setup_required": True, "secret": secret, "otpauth_url": otpauth_url}
-
-    if bool(mfa.get("enabled")):
-        if not body.otp or not verify_totp(str(mfa.get("secret") or ""), str(body.otp or "")):
-            log_audit(str(user["id"]), "ADMIN_MFA_FAILED", "auth", {"email": email}, ip, ua)
-            raise HTTPException(status_code=401, detail="2FA doğrulaması başarısız.")
 
     token = issue_admin_token(admin_id=str(user["id"]), ip=ip, ua=ua)
     log_audit(str(user["id"]), "ADMIN_LOGIN_SUCCESS", "auth", None, ip, ua)

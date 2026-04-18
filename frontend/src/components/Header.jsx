@@ -115,7 +115,7 @@ export default function Header({ onOpenLogin }) {
                   Giriş Yap
                 </button>
                 <Link
-                  to="/register"
+                  to="/kaydol"
                   className="px-4 py-2 text-sm font-semibold rounded-xl border border-accent text-[var(--miron-gold)] hover:bg-[rgba(255,215,0,0.12)] transition"
                 >
                   Kaydol
@@ -168,7 +168,7 @@ export default function Header({ onOpenLogin }) {
                   Giriş Yap
                 </button>
                 <Link
-                  to="/register"
+                  to="/kaydol"
                   onClick={() => setMenuOpen(false)}
                   className="block px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition text-white/80"
                 >

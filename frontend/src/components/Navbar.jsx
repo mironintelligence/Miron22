@@ -101,13 +101,13 @@ export default function Navbar() {
               to="/kaydol"
               className="hidden sm:inline px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-700 text-black hover:brightness-110 transition"
             >
-              Kaydol
+              15 günlük ücretsiz deneme
             </Link>
             <Link to="/login" className="text-white/70 hover:text-white transition">
               Giriş Yap
             </Link>
-            <Link to="/pricing" className="px-5 py-2 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition">
-              Fiyatlandırma
+            <Link to="/kaydol" className="px-5 py-2 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition">
+              Kaydol
             </Link>
           </div>
         </div>

@@ -18,6 +18,7 @@ from stores.pg_users_store import (
     increment_failed_login,
     is_account_locked,
     log_audit,
+    purge_if_demo_expired,
     reset_failed_login,
     revoke_session,
     rotate_refresh_token_atomic,
@@ -146,19 +147,9 @@ def complete_registration(
     role = "user"
     demo_expires_at = None
     if payload.mode == "demo":
-        with get_db_cursor() as cur:
-            cur.execute(
-                "SELECT status, approved_until FROM demo_requests WHERE email = %s LIMIT 1",
-                (email_norm,),
-            )
-            r = cur.fetchone()
-            if not r or r.get("status") != "approved":
-                raise HTTPException(status_code=403, detail="Demo hesabı için onay bekleniyor.")
-            approved_until = r.get("approved_until")
-            if not approved_until:
-                raise HTTPException(status_code=403, detail="Demo hesabı için süre tanımlanmamış.")
-            demo_expires_at = approved_until
-            role = "demo"
+        demo_days = int(os.getenv("DEMO_ACCOUNT_DAYS", "15"))
+        demo_expires_at = datetime.now(timezone.utc) + timedelta(days=demo_days)
+        role = "demo"
 
     payment_on_file = bool(payload.card and payload.card.number and luhn_valid(payload.card.number))
 
@@ -428,6 +419,9 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
         increment_failed_login(email_norm)
         raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
 
+    if purge_if_demo_expired(user):
+        raise HTTPException(status_code=401, detail="DEMO_EXPIRED")
+
     uid = str(user["id"])
     reset_failed_login(uid)
 
@@ -504,6 +498,14 @@ async def refresh_session_endpoint(request: Request, response: Response):
     tv = pl.get("tv")
     if not user_id or tv is None:
         raise HTTPException(status_code=401, detail="Geçersiz refresh token.")
+
+    u_row = find_user_by_id(str(user_id))
+    if not u_row:
+        _clear_refresh_cookie(response)
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
+    if purge_if_demo_expired(u_row):
+        _clear_refresh_cookie(response)
+        raise HTTPException(status_code=401, detail="DEMO_EXPIRED")
 
     current_tv = get_user_token_version(str(user_id))
     if int(tv) != int(current_tv):

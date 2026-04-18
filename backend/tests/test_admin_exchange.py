@@ -14,6 +14,7 @@ os.environ["JWT_SECRET"] = "test_jwt_secret_32_bytes_long_123456"
 os.environ["SECRET_KEY"] = "test_secret_key_32_bytes_long_1234567890"
 os.environ["ADMIN_PANEL_PASSWORD"] = "test_panel_password"
 os.environ["DATA_HASH_KEY"] = "test_hash_key"
+# Legacy env: admin panel no longer enforces MFA; kept to prove it is ignored.
 os.environ["ADMIN_MFA_REQUIRED"] = "true"
 
 from cryptography.fernet import Fernet
@@ -22,10 +23,10 @@ os.environ["DATA_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
 
 from main import app
 from security import hash_password
-from stores.pg_users_store import create_user, set_user_mfa
-from utils.totp import totp_code
+from stores.pg_users_store import create_user
 
 client = TestClient(app, base_url="https://testserver")
+
 
 def _csrf_headers() -> dict:
     try:
@@ -95,7 +96,8 @@ def test_admin_exchange_rejects_non_admin(user_access_token):
     assert res.status_code == 403
 
 
-def test_admin_exchange_requires_mfa_setup_first(admin_ctx):
+def test_admin_exchange_returns_admin_token_without_mfa(admin_ctx):
+    """Panel kilidi açıkken /admin/exchange doğrudan admin JWT döner (2FA yok)."""
     _unlock_admin_panel(admin_ctx["token"])
     csrf = _csrf_headers()
     res = client.post(
@@ -105,13 +107,13 @@ def test_admin_exchange_requires_mfa_setup_first(admin_ctx):
     )
     assert res.status_code == 200
     body = res.json()
-    assert body.get("mfa_setup_required") is True
-    assert body.get("secret")
-    assert body.get("otpauth_url")
+    assert body.get("ok") is True
+    assert body.get("token")
+    assert body.get("mfa_setup_required") is not True
 
 
-def test_panel_bootstrap_single_step_unlock_and_exchange_shape(admin_ctx):
-    """İki ayrı istek yerine panel-bootstrap ile aynı MFA-setup yanıtı."""
+def test_panel_bootstrap_returns_admin_token_single_step(admin_ctx):
+    """Tek istekte panel şifresi + admin JWT (2FA yok)."""
     csrf = _csrf_headers()
     res = client.post(
         "/admin/panel-bootstrap",
@@ -120,23 +122,25 @@ def test_panel_bootstrap_single_step_unlock_and_exchange_shape(admin_ctx):
     )
     assert res.status_code == 200
     body = res.json()
-    assert body.get("mfa_setup_required") is True
-    assert body.get("secret")
-    assert body.get("otpauth_url")
-
-
-def test_admin_exchange_after_mfa_setup(admin_ctx):
-    _unlock_admin_panel(admin_ctx["token"])
-    csrf = _csrf_headers()
-    secret = "JBSWY3DPEHPK3PXP"
-    set_user_mfa(str(admin_ctx["id"]), secret, enabled=True)
-    otp = totp_code(secret)
-    res = client.post(
-        "/admin/exchange",
-        json={"otp": otp},
-        headers={"Authorization": f"Bearer {admin_ctx['token']}", **csrf},
-    )
-    assert res.status_code == 200
-    body = res.json()
     assert body.get("ok") is True
     assert body.get("token")
+    assert body.get("mfa_setup_required") is not True
+
+
+def test_admin_exchange_idempotent_second_call(admin_ctx):
+    _unlock_admin_panel(admin_ctx["token"])
+    csrf = _csrf_headers()
+    res1 = client.post(
+        "/admin/exchange",
+        json={},
+        headers={"Authorization": f"Bearer {admin_ctx['token']}", **csrf},
+    )
+    assert res1.status_code == 200
+    res2 = client.post(
+        "/admin/exchange",
+        json={},
+        headers={"Authorization": f"Bearer {admin_ctx['token']}", **csrf},
+    )
+    assert res2.status_code == 200
+    assert res2.json().get("ok") is True
+    assert res2.json().get("token")

@@ -28,6 +28,13 @@ def _now_utc() -> datetime:
 def _as_dt(x) -> Optional[datetime]:
     if isinstance(x, datetime):
         return x if x.tzinfo else x.replace(tzinfo=timezone.utc)
+    if isinstance(x, str) and x.strip():
+        s = x.strip().replace("Z", "+00:00")
+        try:
+            dt = datetime.fromisoformat(s)
+            return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return None
     return None
 
 # --- Helper Functions ---
@@ -166,6 +173,25 @@ def delete_user(email: str) -> bool:
     with get_db_cursor() as cur:
         cur.execute(sql, (_norm_email(email),))
         return cur.fetchone() is not None
+
+
+def purge_if_demo_expired(user: Optional[Dict[str, Any]]) -> bool:
+    """If *user* is a demo account whose ``demo_expires_at`` is in the past,
+    delete the row and return True. Otherwise return False.
+
+    Used on login (after password check), refresh, and authenticated API
+    calls so expired demos cannot keep using tokens.
+    """
+    if not user or (str(user.get("role") or "") != "demo"):
+        return False
+    exp = _as_dt(user.get("demo_expires_at"))
+    if not exp or exp > _now_utc():
+        return False
+    email = _norm_email(str(user.get("email") or ""))
+    if not email:
+        return False
+    return delete_user(email)
+
 
 def update_user_password(email: str, hashed_password: str) -> bool:
     if _use_inmemory():
