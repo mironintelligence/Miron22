@@ -17,10 +17,10 @@ export default function DenemeBaslat() {
           Demo talebi gönder
         </Link>
         <Link to="/kaydol" className="px-6 py-3 rounded-full btn-primary text-center font-bold">
-          Kaydol
+          15 günlük ücretsiz deneme
         </Link>
         <Link to="/kaydol" className="px-6 py-3 rounded-full border border-amber-500/50 text-amber-200 font-semibold hover:bg-amber-500/10 transition text-center">
-          Fiyatlandırma
+          Kaydol
         </Link>
       </div>
     </div>
