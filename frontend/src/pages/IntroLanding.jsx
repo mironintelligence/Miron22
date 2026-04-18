@@ -47,7 +47,7 @@ export default function IntroLanding() {
       >
         {/* Animated Background Gradients */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,215,0,0.03),transparent_60%)] animate-pulse" />
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('/noise.svg')] opacity-10 pointer-events-none" />
         
         <div className="max-w-7xl mx-auto px-6 z-10 w-full pt-20">
           <motion.div variants={fadeUp} className="text-center mb-8">

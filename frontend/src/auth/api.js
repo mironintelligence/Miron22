@@ -138,7 +138,7 @@ export async function refreshSession() {
       }
       const stored = readStoredRefresh();
       const controller = new AbortController();
-      const timeoutMs = 12000;
+      const timeoutMs = 25000;
       const tid = setTimeout(() => controller.abort(), timeoutMs);
       let r;
       try {
