@@ -14,6 +14,11 @@ export const supabase = isSupabaseConfigured
         detectSessionInUrl: true,
         flowType: "pkce",
       },
+      global: {
+        headers: { "X-Client-Info": "miron-web" },
+      },
+      db: { schema: "public" },
+      realtime: { params: { eventsPerSecond: 5 } },
     })
   : null;
 

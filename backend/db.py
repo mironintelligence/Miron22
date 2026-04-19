@@ -32,10 +32,56 @@ def get_db_url(mode="write") -> str:
         raise ValueError("DATABASE_URL environment variable is not set")
     return url
 
-def init_pool(min_conn=settings.DB_POOL_MIN_SIZE, max_conn=settings.DB_POOL_MAX_SIZE):
-    """ThreadedConnectionPool başlatır"""
+
+def _is_supabase_postgres_url(url: str) -> bool:
+    u = (url or "").lower()
+    return "pooler.supabase.com" in u or (".supabase.co" in u and "postgres" in u)
+
+
+def recommended_sync_pool_bounds() -> tuple[int, int]:
+    """(minconn, maxconn) for psycopg2 ThreadedConnectionPool.
+
+    Supabase pooler rejects too many concurrent sessions (FATAL:
+    MaxClientsInSessionMode). Session mode (:5432) is very tight; transaction
+    mode (:6543 + pgbouncer) multiplexes more. Override with DB_POOL_MIN_SIZE /
+    DB_POOL_MAX_SIZE when you know your plan limits.
+    """
+    url = os.getenv("DATABASE_URL") or ""
+    env = (os.getenv("ENVIRONMENT") or "").lower()
+
+    if not _is_supabase_postgres_url(url):
+        lo = int(os.getenv("DB_POOL_MIN_SIZE", str(settings.DB_POOL_MIN_SIZE)))
+        hi = int(os.getenv("DB_POOL_MAX_SIZE", str(settings.DB_POOL_MAX_SIZE)))
+        lo = max(1, lo)
+        hi = max(lo, hi)
+        return lo, hi
+
+    ul = url.lower()
+    tx_pooler = ":6543" in ul or "pgbouncer=true" in ul
+    # Session pooler: stay <= ~12; transaction pooler: allow a bit more.
+    default_max = 16 if tx_pooler else 8
+    if env in {"test", "dev", "development", "local"}:
+        default_max = min(default_max, 10)
+
+    hi = int(os.getenv("DB_POOL_MAX_SIZE", str(default_max)))
+    lo = int(os.getenv("DB_POOL_MIN_SIZE", "1"))
+    ceiling = 22 if tx_pooler else 12
+    hi = max(1, min(hi, ceiling))
+    lo = max(1, min(lo, hi))
+    return lo, hi
+
+
+def init_pool(min_conn=None, max_conn=None):
+    """ThreadedConnectionPool başlatır. min_conn/max_conn None ise Supabase-safe öneri kullanılır."""
     global _pg_pool_write, _pg_pool_read
-    
+
+    if min_conn is None or max_conn is None:
+        auto_lo, auto_hi = recommended_sync_pool_bounds()
+        if min_conn is None:
+            min_conn = auto_lo
+        if max_conn is None:
+            max_conn = auto_hi
+
     # Write Pool
     try:
         url_write = get_db_url("write")

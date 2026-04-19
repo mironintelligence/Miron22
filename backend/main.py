@@ -147,11 +147,21 @@ async def startup_event():
     if "sslmode=" not in db_url:
         raise RuntimeError("DATABASE_URL içine ?sslmode=require eklenmeli.")
 
+    dbl = db_url.lower()
+    if "pooler.supabase.com" in dbl and ":5432" in dbl and ":6543" not in dbl:
+        print(
+            "⚠️ DATABASE_URL Supabase Session pooler (5432) kullanıyor. "
+            "Yoğun trafikte MaxClientsInSessionMode hatası alabilirsiniz; "
+            "tercihen Transaction pooler (:6543) ve ?pgbouncer=true kullanın."
+        )
+
     print("✅ All required environment variables are present and consistent.")
-        
-    # Init Sync DB Pool (Legacy)
+
+    # Init Sync DB Pool (Legacy) — Supabase pooler için güvenli sınırlar: db.init_pool()
     try:
-        init_pool(min_conn=5, max_conn=50)
+        init_pool()
+        _plo, _phi = recommended_sync_pool_bounds()
+        print(f"✅ Sync DB pool: min={_plo}, max={_phi}")
     except Exception as e:
         print(f"🔥 CRITICAL: Sync DB Pool Init Failed: {e}")
         
