@@ -3,8 +3,6 @@ import React, { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { authFetch } from "../auth/api";
 
-const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-
 /* ------------------------ helpers ------------------------ */
 function pickFirstLine(val) {
   if (!val) return "";

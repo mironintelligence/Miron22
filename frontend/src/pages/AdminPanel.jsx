@@ -4,9 +4,9 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import LoadingScreen from "../components/LoadingScreen.jsx";
 import { authFetch } from "../auth/api";
+import { getApiBase } from "../lib/apiBase.js";
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+const API_BASE = getApiBase();
 
 const ADMIN_STORAGE_KEY = "miron_admin_token";
 const ADMIN_STORAGE_LEGACY = "adminToken";
@@ -209,7 +209,10 @@ export default function AdminPanel() {
   const checkAuthWithToken = async (t) => {
     if (!t) return false;
     try {
-      const res = await fetch(`${API_BASE}/admin/health`, { headers: { Authorization: `Bearer ${t}` } });
+      const res = await fetch(`${API_BASE}/admin/health`, {
+        credentials: "include",
+        headers: { Authorization: `Bearer ${t}` },
+      });
       if (res.ok) {
         setAuthed(true);
         setToken(t);
@@ -255,6 +258,7 @@ export default function AdminPanel() {
       const csrfToken = csrf ? decodeURIComponent(csrf.split("=", 2)[1] || "") : "";
       const res = await fetch(`${API_BASE}${url}`, {
         ...options,
+        credentials: "include",
         headers: {
           ...options.headers,
           Authorization: `Bearer ${token}`,
@@ -695,6 +699,7 @@ export default function AdminPanel() {
       const qs = new URLSearchParams();
       qs.set("format", format);
       const res = await fetch(`${API_BASE}/admin/users/export?${qs.toString()}`, {
+        credentials: "include",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Export başarısız");

@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -8,6 +10,7 @@ from user_auth import get_current_user
 from services.notification_delivery import send_email
 
 router = APIRouter(prefix="/api/notifications", tags=["Bildirimler"])
+logger = logging.getLogger("miron_notifications")
 
 class NotificationCreate(BaseModel):
     user_id: Optional[str] = None # If None, system-wide or specific target logic needed
@@ -17,78 +20,96 @@ class NotificationCreate(BaseModel):
 
 # --- Kullanıcı Endpointleri ---
 
+@router.get("", include_in_schema=False)
 @router.get("/")
 def get_my_notifications(user: Dict[str, Any] = Depends(get_current_user)):
     """Kullanıcının kendi bildirimlerini listele"""
     user_id = user.get("id")
-    with get_db_cursor() as cur:
-        try:
-            cur.execute(
-                """
-                SELECT t.id AS trigger_id, t.channel, r.id AS reminder_id, r.title, r.details, r.due_at, r.case_number, r.court, t.trigger_at
-                FROM case_reminder_triggers t
-                JOIN case_reminders r ON r.id = t.reminder_id
-                WHERE t.user_id = %s
-                  AND t.sent_at IS NULL
-                  AND r.archived_at IS NULL
-                  AND t.trigger_at <= NOW()
-                ORDER BY t.trigger_at ASC
-                LIMIT 50
-                """,
-                (user_id,),
-            )
-            due = cur.fetchall() or []
-            for r in due:
-                title = str(r.get("title") or "Dava Hatırlatıcı")
-                details = str(r.get("details") or "").strip()
-                due_at = r.get("due_at")
-                court = str(r.get("court") or "").strip()
-                case_no = str(r.get("case_number") or "").strip()
-                channel = str(r.get("channel") or "in_app").strip().lower()
-                parts = []
-                if details:
-                    parts.append(details)
-                if court:
-                    parts.append(f"Mahkeme: {court}")
-                if case_no:
-                    parts.append(f"Dosya No: {case_no}")
-                parts.append(f"Tarih/Saat: {due_at}")
-                msg = "\n".join(parts).strip()
+    try:
+        with get_db_cursor() as cur:
+            try:
                 cur.execute(
-                    "INSERT INTO notifications (user_id, type, title, message) VALUES (%s, %s, %s, %s)",
-                    (user_id, "case_reminder", title, msg),
+                    """
+                    SELECT t.id AS trigger_id, t.channel, r.id AS reminder_id, r.title, r.details, r.due_at, r.case_number, r.court, t.trigger_at
+                    FROM case_reminder_triggers t
+                    JOIN case_reminders r ON r.id = t.reminder_id
+                    WHERE t.user_id = %s
+                      AND t.sent_at IS NULL
+                      AND r.archived_at IS NULL
+                      AND t.trigger_at <= NOW()
+                    ORDER BY t.trigger_at ASC
+                    LIMIT 50
+                    """,
+                    (user_id,),
                 )
-                if channel == "email":
-                    cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
-                    u = cur.fetchone() or {}
-                    email = str(u.get("email") or "").strip()
-                    if email:
-                        send_email(email, title, msg)
-                cur.execute("UPDATE case_reminder_triggers SET sent_at = NOW() WHERE id = %s", (r.get("trigger_id"),))
-        except Exception:
-            cur.execute(
-                """
-                SELECT id, title, details, due_at
-                FROM case_reminders
-                WHERE user_id = %s
-                  AND notified_at IS NULL
-                  AND due_at <= NOW()
-                ORDER BY due_at ASC
-                LIMIT 50
-                """,
-                (user_id,),
-            )
-            due = cur.fetchall() or []
-            for r in due:
-                title = str(r.get("title") or "Dava Hatırlatıcı")
-                details = str(r.get("details") or "").strip()
-                due_at = r.get("due_at")
-                msg = f"{details}\n\nTarih/Saat: {due_at}" if details else f"Tarih/Saat: {due_at}"
+                due = cur.fetchall() or []
+                for r in due:
+                    title = str(r.get("title") or "Dava Hatırlatıcı")
+                    details = str(r.get("details") or "").strip()
+                    due_at = r.get("due_at")
+                    court = str(r.get("court") or "").strip()
+                    case_no = str(r.get("case_number") or "").strip()
+                    channel = str(r.get("channel") or "in_app").strip().lower()
+                    parts = []
+                    if details:
+                        parts.append(details)
+                    if court:
+                        parts.append(f"Mahkeme: {court}")
+                    if case_no:
+                        parts.append(f"Dosya No: {case_no}")
+                    parts.append(f"Tarih/Saat: {due_at}")
+                    msg = "\n".join(parts).strip()
+                    cur.execute(
+                        "INSERT INTO notifications (user_id, type, title, message) VALUES (%s, %s, %s, %s)",
+                        (user_id, "case_reminder", title, msg),
+                    )
+                    if channel == "email":
+                        cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+                        u = cur.fetchone() or {}
+                        email = str(u.get("email") or "").strip()
+                        if email:
+                            try:
+                                send_email(email, title, msg)
+                            except Exception:
+                                logger.exception(
+                                    "send_email failed for case_reminder user_id=%s", user_id
+                                )
+                    cur.execute(
+                        "UPDATE case_reminder_triggers SET sent_at = NOW() WHERE id = %s",
+                        (r.get("trigger_id"),),
+                    )
+            except Exception:
                 cur.execute(
-                    "INSERT INTO notifications (user_id, type, title, message) VALUES (%s, %s, %s, %s)",
-                    (user_id, "case_reminder", title, msg),
+                    """
+                    SELECT id, title, details, due_at
+                    FROM case_reminders
+                    WHERE user_id = %s
+                      AND notified_at IS NULL
+                      AND due_at <= NOW()
+                    ORDER BY due_at ASC
+                    LIMIT 50
+                    """,
+                    (user_id,),
                 )
-                cur.execute("UPDATE case_reminders SET notified_at = NOW() WHERE id = %s", (r.get("id"),))
+                due = cur.fetchall() or []
+                for r in due:
+                    title = str(r.get("title") or "Dava Hatırlatıcı")
+                    details = str(r.get("details") or "").strip()
+                    due_at = r.get("due_at")
+                    msg = f"{details}\n\nTarih/Saat: {due_at}" if details else f"Tarih/Saat: {due_at}"
+                    cur.execute(
+                        "INSERT INTO notifications (user_id, type, title, message) VALUES (%s, %s, %s, %s)",
+                        (user_id, "case_reminder", title, msg),
+                    )
+                    cur.execute(
+                        "UPDATE case_reminders SET notified_at = NOW() WHERE id = %s",
+                        (r.get("id"),),
+                    )
+    except Exception:
+        logger.exception(
+            "reminder fan-out failed (continuing to list notifications) user_id=%s",
+            user_id,
+        )
 
     sql = """
         SELECT * FROM notifications 
@@ -96,9 +117,13 @@ def get_my_notifications(user: Dict[str, Any] = Depends(get_current_user)):
         ORDER BY created_at DESC 
         LIMIT 50
     """
-    with get_db_cursor() as cur:
-        cur.execute(sql, (user_id,))
-        return cur.fetchall()
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(sql, (user_id,))
+            return cur.fetchall()
+    except Exception:
+        logger.exception("notification list fetch failed user_id=%s", user_id)
+        return []
 
 
 @router.get("/unread-count")

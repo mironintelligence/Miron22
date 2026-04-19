@@ -1,6 +1,8 @@
 // frontend/src/pages/DemoRequest.jsx
 import React, { useState } from "react";
-const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+import { getApiBase } from "../lib/apiBase.js";
+
+const API_BASE = getApiBase();
 
 export default function DemoRequest() {
   const [form, setForm] = useState({

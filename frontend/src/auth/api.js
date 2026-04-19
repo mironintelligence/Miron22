@@ -1,14 +1,7 @@
 import axios from "axios";
+import { getApiBase } from "../lib/apiBase.js";
 
-function resolveApiBase() {
-  const raw = String(
-    import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com"
-  ).trim();
-  if (!raw) return "https://miron22.onrender.com";
-  return raw.replace(/\/+$/, "");
-}
-
-const API = resolveApiBase();
+const API = getApiBase();
 
 const REFRESH_STORAGE_KEY = "miron_refresh_token";
 
@@ -56,7 +49,7 @@ export function registerAccessTokenSetter(fn) {
   _setAccessToken = typeof fn === "function" ? fn : () => {};
 }
 
-function readCsrfToken() {
+export function readCsrfToken() {
   if (typeof document === "undefined") return "";
   const csrf = String(document.cookie || "")
     .split(";")
@@ -81,6 +74,50 @@ let _refreshChain = null;
 
 /** Kimlik doğrulamalı API istekleri için varsayılan üst süre (AbortController). */
 const AUTH_FETCH_TIMEOUT_MS = 25000;
+
+/** İlk çağrıda tarayıcıda csrf_token yoksa GET ile çerezi al (CSRF middleware). */
+async function ensureCsrfCookie() {
+  if (typeof document === "undefined") return;
+  if (readCsrfToken()) return;
+  try {
+    await fetchWithTimeout(`${API}/api/health`, { method: "GET", credentials: "include" });
+  } catch {
+    /* ignore */
+  }
+}
+
+function csrfPostHeaders() {
+  const h = { "Content-Type": "application/json" };
+  const csrf = readCsrfToken();
+  if (csrf) h["X-CSRF-Token"] = csrf;
+  return h;
+}
+
+
+/** Supabase oturumu varsa token döndür; süresi dolmak üzereyse GoTrue refresh. */
+async function trySupabaseRefresh() {
+  try {
+    const { supabase } = await import("../lib/supabaseClient.js");
+    if (!supabase) return null;
+    const { data: wrap, error: gerr } = await supabase.auth.getSession();
+    if (gerr || !wrap?.session?.access_token) return null;
+    const s = wrap.session;
+    const expAt = typeof s.expires_at === "number" ? s.expires_at : 0;
+    const nowSec = Math.floor(Date.now() / 1000);
+    const needsRotate = !expAt || expAt < nowSec + 120;
+    if (needsRotate) {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error || !data?.session?.access_token) return null;
+      const tok = data.session.access_token;
+      if (tok) _setAccessToken(tok);
+      return { access_token: tok, refresh_token: data.session.refresh_token || "" };
+    }
+    if (s.access_token) _setAccessToken(s.access_token);
+    return { access_token: s.access_token, refresh_token: s.refresh_token || "" };
+  } catch {
+    return null;
+  }
+}
 
 async function fetchWithTimeout(url, options = {}) {
   const outer = options.signal;
@@ -107,16 +144,25 @@ async function fetchWithTimeout(url, options = {}) {
 export async function refreshSession() {
   if (!_refreshChain) {
     _refreshChain = (async () => {
+      const fromSb = await trySupabaseRefresh();
+      if (fromSb?.access_token) {
+        return fromSb;
+      }
       const stored = readStoredRefresh();
+      await ensureCsrfCookie();
       const controller = new AbortController();
-      const timeoutMs = 12000;
+      const timeoutMs = 25000;
       const tid = setTimeout(() => controller.abort(), timeoutMs);
       let r;
       try {
+        const hdrs = csrfPostHeaders();
+        if (!stored) {
+          delete hdrs["Content-Type"];
+        }
         r = await fetch(`${API}/api/auth/refresh`, {
           method: "POST",
           credentials: "include",
-          headers: stored ? { "Content-Type": "application/json" } : {},
+          headers: hdrs,
           body: stored ? JSON.stringify({ refresh_token: stored }) : undefined,
           signal: controller.signal,
         });
@@ -130,7 +176,10 @@ export async function refreshSession() {
       }
       if (!r.ok) {
         const t = await r.json().catch(() => ({}));
-        throw new Error(detailMessage(t) || "Oturum yenilenemedi");
+        const msg = detailMessage(t) || "Oturum yenilenemedi";
+        const err = new Error(msg);
+        if (msg === "DEMO_EXPIRED") err.code = "DEMO_EXPIRED";
+        throw err;
       }
       const j = await r.json();
       const tok = j?.access_token || "";
@@ -168,7 +217,10 @@ export async function login(email, password, nameHint = null) {
   });
   if (!r.ok) {
     const t = await r.json().catch(() => ({}));
-    throw new Error(detailMessage(t) || "Giriş başarısız");
+    const msg = detailMessage(t) || "Giriş başarısız";
+    const err = new Error(msg);
+    if (msg === "DEMO_EXPIRED") err.code = "DEMO_EXPIRED";
+    throw err;
   }
   const data = await r.json();
   const tok = data?.access_token || "";
@@ -206,11 +258,19 @@ export async function refresh() {
 }
 
 export async function logout() {
+  await ensureCsrfCookie();
   const r = await fetch(`${API}/api/auth/logout`, {
     method: "POST",
     credentials: "include",
+    headers: csrfPostHeaders(),
   });
   writeStoredRefresh("");
+  try {
+    const { supabase } = await import("../lib/supabaseClient.js");
+    if (supabase) await supabase.auth.signOut();
+  } catch {
+    /* ignore */
+  }
   if (!r.ok) {
     const t = await r.json().catch(() => ({}));
     throw new Error(detailMessage(t) || "Çıkış başarısız");
@@ -242,27 +302,68 @@ export async function me() {
 
 export async function authFetch(path, options = {}) {
   const method = String(options.method || "GET").toUpperCase();
-  const headers = authHeaders(method, options.headers || {});
+  const { timeoutMs: optTimeout, ...restOpts } = options;
+  const headers = authHeaders(method, restOpts.headers || {});
   const url = `${API}${path}`;
 
-  const exec = (hdrs) =>
-    fetchWithTimeout(url, {
-      ...options,
-      headers: hdrs,
-      credentials: "include",
-    });
+  const pollGet =
+    method === "GET" &&
+    (/\/api\/notifications\/?$/.test(String(path)) || String(path).includes("/api/notifications/unread-count"));
 
-  let res = await exec(headers);
-  if (res.status === 401 && !shouldSkip401Retry(path)) {
-    try {
-      await refreshSession();
-      const retryHeaders = authHeaders(method, options.headers || {});
-      res = await exec(retryHeaders);
-    } catch {
-      /* orijinal 401 */
+  const timeoutMs =
+    typeof optTimeout === "number" ? optTimeout : pollGet ? 55000 : AUTH_FETCH_TIMEOUT_MS;
+
+  const exec = (hdrs) =>
+    fetchWithTimeout(
+      url,
+      { ...restOpts, headers: hdrs, credentials: "include" },
+      timeoutMs
+    );
+
+  try {
+    let res = await exec(headers);
+    if (res.status === 401 && !shouldSkip401Retry(path)) {
+      let refreshFailed = false;
+      try {
+        await refreshSession();
+        const retryHeaders = authHeaders(method, restOpts.headers || {});
+        res = await exec(retryHeaders);
+      } catch {
+        refreshFailed = true;
+      }
+      if (refreshFailed || res.status === 401) {
+        try {
+          writeStoredRefresh("");
+        } catch {
+          /* ignore */
+        }
+        if (typeof window !== "undefined") {
+          try {
+            window.dispatchEvent(
+              new CustomEvent("miron:session-expired", {
+                detail: { path, status: res.status },
+              })
+            );
+          } catch {
+            /* ignore */
+          }
+        }
+      }
     }
+    return res;
+  } catch (_e) {
+    if (!pollGet) throw _e;
+    if (String(path).includes("unread-count")) {
+      return new Response(JSON.stringify({ count: 0 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-  return res;
 }
 
 export const apiAxios = axios.create({

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { getApiBase } from "../lib/apiBase.js";
 
 export default function LibraAssistant({ show = true, onClose, caseText = "" }) {
   const navigate = useNavigate();
@@ -205,7 +206,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
   // Backend call: try routes (404 fallback)
   // -----------------------------
   const postAssistant = async (payload) => {
-    const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+    const base = getApiBase();
     const urls = [
       `${base}/assistant-chat`,
       `${base}/assistant/assistant-chat`,

@@ -2,7 +2,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-const API = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+import { getApiBase } from "../lib/apiBase.js";
+
+const API = getApiBase();
 
 export default function Intro() {
   const [demo, setDemo] = useState({ name: "", email: "", city: "", office: "" });

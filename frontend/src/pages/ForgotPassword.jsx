@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { getApiBase } from "../lib/apiBase.js";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -15,7 +16,7 @@ export default function ForgotPassword() {
     setError("");
 
     try {
-      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+      const base = getApiBase();
       const res = await fetch(`${base}/api/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

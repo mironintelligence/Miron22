@@ -23,7 +23,7 @@ export default function NotificationToasts() {
 
     const tick = async () => {
       try {
-        const res = await authFetch("/api/notifications");
+        const res = await authFetch("/api/notifications/");
         if (!res.ok) return;
         const list = await res.json();
         if (cancelled || !Array.isArray(list)) return;

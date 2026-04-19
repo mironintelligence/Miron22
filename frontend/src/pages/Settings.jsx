@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { emitToast } from "../utils/toastBus";
+import { getApiBase } from "../lib/apiBase.js";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export default function Settings() {
 
   const testConnection = async () => {
     try {
-      const r = await fetch(`${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/`);
+      const r = await fetch(`${getApiBase()}/api/health`);
       if (r.ok) setConnection("Bağlantı başarılı ");
       else setConnection("Sunucuya erişilemiyor ");
     } catch {

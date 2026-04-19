@@ -1,5 +1,15 @@
 {
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://miron22.onrender.com/api/:path*" },
+    { "source": "/admin/:path*", "destination": "https://miron22.onrender.com/admin/:path*" },
+    { "source": "/cases/:path*", "destination": "https://miron22.onrender.com/cases/:path*" },
+    { "source": "/reports/:path*", "destination": "https://miron22.onrender.com/reports/:path*" },
+    { "source": "/writer/:path*", "destination": "https://miron22.onrender.com/writer/:path*" },
+    { "source": "/assistant-chat", "destination": "https://miron22.onrender.com/assistant-chat" },
+    { "source": "/assistant/:path*", "destination": "https://miron22.onrender.com/assistant/:path*" },
+    { "source": "/analyze", "destination": "https://miron22.onrender.com/analyze" },
+    { "source": "/billing/:path*", "destination": "https://miron22.onrender.com/billing/:path*" },
+    { "source": "/health", "destination": "https://miron22.onrender.com/health" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

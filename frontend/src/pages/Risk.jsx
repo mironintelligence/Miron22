@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { authFetch } from "../auth/api";
 
-const API = `${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/api/risk`;
-
 export default function Risk() {
   const [file, setFile] = useState(null);
   const [caseText, setCaseText] = useState("");

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { emitToast } from "../utils/toastBus";
 import { passwordMeetsPolicy } from "../utils/passwordPolicy";
+import { getApiBase } from "../lib/apiBase.js";
 
 /**
  * Register.jsx
@@ -63,7 +64,7 @@ export default function Register() {
     async function fetchPrice() {
       try {
         const count = mode === "single" ? 1 : personCount;
-        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+        const base = getApiBase();
         const code = (discountCode || "").trim();
         const payload = code ? { count, discount_code: code } : { count };
         const res = await fetch(`${base}/api/pricing/calculate`, {

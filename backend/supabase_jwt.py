@@ -22,11 +22,14 @@ def decode_supabase_access_token(token: str) -> Dict[str, Any]:
         raise jwt.InvalidTokenError("SUPABASE_JWT_SECRET is not set")
     iss = supabase_jwt_issuer()
     aud = (os.getenv("SUPABASE_JWT_AUD") or "authenticated").strip()
+    # Sunucu / istemci saat kayması ve edge bölgesi gecikmeleri için tolerans
+    leeway = int(os.getenv("SUPABASE_JWT_LEEWAY_SECONDS", "90"))
     return jwt.decode(
         token,
         secret,
         algorithms=["HS256"],
         audience=aud,
         issuer=iss,
+        leeway=leeway,
         options={"require": ["exp", "sub"]},
     )

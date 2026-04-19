@@ -24,5 +24,17 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+    proxy: {
+      "/api": { target: "https://miron22.onrender.com", changeOrigin: true, secure: true },
+      "/admin": { target: "https://miron22.onrender.com", changeOrigin: true, secure: true },
+      "/cases": { target: "https://miron22.onrender.com", changeOrigin: true, secure: true },
+      "/reports": { target: "https://miron22.onrender.com", changeOrigin: true, secure: true },
+      "/writer": { target: "https://miron22.onrender.com", changeOrigin: true, secure: true },
+      "/assistant-chat": { target: "https://miron22.onrender.com", changeOrigin: true, secure: true },
+      "/assistant": { target: "https://miron22.onrender.com", changeOrigin: true, secure: true },
+      "/analyze": { target: "https://miron22.onrender.com", changeOrigin: true, secure: true },
+      "/billing": { target: "https://miron22.onrender.com", changeOrigin: true, secure: true },
+      "/health": { target: "https://miron22.onrender.com", changeOrigin: true, secure: true },
+    },
   },
 });

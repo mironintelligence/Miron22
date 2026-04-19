@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { getApiBase } from "../lib/apiBase.js";
 
 export default function Demos() {
   const [demos, setDemos] = useState([]);
 
   useEffect(() => {
-    const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+    const base = getApiBase();
     fetch(`${base}/api/demo-requests`)
       .then((res) => res.json())
       .then((data) => {

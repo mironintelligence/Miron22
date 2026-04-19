@@ -67,6 +67,9 @@ def authenticate_bearer(authorization: Optional[str]) -> Dict[str, Any]:
     if not uid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Geçersiz token.")
     email = (payload.get("email") or "").strip().lower()
+    if not email:
+        um = payload.get("user_metadata") if isinstance(payload.get("user_metadata"), dict) else {}
+        email = str(um.get("email") or um.get("preferred_username") or "").strip().lower()
     u = find_user_by_id(uid)
     if not u:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kullanıcı bulunamadı.")
@@ -77,6 +80,7 @@ def authenticate_bearer(authorization: Optional[str]) -> Dict[str, Any]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hesap askıya alındı.")
     if row_email and is_account_locked(row_email):
         raise HTTPException(status_code=423, detail="Hesap geçici olarak kilitli.")
+    # Yetki kaynağı: public.users (RLS ile uyumlu); JWT rolü doğrulama için kullanılmaz
     return {"id": str(uid), "email": row_email or email, "role": u.get("role")}
 
 
