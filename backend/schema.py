@@ -50,6 +50,25 @@ def ensure_schema() -> None:
         "CREATE INDEX IF NOT EXISTS idx_case_reminders_user_due ON case_reminders(user_id, due_at);",
         "CREATE INDEX IF NOT EXISTS idx_case_reminders_notified_at ON case_reminders(notified_at);",
         """
+        ALTER TABLE case_reminders
+            ADD COLUMN IF NOT EXISTS case_number TEXT,
+            ADD COLUMN IF NOT EXISTS court TEXT,
+            ADD COLUMN IF NOT EXISTS remind_offsets_minutes INT[],
+            ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS case_reminder_triggers (
+            id UUID PRIMARY KEY,
+            reminder_id UUID NOT NULL REFERENCES case_reminders(id) ON DELETE CASCADE,
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            channel TEXT NOT NULL DEFAULT 'in_app',
+            trigger_at TIMESTAMPTZ NOT NULL,
+            sent_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_case_reminder_triggers_user_due ON case_reminder_triggers(user_id, trigger_at);",
+        """
         CREATE TABLE IF NOT EXISTS contract_templates (
             id SERIAL PRIMARY KEY,
             title VARCHAR(255) NOT NULL,

@@ -42,7 +42,7 @@ try:
     from middleware.metrics import PrometheusMiddleware
     from middleware.concurrency import IdempotencyMiddleware, TimeoutMiddleware
     from middleware.chaos import ChaosMiddleware
-    from db import init_pool, close_pool
+    from db import init_pool, close_pool, recommended_sync_pool_bounds
     from db_async import db as async_db
 except ImportError:
     from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
@@ -51,7 +51,7 @@ except ImportError:
     from middleware.metrics import PrometheusMiddleware
     from middleware.concurrency import IdempotencyMiddleware, TimeoutMiddleware
     from middleware.chaos import ChaosMiddleware
-    from db import init_pool, close_pool
+    from db import init_pool, close_pool, recommended_sync_pool_bounds
     from db_async import db as async_db
 from security import sanitize_text
 from user_auth import get_current_user
