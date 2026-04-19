@@ -114,7 +114,8 @@ def test_admin_contract_template_crud(admin_headers):
 
 
 def test_admin_contract_template_requires_admin(created_template_id):
-    # No admin_headers -> require_admin should block
+    # `created_template_id` uses dependency_overrides for admin; clear before unauthenticated call.
+    app.dependency_overrides = {}
     res = client.put(
         f"/api/contracts/templates/{created_template_id}",
         json={"title": "x", "category": "Test", "content": "y", "description": None},
