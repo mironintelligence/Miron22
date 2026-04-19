@@ -159,15 +159,28 @@ export default function AdminPanel() {
   const submitPanelBootstrap = async () => {
     setPanelGateError("");
     setMsg("");
+    const pw = String(panelPassword || "").trim();
+    if (!pw) {
+      setPanelGateError("Panel şifresi gerekli.");
+      return;
+    }
+    const otpTrim = String(otp || "").trim();
     try {
       const res = await authFetch("/admin/panel-bootstrap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: panelPassword, otp: otp.trim() || undefined }),
+        body: JSON.stringify({
+          password: pw,
+          ...(otpTrim ? { otp: otpTrim } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const detail = typeof data?.detail === "string" ? data.detail : "Doğrulama başarısız.";
+        let detail = "Doğrulama başarısız.";
+        const d = data?.detail;
+        if (typeof d === "string") detail = d;
+        else if (Array.isArray(d))
+          detail = d.map((x) => (typeof x === "string" ? x : x?.msg || JSON.stringify(x))).join("; ") || detail;
         setPanelGateError(detail);
         return;
       }

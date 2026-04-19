@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Body, Request, Header
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from admin_auth import require_admin, issue_admin_token
 from security import hash_password, verify_password, sanitize_user_for_response
@@ -139,6 +139,19 @@ class AdminPanelBootstrapIn(BaseModel):
 
     password: str = Field(min_length=1, max_length=256)
     otp: Optional[str] = Field(default=None, max_length=12)
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def _strip_panel_password(cls, v: object) -> str:
+        return str(v or "").strip()
+
+    @field_validator("otp", mode="before")
+    @classmethod
+    def _normalize_panel_otp(cls, v: object) -> Optional[str]:
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s or None
 
 
 # ------------------------
