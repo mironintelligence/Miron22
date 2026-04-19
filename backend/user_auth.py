@@ -100,5 +100,10 @@ def _norm_email(v: Any) -> str:
     return (str(v or "")).strip().lower()
 
 
+def user_has_admin_role(user: Dict[str, Any]) -> bool:
+    """public.users.role — büyük/küçük harf duyarsız."""
+    return str((user.get("role") or "")).strip().lower() == "admin"
+
+
 def get_current_user(authorization: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     return authenticate_bearer(authorization)

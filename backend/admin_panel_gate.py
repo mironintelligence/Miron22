@@ -12,8 +12,8 @@ from typing import Any, Dict
 import jwt
 from fastapi import Depends, HTTPException, Request, status
 
-from admin_auth import ALGORITHM, SECRET_KEY
-from user_auth import get_current_user
+from admin_auth import ALGORITHM, SECRET_KEY, admin_jwt_signing_key
+from user_auth import get_current_user, user_has_admin_role
 
 COOKIE_NAME = "admin_panel_gate"
 PURPOSE = "admin_panel_gate"
@@ -32,12 +32,15 @@ def issue_admin_panel_gate_jwt(user_id: str) -> str:
         "exp": expire,
         "iat": datetime.now(timezone.utc),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    tok = jwt.encode(payload, admin_jwt_signing_key(), algorithm=ALGORITHM)
+    return tok.decode("utf-8") if isinstance(tok, bytes) else str(tok)
 
 
 def verify_admin_panel_gate(request: Request, user_id: str) -> bool:
     raw = (request.cookies or {}).get(COOKIE_NAME)
     if not raw:
+        return False
+    if not SECRET_KEY:
         return False
     try:
         payload = jwt.decode(raw, SECRET_KEY, algorithms=[ALGORITHM])
@@ -51,8 +54,11 @@ def verify_admin_panel_gate(request: Request, user_id: str) -> bool:
 
 
 def require_admin_panel_gate(request: Request, user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
-    if (user.get("role") or "") != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Yetkisiz erişim.")
+    if not user_has_admin_role(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Yönetici paneli için hesabınızın rolü 'admin' olmalı. Çıkış yapıp tekrar deneyin veya yöneticiye başvurun.",
+        )
     if not _password_configured():
         # Local/dev without ADMIN_PANEL_PASSWORD: do not block admin exchange
         return user

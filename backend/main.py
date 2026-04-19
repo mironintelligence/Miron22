@@ -42,7 +42,7 @@ try:
     from middleware.metrics import PrometheusMiddleware
     from middleware.concurrency import IdempotencyMiddleware, TimeoutMiddleware
     from middleware.chaos import ChaosMiddleware
-    from db import init_pool, close_pool
+    from db import init_pool, close_pool, recommended_sync_pool_bounds
     from db_async import db as async_db
 except ImportError:
     from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
@@ -51,7 +51,7 @@ except ImportError:
     from middleware.metrics import PrometheusMiddleware
     from middleware.concurrency import IdempotencyMiddleware, TimeoutMiddleware
     from middleware.chaos import ChaosMiddleware
-    from db import init_pool, close_pool
+    from db import init_pool, close_pool, recommended_sync_pool_bounds
     from db_async import db as async_db
 from security import sanitize_text
 from user_auth import get_current_user
@@ -74,6 +74,35 @@ except Exception:
 # APP
 # ---------------------------
 app = FastAPI(title="Miron AI Backend", version="1.4.0")
+
+def _database_url_declares_ssl(db_url: str) -> bool:
+    """Render/Supabase bağlantı dizgilerinde sslmode farklı yazılabilir."""
+    u = (db_url or "").lower()
+    return (
+        "sslmode=" in u
+        or "sslmode%3d" in u
+        or "ssl=true" in u
+        or "?ssl=1" in u
+        or "&ssl=1" in u
+    )
+
+
+def _warn_if_database_url_missing_supabase_ref(db_url: str, sb_url: str) -> None:
+    if not sb_url or not db_url:
+        return
+    sb_ref = sb_url.split("://", 1)[-1].split(".", 1)[0]
+    if not sb_ref or sb_ref in db_url:
+        return
+    import re
+
+    m = re.search(r"postgres\.([a-z0-9]{5,32})\.", db_url, re.I)
+    if m and m.group(1).lower() == sb_ref.lower():
+        return
+    print(
+        f"⚠️ DATABASE_URL içinde SUPABASE_URL proje ref ({sb_ref}) görünmüyor. "
+        "Bağlantı çalışıyorsa sorun olmayabilir; emin değilseniz Render env'deki DATABASE_URL / SUPABASE_URL çiftini kontrol edin."
+    )
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -132,20 +161,17 @@ async def startup_event():
 
     db_url = os.getenv("DATABASE_URL") or ""
     sb_url = (os.getenv("SUPABASE_URL") or "").strip()
-    sb_ref = sb_url.split("://", 1)[-1].split(".", 1)[0] if sb_url else ""
-    if sb_ref and sb_ref not in db_url:
-        raise RuntimeError(
-            "DATABASE_URL yanlış Supabase projesine/region’ına işaret ediyor. "
-            f"SUPABASE_URL ref={sb_ref} ama DATABASE_URL içinde bu ref yok. "
-            "Render’daki DATABASE_URL’yi Frankfurt (aws-1-eu-central-1) pooler string’i ile güncelle."
-        )
+    _warn_if_database_url_missing_supabase_ref(db_url, sb_url)
     if "ap-northeast-2" in db_url:
         raise RuntimeError(
             "DATABASE_URL eski Seoul (ap-northeast-2) pooler’a işaret ediyor. "
             "Render’daki DATABASE_URL’yi aws-1-eu-central-1.pooler.supabase.com:6543 olacak şekilde güncelle."
         )
-    if "sslmode=" not in db_url:
-        raise RuntimeError("DATABASE_URL içine ?sslmode=require eklenmeli.")
+    if not _database_url_declares_ssl(db_url):
+        raise RuntimeError(
+            "DATABASE_URL SSL parametresi içermiyor. "
+            "Örnek: ...?sslmode=require veya ssl=true (Supabase pooler genelde sslmode=require)."
+        )
 
     dbl = db_url.lower()
     if "pooler.supabase.com" in dbl and ":5432" in dbl and ":6543" not in dbl:
@@ -171,10 +197,17 @@ async def startup_event():
     except Exception as e:
         print(f"🔥 CRITICAL: Async DB Pool Init Failed: {e}")
 
+    if (os.getenv("SKIP_ENSURE_SCHEMA", "false") or "").lower() == "true":
+        print("⚠️ SKIP_ENSURE_SCHEMA=true — ensure_schema atlandı (yalnızca acil kurtarma).")
+        return
     try:
         from schema import ensure_schema
+
         ensure_schema()
     except Exception as e:
+        import traceback
+
+        print(traceback.format_exc())
         raise RuntimeError(f"DB şeması hazırlanamadı: {e}")
 
 @app.on_event("shutdown")
@@ -183,27 +216,10 @@ async def shutdown_event():
     await async_db.close_pools()
 
 # ---------------------------
-# ERROR HANDLERS (GLOBAL)
+# CORS
 # ---------------------------
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
-from starlette.middleware.base import BaseHTTPMiddleware
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    import traceback
-    print(f"[ERROR] Global Exception on {request.method} {request.url.path}: {exc}")
-    traceback.print_exc()
-    
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin."},
-    )
-
-
-# ---------------------------
-# CORS
-# ---------------------------
 
 # CORS — only explicitly allowed origins may send credentialed requests.
 # Previously `allow_origin_regex` defaulted to `^https://.*\.vercel\.app$`,
@@ -268,24 +284,6 @@ async def http_exception_with_cors(request: Request, exc: HTTPException):
     )
 
 
-async def strict_api_admin_rbac(request: Request, call_next):
-    """RBAC for /api/admin/*. Registered as BaseHTTPMiddleware *inside* CORS so
-    JSONResponse short-circuits still get Access-Control-Allow-Origin."""
-    if request.url.path.startswith("/api/admin"):
-        auth = (request.headers.get("authorization") or "").strip()
-        if not auth.lower().startswith("bearer "):
-            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
-        try:
-            user = get_current_user(auth)
-            if (user.get("role") or "").lower() != "admin":
-                return JSONResponse(status_code=403, content={"detail": "Forbidden"})
-        except HTTPException as exc:
-            return JSONResponse(status_code=int(exc.status_code), content={"detail": str(exc.detail)})
-        except Exception:
-            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
-    return await call_next(request)
-
-
 # CORS middleware is registered *after* the stack below so it wraps every
 # other middleware. Inner layers (Chaos, Timeout, CSRF, Idempotency, …) may
 # return a plain Response without reaching the FastAPI app; those responses
@@ -302,8 +300,6 @@ app.add_middleware(TimeoutMiddleware) # Global Timeout
 app.add_middleware(PrometheusMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(LoggingMiddleware) # Request logger (still inside CORS)
-app.add_middleware(BaseHTTPMiddleware, dispatch=strict_api_admin_rbac)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,

@@ -14,11 +14,19 @@ from pathlib import Path
 # Spec said "Admin tokens are signed with SECRET_KEY, while user tokens... with JWT_SECRET".
 # Let's keep that separation.
 
-SECRET_KEY = os.getenv("SECRET_KEY") # Fail if missing
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY env var is missing for Admin Auth")
+SECRET_KEY = (os.getenv("SECRET_KEY") or "").strip()
 
 ALGORITHM = "HS256"
+
+
+def admin_jwt_signing_key() -> str:
+    """Uygulama ayağa kalksın diye import anında patlamıyoruz; token üretiminde kontrol edilir."""
+    if not SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="SECRET_KEY tanımlı değil. Render Web Service → Environment → SECRET_KEY ekleyin.",
+        )
+    return SECRET_KEY
 
 DATA_DIR = Path(os.getenv("DATA_DIR") or "data")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -71,7 +79,9 @@ def issue_admin_token(admin_id: str, ttl_hours: int = 12, ip: Optional[str] = No
         "exp": expire,
         "iat": datetime.now(timezone.utc)
     }
-    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(payload, admin_jwt_signing_key(), algorithm=ALGORITHM)
+    if isinstance(token, bytes):
+        token = token.decode("utf-8")
     data = _load_sessions()
     sessions = data.get("sessions") or []
     sessions.append(
@@ -130,7 +140,7 @@ def _extract_bearer(authorization: Optional[str]) -> Optional[str]:
     return token
 
 def require_admin(authorization: Optional[str] = Header(default=None)) -> Dict[str, Any]:
-    incoming = _extract_bearer(authorization)
+    incoming = (_extract_bearer(authorization) or "").strip()
     if not incoming:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -139,9 +149,9 @@ def require_admin(authorization: Optional[str] = Header(default=None)) -> Dict[s
     
     try:
         # Verify signature with Admin Secret
-        payload = jwt.decode(incoming, SECRET_KEY, algorithms=[ALGORITHM])
-        admin_id = payload.get("sub")
-        role = payload.get("role")
+        payload = jwt.decode(incoming, admin_jwt_signing_key(), algorithms=[ALGORITHM])
+        admin_id = str(payload.get("sub") or "").strip()
+        role = str(payload.get("role") or "").strip().lower()
         jti = payload.get("jti")
         
         if role != "admin" or not admin_id:
@@ -162,7 +172,7 @@ def require_admin(authorization: Optional[str] = Header(default=None)) -> Dict[s
             
         return {
             "admin_id": admin_id,
-            "role": role,
+            "role": "admin",
             "expires_at": payload.get("exp"),
             "jti": jti,
         }
@@ -170,4 +180,7 @@ def require_admin(authorization: Optional[str] = Header(default=None)) -> Dict[s
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin token süresi doldu.")
     except jwt.InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Geçersiz admin token.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Admin token doğrulanamadı (imza veya süre). Sunucuda SECRET_KEY ile uyumlu olduğundan emin olun.",
+        )
