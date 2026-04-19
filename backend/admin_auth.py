@@ -72,6 +72,8 @@ def issue_admin_token(admin_id: str, ttl_hours: int = 12, ip: Optional[str] = No
         "iat": datetime.now(timezone.utc)
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    if isinstance(token, bytes):
+        token = token.decode("utf-8")
     data = _load_sessions()
     sessions = data.get("sessions") or []
     sessions.append(

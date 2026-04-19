@@ -32,7 +32,8 @@ def issue_admin_panel_gate_jwt(user_id: str) -> str:
         "exp": expire,
         "iat": datetime.now(timezone.utc),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    tok = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return tok.decode("utf-8") if isinstance(tok, bytes) else str(tok)
 
 
 def verify_admin_panel_gate(request: Request, user_id: str) -> bool:

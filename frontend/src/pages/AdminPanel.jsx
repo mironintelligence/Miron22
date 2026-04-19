@@ -140,15 +140,17 @@ export default function AdminPanel() {
         setToken("");
       }
       try {
-        const res = await authFetch("/admin/panel-unlock/status", { method: "GET" });
+        const res = await authFetch("/api/admin/panel-unlock/status", { method: "GET" });
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
-        const configured = data.configured !== false;
-        if (!configured) {
+        // Sunucu: configured=true sadece ADMIN_PANEL_PASSWORD tanımlıyken
+        const passwordGateConfigured = data?.configured === true;
+        const gateUnlocked = data?.unlocked === true;
+        if (!passwordGateConfigured) {
           setPanelGate({ phase: "ready", configured: false });
           return;
         }
-        if (data.unlocked) {
+        if (gateUnlocked) {
           setPanelGate({ phase: "ready", configured: true });
         } else {
           setPanelGate({ phase: "need_password", configured: true });
@@ -180,7 +182,7 @@ export default function AdminPanel() {
     }
     const otpTrim = String(otp || "").trim();
     try {
-      const res = await authFetch("/admin/panel-bootstrap", {
+      const res = await authFetch("/api/admin/panel-bootstrap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -198,11 +200,17 @@ export default function AdminPanel() {
         setPanelGateError(detail);
         return;
       }
-      if (data?.ok && data?.token) {
+      const adminJwt =
+        typeof data?.token === "string"
+          ? data.token.trim()
+          : typeof data?.access_token === "string"
+            ? data.access_token.trim()
+            : "";
+      if (adminJwt.length > 20) {
         setPanelPassword("");
         setOtp("");
-        setToken(data.token);
-        persistAdminToken(data.token);
+        setToken(adminJwt);
+        persistAdminToken(adminJwt);
         markAdminPanelSession(true);
         setMfaSetup(null);
         setAuthed(true);
@@ -216,7 +224,10 @@ export default function AdminPanel() {
         showMsg("Authenticator ile 2FA kurulumunu tamamlayın.", "error");
         return;
       }
-      setPanelGateError("Beklenmeyen yanıt.");
+      console.error("panel-bootstrap beklenmeyen gövde:", data);
+      setPanelGateError(
+        "Sunucu yanıtı beklenen formatta değil (admin token yok). Konsolu kontrol edin veya sayfayı yenileyin."
+      );
     } catch {
       setPanelGateError("Bağlantı hatası.");
     }
@@ -236,7 +247,7 @@ export default function AdminPanel() {
   const checkAuthWithToken = async (t) => {
     if (!t) return false;
     try {
-      const res = await fetch(`${API_BASE}/admin/health`, {
+      const res = await fetch(`${API_BASE}/api/admin/health`, {
         credentials: "include",
         headers: { Authorization: `Bearer ${t}` },
       });
@@ -318,12 +329,12 @@ export default function AdminPanel() {
   };
 
   const fetchStats = async () => {
-    const data = await fetchWithAuth("/admin/stats");
+    const data = await fetchWithAuth("/api/admin/stats");
     if (isAdminRequestFailed(data)) return;
     setStats(data);
   };
   const fetchConfig = async () => {
-    const data = await fetchWithAuth("/admin/config");
+    const data = await fetchWithAuth("/api/admin/config");
     if (isAdminRequestFailed(data)) return;
     setConfig(data);
     setAllowRegistration(!!data?.allow_registration);
@@ -335,7 +346,7 @@ export default function AdminPanel() {
     if (userFilters.search) qs.set("search", userFilters.search);
     if (userFilters.role) qs.set("role", userFilters.role);
     if (userFilters.active !== "") qs.set("active", userFilters.active === "true" ? "true" : "false");
-    const path = `/admin/users${qs.toString() ? `?${qs.toString()}` : ""}`;
+    const path = `/api/admin/users${qs.toString() ? `?${qs.toString()}` : ""}`;
     const data = await fetchWithAuth(path);
     if (isAdminRequestFailed(data)) {
       showMsg(adminErrorMessage(data), "error");
@@ -345,7 +356,7 @@ export default function AdminPanel() {
     setUsers(Array.isArray(data) ? data : []);
   };
   const fetchDemos = async () => {
-    const data = await fetchWithAuth("/admin/demo-requests");
+    const data = await fetchWithAuth("/api/admin/demo-requests");
     if (isAdminRequestFailed(data)) {
       setDemos([]);
       return;
@@ -476,7 +487,7 @@ export default function AdminPanel() {
   };
 
   const fetchLogs = async () => {
-    const data = await fetchWithAuth("/admin/logs/system?lines=100");
+    const data = await fetchWithAuth("/api/admin/logs/system?lines=100");
     if (isAdminRequestFailed(data)) return;
     if (data?.logs) setLogs(data.logs);
   };
@@ -485,7 +496,7 @@ export default function AdminPanel() {
     const qs = new URLSearchParams();
     qs.set("limit", "200");
     if (auditUserId) qs.set("user_id", auditUserId);
-    const data = await fetchWithAuth(`/admin/audit-logs?${qs.toString()}`);
+    const data = await fetchWithAuth(`/api/admin/audit-logs?${qs.toString()}`);
     if (isAdminRequestFailed(data)) {
       setAuditLogs([]);
       return;
@@ -494,7 +505,7 @@ export default function AdminPanel() {
   };
 
   const fetchSessions = async () => {
-    const data = await fetchWithAuth("/admin/sessions?limit=200");
+    const data = await fetchWithAuth("/api/admin/sessions?limit=200");
     if (isAdminRequestFailed(data)) {
       setSessions([]);
       return;
@@ -504,15 +515,21 @@ export default function AdminPanel() {
 
   const exchangeAdminToken = async (otpValue) => {
     try {
-      const res = await authFetch("/admin/exchange", {
+      const res = await authFetch("/api/admin/exchange", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ otp: otpValue || undefined }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && data?.ok && data?.token) {
-        setToken(data.token);
-        persistAdminToken(data.token);
+      const exJwt =
+        typeof data?.token === "string"
+          ? data.token.trim()
+          : typeof data?.access_token === "string"
+            ? data.access_token.trim()
+            : "";
+      if (res.ok && exJwt.length > 20) {
+        setToken(exJwt);
+        persistAdminToken(exJwt);
         markAdminPanelSession(true);
         setAuthed(true);
         setMfaSetup(null);
@@ -538,7 +555,7 @@ export default function AdminPanel() {
   const confirmMfaSetup = async () => {
     if (!mfaSetup?.secret || !otp) return showMsg("2FA kodu gerekli", "error");
     try {
-      const res = await authFetch("/admin/2fa/setup", {
+      const res = await authFetch("/api/admin/2fa/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ secret: mfaSetup.secret, otp }),
@@ -554,7 +571,7 @@ export default function AdminPanel() {
 
   const toggleEmergency = async (val) => {
     if (!window.confirm(`ACİL DURUM MODU: ${val ? "AÇILSIN MI? (Sistem Kapanır)" : "KAPATILSIN MI?"}`)) return;
-    const res = await fetchWithAuth("/admin/emergency-switch", { method: "POST", body: JSON.stringify({ enable: val }) });
+    const res = await fetchWithAuth("/api/admin/emergency-switch", { method: "POST", body: JSON.stringify({ enable: val }) });
     if (isAdminRequestFailed(res)) {
       showMsg(adminErrorMessage(res), "error");
       return;
@@ -577,7 +594,7 @@ export default function AdminPanel() {
       return;
     }
 
-    const res = await fetchWithAuth("/admin/config", { method: "POST", body: JSON.stringify(payload) });
+    const res = await fetchWithAuth("/api/admin/config", { method: "POST", body: JSON.stringify(payload) });
     if (isAdminRequestFailed(res)) {
       showMsg(adminErrorMessage(res), "error");
       return;
@@ -622,7 +639,7 @@ export default function AdminPanel() {
   };
 
   const toggleUserSuspend = async (email, active) => {
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/suspend`, { method: "PUT", body: JSON.stringify({ active }) });
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(email)}/suspend`, { method: "PUT", body: JSON.stringify({ active }) });
     if (isAdminRequestFailed(res)) {
       showMsg(adminErrorMessage(res), "error");
       return;
@@ -634,7 +651,7 @@ export default function AdminPanel() {
   };
 
   const updateUserRole = async (email, newRole) => {
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/role`, { method: "PUT", body: JSON.stringify({ role: newRole }) });
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(email)}/role`, { method: "PUT", body: JSON.stringify({ role: newRole }) });
     if (isAdminRequestFailed(res)) {
       showMsg(adminErrorMessage(res), "error");
       return;
@@ -724,7 +741,7 @@ export default function AdminPanel() {
   };
 
   const approveDemo = async (idOrEmail) => {
-    const res = await fetchWithAuth(`/admin/demo-requests/${encodeURIComponent(idOrEmail)}/approve`, { method: "POST" });
+    const res = await fetchWithAuth(`/api/admin/demo-requests/${encodeURIComponent(idOrEmail)}/approve`, { method: "POST" });
     if (isAdminRequestFailed(res)) {
       showMsg(adminErrorMessage(res), "error");
       return;
@@ -738,7 +755,7 @@ export default function AdminPanel() {
   };
 
   const rejectDemo = async (idOrEmail) => {
-    const res = await fetchWithAuth(`/admin/demo-requests/${encodeURIComponent(idOrEmail)}/reject`, { method: "POST" });
+    const res = await fetchWithAuth(`/api/admin/demo-requests/${encodeURIComponent(idOrEmail)}/reject`, { method: "POST" });
     if (isAdminRequestFailed(res)) {
       showMsg(adminErrorMessage(res), "error");
       return;
@@ -753,8 +770,8 @@ export default function AdminPanel() {
 
   const logoutAdmin = async () => {
     try {
-      await fetchWithAuth("/admin/logout", { method: "POST", body: JSON.stringify({}) });
-      await authFetch("/admin/panel-unlock/logout", { method: "POST" }).catch(() => {});
+      await fetchWithAuth("/api/admin/logout", { method: "POST", body: JSON.stringify({}) });
+      await authFetch("/api/admin/panel-unlock/logout", { method: "POST" }).catch(() => {});
     } catch (e) {
       return;
     } finally {
@@ -766,7 +783,7 @@ export default function AdminPanel() {
 
   const createUser = async () => {
     if (!newUser.email || !newUser.password) return showMsg("E-posta ve şifre gerekli", "error");
-    const res = await fetchWithAuth("/admin/users", { method: "POST", body: JSON.stringify(newUser) });
+    const res = await fetchWithAuth("/api/admin/users", { method: "POST", body: JSON.stringify(newUser) });
     if (isAdminRequestFailed(res)) {
       showMsg(adminErrorMessage(res), "error");
       return;
@@ -782,7 +799,7 @@ export default function AdminPanel() {
 
   const deleteUserByEmail = async (email) => {
     if (!window.confirm(`${email} silinsin mi?`)) return;
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}`, { method: "DELETE" });
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(email)}`, { method: "DELETE" });
     if (isAdminRequestFailed(res)) {
       showMsg(adminErrorMessage(res), "error");
       return;
@@ -798,7 +815,7 @@ export default function AdminPanel() {
   const setPassword = async (email) => {
     const pw = window.prompt("Yeni şifre:");
     if (!pw) return;
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/set-password`, {
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(email)}/set-password`, {
       method: "POST",
       body: JSON.stringify({ password: pw }),
     });
@@ -812,7 +829,7 @@ export default function AdminPanel() {
 
   const lockUserById = async (userId) => {
     if (!userId) return showMsg("Kullanıcı id gerekli", "error");
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(userId)}/lock`, { method: "POST" });
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(userId)}/lock`, { method: "POST" });
     if (isAdminRequestFailed(res)) {
       showMsg(adminErrorMessage(res), "error");
       return;
@@ -827,7 +844,7 @@ export default function AdminPanel() {
 
   const unlockUserById = async (userId) => {
     if (!userId) return showMsg("Kullanıcı id gerekli", "error");
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(userId)}/unlock`, { method: "POST" });
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(userId)}/unlock`, { method: "POST" });
     if (isAdminRequestFailed(res)) {
       showMsg(adminErrorMessage(res), "error");
       return;
@@ -846,7 +863,7 @@ export default function AdminPanel() {
     const payload = { action: bulk.action, emails };
     if (bulk.action === "set_role") payload.role = bulk.role;
     if (bulk.action === "set_password") payload.password = bulk.password;
-    const res = await fetchWithAuth("/admin/users/bulk", { method: "POST", body: JSON.stringify(payload) });
+    const res = await fetchWithAuth("/api/admin/users/bulk", { method: "POST", body: JSON.stringify(payload) });
     if (isAdminRequestFailed(res)) {
       showMsg(adminErrorMessage(res), "error");
       return;
@@ -864,7 +881,7 @@ export default function AdminPanel() {
     try {
       const qs = new URLSearchParams();
       qs.set("format", format);
-      const res = await fetch(`${API_BASE}/admin/users/export?${qs.toString()}`, {
+      const res = await fetch(`${API_BASE}/api/admin/users/export?${qs.toString()}`, {
         credentials: "include",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -885,7 +902,7 @@ export default function AdminPanel() {
     try {
       const parsed = JSON.parse(importText || "[]");
       if (!Array.isArray(parsed) || parsed.length === 0) return showMsg("Import için JSON array gerekli", "error");
-      const res = await fetchWithAuth("/admin/users/import", {
+      const res = await fetchWithAuth("/api/admin/users/import", {
         method: "POST",
         body: JSON.stringify({ mode: "upsert", users: parsed }),
       });
@@ -1758,7 +1775,7 @@ export default function AdminPanel() {
                         {!s.revoked ? (
                           <button
                             onClick={async () => {
-                              const r = await fetchWithAuth(`/admin/sessions/${encodeURIComponent(s.jti)}/revoke`, { method: "POST", body: JSON.stringify({}) });
+                              const r = await fetchWithAuth(`/api/admin/sessions/${encodeURIComponent(s.jti)}/revoke`, { method: "POST", body: JSON.stringify({}) });
                               if (isAdminRequestFailed(r)) {
                                 showMsg(adminErrorMessage(r), "error");
                               } else if (r?.ok) {
