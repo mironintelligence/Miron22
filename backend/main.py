@@ -221,6 +221,43 @@ if _origins_env:
 _origin_regex = (os.getenv("FRONTEND_ORIGIN_REGEX") or "").strip() or None
 
 
+def _cors_hdr(request: Request) -> dict[str, str]:
+    origin = (request.headers.get("origin") or "").strip()
+    if not origin:
+        return {}
+    if origin in _allowed_origins:
+        return {"Access-Control-Allow-Origin": origin, "Access-Control-Allow-Credentials": "true"}
+    if _origin_regex:
+        try:
+            if re.match(_origin_regex, origin):
+                return {"Access-Control-Allow-Origin": origin, "Access-Control-Allow-Credentials": "true"}
+        except re.error:
+            pass
+    return {}
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    print(f"[ERROR] Global Exception on {request.method} {request.url.path}: {exc}")
+    traceback.print_exc()
+
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin."},
+        headers=_cors_hdr(request),
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_with_cors(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=int(exc.status_code),
+        content={"detail": exc.detail},
+        headers=_cors_hdr(request),
+    )
+
+
 async def strict_api_admin_rbac(request: Request, call_next):
     """RBAC for /api/admin/*. Registered as BaseHTTPMiddleware *inside* CORS so
     JSONResponse short-circuits still get Access-Control-Allow-Origin."""
@@ -275,6 +312,17 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
     max_age=600,
 )
+
+try:
+    from middleware.cors_enforce import EnforceCorsHeadersMiddleware
+
+    app.add_middleware(
+        EnforceCorsHeadersMiddleware,
+        allowed_origins=_allowed_origins,
+        origin_regex=_origin_regex,
+    )
+except Exception as e:
+    print(f"[WARN] EnforceCorsHeadersMiddleware not loaded: {e}")
 
 
 @app.get("/health")

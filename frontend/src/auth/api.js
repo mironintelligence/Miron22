@@ -309,50 +309,68 @@ export async function me() {
 
 export async function authFetch(path, options = {}) {
   const method = String(options.method || "GET").toUpperCase();
-  const headers = authHeaders(method, options.headers || {});
+  const { timeoutMs: optTimeout, ...restOpts } = options;
+  const headers = authHeaders(method, restOpts.headers || {});
   const url = `${API}${path}`;
 
-  const exec = (hdrs) =>
-    fetchWithTimeout(url, {
-      ...options,
-      headers: hdrs,
-      credentials: "include",
-    });
+  const pollGet =
+    method === "GET" &&
+    (/\/api\/notifications\/?$/.test(String(path)) || String(path).includes("/api/notifications/unread-count"));
 
-  let res = await exec(headers);
-  if (res.status === 401 && !shouldSkip401Retry(path)) {
-    let refreshFailed = false;
-    try {
-      await refreshSession();
-      const retryHeaders = authHeaders(method, options.headers || {});
-      res = await exec(retryHeaders);
-    } catch {
-      refreshFailed = true;
-    }
-    // If the refresh itself failed OR the retry still comes back 401,
-    // the session is unrecoverable. Broadcast a signal so AuthProvider can
-    // drop the authed state instead of leaving the UI stuck on pages whose
-    // API calls will keep silently 401'ing.
-    if (refreshFailed || res.status === 401) {
+  const timeoutMs =
+    typeof optTimeout === "number" ? optTimeout : pollGet ? 55000 : AUTH_FETCH_TIMEOUT_MS;
+
+  const exec = (hdrs) =>
+    fetchWithTimeout(
+      url,
+      { ...restOpts, headers: hdrs, credentials: "include" },
+      timeoutMs
+    );
+
+  try {
+    let res = await exec(headers);
+    if (res.status === 401 && !shouldSkip401Retry(path)) {
+      let refreshFailed = false;
       try {
-        writeStoredRefresh("");
+        await refreshSession();
+        const retryHeaders = authHeaders(method, restOpts.headers || {});
+        res = await exec(retryHeaders);
       } catch {
-        /* ignore */
+        refreshFailed = true;
       }
-      if (typeof window !== "undefined") {
+      if (refreshFailed || res.status === 401) {
         try {
-          window.dispatchEvent(
-            new CustomEvent("miron:session-expired", {
-              detail: { path, status: res.status },
-            })
-          );
+          writeStoredRefresh("");
         } catch {
           /* ignore */
         }
+        if (typeof window !== "undefined") {
+          try {
+            window.dispatchEvent(
+              new CustomEvent("miron:session-expired", {
+                detail: { path, status: res.status },
+              })
+            );
+          } catch {
+            /* ignore */
+          }
+        }
       }
     }
+    return res;
+  } catch (_e) {
+    if (!pollGet) throw _e;
+    if (String(path).includes("unread-count")) {
+      return new Response(JSON.stringify({ count: 0 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-  return res;
 }
 
 export const apiAxios = axios.create({
