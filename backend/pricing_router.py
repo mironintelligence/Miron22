@@ -255,9 +255,12 @@ def list_discount_codes():
 
 @router.post("/discount-codes", dependencies=[Depends(require_admin)])
 def create_discount_code(body: DiscountCodeCreate):
-    return create_discount(
+    row = create_discount(
         body.code, body.type, body.value, body.max_usage, body.expires_at, body.description
     )
+    if isinstance(row, dict):
+        return {"ok": True, **row}
+    return {"ok": True}
 
 
 @router.post("/discount-codes/{code}/toggle", dependencies=[Depends(require_admin)])

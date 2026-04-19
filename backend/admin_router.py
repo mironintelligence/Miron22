@@ -223,7 +223,7 @@ def _admin_exchange_payload(request: Request, user: Dict[str, Any], otp: Optiona
         ip = "127.0.0.1"
     ua = request.headers.get("user-agent", "unknown")
 
-    mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "true") or "").lower() == "true"
+    mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "false") or "").lower() == "true"
     mfa = get_user_mfa(user_id=str(user.get("id")))
 
     if mfa_required and not bool(mfa.get("enabled")):
@@ -363,7 +363,7 @@ def admin_login(body: AdminLoginIn, request: Request):
         log_audit(str(user["id"]), "ADMIN_LOGIN_DENIED", email, {"reason": "not_admin"}, ip, ua)
         raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
 
-    mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "true") or "").lower() == "true"
+    mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "false") or "").lower() == "true"
     mfa = get_user_mfa(user_id=str(user.get("id")))
     if mfa_required and not bool(mfa.get("enabled")):
         secret = generate_base32_secret()

@@ -49,6 +49,20 @@ function markAdminPanelSession(ok) {
   }
 }
 
+function isAdminRequestFailed(x) {
+  return Boolean(x && typeof x === "object" && x._adminRequestFailed === true);
+}
+
+function adminErrorMessage(x) {
+  if (!isAdminRequestFailed(x)) return "";
+  const d = x.detail;
+  if (typeof d === "string") return d;
+  if (Array.isArray(d)) {
+    return d.map((e) => (typeof e === "string" ? e : e?.msg || JSON.stringify(e))).join("; ") || `HTTP ${x._httpStatus || ""}`;
+  }
+  return `İstek başarısız (${x._httpStatus ?? "?"})`;
+}
+
 export default function AdminPanel() {
   const { status, user } = useAuth();
   const [token, setToken] = useState(readAdminToken());
@@ -277,19 +291,40 @@ export default function AdminPanel() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
           ...(unsafe && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
-        }
+        },
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
+      const raw = await res.text();
+      let parsed = null;
+      if (raw) {
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = { detail: raw.slice(0, 400) };
+        }
+      }
+      if (!res.ok) {
+        const base =
+          parsed && typeof parsed === "object"
+            ? parsed
+            : { detail: typeof parsed === "string" ? parsed : `HTTP ${res.status}` };
+        console.error("AdminPanel", url, res.status, base);
+        return { _adminRequestFailed: true, _httpStatus: res.status, ...base };
+      }
+      return parsed;
     } catch (e) {
       console.error(url, e);
-      return null;
+      return { _adminRequestFailed: true, _httpStatus: 0, detail: e?.message || "Bağlantı hatası" };
     }
   };
 
-  const fetchStats = async () => setStats(await fetchWithAuth("/admin/stats"));
+  const fetchStats = async () => {
+    const data = await fetchWithAuth("/admin/stats");
+    if (isAdminRequestFailed(data)) return;
+    setStats(data);
+  };
   const fetchConfig = async () => {
     const data = await fetchWithAuth("/admin/config");
+    if (isAdminRequestFailed(data)) return;
     setConfig(data);
     setAllowRegistration(!!data?.allow_registration);
     const mtpu = Number(data?.max_tokens_per_user);
@@ -301,13 +336,35 @@ export default function AdminPanel() {
     if (userFilters.role) qs.set("role", userFilters.role);
     if (userFilters.active !== "") qs.set("active", userFilters.active === "true" ? "true" : "false");
     const path = `/admin/users${qs.toString() ? `?${qs.toString()}` : ""}`;
-    setUsers((await fetchWithAuth(path)) || []);
+    const data = await fetchWithAuth(path);
+    if (isAdminRequestFailed(data)) {
+      showMsg(adminErrorMessage(data), "error");
+      setUsers([]);
+      return;
+    }
+    setUsers(Array.isArray(data) ? data : []);
   };
-  const fetchDemos = async () => setDemos(await fetchWithAuth("/admin/demo-requests") || []);
-  const fetchDiscounts = async () => setDiscounts(await fetchWithAuth("/api/pricing/discount-codes") || []);
+  const fetchDemos = async () => {
+    const data = await fetchWithAuth("/admin/demo-requests");
+    if (isAdminRequestFailed(data)) {
+      setDemos([]);
+      return;
+    }
+    setDemos(Array.isArray(data) ? data : []);
+  };
+  const fetchDiscounts = async () => {
+    const data = await fetchWithAuth("/api/pricing/discount-codes");
+    if (isAdminRequestFailed(data)) {
+      showMsg(adminErrorMessage(data), "error");
+      setDiscounts([]);
+      return;
+    }
+    setDiscounts(Array.isArray(data) ? data : []);
+  };
 
   const fetchPricingConfig = async () => {
     const data = await fetchWithAuth("/api/pricing/config");
+    if (isAdminRequestFailed(data)) return;
     setPricingConfig(data);
     setPricingDraft({
       base_price: Number(data?.base_price ?? 8000),
@@ -316,7 +373,14 @@ export default function AdminPanel() {
     });
   };
 
-  const fetchReports = async () => setReports(await fetchWithAuth("/reports/overview") || null);
+  const fetchReports = async () => {
+    const data = await fetchWithAuth("/reports/overview");
+    if (isAdminRequestFailed(data)) {
+      setReports(null);
+      return;
+    }
+    setReports(data || null);
+  };
 
   const fetchTemplates = async () => {
     setTemplatesLoading(true);
@@ -363,6 +427,10 @@ export default function AdminPanel() {
         method: "PUT",
         body: JSON.stringify(payload),
       });
+      if (isAdminRequestFailed(res)) {
+        showMsg(adminErrorMessage(res), "error");
+        return;
+      }
       if (res?.ok) {
         showMsg(" Şablon güncellendi", "success");
         resetTemplateDraft();
@@ -375,6 +443,10 @@ export default function AdminPanel() {
         method: "POST",
         body: JSON.stringify(payload),
       });
+      if (isAdminRequestFailed(res)) {
+        showMsg(adminErrorMessage(res), "error");
+        return;
+      }
       if (res?.id || res?.ok) {
         showMsg(" Şablon oluşturuldu", "success");
         resetTemplateDraft();
@@ -390,6 +462,10 @@ export default function AdminPanel() {
     if (!window.confirm(`${templateId} numaralı şablon silinsin mi?`)) return;
 
     const res = await fetchWithAuth(`/api/contracts/templates/${encodeURIComponent(String(templateId))}`, { method: "DELETE" });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Şablon silindi", "success");
       if (String(templateDraft.id || "") === String(templateId)) resetTemplateDraft();
@@ -401,6 +477,7 @@ export default function AdminPanel() {
 
   const fetchLogs = async () => {
     const data = await fetchWithAuth("/admin/logs/system?lines=100");
+    if (isAdminRequestFailed(data)) return;
     if (data?.logs) setLogs(data.logs);
   };
 
@@ -409,11 +486,19 @@ export default function AdminPanel() {
     qs.set("limit", "200");
     if (auditUserId) qs.set("user_id", auditUserId);
     const data = await fetchWithAuth(`/admin/audit-logs?${qs.toString()}`);
+    if (isAdminRequestFailed(data)) {
+      setAuditLogs([]);
+      return;
+    }
     setAuditLogs(Array.isArray(data) ? data : []);
   };
 
   const fetchSessions = async () => {
     const data = await fetchWithAuth("/admin/sessions?limit=200");
+    if (isAdminRequestFailed(data)) {
+      setSessions([]);
+      return;
+    }
     setSessions(Array.isArray(data?.sessions) ? data.sessions : []);
   };
 
@@ -470,6 +555,10 @@ export default function AdminPanel() {
   const toggleEmergency = async (val) => {
     if (!window.confirm(`ACİL DURUM MODU: ${val ? "AÇILSIN MI? (Sistem Kapanır)" : "KAPATILSIN MI?"}`)) return;
     const res = await fetchWithAuth("/admin/emergency-switch", { method: "POST", body: JSON.stringify({ enable: val }) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       setConfig(prev => ({ ...prev, maintenance_mode: res.maintenance_mode }));
       showMsg(`Acil durum modu ${val ? "AKTİF" : "PASİF"}`, val ? "error" : "success");
@@ -489,6 +578,10 @@ export default function AdminPanel() {
     }
 
     const res = await fetchWithAuth("/admin/config", { method: "POST", body: JSON.stringify(payload) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Sistem ayarları güncellendi", "success");
       setConfig((prev) => ({ ...(prev || {}), ...(res?.config || payload) }));
@@ -510,6 +603,10 @@ export default function AdminPanel() {
     }
 
     const res = await fetchWithAuth("/api/pricing/config", { method: "POST", body: JSON.stringify(payload) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.status === "ok" || res?.config) {
       const next = res?.config || payload;
       showMsg(" Pricing ayarları güncellendi", "success");
@@ -526,6 +623,10 @@ export default function AdminPanel() {
 
   const toggleUserSuspend = async (email, active) => {
     const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/suspend`, { method: "PUT", body: JSON.stringify({ active }) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(`Kullanıcı ${active ? "aktif edildi" : "askıya alındı"}`, "success");
       fetchUsers();
@@ -534,6 +635,10 @@ export default function AdminPanel() {
 
   const updateUserRole = async (email, newRole) => {
     const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/role`, { method: "PUT", body: JSON.stringify({ role: newRole }) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(`Rol güncellendi: ${newRole}`, "success");
       fetchUsers();
@@ -550,7 +655,11 @@ export default function AdminPanel() {
       description: newDiscount.description || null
     };
     const res = await fetchWithAuth("/api/pricing/discount-codes", { method: "POST", body: JSON.stringify(payload) });
-    if (res?.status === "ok" || res?.code) {
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
+    if (res?.ok || res?.code) {
       showMsg(" İndirim kodu oluşturuldu", "success");
       fetchDiscounts();
       setNewDiscount({ code: "", type: "percent", value: 0, max_usage: "", expires_at: "", description: "" });
@@ -567,6 +676,10 @@ export default function AdminPanel() {
       body: JSON.stringify({ active: next }),
     });
 
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" İndirim kodu güncellendi", "success");
       fetchDiscounts();
@@ -583,6 +696,10 @@ export default function AdminPanel() {
         method: "POST",
         body: JSON.stringify({ ...notif, user_id: notifUserId })
       });
+      if (isAdminRequestFailed(res)) {
+        showMsg(adminErrorMessage(res), "error");
+        return;
+      }
       if (res?.status === "ok") {
         showMsg(" Duyuru gönderildi", "success");
         setNotif({ title: "", message: "", type: "admin" });
@@ -594,6 +711,10 @@ export default function AdminPanel() {
       method: "POST",
       body: JSON.stringify(notif)
     });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.status === "ok") {
       showMsg(` Duyuru gönderildi: ${res.count} kişi`, "success");
       setNotif({ title: "", message: "", type: "admin" });
@@ -604,6 +725,10 @@ export default function AdminPanel() {
 
   const approveDemo = async (idOrEmail) => {
     const res = await fetchWithAuth(`/admin/demo-requests/${encodeURIComponent(idOrEmail)}/approve`, { method: "POST" });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg("Demo talebi onaylandı", "success");
       fetchDemos();
@@ -614,6 +739,10 @@ export default function AdminPanel() {
 
   const rejectDemo = async (idOrEmail) => {
     const res = await fetchWithAuth(`/admin/demo-requests/${encodeURIComponent(idOrEmail)}/reject`, { method: "POST" });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg("Demo talebi reddedildi", "success");
       fetchDemos();
@@ -638,6 +767,10 @@ export default function AdminPanel() {
   const createUser = async () => {
     if (!newUser.email || !newUser.password) return showMsg("E-posta ve şifre gerekli", "error");
     const res = await fetchWithAuth("/admin/users", { method: "POST", body: JSON.stringify(newUser) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Kullanıcı oluşturuldu", "success");
       setNewUser({ username: "", email: "", password: "", role: "user", is_active: true });
@@ -650,6 +783,10 @@ export default function AdminPanel() {
   const deleteUserByEmail = async (email) => {
     if (!window.confirm(`${email} silinsin mi?`)) return;
     const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}`, { method: "DELETE" });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Kullanıcı silindi", "success");
       fetchUsers();
@@ -665,6 +802,10 @@ export default function AdminPanel() {
       method: "POST",
       body: JSON.stringify({ password: pw }),
     });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) showMsg(" Şifre güncellendi", "success");
     else showMsg(" Şifre güncellenemedi", "error");
   };
@@ -672,6 +813,10 @@ export default function AdminPanel() {
   const lockUserById = async (userId) => {
     if (!userId) return showMsg("Kullanıcı id gerekli", "error");
     const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(userId)}/lock`, { method: "POST" });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Kullanıcı kilitlendi", "success");
       fetchUsers();
@@ -683,6 +828,10 @@ export default function AdminPanel() {
   const unlockUserById = async (userId) => {
     if (!userId) return showMsg("Kullanıcı id gerekli", "error");
     const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(userId)}/unlock`, { method: "POST" });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Kullanıcı kilidi açıldı", "success");
       fetchUsers();
@@ -698,6 +847,10 @@ export default function AdminPanel() {
     if (bulk.action === "set_role") payload.role = bulk.role;
     if (bulk.action === "set_password") payload.password = bulk.password;
     const res = await fetchWithAuth("/admin/users/bulk", { method: "POST", body: JSON.stringify(payload) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(` Toplu işlem tamam: ${res.updated} güncellendi, ${res.deleted} silindi`, "success");
       setSelectedEmails({});
@@ -736,6 +889,10 @@ export default function AdminPanel() {
         method: "POST",
         body: JSON.stringify({ mode: "upsert", users: parsed }),
       });
+      if (isAdminRequestFailed(res)) {
+        showMsg(adminErrorMessage(res), "error");
+        return;
+      }
       if (res?.ok) {
         showMsg(` Import: ${res.created} oluşturuldu, ${res.updated} güncellendi`, "success");
         setImportText("");
@@ -1602,7 +1759,9 @@ export default function AdminPanel() {
                           <button
                             onClick={async () => {
                               const r = await fetchWithAuth(`/admin/sessions/${encodeURIComponent(s.jti)}/revoke`, { method: "POST", body: JSON.stringify({}) });
-                              if (r?.ok) {
+                              if (isAdminRequestFailed(r)) {
+                                showMsg(adminErrorMessage(r), "error");
+                              } else if (r?.ok) {
                                 showMsg(" Oturum iptal edildi", "success");
                                 fetchSessions();
                               } else {
