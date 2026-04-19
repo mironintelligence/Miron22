@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
-import { authFetch, readCsrfToken } from "../auth/api";
+import LoadingScreen from "../components/LoadingScreen.jsx";
+import ConfirmSheet from "../components/ConfirmSheet.jsx";
+import PasswordSheet from "../components/PasswordSheet.jsx";
+import { authFetch, apiDetailMessage } from "../auth/api";
+import { getApiBase } from "../lib/apiBase.js";
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+const API_BASE = getApiBase();
 
 const ADMIN_STORAGE_KEY = "miron_admin_token";
 const ADMIN_STORAGE_LEGACY = "adminToken";
@@ -47,20 +51,44 @@ function markAdminPanelSession(ok) {
   }
 }
 
+function isAdminUserRole(role) {
+  return String(role || "").trim().toLowerCase() === "admin";
+}
+
+function isAdminRequestFailed(x) {
+  return Boolean(x && typeof x === "object" && x._adminRequestFailed === true);
+}
+
+function adminErrorMessage(x) {
+  if (!isAdminRequestFailed(x)) return "";
+  const d = x.detail;
+  if (typeof d === "string") return d;
+  if (Array.isArray(d)) {
+    return d.map((e) => (typeof e === "string" ? e : e?.msg || JSON.stringify(e))).join("; ") || `HTTP ${x._httpStatus || ""}`;
+  }
+  return `İstek başarısız (${x._httpStatus ?? "?"})`;
+}
+
 export default function AdminPanel() {
   const { status, user } = useAuth();
   const [token, setToken] = useState(readAdminToken());
+  const [otp, setOtp] = useState("");
+  const [mfaSetup, setMfaSetup] = useState(null);
   const [authed, setAuthed] = useState(false);
   /** Admin panel password gate (server-side cookie + ADMIN_PANEL_PASSWORD) */
   const [panelGate, setPanelGate] = useState({ phase: "loading", configured: true });
   const [panelPassword, setPanelPassword] = useState("");
   const [panelGateError, setPanelGateError] = useState("");
-  const [activeTab, setActiveTab] = useState("stats");
+  const [activeTab, setActiveTab] = useState("users");
   const [msg, setMsg] = useState("");
   const [msgType, setMsgType] = useState("info");
 
+  const confirmResolver = useRef(null);
+  const [confirmUi, setConfirmUi] = useState({ open: false, title: "", message: "", danger: false });
+  const passResolver = useRef(null);
+  const [passUi, setPassUi] = useState({ open: false, email: "" });
+
   // Data States
-  const [stats, setStats] = useState(null);
   const [config, setConfig] = useState(null);
   const [users, setUsers] = useState([]);
   const [userFilters, setUserFilters] = useState({ search: "", role: "", active: "" });
@@ -71,7 +99,6 @@ export default function AdminPanel() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditUserId, setAuditUserId] = useState("");
   const [sessions, setSessions] = useState([]);
-  const [demos, setDemos] = useState([]);
   const [logs, setLogs] = useState([]);
   const [discounts, setDiscounts] = useState([]);
 
@@ -87,8 +114,7 @@ export default function AdminPanel() {
     description: "",
   });
 
-  // Reporting + Pricing config
-  const [reports, setReports] = useState(null);
+  // Pricing config
   const [pricingConfig, setPricingConfig] = useState(null);
   const [allowRegistration, setAllowRegistration] = useState(true);
   const [maxTokensPerUser, setMaxTokensPerUser] = useState(1000);
@@ -107,7 +133,7 @@ export default function AdminPanel() {
   const [notifUserId, setNotifUserId] = useState("");
 
   useEffect(() => {
-    if (status !== "authed" || user?.role !== "admin") return;
+    if (status !== "authed" || !isAdminUserRole(user?.role)) return;
     let cancelled = false;
     (async () => {
       const stored = readAdminToken();
@@ -122,15 +148,17 @@ export default function AdminPanel() {
         setToken("");
       }
       try {
-        const res = await authFetch("/admin/panel-unlock/status", { method: "GET" });
+        const res = await authFetch("/api/admin/panel-unlock/status", { method: "GET" });
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
-        const configured = data.configured !== false;
-        if (!configured) {
+        // Sunucu: configured=true sadece ADMIN_PANEL_PASSWORD tanımlıyken
+        const passwordGateConfigured = data?.configured === true;
+        const gateUnlocked = data?.unlocked === true;
+        if (!passwordGateConfigured) {
           setPanelGate({ phase: "ready", configured: false });
           return;
         }
-        if (data.unlocked) {
+        if (gateUnlocked) {
           setPanelGate({ phase: "ready", configured: true });
         } else {
           setPanelGate({ phase: "need_password", configured: true });
@@ -146,7 +174,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     if (status !== "authed") return;
-    if (user?.role !== "admin") return;
+    if (!isAdminUserRole(user?.role)) return;
     if (panelGate.phase !== "ready") return;
     if (authed) return;
     bootstrap();
@@ -155,29 +183,61 @@ export default function AdminPanel() {
   const submitPanelBootstrap = async () => {
     setPanelGateError("");
     setMsg("");
+    const pw = String(panelPassword || "").trim();
+    if (!pw) {
+      setPanelGateError("Panel şifresi gerekli.");
+      return;
+    }
+    const otpTrim = String(otp || "").trim();
     try {
-      const res = await authFetch("/admin/panel-bootstrap", {
+      const res = await authFetch("/api/admin/panel-bootstrap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: panelPassword }),
+        body: JSON.stringify({
+          password: pw,
+          ...(otpTrim ? { otp: otpTrim } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const detail = typeof data?.detail === "string" ? data.detail : "Doğrulama başarısız.";
-        setPanelGateError(detail);
+        const fromBody = apiDetailMessage(data);
+        const fallback =
+          res.status === 401
+            ? "Oturum veya panel şifresi doğrulanamadı. Çıkış yapıp tekrar giriş deneyin."
+            : res.status === 403
+              ? "Bu işlem için yönetici hesabı gerekli."
+              : "Doğrulama başarısız.";
+        setPanelGateError(fromBody && fromBody !== "İstek başarısız" ? fromBody : fallback);
         return;
       }
-      if (data?.ok && data?.token) {
+      const adminJwt =
+        typeof data?.token === "string"
+          ? data.token.trim()
+          : typeof data?.access_token === "string"
+            ? data.access_token.trim()
+            : "";
+      if (adminJwt.length > 20) {
         setPanelPassword("");
-        setToken(data.token);
-        persistAdminToken(data.token);
+        setOtp("");
+        setToken(adminJwt);
+        persistAdminToken(adminJwt);
         markAdminPanelSession(true);
+        setMfaSetup(null);
         setAuthed(true);
         setPanelGate({ phase: "ready", configured: true });
         refreshAll();
         return;
       }
-      setPanelGateError("Beklenmeyen yanıt.");
+      if (data?.mfa_setup_required) {
+        setPanelPassword("");
+        setMfaSetup({ secret: data.secret, otpauth_url: data.otpauth_url });
+        showMsg("Authenticator ile 2FA kurulumunu tamamlayın.", "error");
+        return;
+      }
+      console.error("panel-bootstrap beklenmeyen gövde:", data);
+      setPanelGateError(
+        "Sunucu yanıtı beklenen formatta değil (admin token yok). Konsolu kontrol edin veya sayfayı yenileyin."
+      );
     } catch {
       setPanelGateError("Bağlantı hatası.");
     }
@@ -191,13 +251,16 @@ export default function AdminPanel() {
       clearAdminToken();
       setToken("");
     }
-    await exchangeAdminToken();
+    await exchangeAdminToken("");
   };
 
   const checkAuthWithToken = async (t) => {
     if (!t) return false;
     try {
-      const res = await fetch(`${API_BASE}/admin/health`, { headers: { Authorization: `Bearer ${t}` } });
+      const res = await fetch(`${API_BASE}/api/admin/health`, {
+        credentials: "include",
+        headers: { Authorization: `Bearer ${t}` },
+      });
       if (res.ok) {
         setAuthed(true);
         setToken(t);
@@ -213,13 +276,10 @@ export default function AdminPanel() {
   };
 
   const refreshAll = () => {
-    fetchStats();
     fetchConfig();
     fetchUsers();
-    fetchDemos();
     fetchDiscounts();
     fetchTemplates();
-    fetchReports();
     fetchPricingConfig();
   };
 
@@ -229,31 +289,81 @@ export default function AdminPanel() {
     setTimeout(() => setMsg(""), 4000);
   };
 
+  const openConfirm = ({ title, message, danger }) =>
+    new Promise((resolve) => {
+      confirmResolver.current = resolve;
+      setConfirmUi({ open: true, title, message, danger: !!danger });
+    });
+
+  const resolveConfirm = (v) => {
+    setConfirmUi((s) => ({ ...s, open: false }));
+    const fn = confirmResolver.current;
+    confirmResolver.current = null;
+    fn?.(v);
+  };
+
+  const openPasswordForEmail = (email) =>
+    new Promise((resolve) => {
+      passResolver.current = resolve;
+      setPassUi({ open: true, email });
+    });
+
+  const resolvePass = (passwordOrNull) => {
+    setPassUi({ open: false, email: "" });
+    const fn = passResolver.current;
+    passResolver.current = null;
+    fn?.(passwordOrNull);
+  };
+
   const fetchWithAuth = async (url, options = {}) => {
     try {
       const method = String(options.method || "GET").toUpperCase();
       const unsafe = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
-      const csrfToken = readCsrfToken();
+      const csrf =
+        typeof document !== "undefined"
+          ? String(document.cookie || "")
+              .split(";")
+              .map((c) => c.trim())
+              .find((c) => c.startsWith("csrf_token="))
+          : null;
+      const csrfToken = csrf ? decodeURIComponent(csrf.split("=", 2)[1] || "") : "";
       const res = await fetch(`${API_BASE}${url}`, {
         ...options,
+        credentials: "include",
         headers: {
           ...options.headers,
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
           ...(unsafe && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
-        }
+        },
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
+      const raw = await res.text();
+      let parsed = null;
+      if (raw) {
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = { detail: raw.slice(0, 400) };
+        }
+      }
+      if (!res.ok) {
+        const base =
+          parsed && typeof parsed === "object"
+            ? parsed
+            : { detail: typeof parsed === "string" ? parsed : `HTTP ${res.status}` };
+        console.error("AdminPanel", url, res.status, base);
+        return { _adminRequestFailed: true, _httpStatus: res.status, ...base };
+      }
+      return parsed;
     } catch (e) {
       console.error(url, e);
-      return null;
+      return { _adminRequestFailed: true, _httpStatus: 0, detail: e?.message || "Bağlantı hatası" };
     }
   };
 
-  const fetchStats = async () => setStats(await fetchWithAuth("/admin/stats"));
   const fetchConfig = async () => {
-    const data = await fetchWithAuth("/admin/config");
+    const data = await fetchWithAuth("/api/admin/config");
+    if (isAdminRequestFailed(data)) return;
     setConfig(data);
     setAllowRegistration(!!data?.allow_registration);
     const mtpu = Number(data?.max_tokens_per_user);
@@ -264,14 +374,28 @@ export default function AdminPanel() {
     if (userFilters.search) qs.set("search", userFilters.search);
     if (userFilters.role) qs.set("role", userFilters.role);
     if (userFilters.active !== "") qs.set("active", userFilters.active === "true" ? "true" : "false");
-    const path = `/admin/users${qs.toString() ? `?${qs.toString()}` : ""}`;
-    setUsers((await fetchWithAuth(path)) || []);
+    const path = `/api/admin/users${qs.toString() ? `?${qs.toString()}` : ""}`;
+    const data = await fetchWithAuth(path);
+    if (isAdminRequestFailed(data)) {
+      showMsg(adminErrorMessage(data), "error");
+      setUsers([]);
+      return;
+    }
+    setUsers(Array.isArray(data) ? data : []);
   };
-  const fetchDemos = async () => setDemos(await fetchWithAuth("/admin/demo-requests") || []);
-  const fetchDiscounts = async () => setDiscounts(await fetchWithAuth("/api/pricing/discount-codes") || []);
+  const fetchDiscounts = async () => {
+    const data = await fetchWithAuth("/api/pricing/discount-codes");
+    if (isAdminRequestFailed(data)) {
+      showMsg(adminErrorMessage(data), "error");
+      setDiscounts([]);
+      return;
+    }
+    setDiscounts(Array.isArray(data) ? data : []);
+  };
 
   const fetchPricingConfig = async () => {
     const data = await fetchWithAuth("/api/pricing/config");
+    if (isAdminRequestFailed(data)) return;
     setPricingConfig(data);
     setPricingDraft({
       base_price: Number(data?.base_price ?? 8000),
@@ -279,8 +403,6 @@ export default function AdminPanel() {
       bulk_threshold: Number(data?.bulk_threshold ?? 3),
     });
   };
-
-  const fetchReports = async () => setReports(await fetchWithAuth("/reports/overview") || null);
 
   const fetchTemplates = async () => {
     setTemplatesLoading(true);
@@ -327,6 +449,10 @@ export default function AdminPanel() {
         method: "PUT",
         body: JSON.stringify(payload),
       });
+      if (isAdminRequestFailed(res)) {
+        showMsg(adminErrorMessage(res), "error");
+        return;
+      }
       if (res?.ok) {
         showMsg(" Şablon güncellendi", "success");
         resetTemplateDraft();
@@ -339,6 +465,10 @@ export default function AdminPanel() {
         method: "POST",
         body: JSON.stringify(payload),
       });
+      if (isAdminRequestFailed(res)) {
+        showMsg(adminErrorMessage(res), "error");
+        return;
+      }
       if (res?.id || res?.ok) {
         showMsg(" Şablon oluşturuldu", "success");
         resetTemplateDraft();
@@ -351,9 +481,18 @@ export default function AdminPanel() {
 
   const deleteTemplateById = async (templateId) => {
     if (!templateId) return;
-    if (!window.confirm(`${templateId} numaralı şablon silinsin mi?`)) return;
+    const ok = await openConfirm({
+      title: "Şablonu sil",
+      message: `#${templateId} şablonu kalıcı silinecek.`,
+      danger: true,
+    });
+    if (!ok) return;
 
     const res = await fetchWithAuth(`/api/contracts/templates/${encodeURIComponent(String(templateId))}`, { method: "DELETE" });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Şablon silindi", "success");
       if (String(templateDraft.id || "") === String(templateId)) resetTemplateDraft();
@@ -364,7 +503,8 @@ export default function AdminPanel() {
   };
 
   const fetchLogs = async () => {
-    const data = await fetchWithAuth("/admin/logs/system?lines=100");
+    const data = await fetchWithAuth("/api/admin/logs/system?lines=100");
+    if (isAdminRequestFailed(data)) return;
     if (data?.logs) setLogs(data.logs);
   };
 
@@ -372,33 +512,54 @@ export default function AdminPanel() {
     const qs = new URLSearchParams();
     qs.set("limit", "200");
     if (auditUserId) qs.set("user_id", auditUserId);
-    const data = await fetchWithAuth(`/admin/audit-logs?${qs.toString()}`);
+    const data = await fetchWithAuth(`/api/admin/audit-logs?${qs.toString()}`);
+    if (isAdminRequestFailed(data)) {
+      setAuditLogs([]);
+      return;
+    }
     setAuditLogs(Array.isArray(data) ? data : []);
   };
 
   const fetchSessions = async () => {
-    const data = await fetchWithAuth("/admin/sessions?limit=200");
+    const data = await fetchWithAuth("/api/admin/sessions?limit=200");
+    if (isAdminRequestFailed(data)) {
+      setSessions([]);
+      return;
+    }
     setSessions(Array.isArray(data?.sessions) ? data.sessions : []);
   };
 
-  const exchangeAdminToken = async () => {
+  const exchangeAdminToken = async (otpValue) => {
     try {
-      const res = await authFetch("/admin/exchange", {
+      const res = await authFetch("/api/admin/exchange", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ otp: otpValue || undefined }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && data?.ok && data?.token) {
-        setToken(data.token);
-        persistAdminToken(data.token);
+      const exJwt =
+        typeof data?.token === "string"
+          ? data.token.trim()
+          : typeof data?.access_token === "string"
+            ? data.access_token.trim()
+            : "";
+      if (res.ok && exJwt.length > 20) {
+        setToken(exJwt);
+        persistAdminToken(exJwt);
         markAdminPanelSession(true);
         setAuthed(true);
+        setMfaSetup(null);
+        setOtp("");
         refreshAll();
         return;
       }
+      if (res.ok && data?.mfa_setup_required) {
+        setMfaSetup({ secret: data.secret, otpauth_url: data.otpauth_url });
+        showMsg("2FA kurulumu gerekli. Authenticator uygulamanıza ekleyip kodu girin.", "error");
+        return;
+      }
       if (res.status === 401) {
-        showMsg("Yetkisiz veya panel kilidi gerekli.", "error");
+        showMsg("2FA kodu gerekli veya hatalı.", "error");
         return;
       }
       showMsg(data?.detail || "Yetkisiz erişim", "error");
@@ -407,9 +568,37 @@ export default function AdminPanel() {
     }
   };
 
+  const confirmMfaSetup = async () => {
+    if (!mfaSetup?.secret || !otp) return showMsg("2FA kodu gerekli", "error");
+    try {
+      const res = await authFetch("/api/admin/2fa/setup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret: mfaSetup.secret, otp }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "2FA doğrulanamadı");
+      showMsg(" 2FA aktif edildi", "success");
+      await exchangeAdminToken(otp);
+    } catch (e) {
+      showMsg(e.message || "2FA doğrulanamadı", "error");
+    }
+  };
+
   const toggleEmergency = async (val) => {
-    if (!window.confirm(`ACİL DURUM MODU: ${val ? "AÇILSIN MI? (Sistem Kapanır)" : "KAPATILSIN MI?"}`)) return;
-    const res = await fetchWithAuth("/admin/emergency-switch", { method: "POST", body: JSON.stringify({ enable: val }) });
+    const ok = await openConfirm({
+      title: val ? "Bakım modunu aç" : "Bakım modunu kapat",
+      message: val
+        ? "Yönetici olmayan kullanıcılar giriş yapamaz. Devam edilsin mi?"
+        : "Tüm kullanıcılar tekrar giriş yapabilir.",
+      danger: val,
+    });
+    if (!ok) return;
+    const res = await fetchWithAuth("/api/admin/emergency-switch", { method: "POST", body: JSON.stringify({ enable: val }) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       setConfig(prev => ({ ...prev, maintenance_mode: res.maintenance_mode }));
       showMsg(`Acil durum modu ${val ? "AKTİF" : "PASİF"}`, val ? "error" : "success");
@@ -428,7 +617,11 @@ export default function AdminPanel() {
       return;
     }
 
-    const res = await fetchWithAuth("/admin/config", { method: "POST", body: JSON.stringify(payload) });
+    const res = await fetchWithAuth("/api/admin/config", { method: "POST", body: JSON.stringify(payload) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Sistem ayarları güncellendi", "success");
       setConfig((prev) => ({ ...(prev || {}), ...(res?.config || payload) }));
@@ -450,6 +643,10 @@ export default function AdminPanel() {
     }
 
     const res = await fetchWithAuth("/api/pricing/config", { method: "POST", body: JSON.stringify(payload) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.status === "ok" || res?.config) {
       const next = res?.config || payload;
       showMsg(" Pricing ayarları güncellendi", "success");
@@ -465,7 +662,11 @@ export default function AdminPanel() {
   };
 
   const toggleUserSuspend = async (email, active) => {
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/suspend`, { method: "PUT", body: JSON.stringify({ active }) });
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(email)}/suspend`, { method: "PUT", body: JSON.stringify({ active }) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(`Kullanıcı ${active ? "aktif edildi" : "askıya alındı"}`, "success");
       fetchUsers();
@@ -473,7 +674,11 @@ export default function AdminPanel() {
   };
 
   const updateUserRole = async (email, newRole) => {
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/role`, { method: "PUT", body: JSON.stringify({ role: newRole }) });
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(email)}/role`, { method: "PUT", body: JSON.stringify({ role: newRole }) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(`Rol güncellendi: ${newRole}`, "success");
       fetchUsers();
@@ -490,7 +695,11 @@ export default function AdminPanel() {
       description: newDiscount.description || null
     };
     const res = await fetchWithAuth("/api/pricing/discount-codes", { method: "POST", body: JSON.stringify(payload) });
-    if (res?.status === "ok" || res?.code) {
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
+    if (res?.ok || res?.code) {
       showMsg(" İndirim kodu oluşturuldu", "success");
       fetchDiscounts();
       setNewDiscount({ code: "", type: "percent", value: 0, max_usage: "", expires_at: "", description: "" });
@@ -500,13 +709,22 @@ export default function AdminPanel() {
   const toggleDiscount = async (code, active) => {
     if (!code) return;
     const next = !active;
-    if (!window.confirm(`${code} için ${next ? "AKTİF" : "PASİF"} durumu uygulanacak. Devam edilsin mi?`)) return;
+    const ok = await openConfirm({
+      title: "İndirim kodu",
+      message: `${code} kodu ${next ? "aktif" : "pasif"} yapılacak.`,
+      danger: false,
+    });
+    if (!ok) return;
 
     const res = await fetchWithAuth(`/api/pricing/discount-codes/${encodeURIComponent(code)}/toggle`, {
       method: "POST",
       body: JSON.stringify({ active: next }),
     });
 
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" İndirim kodu güncellendi", "success");
       fetchDiscounts();
@@ -523,6 +741,10 @@ export default function AdminPanel() {
         method: "POST",
         body: JSON.stringify({ ...notif, user_id: notifUserId })
       });
+      if (isAdminRequestFailed(res)) {
+        showMsg(adminErrorMessage(res), "error");
+        return;
+      }
       if (res?.status === "ok") {
         showMsg(" Duyuru gönderildi", "success");
         setNotif({ title: "", message: "", type: "admin" });
@@ -534,6 +756,10 @@ export default function AdminPanel() {
       method: "POST",
       body: JSON.stringify(notif)
     });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.status === "ok") {
       showMsg(` Duyuru gönderildi: ${res.count} kişi`, "success");
       setNotif({ title: "", message: "", type: "admin" });
@@ -542,30 +768,10 @@ export default function AdminPanel() {
     }
   };
 
-  const approveDemo = async (idOrEmail) => {
-    const res = await fetchWithAuth(`/admin/demo-requests/${encodeURIComponent(idOrEmail)}/approve`, { method: "POST" });
-    if (res?.ok) {
-      showMsg("Demo talebi onaylandı", "success");
-      fetchDemos();
-    } else {
-      showMsg("Demo talebi onaylanamadı", "error");
-    }
-  };
-
-  const rejectDemo = async (idOrEmail) => {
-    const res = await fetchWithAuth(`/admin/demo-requests/${encodeURIComponent(idOrEmail)}/reject`, { method: "POST" });
-    if (res?.ok) {
-      showMsg("Demo talebi reddedildi", "success");
-      fetchDemos();
-    } else {
-      showMsg("Demo talebi reddedilemedi", "error");
-    }
-  };
-
   const logoutAdmin = async () => {
     try {
-      await fetchWithAuth("/admin/logout", { method: "POST", body: JSON.stringify({}) });
-      await authFetch("/admin/panel-unlock/logout", { method: "POST" }).catch(() => {});
+      await fetchWithAuth("/api/admin/logout", { method: "POST", body: JSON.stringify({}) });
+      await authFetch("/api/admin/panel-unlock/logout", { method: "POST" }).catch(() => {});
     } catch (e) {
       return;
     } finally {
@@ -577,7 +783,14 @@ export default function AdminPanel() {
 
   const createUser = async () => {
     if (!newUser.email || !newUser.password) return showMsg("E-posta ve şifre gerekli", "error");
-    const res = await fetchWithAuth("/admin/users", { method: "POST", body: JSON.stringify(newUser) });
+    if (String(newUser.password).length < 8) {
+      return showMsg("Şifre en az 8 karakter; büyük harf, küçük harf, rakam ve özel karakter içermeli (kayıt ile aynı kurallar).", "error");
+    }
+    const res = await fetchWithAuth("/api/admin/users", { method: "POST", body: JSON.stringify(newUser) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Kullanıcı oluşturuldu", "success");
       setNewUser({ username: "", email: "", password: "", role: "user", is_active: true });
@@ -588,8 +801,17 @@ export default function AdminPanel() {
   };
 
   const deleteUserByEmail = async (email) => {
-    if (!window.confirm(`${email} silinsin mi?`)) return;
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}`, { method: "DELETE" });
+    const ok = await openConfirm({
+      title: "Kullanıcıyı sil",
+      message: `${email} kalıcı olarak silinecek. Bu işlem geri alınamaz.`,
+      danger: true,
+    });
+    if (!ok) return;
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(email)}`, { method: "DELETE" });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Kullanıcı silindi", "success");
       fetchUsers();
@@ -599,19 +821,27 @@ export default function AdminPanel() {
   };
 
   const setPassword = async (email) => {
-    const pw = window.prompt("Yeni şifre:");
+    const pw = await openPasswordForEmail(email);
     if (!pw) return;
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/set-password`, {
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(email)}/set-password`, {
       method: "POST",
       body: JSON.stringify({ password: pw }),
     });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) showMsg(" Şifre güncellendi", "success");
     else showMsg(" Şifre güncellenemedi", "error");
   };
 
   const lockUserById = async (userId) => {
     if (!userId) return showMsg("Kullanıcı id gerekli", "error");
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(userId)}/lock`, { method: "POST" });
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(userId)}/lock`, { method: "POST" });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Kullanıcı kilitlendi", "success");
       fetchUsers();
@@ -622,7 +852,11 @@ export default function AdminPanel() {
 
   const unlockUserById = async (userId) => {
     if (!userId) return showMsg("Kullanıcı id gerekli", "error");
-    const res = await fetchWithAuth(`/admin/users/${encodeURIComponent(userId)}/unlock`, { method: "POST" });
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(userId)}/unlock`, { method: "POST" });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(" Kullanıcı kilidi açıldı", "success");
       fetchUsers();
@@ -634,10 +868,22 @@ export default function AdminPanel() {
   const applyBulk = async () => {
     const emails = Object.keys(selectedEmails).filter((k) => selectedEmails[k]);
     if (!emails.length) return showMsg("Seçili kullanıcı yok", "error");
+    if (bulk.action === "delete") {
+      const ok = await openConfirm({
+        title: "Toplu silme",
+        message: `${emails.length} kullanıcı kalıcı silinecek:\n${emails.slice(0, 8).join("\n")}${emails.length > 8 ? "\n…" : ""}`,
+        danger: true,
+      });
+      if (!ok) return;
+    }
     const payload = { action: bulk.action, emails };
     if (bulk.action === "set_role") payload.role = bulk.role;
     if (bulk.action === "set_password") payload.password = bulk.password;
-    const res = await fetchWithAuth("/admin/users/bulk", { method: "POST", body: JSON.stringify(payload) });
+    const res = await fetchWithAuth("/api/admin/users/bulk", { method: "POST", body: JSON.stringify(payload) });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
     if (res?.ok) {
       showMsg(` Toplu işlem tamam: ${res.updated} güncellendi, ${res.deleted} silindi`, "success");
       setSelectedEmails({});
@@ -651,7 +897,8 @@ export default function AdminPanel() {
     try {
       const qs = new URLSearchParams();
       qs.set("format", format);
-      const res = await fetch(`${API_BASE}/admin/users/export?${qs.toString()}`, {
+      const res = await fetch(`${API_BASE}/api/admin/users/export?${qs.toString()}`, {
+        credentials: "include",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Export başarısız");
@@ -671,10 +918,14 @@ export default function AdminPanel() {
     try {
       const parsed = JSON.parse(importText || "[]");
       if (!Array.isArray(parsed) || parsed.length === 0) return showMsg("Import için JSON array gerekli", "error");
-      const res = await fetchWithAuth("/admin/users/import", {
+      const res = await fetchWithAuth("/api/admin/users/import", {
         method: "POST",
         body: JSON.stringify({ mode: "upsert", users: parsed }),
       });
+      if (isAdminRequestFailed(res)) {
+        showMsg(adminErrorMessage(res), "error");
+        return;
+      }
       if (res?.ok) {
         showMsg(` Import: ${res.created} oluşturuldu, ${res.updated} güncellendi`, "success");
         setImportText("");
@@ -687,9 +938,11 @@ export default function AdminPanel() {
     }
   };
 
-  if (status === "loading") return null;
-  if (status !== "authed") return null;
-  if (user?.role !== "admin") return null;
+  if (status === "loading") {
+    return <LoadingScreen variant="full" />;
+  }
+  if (status !== "authed") return <Navigate to="/" replace />;
+  if (!isAdminUserRole(user?.role)) return <Navigate to="/unauthorized" replace />;
 
   if (panelGate.phase === "loading") {
     return (
@@ -718,29 +971,70 @@ export default function AdminPanel() {
         <div className="p-10 border border-amber-900/30 bg-black rounded-2xl shadow-2xl max-w-md w-full">
           <h1 className="text-2xl font-bold mb-3 text-center tracking-widest">YÖNETİCİ PANELİ</h1>
           <p className="text-xs text-zinc-500 text-center mb-6">
-            Panel şifresi ile giriş. (2FA kapatıldı.)
+            Tek adımda panel şifresi ve (etkinse) 2FA kodu. Doğrulama sunucuda yapılır.
           </p>
           {panelGateError ? <div className="mb-4 text-sm text-red-500 text-center">{panelGateError}</div> : null}
           {msg ? <div className="mb-4 text-sm text-red-500 text-center">{msg}</div> : null}
 
-          <input
-            type="password"
-            autoComplete="current-password"
-            className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none mb-3"
-            placeholder="Panel şifresi"
-            value={panelPassword}
-            onChange={(e) => setPanelPassword(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submitPanelBootstrap();
-            }}
-          />
-          <button
-            type="button"
-            onClick={submitPanelBootstrap}
-            className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition mb-3"
-          >
-            Panele gir
-          </button>
+          {mfaSetup?.secret && (
+            <div className="border border-amber-900/30 rounded-xl p-4 bg-amber-900/5 text-xs text-amber-200/80 space-y-2 mb-4">
+              <div className="font-bold text-amber-400">2FA Kurulumu</div>
+              <div>Authenticator uygulamanıza ekleyin:</div>
+              <div className="font-mono break-all">{mfaSetup.otpauth_url}</div>
+              <div className="font-mono">Secret: {mfaSetup.secret}</div>
+            </div>
+          )}
+
+          {!mfaSetup?.secret && (
+            <>
+              <input
+                type="password"
+                autoComplete="current-password"
+                className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none mb-3"
+                placeholder="Panel şifresi"
+                value={panelPassword}
+                onChange={(e) => setPanelPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitPanelBootstrap();
+                }}
+              />
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none mb-4"
+                placeholder="2FA kodu (Authenticator etkinse)"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={submitPanelBootstrap}
+                className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition mb-3"
+              >
+                Panele gir
+              </button>
+            </>
+          )}
+
+          {mfaSetup?.secret ? (
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Authenticator kodu (6 hane)"
+                className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:border-amber-600 outline-none"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={confirmMfaSetup}
+                className="w-full bg-amber-700 text-black font-bold py-3 hover:bg-amber-600 transition"
+              >
+                2FA kur ve devam et
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -762,7 +1056,7 @@ export default function AdminPanel() {
       <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto">
         {/* Navigation */}
         <div className="flex flex-wrap gap-2 mb-8 border-b border-zinc-800 pb-1">
-          {["stats", "reports", "users", "demos", "templates", "notifications", "audit", "sessions", "master", "logs", "discounts"].map((tab) => (
+          {["users", "templates", "notifications", "audit", "sessions", "master", "logs", "discounts"].map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -772,21 +1066,14 @@ export default function AdminPanel() {
                 if (tab === "sessions") fetchSessions();
                 if (tab === "users") fetchUsers();
                 if (tab === "templates") fetchTemplates();
-                if (tab === "reports") fetchReports();
                 if (tab === "discounts") fetchDiscounts();
               }}
               className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
                 activeTab === tab ? "text-amber-500 border-b-2 border-amber-500" : "text-zinc-600 hover:text-zinc-400"
               }`}
             >
-              {tab === "stats"
-                ? "İstatistik"
-                : tab === "reports"
-                ? "Raporlar"
-                : tab === "users"
+              {tab === "users"
                 ? "Kullanıcılar"
-                : tab === "demos"
-                ? "Demo Talepleri"
                 : tab === "templates"
                 ? "İçerik Yönetimi"
                 : tab === "notifications"
@@ -810,52 +1097,6 @@ export default function AdminPanel() {
             className={`mb-6 p-4 rounded border ${msgType === "error" ? "border-red-900 bg-red-900/10 text-red-400" : "border-green-900 bg-green-900/10 text-green-400"}`}>
             {msg}
           </motion.div>
-        )}
-
-        {/* STATS DASHBOARD */}
-        {activeTab === "stats" && stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <StatCard label="Total Users" value={stats.total_users} />
-            <StatCard label="Active Users" value={stats.active_users} color="text-green-400" />
-            <StatCard label="Demo Users" value={stats.demo_users} color="text-blue-400" />
-            <StatCard label="Pending Demos" value={stats.pending_requests} color="text-amber-400" />
-            <div className="md:col-span-4 bg-zinc-900/30 p-6 rounded border border-zinc-800">
-              <div className="text-xs text-zinc-500 uppercase mb-2">Sistem Durumu</div>
-              <div className="text-xl text-white font-mono">{stats.system_status}</div>
-              <div className="text-xs text-zinc-600 mt-1">Last Restart: {stats.last_restart}</div>
-            </div>
-          </div>
-        )}
-
-        {/* REPORTS OVERVIEW */}
-        {activeTab === "reports" && reports && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <StatCard label="Total Cases" value={reports.total_cases ?? 0} />
-            <StatCard
-              label="Total Collected"
-              value={typeof reports.total_collected === "number" ? reports.total_collected.toFixed(2) : reports.total_collected ?? 0}
-              color="text-green-400"
-            />
-            <StatCard label="ICRA" value={reports.by_type?.icra ?? 0} color="text-blue-400" />
-            <StatCard label="DAVA" value={reports.by_type?.dava ?? 0} color="text-amber-400" />
-            <div className="md:col-span-4 bg-zinc-900/30 p-6 rounded border border-zinc-800">
-              <div className="text-xs text-zinc-500 uppercase mb-3">Bölüm Dağılımı</div>
-              <div className="grid sm:grid-cols-3 gap-3 text-sm">
-                <div className="p-3 rounded border border-zinc-800 bg-black/20">
-                  <div className="text-zinc-500 text-xs uppercase">icra</div>
-                  <div className="font-bold text-white">{reports.by_type?.icra ?? 0}</div>
-                </div>
-                <div className="p-3 rounded border border-zinc-800 bg-black/20">
-                  <div className="text-zinc-500 text-xs uppercase">dava</div>
-                  <div className="font-bold text-white">{reports.by_type?.dava ?? 0}</div>
-                </div>
-                <div className="p-3 rounded border border-zinc-800 bg-black/20">
-                  <div className="text-zinc-500 text-xs uppercase">danismanlik</div>
-                  <div className="font-bold text-white">{reports.by_type?.danismanlik ?? 0}</div>
-                </div>
-              </div>
-            </div>
-          </div>
         )}
 
         {/* NOTIFICATIONS */}
@@ -1040,6 +1281,9 @@ export default function AdminPanel() {
                     value={newUser.password}
                     onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                   />
+                  <p className="text-[11px] text-zinc-500 leading-snug">
+                    En az 8 karakter; büyük harf, küçük harf, rakam ve özel karakter (ör. !@#) — normal kayıt kurallarıyla aynı.
+                  </p>
                   <div className="grid grid-cols-2 gap-2">
                     <select
                       className="bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
@@ -1497,8 +1741,10 @@ export default function AdminPanel() {
                         {!s.revoked ? (
                           <button
                             onClick={async () => {
-                              const r = await fetchWithAuth(`/admin/sessions/${encodeURIComponent(s.jti)}/revoke`, { method: "POST", body: JSON.stringify({}) });
-                              if (r?.ok) {
+                              const r = await fetchWithAuth(`/api/admin/sessions/${encodeURIComponent(s.jti)}/revoke`, { method: "POST", body: JSON.stringify({}) });
+                              if (isAdminRequestFailed(r)) {
+                                showMsg(adminErrorMessage(r), "error");
+                              } else if (r?.ok) {
                                 showMsg(" Oturum iptal edildi", "success");
                                 fetchSessions();
                               } else {
@@ -1591,74 +1837,23 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* DEMO REQUESTS */}
-        {activeTab === "demos" && (
-          <div className="bg-zinc-900/20 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="p-4 flex items-center justify-between border-b border-zinc-800">
-              <div className="text-zinc-400 text-sm">
-                Toplam: <span className="text-white font-bold">{demos.length}</span>
-              </div>
-              <button
-                onClick={fetchDemos}
-                className="text-xs border border-zinc-700 px-3 py-2 rounded hover:bg-white/5"
-              >
-                Yenile
-              </button>
-            </div>
-            <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-900/50 text-zinc-500 uppercase text-xs">
-                <tr>
-                  <th className="p-3">Kişi</th>
-                  <th className="p-3">E-posta</th>
-                  <th className="p-3">Durum</th>
-                  <th className="p-3">Süre</th>
-                  <th className="p-3">İşlem</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800">
-                {demos.map((d) => (
-                  <tr key={d.id || d.email} className="hover:bg-zinc-900/30 transition">
-                    <td className="p-3 text-white">
-                      {(d.first_name || "-") + " " + (d.last_name || "")}
-                    </td>
-                    <td className="p-3 text-zinc-300 font-mono">{d.email}</td>
-                    <td className="p-3">
-                      <span className={`text-xs px-2 py-1 rounded ${d.status === "approved" ? "bg-green-900/30 text-green-400" : d.status === "rejected" ? "bg-red-900/30 text-red-400" : "bg-amber-900/30 text-amber-400"}`}>
-                        {d.status === "approved" ? "ONAYLANDI" : d.status === "rejected" ? "RED" : "BEKLİYOR"}
-                      </span>
-                    </td>
-                    <td className="p-3 text-xs text-zinc-500">
-                      {d.approved_until ? String(d.approved_until).split("T")[0] : "—"}
-                    </td>
-                    <td className="p-3">
-                      {d.status === "pending" ? (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => approveDemo(d.id || d.email)}
-                            className="text-xs border border-green-900/40 px-2 py-1 rounded hover:bg-green-900/20 text-green-400"
-                          >
-                            Onayla
-                          </button>
-                          <button
-                            onClick={() => rejectDemo(d.id || d.email)}
-                            className="text-xs border border-red-900/40 px-2 py-1 rounded hover:bg-red-900/20 text-red-400"
-                          >
-                            Reddet
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-zinc-600">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {demos.length === 0 ? <div className="p-6 text-sm text-zinc-600">Demo talebi yok.</div> : null}
-          </div>
-        )}
-
       </div>
+
+      <ConfirmSheet
+        open={confirmUi.open}
+        title={confirmUi.title}
+        message={confirmUi.message}
+        danger={confirmUi.danger}
+        confirmLabel={confirmUi.danger ? "Sil" : "Onayla"}
+        cancelLabel="İptal"
+        onResolve={resolveConfirm}
+      />
+      <PasswordSheet
+        open={passUi.open}
+        title="Yeni şifre belirle"
+        email={passUi.email}
+        onResolve={resolvePass}
+      />
     </div>
   );
 }
@@ -1669,11 +1864,3 @@ function isLockedUntil(lockedUntil) {
   return Number.isFinite(ms) && ms > Date.now();
 }
 
-function StatCard({ label, value, color = "text-white" }) {
-  return (
-    <div className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-xl flex flex-col justify-between">
-      <div className="text-zinc-500 text-xs uppercase tracking-wider mb-2">{label}</div>
-      <div className={`text-3xl font-bold ${color}`}>{value}</div>
-    </div>
-  );
-}

@@ -419,6 +419,14 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
         increment_failed_login(email_norm)
         raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
 
+    if maintenance_mode_enabled():
+        r = str(user.get("role") or "user").strip().lower()
+        if r != "admin":
+            raise HTTPException(
+                status_code=503,
+                detail="Sistem bakım modunda. Yalnızca yönetici hesapları giriş yapabilir. Lütfen daha sonra tekrar deneyin.",
+            )
+
     if purge_if_demo_expired(user):
         raise HTTPException(status_code=401, detail="DEMO_EXPIRED")
 

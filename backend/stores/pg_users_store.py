@@ -85,11 +85,13 @@ def create_user(user: Dict[str, Any]) -> str:
         return uid
 
     cols = ["email", "password_hash", "first_name", "last_name", "role", "is_active", "created_at"]
+    fn = user.get("firstName") if user.get("firstName") is not None else user.get("first_name")
+    ln = user.get("lastName") if user.get("lastName") is not None else user.get("last_name")
     vals = [
         _norm_email(user["email"]),
         user["hashed_password"],
-        user.get("firstName"),
-        user.get("lastName"),
+        (fn if fn is not None else "") or "",
+        (ln if ln is not None else "") or "",
         user.get("role", "user"),
         user.get("is_active", True),
         "NOW()",

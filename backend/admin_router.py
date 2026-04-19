@@ -5,14 +5,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from utils.request_meta import client_meta
 from fastapi import APIRouter, Depends, HTTPException, Body, Request, Header
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from admin_auth import require_admin, issue_admin_token
 from security import hash_password, verify_password, sanitize_user_for_response
-from auth_router import _validate_password_complexity
 from stores.pg_users_store import (
     create_user, find_user_by_email, find_user_by_id, list_users,
     delete_user, update_user_role, update_user_password, update_user_active,
@@ -24,7 +22,7 @@ from stores.demo_requests_store import list_demo_requests as store_list_demo_req
 from services.mail_service import send_reset_password_email
 from utils.totp import generate_base32_secret, verify_totp
 from admin_auth import get_admin_sessions, revoke_admin_session
-from user_auth import get_current_user
+from user_auth import get_current_user, user_has_admin_role
 from admin_panel_gate import (
     COOKIE_NAME as ADMIN_PANEL_GATE_COOKIE,
     issue_admin_panel_gate_jwt,
@@ -77,17 +75,11 @@ def _atomic_write_json(path: Path, data) -> None:
 # Models
 # ------------------------
 class SetPasswordIn(BaseModel):
-    password: str = Field(min_length=8, max_length=128)
-
-    @validator("password")
-    def _check(cls, v):
-        return _validate_password_complexity(v)
+    password: str = Field(min_length=4, max_length=128)
 
 class AdminLoginIn(BaseModel):
     email: EmailStr
-    # Accept any plausible password length at login; complexity is enforced
-    # when setting/changing passwords, not when presenting them.
-    password: str = Field(min_length=1, max_length=256)
+    password: str = Field(min_length=4, max_length=128)
     otp: Optional[str] = Field(default=None, max_length=12)
 
 class CreateUserIn(BaseModel):
@@ -98,10 +90,6 @@ class CreateUserIn(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     role: str = Field(default="user", pattern="^(user|admin|demo)$")
     is_active: bool = True
-
-    @validator("password")
-    def _check(cls, v):
-        return _validate_password_complexity(v)
 
 class UpdateRoleIn(BaseModel):
     role: str = Field(..., pattern="^(user|admin|demo)$")
@@ -116,13 +104,7 @@ class BulkUsersIn(BaseModel):
     action: str = Field(..., pattern="^(activate|suspend|set_role|delete|set_password)$")
     emails: List[EmailStr] = Field(min_length=1, max_length=1000)
     role: Optional[str] = Field(default=None, pattern="^(user|admin|demo)$")
-    password: Optional[str] = Field(default=None, min_length=8, max_length=128)
-
-    @validator("password")
-    def _check(cls, v):
-        if v is None:
-            return v
-        return _validate_password_complexity(v)
+    password: Optional[str] = Field(default=None, min_length=4, max_length=128)
 
 class ImportUsersIn(BaseModel):
     mode: str = Field(default="skip", pattern="^(skip|upsert)$")
@@ -158,6 +140,19 @@ class AdminPanelBootstrapIn(BaseModel):
     password: str = Field(min_length=1, max_length=256)
     otp: Optional[str] = Field(default=None, max_length=12)
 
+    @field_validator("password", mode="before")
+    @classmethod
+    def _strip_panel_password(cls, v: object) -> str:
+        return str(v or "").strip()
+
+    @field_validator("otp", mode="before")
+    @classmethod
+    def _normalize_panel_otp(cls, v: object) -> Optional[str]:
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s or None
+
 
 # ------------------------
 # Admin panel password gate (httpOnly cookie; ADMIN_PANEL_PASSWORD env)
@@ -166,8 +161,8 @@ class AdminPanelBootstrapIn(BaseModel):
 
 @router.get("/panel-unlock/status")
 def admin_panel_unlock_status(request: Request, user: Dict[str, Any] = Depends(get_current_user)):
-    if (user.get("role") or "") != "admin":
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+    if not user_has_admin_role(user):
+        raise HTTPException(status_code=403, detail="Bu işlem için hesabınızın rolü 'admin' olmalı.")
     configured = bool((os.getenv("ADMIN_PANEL_PASSWORD") or "").strip())
     if not configured:
         return {"unlocked": True, "configured": False}
@@ -177,13 +172,16 @@ def admin_panel_unlock_status(request: Request, user: Dict[str, Any] = Depends(g
 
 @router.post("/panel-unlock")
 def admin_panel_unlock(body: AdminPanelUnlockIn, request: Request, user: Dict[str, Any] = Depends(get_current_user)):
-    if (user.get("role") or "") != "admin":
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+    if not user_has_admin_role(user):
+        raise HTTPException(status_code=403, detail="Bu işlem için hesabınızın rolü 'admin' olmalı.")
     expected = (os.getenv("ADMIN_PANEL_PASSWORD") or "").strip()
     if not expected:
         raise HTTPException(status_code=503, detail="ADMIN_PANEL_PASSWORD sunucuda ayarlı değil.")
 
-    ip, ua = client_meta(request)
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
 
     if not secrets.compare_digest(body.password, expected):
         log_audit(str(user.get("id")), "ADMIN_PANEL_GATE_FAIL", "auth", {"reason": "invalid_password"}, ip, ua)
@@ -207,8 +205,8 @@ def admin_panel_unlock(body: AdminPanelUnlockIn, request: Request, user: Dict[st
 
 @router.post("/panel-unlock/logout")
 def admin_panel_unlock_logout(request: Request, user: Dict[str, Any] = Depends(get_current_user)):
-    if (user.get("role") or "") != "admin":
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+    if not user_has_admin_role(user):
+        raise HTTPException(status_code=403, detail="Bu işlem için hesabınızın rolü 'admin' olmalı.")
     resp = JSONResponse({"ok": True})
     secure = request.url.scheme == "https"
     resp.delete_cookie(key=ADMIN_PANEL_GATE_COOKIE, path="/", samesite="none" if secure else "lax", secure=secure)
@@ -216,11 +214,31 @@ def admin_panel_unlock_logout(request: Request, user: Dict[str, Any] = Depends(g
 
 
 def _admin_exchange_payload(request: Request, user: Dict[str, Any], otp: Optional[str], via: str = "exchange") -> Dict[str, Any]:
-    """Panel kilidi aşılmış kabul edilir; admin JWT üretimi (2FA kapatıldı)."""
-    if (user.get("role") or "") != "admin":
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+    """Panel kilidi aşılmış kabul edilir; MFA ve admin token üretimi."""
+    if not user_has_admin_role(user):
+        raise HTTPException(status_code=403, detail="Bu işlem için hesabınızın rolü 'admin' olmalı.")
 
-    ip, ua = client_meta(request)
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
+
+    mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "false") or "").lower() == "true"
+    mfa = get_user_mfa(user_id=str(user.get("id")))
+
+    if mfa_required and not bool(mfa.get("enabled")):
+        secret = generate_base32_secret()
+        issuer = (os.getenv("MFA_ISSUER") or "Miron AI").strip()
+        email = (user.get("email") or "").strip().lower()
+        label = f"{issuer}:{email or 'admin'}"
+        otpauth_url = f"otpauth://totp/{label}?secret={secret}&issuer={issuer}"
+        log_audit(str(user.get("id")), "ADMIN_MFA_SETUP_REQUIRED", "auth", {"via": via}, ip, ua)
+        return {"ok": False, "mfa_setup_required": True, "secret": secret, "otpauth_url": otpauth_url}
+
+    if bool(mfa.get("enabled")):
+        if not otp or not verify_totp(str(mfa.get("secret") or ""), str(otp or "")):
+            log_audit(str(user.get("id")), "ADMIN_MFA_FAILED", "auth", {"via": via}, ip, ua)
+            raise HTTPException(status_code=401, detail="2FA doğrulaması gerekli.")
 
     token = issue_admin_token(admin_id=str(user.get("id")), ip=ip, ua=ua)
     log_audit(str(user.get("id")), "ADMIN_EXCHANGE_SUCCESS", "auth", None, ip, ua)
@@ -230,13 +248,16 @@ def _admin_exchange_payload(request: Request, user: Dict[str, Any], otp: Optiona
 @router.post("/panel-bootstrap")
 def admin_panel_bootstrap(body: AdminPanelBootstrapIn, request: Request, user: Dict[str, Any] = Depends(get_current_user)):
     """Panel şifresi + (varsa) 2FA tek adımda; httpOnly gate çerezi set edilir, admin JWT döner."""
-    if (user.get("role") or "") != "admin":
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+    if not user_has_admin_role(user):
+        raise HTTPException(status_code=403, detail="Bu işlem için hesabınızın rolü 'admin' olmalı.")
     expected = (os.getenv("ADMIN_PANEL_PASSWORD") or "").strip()
     if not expected:
         raise HTTPException(status_code=503, detail="ADMIN_PANEL_PASSWORD sunucuda ayarlı değil.")
 
-    ip, ua = client_meta(request)
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
 
     if not secrets.compare_digest(body.password, expected):
         log_audit(str(user.get("id")), "ADMIN_PANEL_GATE_FAIL", "auth", {"reason": "invalid_password"}, ip, ua)
@@ -271,7 +292,7 @@ def _bootstrap_default_admin() -> None:
     default_pw = os.getenv("DEFAULT_ADMIN_PASSWORD")
     
     admin = find_user_by_email(default_email)
-    if admin and admin.get("role") != "admin":
+    if admin and not user_has_admin_role(admin):
         update_user_role(default_email, "admin")
         update_user_active(default_email, True)
         log_audit(str(admin.get("id")), "ADMIN_BOOTSTRAP_PROMOTE", "system", {"email": default_email})
@@ -324,16 +345,13 @@ def admin_login(body: AdminLoginIn, request: Request):
     email = str(body.email).strip().lower()
     user = find_user_by_email(email)
     
-    ip, ua = client_meta(request)
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient": ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
 
     if (os.getenv("BOOTSTRAP_MODE", "false") or "").lower() == "true":
         default_email = os.getenv("DEFAULT_ADMIN_EMAIL") or "cdtmiron@gmail.com"
-        default_pw = os.getenv("DEFAULT_ADMIN_PASSWORD") or ""
-        # secrets.compare_digest avoids password-length timing leaks on the
-        # default admin bootstrap path.
-        if email == default_email and default_pw and secrets.compare_digest(
-            body.password or "", default_pw
-        ):
+        if email == default_email and body.password == os.getenv("DEFAULT_ADMIN_PASSWORD"):
             if not user:
                 raise HTTPException(status_code=401, detail="Admin kullanıcı bulunamadı. Önce bootstrap tamamlanmalı.")
 
@@ -341,9 +359,24 @@ def admin_login(body: AdminLoginIn, request: Request):
         log_audit(None, "ADMIN_LOGIN_FAILED", email, {"reason": "invalid_credentials"}, ip, ua)
         raise HTTPException(status_code=401, detail="Geçersiz admin bilgileri.")
         
-    if user.get("role") != "admin":
+    if not user_has_admin_role(user):
         log_audit(str(user["id"]), "ADMIN_LOGIN_DENIED", email, {"reason": "not_admin"}, ip, ua)
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+        raise HTTPException(status_code=403, detail="Bu hesap yönetici rolünde değil.")
+
+    mfa_required = (os.getenv("ADMIN_MFA_REQUIRED", "false") or "").lower() == "true"
+    mfa = get_user_mfa(user_id=str(user.get("id")))
+    if mfa_required and not bool(mfa.get("enabled")):
+        secret = generate_base32_secret()
+        issuer = (os.getenv("MFA_ISSUER") or "Miron AI").strip()
+        label = f"{issuer}:{email}"
+        otpauth_url = f"otpauth://totp/{label}?secret={secret}&issuer={issuer}"
+        log_audit(str(user["id"]), "ADMIN_MFA_SETUP_REQUIRED", "auth", {"email": email}, ip, ua)
+        return {"ok": False, "mfa_setup_required": True, "secret": secret, "otpauth_url": otpauth_url}
+
+    if bool(mfa.get("enabled")):
+        if not body.otp or not verify_totp(str(mfa.get("secret") or ""), str(body.otp or "")):
+            log_audit(str(user["id"]), "ADMIN_MFA_FAILED", "auth", {"email": email}, ip, ua)
+            raise HTTPException(status_code=401, detail="2FA doğrulaması başarısız.")
 
     token = issue_admin_token(admin_id=str(user["id"]), ip=ip, ua=ua)
     log_audit(str(user["id"]), "ADMIN_LOGIN_SUCCESS", "auth", None, ip, ua)
@@ -357,10 +390,7 @@ def admin_login(body: AdminLoginIn, request: Request):
 
 class AdminMfaConfirmIn(BaseModel):
     email: EmailStr
-    # Admin MFA confirmation accepts the CURRENT password, which may pre-date
-    # the strict complexity rule. Do not re-validate here; verify_password
-    # handles the real check.
-    password: str = Field(min_length=1, max_length=256)
+    password: str = Field(min_length=4, max_length=128)
     secret: str = Field(min_length=10, max_length=128)
     otp: str = Field(min_length=6, max_length=12)
 
@@ -369,13 +399,16 @@ class AdminMfaConfirmIn(BaseModel):
 def admin_mfa_confirm(body: AdminMfaConfirmIn, request: Request):
     email = str(body.email).strip().lower()
     user = find_user_by_email(email)
-    ip, ua = client_meta(request)
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
 
     if not user or not verify_password(body.password, user.get("password_hash") or user.get("hashed_password")):
         log_audit(None, "ADMIN_MFA_CONFIRM_FAILED", email, {"reason": "invalid_credentials"}, ip, ua)
         raise HTTPException(status_code=401, detail="Geçersiz admin bilgileri.")
-    if user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+    if not user_has_admin_role(user):
+        raise HTTPException(status_code=403, detail="Bu hesap yönetici rolünde değil.")
 
     secret = str(body.secret or "").strip()
     if not verify_totp(secret, str(body.otp or "")):
@@ -397,10 +430,13 @@ def admin_exchange(body: AdminExchangeIn, request: Request, user: Dict[str, Any]
 
 @router.post("/2fa/setup")
 def admin_mfa_setup(body: AdminMfaSetupIn, request: Request, user: Dict[str, Any] = Depends(require_admin_panel_gate)):
-    if (user.get("role") or "") != "admin":
-        raise HTTPException(status_code=403, detail="Yetkisiz erişim.")
+    if not user_has_admin_role(user):
+        raise HTTPException(status_code=403, detail="Bu işlem için hesabınızın rolü 'admin' olmalı.")
 
-    ip, ua = client_meta(request)
+    ip = request.client.host if request.client else "127.0.0.1"
+    if ip == "testclient":
+        ip = "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
 
     secret = str(body.secret or "").strip()
     if not verify_totp(secret, str(body.otp or "")):
@@ -532,6 +568,13 @@ def admin_create_user(body: CreateUserIn, admin: Dict[str, Any] = Depends(requir
     if find_user_by_email(body.email):
         raise HTTPException(status_code=409, detail="Bu email zaten var.")
 
+    try:
+        from auth_router import _validate_password_complexity
+
+        _validate_password_complexity(body.password)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
     fn = (body.firstName or "").strip()
     ln = (body.lastName or "").strip()
     un = (body.username or "").strip()
@@ -540,17 +583,24 @@ def admin_create_user(body: CreateUserIn, admin: Dict[str, Any] = Depends(requir
         fn = parts[0]
         ln = " ".join(parts[1:]) if len(parts) > 1 else ""
 
-    uid = create_user({
-        "email": body.email,
-        "firstName": fn,
-        "lastName": ln,
-        "hashed_password": hash_password(body.password),
-        "role": body.role,
-        "is_active": bool(body.is_active),
-    })
+    role = str(body.role or "user").strip().lower()
+    if role not in {"user", "admin", "demo"}:
+        role = "user"
 
-    log_audit(str(admin.get("admin_id")), "USER_CREATE", str(body.email), {"new_user_id": uid, "role": body.role})
-    return {"ok": True}
+    try:
+        uid = create_user({
+            "email": body.email,
+            "firstName": fn or None,
+            "lastName": ln or None,
+            "hashed_password": hash_password(body.password),
+            "role": role,
+            "is_active": bool(body.is_active),
+        })
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Kullanıcı oluşturulamadı: {e}") from e
+
+    log_audit(str(admin.get("admin_id")), "USER_CREATE", str(body.email), {"new_user_id": uid, "role": role})
+    return {"ok": True, "id": uid}
 
 @router.delete("/users/{email}")
 def admin_delete_user(email: str, admin: Dict[str, Any] = Depends(require_admin)):
