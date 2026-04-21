@@ -42,6 +42,10 @@ function detailMessage(t) {
   return "İstek başarısız";
 }
 
+export function apiDetailMessage(t) {
+  return detailMessage(t);
+}
+
 /** Bellekte tutulan access token getter (Authorization Bearer). */
 let _getAccessToken = () => null;
 
