@@ -593,12 +593,15 @@ def create_session(user_id: str, refresh_hash: str, fingerprint: str, ip: str, u
                 "created_at": _now_utc(),
             }
         return
+
+    # Bazı eski ortamlarda sessions.id için DEFAULT yoktu; id'yi uygulama seviyesinde üret.
+    sid = str(uuid.uuid4())
     sql = """
-        INSERT INTO sessions (user_id, refresh_token_hash, device_fingerprint, ip_address, user_agent, expires_at)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO sessions (id, user_id, refresh_token_hash, device_fingerprint, ip_address, user_agent, expires_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     """
     with get_db_cursor() as cur:
-        cur.execute(sql, (user_id, refresh_hash, fingerprint, ip, ua, expires_at))
+        cur.execute(sql, (sid, user_id, refresh_hash, fingerprint, ip, ua, expires_at))
 
 def revoke_session(refresh_hash: str, reason: str = "logout"):
     if _use_inmemory():
