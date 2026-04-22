@@ -452,21 +452,31 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
         tv = get_user_token_version(uid)
         access_token = create_access_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
         refresh_token = create_refresh_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
-        refresh_hash = hmac_hash(refresh_token, os.getenv("DATA_HASH_KEY", ""))
-        fingerprint = token_fingerprint(ua, ip)
-        update_user_login(uid, ip, refresh_hash)
-        create_session(
-            uid,
-            refresh_hash,
-            fingerprint,
-            ip,
-            ua,
-            datetime.now(timezone.utc) + timedelta(days=7),
-        )
-        _set_refresh_cookie(response, refresh_token)
+
+        # Supabase şema drift (sessions/users kolonları) login'i tamamen düşürmesin.
+        session_persist_ok = True
+        try:
+            refresh_hash = hmac_hash(refresh_token, os.getenv("DATA_HASH_KEY", ""))
+            fingerprint = token_fingerprint(ua, ip)
+            update_user_login(uid, ip, refresh_hash)
+            create_session(
+                uid,
+                refresh_hash,
+                fingerprint,
+                ip,
+                ua,
+                datetime.now(timezone.utc) + timedelta(days=7),
+            )
+            _set_refresh_cookie(response, refresh_token)
+        except Exception as e:
+            session_persist_ok = False
+            try:
+                log_audit(uid, "USER_LOGIN_SESSION_WARN", email_norm, {"error": str(e)}, ip, ua)
+            except Exception:
+                pass
 
         try:
-            log_audit(uid, "USER_LOGIN", email_norm, None, ip, ua)
+            log_audit(uid, "USER_LOGIN", email_norm, {"session_persist_ok": session_persist_ok}, ip, ua)
         except Exception:
             pass
 
@@ -476,6 +486,7 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
             "access_token": access_token,
             "refresh_token": refresh_token,
             "user": _user_for_client(user),
+            "session_persist_ok": session_persist_ok,
         }
     except HTTPException:
         raise
