@@ -75,6 +75,20 @@ export function AuthProvider({ children }) {
           return;
         }
       }
+      const hasStoredRefresh = (() => {
+        try {
+          return !!sessionStorage.getItem("miron_refresh_token");
+        } catch {
+          return false;
+        }
+      })();
+      if (!hasStoredRefresh) {
+        setAccessToken(null);
+        setUser(null);
+        setStatus("guest");
+        return;
+      }
+
       const ref = await apiRefresh();
       const tok = ref?.access_token || "";
       if (tok) setAccessToken(tok);

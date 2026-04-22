@@ -449,7 +449,12 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
                 user = find_user_by_id(uid) or user
 
         role = user.get("role", "user")
-        tv = get_user_token_version(uid)
+        try:
+            tv = int(get_user_token_version(uid))
+            if tv < 1:
+                tv = 1
+        except Exception:
+            tv = 1
         access_token = create_access_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
         refresh_token = create_refresh_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
 
@@ -491,14 +496,13 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
     except HTTPException:
         raise
     except Exception as e:
+        # Login endpoint'inde 5xx zincirini kır: beklenmeyen hata olsa da kullanıcıya
+        # güvenli bir auth hatası dönelim, detay audit log'a düşsün.
         try:
             log_audit(None, "USER_LOGIN_CRASH", email_norm, {"error": str(e)}, ip, ua)
         except Exception:
             pass
-        raise HTTPException(
-            status_code=503,
-            detail="Oturum sunucusuna ulaşılamadı (zaman aşımı). Lütfen kısa süre sonra tekrar deneyin.",
-        ) from e
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.") from e
 
 
 @router.post("/refresh")
