@@ -405,19 +405,27 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
     ip = client_ip(request)
     ua = request.headers.get("user-agent", "unknown")
 
-    user = find_user_by_email(email_norm)
-    if not user:
-        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
+    try:
+        user = find_user_by_email(email_norm)
+        if not user:
+            raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
 
-    if is_account_locked(email_norm):
-        raise HTTPException(status_code=423, detail="Hesap geçici olarak kilitli. Lütfen daha sonra tekrar deneyin.")
+        if is_account_locked(email_norm):
+            raise HTTPException(status_code=423, detail="Hesap geçici olarak kilitli. Lütfen daha sonra tekrar deneyin.")
 
-    if user.get("is_active") is False:
-        raise HTTPException(status_code=403, detail="Hesap askıya alındı.")
+        if user.get("is_active") is False:
+            raise HTTPException(status_code=403, detail="Hesap askıya alındı.")
 
-    if not verify_password(payload.password, user.get("password_hash") or user.get("hashed_password")):
-        increment_failed_login(email_norm)
-        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
+        if not verify_password(payload.password, user.get("password_hash") or user.get("hashed_password")):
+            increment_failed_login(email_norm)
+            raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail="Oturum sunucusuna ulaşılamadı (zaman aşımı). Lütfen kısa süre sonra tekrar deneyin.",
+        ) from e
 
     if maintenance_mode_enabled():
         r = str(user.get("role") or "user").strip().lower()
@@ -521,40 +529,49 @@ async def refresh_session_endpoint(request: Request, response: Response):
     if not user_id or tv is None:
         raise HTTPException(status_code=401, detail="Geçersiz refresh token.")
 
-    u_row = find_user_by_id(str(user_id))
-    if not u_row:
-        _clear_refresh_cookie(response)
-        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
-    if purge_if_demo_expired(u_row):
-        _clear_refresh_cookie(response)
-        raise HTTPException(status_code=401, detail="DEMO_EXPIRED")
+    try:
+        u_row = find_user_by_id(str(user_id))
+        if not u_row:
+            _clear_refresh_cookie(response)
+            raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
+        if purge_if_demo_expired(u_row):
+            _clear_refresh_cookie(response)
+            raise HTTPException(status_code=401, detail="DEMO_EXPIRED")
 
-    current_tv = get_user_token_version(str(user_id))
-    if int(tv) != int(current_tv):
-        _clear_refresh_cookie(response)
-        raise HTTPException(status_code=401, detail="Oturum geçersiz.")
+        current_tv = get_user_token_version(str(user_id))
+        if int(tv) != int(current_tv):
+            _clear_refresh_cookie(response)
+            raise HTTPException(status_code=401, detail="Oturum geçersiz.")
 
-    old_hash = hmac_hash(token, os.getenv("DATA_HASH_KEY", ""))
-    if not rotate_refresh_token_atomic(old_hash, reason="rotation"):
-        _clear_refresh_cookie(response)
-        raise HTTPException(status_code=401, detail="Oturum geçersiz.")
+        old_hash = hmac_hash(token, os.getenv("DATA_HASH_KEY", ""))
+        if not rotate_refresh_token_atomic(old_hash, reason="rotation"):
+            _clear_refresh_cookie(response)
+            raise HTTPException(status_code=401, detail="Oturum geçersiz.")
 
-    new_access = create_access_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
-    new_refresh = create_refresh_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
-    ip = client_ip(request)
-    ua = request.headers.get("user-agent", "unknown")
-    new_hash = hmac_hash(new_refresh, os.getenv("DATA_HASH_KEY", ""))
-    fingerprint = token_fingerprint(ua, ip)
-    create_session(
-        str(user_id),
-        new_hash,
-        fingerprint,
-        ip,
-        ua,
-        datetime.now(timezone.utc) + timedelta(days=7),
-    )
-    _set_refresh_cookie(response, new_refresh)
-    return {"status": "ok", "access_token": new_access, "refresh_token": new_refresh}
+        new_access = create_access_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
+        new_refresh = create_refresh_token({"sub": email, "role": role, "uid": str(user_id), "tv": int(tv)})
+        ip = client_ip(request)
+        ua = request.headers.get("user-agent", "unknown")
+        new_hash = hmac_hash(new_refresh, os.getenv("DATA_HASH_KEY", ""))
+        fingerprint = token_fingerprint(ua, ip)
+        create_session(
+            str(user_id),
+            new_hash,
+            fingerprint,
+            ip,
+            ua,
+            datetime.now(timezone.utc) + timedelta(days=7),
+        )
+        _set_refresh_cookie(response, new_refresh)
+        return {"status": "ok", "access_token": new_access, "refresh_token": new_refresh}
+    except HTTPException:
+        raise
+    except Exception as e:
+        _clear_refresh_cookie(response)
+        raise HTTPException(
+            status_code=503,
+            detail="Oturum yenileme sunucusuna ulaşılamadı. Lütfen tekrar giriş yapın.",
+        ) from e
 
 
 @router.post("/logout")
