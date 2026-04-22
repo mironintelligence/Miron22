@@ -448,21 +448,35 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
             user = find_user_by_id(uid) or user
 
     role = user.get("role", "user")
-    tv = get_user_token_version(uid)
-    access_token = create_access_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
-    refresh_token = create_refresh_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
-    refresh_hash = hmac_hash(refresh_token, os.getenv("DATA_HASH_KEY", ""))
-    fingerprint = token_fingerprint(ua, ip)
-    update_user_login(uid, ip, refresh_hash)
-    create_session(
-        uid,
-        refresh_hash,
-        fingerprint,
-        ip,
-        ua,
-        datetime.now(timezone.utc) + timedelta(days=7),
-    )
-    _set_refresh_cookie(response, refresh_token)
+    try:
+        tv = get_user_token_version(uid)
+        access_token = create_access_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
+        refresh_token = create_refresh_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
+        refresh_hash = hmac_hash(refresh_token, os.getenv("DATA_HASH_KEY", ""))
+        fingerprint = token_fingerprint(ua, ip)
+        update_user_login(uid, ip, refresh_hash)
+        create_session(
+            uid,
+            refresh_hash,
+            fingerprint,
+            ip,
+            ua,
+            datetime.now(timezone.utc) + timedelta(days=7),
+        )
+        _set_refresh_cookie(response, refresh_token)
+    except HTTPException:
+        raise
+    except Exception as e:
+        # 500 yerine kontrollü bir 503 döndür; frontend doğru mesaj gösterebilsin.
+        try:
+            log_audit(uid, "USER_LOGIN_ERROR", email_norm, {"error": str(e)}, ip, ua)
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=503,
+            detail="Oturum sunucusuna ulaşılamadı (zaman aşımı). Lütfen kısa süre sonra tekrar deneyin.",
+        ) from e
+
     try:
         log_audit(uid, "USER_LOGIN", email_norm, None, ip, ua)
     except Exception:
