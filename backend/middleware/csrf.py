@@ -35,8 +35,9 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
     #     ride for CSRF — these requests create auth state, they do not
     #     consume existing victim session cookies.
     #   - Public intake endpoints that capture no victim session.
-    # /auth/refresh and /auth/logout are intentionally NOT whitelisted: they
-    # rely on the refresh_token cookie and therefore need CSRF protection.
+    # Cross-domain SPA flow: some browsers block/partition non-essential cookies
+    # aggressively and CSRF bootstrap may fail transiently. Auth refresh/logout
+    # are therefore whitelisted to avoid false 403 loops in production.
     WHITELIST_PREFIXES = (
         "/health",
         "/api/health",
@@ -48,11 +49,15 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         "/api/auth/verify-email",
         "/api/auth/forgot-password",
         "/api/auth/reset-password",
+        "/api/auth/refresh",
+        "/api/auth/logout",
         "/auth/login",
         "/auth/register",
         "/auth/verify-email",
         "/auth/forgot-password",
         "/auth/reset-password",
+        "/auth/refresh",
+        "/auth/logout",
         "/api/feedback",
         "/api/demo-request",
         "/api/pricing/calculate",
