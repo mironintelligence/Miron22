@@ -11,6 +11,13 @@ def _system_config_path() -> Path:
 
 
 def maintenance_mode_enabled() -> bool:
+    """Bakım modu, yalnızca MAINTENANCE_MODE_ENFORCE=true ise login'i bloke eder.
+
+    Böylece stale data/system_config.json dosyası üretimde kalıcı 503 döngüsü oluşturmaz.
+    """
+    enforce = (os.getenv("MAINTENANCE_MODE_ENFORCE", "false") or "").strip().lower() == "true"
+    if not enforce:
+        return False
     try:
         p = _system_config_path()
         if not p.exists():
