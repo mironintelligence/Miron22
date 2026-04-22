@@ -42,6 +42,16 @@ function detailMessage(t) {
   return "İstek başarısız";
 }
 
+async function readErrorPayload(response) {
+  const raw = await response.text().catch(() => "");
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return { detail: raw.slice(0, 500) };
+  }
+}
+
 export function apiDetailMessage(t) {
   return detailMessage(t);
 }
@@ -186,7 +196,7 @@ export async function refreshSession() {
         clearTimeout(tid);
       }
       if (!r.ok) {
-        const t = await r.json().catch(() => ({}));
+        const t = await readErrorPayload(r);
         const msg = detailMessage(t) || "Oturum yenilenemedi";
         const err = new Error(msg);
         if (msg === "DEMO_EXPIRED") err.code = "DEMO_EXPIRED";
@@ -227,7 +237,7 @@ export async function login(email, password, nameHint = null) {
     credentials: "include",
   });
   if (!r.ok) {
-    const t = await r.json().catch(() => ({}));
+    const t = await readErrorPayload(r);
     const msg = detailMessage(t) || "Giriş başarısız";
     const err = new Error(msg);
     if (msg === "DEMO_EXPIRED") err.code = "DEMO_EXPIRED";
