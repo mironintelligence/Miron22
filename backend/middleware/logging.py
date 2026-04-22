@@ -173,7 +173,11 @@ class BotProtectionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if request.method == "OPTIONS":
             return await call_next(request)
-        if request.url.path in ("/health", "/api/health"):
+        path = request.url.path
+        if path in ("/health", "/api/health"):
+            return await call_next(request)
+        if path.startswith("/api/auth/") or path.startswith("/auth/"):
+            # Auth endpointlerinde UA tabanlı bot engeli, gerçek kullanıcıları da vurabiliyor.
             return await call_next(request)
         ua = (request.headers.get("user-agent") or "").lower()
         if not ua or any(b in ua for b in self.blocked):

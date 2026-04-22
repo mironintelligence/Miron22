@@ -419,44 +419,36 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
         if not verify_password(payload.password, user.get("password_hash") or user.get("hashed_password")):
             increment_failed_login(email_norm)
             raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail="Oturum sunucusuna ulaşılamadı (zaman aşımı). Lütfen kısa süre sonra tekrar deneyin.",
-        ) from e
 
-    if maintenance_mode_enabled():
-        r = str(user.get("role") or "user").strip().lower()
-        if r != "admin":
-            raise HTTPException(
-                status_code=503,
-                detail="Sistem bakım modunda. Yalnızca yönetici hesapları giriş yapabilir. Lütfen daha sonra tekrar deneyin.",
-            )
+        if maintenance_mode_enabled():
+            r = str(user.get("role") or "user").strip().lower()
+            if r != "admin":
+                raise HTTPException(
+                    status_code=503,
+                    detail="Sistem bakım modunda. Yalnızca yönetici hesapları giriş yapabilir. Lütfen daha sonra tekrar deneyin.",
+                )
 
-    if purge_if_demo_expired(user):
-        raise HTTPException(status_code=401, detail="DEMO_EXPIRED")
+        if purge_if_demo_expired(user):
+            raise HTTPException(status_code=401, detail="DEMO_EXPIRED")
 
-    uid = str(user["id"])
-    reset_failed_login(uid)
+        uid = str(user["id"])
+        reset_failed_login(uid)
 
-    fn = (payload.firstName or "").strip()
-    ln = (payload.lastName or "").strip()
-    if fn or ln:
-        cur_fn = str(user.get("first_name") or user.get("firstName") or "").strip()
-        cur_ln = str(user.get("last_name") or user.get("lastName") or "").strip()
-        fields: Dict[str, Any] = {}
-        if fn and not cur_fn:
-            fields["first_name"] = fn
-        if ln and not cur_ln:
-            fields["last_name"] = ln
-        if fields:
-            update_user_fields_by_id(uid, fields)
-            user = find_user_by_id(uid) or user
+        fn = (payload.firstName or "").strip()
+        ln = (payload.lastName or "").strip()
+        if fn or ln:
+            cur_fn = str(user.get("first_name") or user.get("firstName") or "").strip()
+            cur_ln = str(user.get("last_name") or user.get("lastName") or "").strip()
+            fields: Dict[str, Any] = {}
+            if fn and not cur_fn:
+                fields["first_name"] = fn
+            if ln and not cur_ln:
+                fields["last_name"] = ln
+            if fields:
+                update_user_fields_by_id(uid, fields)
+                user = find_user_by_id(uid) or user
 
-    role = user.get("role", "user")
-    try:
+        role = user.get("role", "user")
         tv = get_user_token_version(uid)
         access_token = create_access_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
         refresh_token = create_refresh_token({"sub": email_norm, "role": role, "uid": uid, "tv": tv})
@@ -472,31 +464,30 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
             datetime.now(timezone.utc) + timedelta(days=7),
         )
         _set_refresh_cookie(response, refresh_token)
+
+        try:
+            log_audit(uid, "USER_LOGIN", email_norm, None, ip, ua)
+        except Exception:
+            pass
+
+        return {
+            "status": "ok",
+            "message": "Giriş başarılı",
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": _user_for_client(user),
+        }
     except HTTPException:
         raise
     except Exception as e:
-        # 500 yerine kontrollü bir 503 döndür; frontend doğru mesaj gösterebilsin.
         try:
-            log_audit(uid, "USER_LOGIN_ERROR", email_norm, {"error": str(e)}, ip, ua)
+            log_audit(None, "USER_LOGIN_CRASH", email_norm, {"error": str(e)}, ip, ua)
         except Exception:
             pass
         raise HTTPException(
             status_code=503,
             detail="Oturum sunucusuna ulaşılamadı (zaman aşımı). Lütfen kısa süre sonra tekrar deneyin.",
         ) from e
-
-    try:
-        log_audit(uid, "USER_LOGIN", email_norm, None, ip, ua)
-    except Exception:
-        pass
-
-    return {
-        "status": "ok",
-        "message": "Giriş başarılı",
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "user": _user_for_client(user),
-    }
 
 
 @router.post("/refresh")
