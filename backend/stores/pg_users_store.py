@@ -50,6 +50,25 @@ def _row_to_user(row: Dict[str, Any]) -> Dict[str, Any]:
 
 # --- User Operations ---
 
+def sync_local_password_hash(user_id: str, hashed_password: str) -> bool:
+    """Set password_hash only (no token_version bump) — mirrors Supabase password into public.users."""
+    uid = str(user_id or "").strip()
+    if not uid or not hashed_password:
+        return False
+    if _use_inmemory():
+        with _mem_lock:
+            if uid not in _mem_users_by_id:
+                return False
+            _mem_users_by_id[uid]["password_hash"] = hashed_password
+            return True
+    with get_db_cursor() as cur:
+        cur.execute(
+            "UPDATE users SET password_hash = %s WHERE id = %s",
+            (hashed_password, uid),
+        )
+        return cur.rowcount > 0
+
+
 def create_user(user: Dict[str, Any]) -> str:
     if _use_inmemory():
         uid = str(user.get("id") or uuid.uuid4())

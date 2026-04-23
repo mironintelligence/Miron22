@@ -22,6 +22,7 @@ from stores.pg_users_store import (
     reset_failed_login,
     revoke_session,
     rotate_refresh_token_atomic,
+    sync_local_password_hash,
     update_password,
     update_user_fields_by_id,
     update_user_login,
@@ -41,6 +42,8 @@ from security import (
 from user_auth import get_current_user
 from utils.request_meta import client_ip, client_meta, cookie_secure
 from legal_compliance import document_version_hash, luhn_valid, card_last_four
+from system_runtime import maintenance_mode_enabled
+from supabase_password_login import try_supabase_password_login
 
 try:
     from services.pricing_service import find_valid_discount, increment_usage
@@ -407,18 +410,62 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
 
     try:
         user = find_user_by_email(email_norm)
-        if not user:
+        if user:
+            if is_account_locked(email_norm):
+                raise HTTPException(status_code=423, detail="Hesap geçici olarak kilitli. Lütfen daha sonra tekrar deneyin.")
+            if user.get("is_active") is False:
+                raise HTTPException(status_code=403, detail="Hesap askıya alındı.")
+
+        stored_hash = (user.get("password_hash") or user.get("hashed_password")) if user else None
+        local_pw_ok = bool(user and verify_password(payload.password, stored_hash))
+
+        sb_principal = None
+        if not local_pw_ok:
+            sb_principal = try_supabase_password_login(email_norm, payload.password)
+
+        if not local_pw_ok and not sb_principal:
+            if user:
+                increment_failed_login(email_norm)
             raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
 
-        if is_account_locked(email_norm):
-            raise HTTPException(status_code=423, detail="Hesap geçici olarak kilitli. Lütfen daha sonra tekrar deneyin.")
-
-        if user.get("is_active") is False:
-            raise HTTPException(status_code=403, detail="Hesap askıya alındı.")
-
-        if not verify_password(payload.password, user.get("password_hash") or user.get("hashed_password")):
-            increment_failed_login(email_norm)
-            raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
+        if sb_principal and not local_pw_ok:
+            supa_id = str(sb_principal.get("id") or "").strip()
+            resolved = find_user_by_id(supa_id) if supa_id else None
+            if not resolved:
+                resolved = find_user_by_email(email_norm)
+            if not resolved:
+                fn = (payload.firstName or "").strip()
+                ln = (payload.lastName or "").strip()
+                try:
+                    create_user(
+                        {
+                            "id": supa_id,
+                            "email": email_norm,
+                            "hashed_password": hash_password(payload.password),
+                            "firstName": fn,
+                            "lastName": ln,
+                            "role": "user",
+                            "is_active": True,
+                            "is_verified": True,
+                        }
+                    )
+                except Exception:
+                    pass
+                resolved = find_user_by_id(supa_id) or find_user_by_email(email_norm)
+            else:
+                sync_local_password_hash(str(resolved["id"]), hash_password(payload.password))
+            user = resolved
+            if not user:
+                raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
+            row_email = str(user.get("email") or email_norm).strip().lower()
+            if is_account_locked(row_email):
+                raise HTTPException(status_code=423, detail="Hesap geçici olarak kilitli. Lütfen daha sonra tekrar deneyin.")
+            if user.get("is_active") is False:
+                raise HTTPException(status_code=403, detail="Hesap askıya alındı.")
+            try:
+                log_audit(str(user.get("id")), "USER_LOGIN_SUPABASE", row_email, {"via": "gotrue_password"}, ip, ua)
+            except Exception:
+                pass
 
         if maintenance_mode_enabled():
             r = str(user.get("role") or "user").strip().lower()
