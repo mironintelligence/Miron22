@@ -170,20 +170,34 @@ def admin_panel_unlock_status(request: Request, user: Dict[str, Any] = Depends(g
     return {"unlocked": verify_admin_panel_gate(request, uid), "configured": True}
 
 
+def _panel_password_ok(body_password: str, user: Dict[str, Any]) -> bool:
+    """Accept env ADMIN_PANEL_PASSWORD or, as a fallback for admin accounts, the user's own login password.
+    This avoids total lockout when the panel secret was rotated/lost while a verified admin is logged in.
+    """
+    body_pw = str(body_password or "")
+    if not body_pw:
+        return False
+    expected = (os.getenv("ADMIN_PANEL_PASSWORD") or "").strip()
+    if expected and secrets.compare_digest(body_pw, expected):
+        return True
+    stored_hash = str(user.get("password_hash") or user.get("hashed_password") or "")
+    if stored_hash and verify_password(body_pw, stored_hash):
+        return True
+    return False
+
+
 @router.post("/panel-unlock")
 def admin_panel_unlock(body: AdminPanelUnlockIn, request: Request, user: Dict[str, Any] = Depends(get_current_user)):
     if not user_has_admin_role(user):
         raise HTTPException(status_code=403, detail="Bu işlem için hesabınızın rolü 'admin' olmalı.")
-    expected = (os.getenv("ADMIN_PANEL_PASSWORD") or "").strip()
-    if not expected:
-        raise HTTPException(status_code=503, detail="ADMIN_PANEL_PASSWORD sunucuda ayarlı değil.")
 
     ip = request.client.host if request.client else "127.0.0.1"
     if ip == "testclient":
         ip = "127.0.0.1"
     ua = request.headers.get("user-agent", "unknown")
 
-    if not secrets.compare_digest(body.password, expected):
+    user_row = find_user_by_id(str(user.get("id"))) or user
+    if not _panel_password_ok(body.password, user_row):
         log_audit(str(user.get("id")), "ADMIN_PANEL_GATE_FAIL", "auth", {"reason": "invalid_password"}, ip, ua)
         raise HTTPException(status_code=401, detail="Geçersiz şifre.")
 
@@ -250,16 +264,14 @@ def admin_panel_bootstrap(body: AdminPanelBootstrapIn, request: Request, user: D
     """Panel şifresi + (varsa) 2FA tek adımda; httpOnly gate çerezi set edilir, admin JWT döner."""
     if not user_has_admin_role(user):
         raise HTTPException(status_code=403, detail="Bu işlem için hesabınızın rolü 'admin' olmalı.")
-    expected = (os.getenv("ADMIN_PANEL_PASSWORD") or "").strip()
-    if not expected:
-        raise HTTPException(status_code=503, detail="ADMIN_PANEL_PASSWORD sunucuda ayarlı değil.")
 
     ip = request.client.host if request.client else "127.0.0.1"
     if ip == "testclient":
         ip = "127.0.0.1"
     ua = request.headers.get("user-agent", "unknown")
 
-    if not secrets.compare_digest(body.password, expected):
+    user_row = find_user_by_id(str(user.get("id"))) or user
+    if not _panel_password_ok(body.password, user_row):
         log_audit(str(user.get("id")), "ADMIN_PANEL_GATE_FAIL", "auth", {"reason": "invalid_password"}, ip, ua)
         raise HTTPException(status_code=401, detail="Geçersiz şifre.")
 
