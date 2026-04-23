@@ -327,12 +327,20 @@ export default function AdminPanel() {
               .find((c) => c.startsWith("csrf_token="))
           : null;
       const csrfToken = csrf ? decodeURIComponent(csrf.split("=", 2)[1] || "") : "";
+      const activeToken = (token && String(token).trim()) || readAdminToken();
+      if (!activeToken) {
+        return {
+          _adminRequestFailed: true,
+          _httpStatus: 0,
+          detail: "Admin oturumu yok; panel şifresini giriniz.",
+        };
+      }
       const res = await fetch(`${API_BASE}${url}`, {
         ...options,
         credentials: "include",
         headers: {
           ...options.headers,
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${activeToken}`,
           "Content-Type": "application/json",
           ...(unsafe && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
         },
@@ -899,7 +907,7 @@ export default function AdminPanel() {
       qs.set("format", format);
       const res = await fetch(`${API_BASE}/api/admin/users/export?${qs.toString()}`, {
         credentials: "include",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${(token && String(token).trim()) || readAdminToken()}` },
       });
       if (!res.ok) throw new Error("Export başarısız");
       const blob = await res.blob();
