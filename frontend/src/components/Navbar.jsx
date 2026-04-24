@@ -27,7 +27,7 @@ function BetaBadge() {
 
 function BrandMark() {
   return (
-    <span className="dash-font-display inline-flex items-baseline gap-1" style={{ fontSize: 15, lineHeight: 1, letterSpacing: "-0.01em" }}>
+    <span className="dash-font-display inline-flex items-baseline gap-1" style={{ fontSize: 20, lineHeight: 1, letterSpacing: "-0.01em" }}>
       <span style={{ color: "#ffffff" }}>Miron</span>
       <span style={{ color: "#FFD700" }}>AI</span>
     </span>
@@ -233,7 +233,7 @@ export default function Navbar() {
     >
       <div
         className="mx-auto flex items-center justify-between"
-        style={{ maxWidth: 1200, padding: "0 40px", height: 52 }}
+        style={{ maxWidth: 1200, padding: "0 40px", height: 68 }}
       >
         <Link to="/dashboard" className="no-underline" style={{ textDecoration: "none" }}>
           <BrandMark />
@@ -248,7 +248,7 @@ export default function Navbar() {
                 to={link.path}
                 className="dash-font-sans no-underline transition-colors"
                 style={{
-                  fontSize: 12,
+                  fontSize: 14,
                   color: active ? "#FFD700" : "#555",
                   textDecoration: "none",
                   letterSpacing: "0.1px",
@@ -278,8 +278,8 @@ export default function Navbar() {
             <Bell
               className="transition-colors"
               style={{
-                width: 16,
-                height: 16,
+                width: 20,
+                height: 20,
                 color: unreadCount > 0 ? "#FFD700" : "#555",
               }}
               strokeWidth={1.5}
@@ -318,14 +318,14 @@ export default function Navbar() {
               <div className="text-right hidden lg:block">
                 <div
                   className="dash-font-sans"
-                  style={{ fontSize: 12, fontWeight: 600, color: "#ffffff", lineHeight: 1.2 }}
+                  style={{ fontSize: 13, fontWeight: 600, color: "#ffffff", lineHeight: 1.2 }}
                 >
                   {user.firstName} {user.lastName}
                 </div>
                 <div
                   className="dash-font-sans"
                   style={{
-                    fontSize: 9,
+                    fontSize: 10,
                     color: "#555",
                     marginTop: 2,
                     letterSpacing: 1.5,
@@ -338,15 +338,15 @@ export default function Navbar() {
               <div
                 className="dash-font-sans"
                 style={{
-                  width: 28,
-                  height: 28,
+                  width: 36,
+                  height: 36,
                   borderRadius: 999,
                   background: "#FFD700",
                   color: "#000",
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 700,
                   letterSpacing: "0.2px",
                 }}
@@ -428,7 +428,7 @@ export default function Navbar() {
             cursor: "pointer",
           }}
         >
-          {menuOpen ? <X style={{ width: 16, height: 16 }} strokeWidth={1.5} /> : <Menu style={{ width: 16, height: 16 }} strokeWidth={1.5} />}
+          {menuOpen ? <X style={{ width: 20, height: 20 }} strokeWidth={1.5} /> : <Menu style={{ width: 20, height: 20 }} strokeWidth={1.5} />}
         </button>
       </div>
 
@@ -436,7 +436,7 @@ export default function Navbar() {
         <div
           className="md:hidden absolute w-full left-0"
           style={{
-            top: 52,
+            top: 68,
             background: "#0a0a0a",
             borderTop: "0.5px solid #1e1e1e",
             padding: 24,

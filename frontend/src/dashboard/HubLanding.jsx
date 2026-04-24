@@ -36,7 +36,7 @@ export default function HubLanding({ color = "dava", question = "Bugün ne yapma
         <Link
           to="/dashboard"
           className="dash-font-sans inline-flex items-center gap-1.5 no-underline"
-          style={{ fontSize: 11, color: "#333", textDecoration: "none" }}
+          style={{ fontSize: 13, color: "#333", textDecoration: "none" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "#777")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "#333")}
         >
@@ -64,7 +64,7 @@ export default function HubLanding({ color = "dava", question = "Bugün ne yapma
             style={{
               fontWeight: 700,
               fontStyle: "italic",
-              fontSize: 14,
+              fontSize: 16,
               color: "#444",
               lineHeight: 1.2,
             }}
@@ -75,25 +75,25 @@ export default function HubLanding({ color = "dava", question = "Bugün ne yapma
           <h1
             className="dash-font-display"
             style={{
-              fontSize: 32,
+              fontSize: 44,
               color: "#fff",
               letterSpacing: "-0.5px",
-              marginTop: 8,
-              lineHeight: 1.15,
+              marginTop: 10,
+              lineHeight: 1.1,
             }}
           >
             {question}
           </h1>
 
-          <div className="flex flex-col gap-2.5" style={{ marginTop: 40 }}>
+          <div className="flex flex-col gap-3" style={{ marginTop: 48 }}>
             {tools.map((t) => (
               <Link
                 key={t.href}
                 to={t.href}
                 className="group relative flex items-center justify-between bg-[#0a0a0a] dash-hair transition-colors no-underline"
                 style={{
-                  borderRadius: 12,
-                  padding: "18px 22px",
+                  borderRadius: 14,
+                  padding: "22px 28px",
                   textDecoration: "none",
                 }}
                 onMouseEnter={(e) => {
@@ -126,7 +126,7 @@ export default function HubLanding({ color = "dava", question = "Bugün ne yapma
                     className="dash-font-serif tool-title transition-colors"
                     style={{
                       fontWeight: 700,
-                      fontSize: 15,
+                      fontSize: 18,
                       color: "#cccccc",
                       lineHeight: 1.2,
                       "--hv": hoverColor,
@@ -136,7 +136,7 @@ export default function HubLanding({ color = "dava", question = "Bugün ne yapma
                   </div>
                   <div
                     className="dash-font-sans"
-                    style={{ fontSize: 11, color: "#3a3a3a", marginTop: 4 }}
+                    style={{ fontSize: 13, color: "#3a3a3a", marginTop: 6 }}
                   >
                     {t.description}
                   </div>
@@ -144,7 +144,7 @@ export default function HubLanding({ color = "dava", question = "Bugün ne yapma
                 <span
                   aria-hidden
                   className="tool-arrow transition-colors"
-                  style={{ color: "#2a2a2a", fontSize: 16 }}
+                  style={{ color: "#2a2a2a", fontSize: 18 }}
                 >
                   →
                 </span>
@@ -157,11 +157,11 @@ export default function HubLanding({ color = "dava", question = "Bugün ne yapma
             ))}
           </div>
 
-          <div className="text-center" style={{ marginTop: 48 }}>
+          <div className="text-center" style={{ marginTop: 56 }}>
             <Link
               to="/dashboard/assistant"
               className="dash-font-sans no-underline"
-              style={{ fontSize: 11, color: "#2a2a2a", textDecoration: "none" }}
+              style={{ fontSize: 13, color: "#2a2a2a", textDecoration: "none" }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#FFD700")}
               onMouseLeave={(e) => (e.currentTarget.style.color = "#2a2a2a")}
             >

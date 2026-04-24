@@ -94,7 +94,7 @@ export default function App() {
         }}
       />
 
-      <div className={fullscreenRoute ? "h-screen w-screen overflow-hidden" : "pt-20 pb-20"}>
+      <div className={fullscreenRoute ? "h-screen w-screen overflow-hidden" : "pb-20"} style={fullscreenRoute ? {} : { paddingTop: 68 }}>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/demo-request" element={<DemoRequest />} />

@@ -25,23 +25,23 @@ const HUB = {
   },
 };
 
-export default function HubCard({ color, title, description, tools = [], href, minHeight = 280 }) {
+export default function HubCard({ color, title, description, tools = [], href, minHeight = 320 }) {
   const def = HUB[color];
   return (
     <Link
       to={href}
-      className="group relative flex flex-col p-5 bg-[#0a0a0a] dash-hair transition-colors hover:border-[#2e2e2e] no-underline"
-      style={{ borderRadius: 14, textDecoration: "none", minHeight }}
+      className="group relative flex flex-col bg-[#0a0a0a] dash-hair transition-colors hover:border-[#2e2e2e] no-underline"
+      style={{ borderRadius: 16, textDecoration: "none", minHeight, padding: "24px 24px 20px" }}
     >
       <span className="dash-hub-stripe" style={{ background: def.stripe }} aria-hidden />
 
       <span
-        className="self-start mb-3 inline-flex items-center px-2 py-[2px] dash-hair dash-font-sans"
+        className="self-start mb-4 inline-flex items-center px-2.5 py-0.5 dash-hair dash-font-sans"
         style={{
           background: def.pill.bg,
           color: def.pill.color,
           borderColor: def.pill.border,
-          fontSize: 9,
+          fontSize: 10,
           letterSpacing: "0.5px",
           textTransform: "uppercase",
           borderRadius: 9999,
@@ -52,37 +52,38 @@ export default function HubCard({ color, title, description, tools = [], href, m
 
       <h3
         className="dash-font-serif"
-        style={{ fontWeight: 700, fontSize: 15, color: "#cccccc", lineHeight: 1.2, margin: 0 }}
+        style={{ fontWeight: 700, fontSize: 18, color: "#cccccc", lineHeight: 1.2, margin: 0 }}
       >
         {title}
       </h3>
 
       <p
         className="dash-font-sans"
-        style={{ fontSize: 11, color: "#383838", lineHeight: 1.6, marginTop: 8, marginBottom: 16 }}
+        style={{ fontSize: 13, color: "#383838", lineHeight: 1.65, marginTop: 10, marginBottom: 20 }}
       >
         {description}
       </p>
 
-      <ul className="flex flex-col gap-1.5 mb-3 list-none p-0 m-0">
+      <ul className="flex flex-col gap-2 mb-4 list-none p-0 m-0">
         {tools.map((t) => (
           <li
             key={t.label}
-            className="flex items-center justify-between px-2.5 py-[7px] bg-[#080808] dash-font-sans transition-colors group-hover:bg-[#0e0e0e]"
+            className="flex items-center justify-between bg-[#080808] dash-font-sans transition-colors group-hover:bg-[#0e0e0e]"
             style={{
               border: "0.5px solid #141414",
-              borderRadius: 6,
-              fontSize: 11,
+              borderRadius: 7,
+              fontSize: 12,
               color: "#404040",
+              padding: "9px 12px",
             }}
           >
-            <span className="flex items-center gap-2 truncate">
+            <span className="flex items-center gap-2.5 truncate">
               <span
                 aria-hidden
-                className="inline-block"
+                className="inline-block flex-shrink-0"
                 style={{
-                  width: 4,
-                  height: 4,
+                  width: 5,
+                  height: 5,
                   borderRadius: 999,
                   background: def.dot,
                 }}
@@ -91,7 +92,7 @@ export default function HubCard({ color, title, description, tools = [], href, m
             </span>
             {t.beta ? (
               <span
-                className="ml-2"
+                className="ml-2 flex-shrink-0"
                 style={{
                   background: "#141414",
                   color: "#383838",
@@ -109,8 +110,8 @@ export default function HubCard({ color, title, description, tools = [], href, m
       </ul>
 
       <div
-        className="mt-auto flex items-center justify-between pt-3 dash-font-sans"
-        style={{ borderTop: "0.5px solid #141414", fontSize: 11 }}
+        className="mt-auto flex items-center justify-between pt-4 dash-font-sans"
+        style={{ borderTop: "0.5px solid #141414", fontSize: 13 }}
       >
         <span
           className="hub-gir"

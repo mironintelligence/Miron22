@@ -34,7 +34,7 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
         className="flex flex-col"
-        style={{ gap: 12 }}
+        style={{ gap: 16 }}
       >
         <DashboardHero activeCases={3} todayHearings={1} />
 
@@ -42,12 +42,12 @@ export default function Home() {
           className="dash-font-serif"
           style={{
             fontWeight: 700,
-            fontSize: 10,
+            fontSize: 11,
             letterSpacing: 2,
             textTransform: "uppercase",
             color: "#2a2a2a",
-            marginTop: 28,
-            marginBottom: 12,
+            marginTop: 36,
+            marginBottom: 16,
           }}
         >
           Çalışma Alanları

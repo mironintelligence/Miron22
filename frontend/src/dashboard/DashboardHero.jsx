@@ -17,16 +17,16 @@ export default function DashboardHero({ activeCases = 0, todayHearings = 0 }) {
   return (
     <section
       className="relative overflow-hidden bg-[#0a0a0a] dash-hair"
-      style={{ borderRadius: 14, padding: "32px 36px" }}
+      style={{ borderRadius: 16, padding: "44px 52px" }}
     >
       <span className="dash-hero-line" aria-hidden />
 
-      <div className="flex flex-col gap-8 md:flex-row md:gap-0 md:items-stretch">
+      <div className="flex flex-col gap-10 md:flex-row md:gap-0 md:items-stretch">
         <div className="flex flex-col md:flex-1">
           <div
-            className="inline-flex items-center gap-1.5 dash-font-sans"
+            className="inline-flex items-center gap-2 dash-font-sans"
             style={{
-              fontSize: 10,
+              fontSize: 11,
               letterSpacing: 2,
               textTransform: "uppercase",
               color: "#FFD700",
@@ -35,23 +35,23 @@ export default function DashboardHero({ activeCases = 0, todayHearings = 0 }) {
             <span
               aria-hidden
               className="inline-block animate-pulseDot"
-              style={{ width: 5, height: 5, background: "#FFD700", borderRadius: 999 }}
+              style={{ width: 6, height: 6, background: "#FFD700", borderRadius: 999 }}
             />
             <span>Miron Assistant · Çevrimiçi</span>
           </div>
 
           <h1
             className="dash-font-display"
-            style={{ fontSize: 28, color: "#ffffff", lineHeight: 1.15, marginTop: 20 }}
+            style={{ fontSize: 40, color: "#ffffff", lineHeight: 1.1, marginTop: 24 }}
           >
             Hukuk, sizin için
           </h1>
           <h2
             className="dash-font-serif"
             style={{
-              fontSize: 28,
+              fontSize: 40,
               color: "#555555",
-              lineHeight: 1.15,
+              lineHeight: 1.1,
               fontStyle: "italic",
               fontWeight: 400,
               margin: 0,
@@ -63,11 +63,11 @@ export default function DashboardHero({ activeCases = 0, todayHearings = 0 }) {
           <p
             className="dash-font-sans"
             style={{
-              fontSize: 13,
+              fontSize: 15,
               color: "#3a3a3a",
               lineHeight: 1.7,
-              marginTop: 20,
-              maxWidth: 420,
+              marginTop: 24,
+              maxWidth: 440,
             }}
           >
             {fn ? `Av. ${fn}, ` : ""}dava analizi, emsal arama, belge üretimi ve risk
@@ -76,23 +76,23 @@ export default function DashboardHero({ activeCases = 0, todayHearings = 0 }) {
         </div>
 
         <div
-          className="flex flex-col justify-between gap-5 md:ml-12 md:pl-12"
+          className="flex flex-col justify-between gap-6 md:ml-14 md:pl-14"
           style={{ borderLeft: "0.5px solid #1e1e1e" }}
         >
-          <div className="flex items-start gap-8">
+          <div className="flex items-start gap-10">
             <div className="flex flex-col">
-              <span className="dash-font-display" style={{ fontSize: 28, lineHeight: 1, color: "#fff" }}>
+              <span className="dash-font-display" style={{ fontSize: 44, lineHeight: 1, color: "#fff" }}>
                 {activeCases}
               </span>
-              <span className="dash-font-sans" style={{ fontSize: 10, color: "#333", marginTop: 4 }}>
+              <span className="dash-font-sans" style={{ fontSize: 12, color: "#333", marginTop: 6 }}>
                 Aktif dava
               </span>
             </div>
             <div className="flex flex-col">
-              <span className="dash-font-display" style={{ fontSize: 28, lineHeight: 1, color: "#FFD700" }}>
+              <span className="dash-font-display" style={{ fontSize: 44, lineHeight: 1, color: "#FFD700" }}>
                 {todayHearings}
               </span>
-              <span className="dash-font-sans" style={{ fontSize: 10, color: "#333", marginTop: 4 }}>
+              <span className="dash-font-sans" style={{ fontSize: 12, color: "#333", marginTop: 6 }}>
                 Bugün duruşma
               </span>
             </div>
@@ -105,9 +105,9 @@ export default function DashboardHero({ activeCases = 0, todayHearings = 0 }) {
               background: "#FFD700",
               color: "#000",
               fontWeight: 600,
-              fontSize: 12,
-              padding: "11px 20px",
-              borderRadius: 8,
+              fontSize: 14,
+              padding: "13px 24px",
+              borderRadius: 10,
               border: "none",
               transition: "opacity 0.15s ease",
             }}
