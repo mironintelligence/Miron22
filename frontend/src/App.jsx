@@ -45,6 +45,9 @@ const Reminders = lazy(() => import("./pages/Reminders.jsx"));
 const Unauthorized = lazy(() => import("./pages/Unauthorized.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
+const DavaMerkezi = lazy(() => import("./pages/dashboard/DavaMerkezi.jsx"));
+const Arastirma = lazy(() => import("./pages/dashboard/Arastirma.jsx"));
+const BelgeStudyosu = lazy(() => import("./pages/dashboard/BelgeStudyosu.jsx"));
 
 export default function App() {
   const { status } = useAuth();
@@ -113,6 +116,30 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Home />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/dava-merkezi"
+              element={
+                <ProtectedRoute>
+                  <DavaMerkezi />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/arastirma"
+              element={
+                <ProtectedRoute>
+                  <Arastirma />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/belge-studyosu"
+              element={
+                <ProtectedRoute>
+                  <BelgeStudyosu />
                 </ProtectedRoute>
               }
             />

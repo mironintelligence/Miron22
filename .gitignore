@@ -17,3 +17,4 @@ node_modules
 frontend/dist/
 *.log
 supabase/.temp/
+frontend/.next/

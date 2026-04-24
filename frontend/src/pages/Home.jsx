@@ -1,210 +1,85 @@
-import React, { useMemo } from "react";
-import { Link } from "react-router-dom";
+import React from "react";
 import { motion } from "framer-motion";
-import { useAuth } from "../auth/AuthProvider";
+import DashboardHero from "../dashboard/DashboardHero";
+import HubCard from "../dashboard/HubCard";
+import BottomTiles from "../dashboard/BottomTiles";
 
-const RECENT_KEY = "miron_recent_yargitay_queries";
+const DAVA_TOOLS = [
+  { label: "Dava Dosyası" },
+  { label: "Risk & Strateji Skoru" },
+  { label: "Dava Simülasyonu" },
+  { label: "Hatırlatıcı & Takvim" },
+];
 
-const baseTiles = [
-  {
-    title: "Evrak Analizi",
-    desc: "PDF/DOCX/TXT/UDF/RTF/UYAP/ODT yükle, AI analiz etsin.",
-    to: "/analyze",
-    disabled: false,
-  },
-  {
-    title: "Miron Assistant",
-    desc: "Dava özelinde soru-cevap, delil analizi.",
-    to: "/assistant",
-    disabled: false,
-  },
-  {
-    title: "Dilekçe Oluşturucu",
-    desc: "AI destekli otomatik dilekçe oluştur.",
-    to: "/pleadings",
-    disabled: false,
-  },
-  {
-    title: "Hesaplamalar",
-    desc: "Faiz, vekalet, harç, KDV ve icra hesapları.",
-    to: "/calculators",
-    disabled: false,
-  },
-  {
-    title: "Sözleşme Analizi",
-    desc: "Sözleşmeni yapıştır, riskleri ve açıkları gör.",
-    to: "/contracts/analysis",
-    disabled: false,
-  },
-  {
-    title: "Sözleşme Oluşturucu",
-    desc: "Şablon seç, alanları doldur, sözleşmeyi üret.",
-    to: "/contracts/builder",
-    disabled: false,
-  },
-  {
-    title: "Dava Simülasyonu",
-    desc: "Senaryoya göre olası sonuçlar ve strateji önerisi.",
-    to: "/case-simulation",
-    disabled: false,
-  },
-  {
-    title: "Yargıtay Karar Arama",
-    desc: "AI destekli emsal karar ve strateji analizi.",
-    to: "/yargitay",
-    beta: true,
-    disabled: false,
-  },
-  {
-    title: "Mevzuat Analizi",
-    desc: "Kanun / madde bazlı AI açıklama ve strateji.",
-    to: "/mevzuat",
-    beta: true,
-    disabled: false,
-  },
-  {
-    title: "Risk & Strateji Analizi",
-    desc: "AI tabanlı risk puanı, kazanma olasılığı ve strateji önerileri.",
-    to: "/risk",
-    disabled: false,
-  },
-  {
-    title: "Dava Hatırlatıcı",
-    desc: "Dava tarihlerini kaydet, uygulama içi bildirim al.",
-    to: "/reminders",
-    disabled: false,
-  },
-  {
-    title: "Geri Bildirim",
-    desc: "Öneri, hata bildirimi ve isteklerini bize ilet.",
-    to: "/feedback",
-    disabled: false,
-  },
+const ARASTIRMA_TOOLS = [
+  { label: "Yargıtay Karar Arama", beta: true },
+  { label: "Mevzuat Analizi", beta: true },
+];
+
+const BELGE_TOOLS = [
+  { label: "Evrak Analizi" },
+  { label: "Sözleşme Analizi & Oluşturucu" },
+  { label: "Dilekçe Oluşturucu" },
 ];
 
 export default function Home() {
-  const { user } = useAuth();
-
-  const tiles = useMemo(() => {
-    const list = [...baseTiles];
-    if (user?.role === "admin") {
-      list.unshift({
-        title: "Admin Paneli",
-        desc: "Kullanıcılar, demo talepleri ve sistem ayarları.",
-        to: "/admin",
-        disabled: false,
-      });
-    }
-    return list;
-  }, [user?.role]);
-
-  const recentQueries = useMemo(() => {
-    try {
-      const raw = localStorage.getItem(RECENT_KEY);
-      const arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr.slice(0, 5) : [];
-    } catch {
-      return [];
-    }
-  }, []);
-
   return (
-    <div className="pb-28 max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-      {recentQueries.length > 0 ? (
-        <div className="glass rounded-2xl px-5 py-4 border border-white/10">
-          <div className="text-xs font-semibold text-subtle mb-2">Son aramalar</div>
-          <ul className="flex flex-wrap gap-2">
-            {recentQueries.map((q, i) => (
-              <li key={`${q}-${i}`}>
-                <Link
-                  to={`/yargitay`}
-                  state={{ q }}
-                  className="text-xs px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/15"
-                >
-                  {q}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <div className="glass px-5 sm:px-8 py-8 rounded-2xl border border-white/10">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-accent">Modüller</h2>
-          <p className="text-sm text-subtle mt-1">MIRON AI araçları</p>
-        </div>
+    <div
+      className="dash-root max-w-[1200px] mx-auto px-5 md:px-10"
+      style={{ paddingBottom: 80 }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="flex flex-col"
+        style={{ gap: 12 }}
+      >
+        <DashboardHero activeCases={3} todayHearings={1} />
 
         <div
-          className="grid gap-5 w-full"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}
+          className="dash-font-serif"
+          style={{
+            fontWeight: 700,
+            fontSize: 10,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: "#2a2a2a",
+            marginTop: 28,
+            marginBottom: 12,
+          }}
         >
-          {tiles.map((t, i) => {
-            const TileTag = t.disabled ? "div" : Link;
-            const common =
-              "glass p-5 h-full min-h-[140px] flex flex-col justify-between hover:scale-[1.02] transition border border-white/10 rounded-xl";
-
-            return (
-              <motion.div
-                key={`${t.title}-${t.to}`}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-              >
-                <TileTag
-                  to={t.disabled ? undefined : t.to}
-                  className={
-                    common +
-                    (t.disabled ? " opacity-60 cursor-not-allowed" : " hover:shadow-lg hover:bg-white/5")
-                  }
-                >
-                  <div className="flex gap-3 items-start">
-                    <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold text-[var(--miron-gold)] shrink-0">
-                      {t.title.charAt(0)}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-lg font-semibold flex flex-wrap items-center gap-2">
-                        <span>{t.title}</span>
-                        {t.beta ? (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/15 border border-white/20 text-white/80">
-                            BETA
-                          </span>
-                        ) : null}
-                      </h3>
-                      <p className="text-sm text-subtle mt-1">{t.desc}</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 text-right text-accent text-sm">
-                    {t.disabled ? "Yakında" : "Aç"}
-                  </div>
-                </TileTag>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-
-      <footer className="mt-10 mb-6 text-center text-xs text-subtle">
-        <div>2025 Miron Intelligence — Tüm hakları saklıdır</div>
-
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-4">
-          <Link to="/user-agreement" className="text-accent underline">
-            Kullanıcı Sözleşmesi
-          </Link>
-          <Link to="/privacy" className="text-accent underline">
-            Gizlilik Politikası
-          </Link>
-          <Link to="/terms" className="text-accent underline">
-            Kullanım Şartları
-          </Link>
+          Çalışma Alanları
         </div>
 
-        <div className="mt-2">
-          <a href="mailto:mironintelligence@gmail.com" className="text-accent underline">
-            mironintelligence@gmail.com
-          </a>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <HubCard
+            color="dava"
+            title="Dava Merkezi"
+            description="Davalarınızı açın, risk skorlarını hesaplatın ve simülasyonlarla süreci öngörün."
+            tools={DAVA_TOOLS}
+            href="/dashboard/dava-merkezi"
+          />
+          <HubCard
+            color="arastirma"
+            title="Araştırma"
+            description="Yargıtay emsal kararları ve mevzuat üzerinde AI destekli hızlı analiz."
+            tools={ARASTIRMA_TOOLS}
+            href="/dashboard/arastirma"
+          />
+          <HubCard
+            color="belge"
+            title="Belge Stüdyosu"
+            description="Evrak, sözleşme ve dilekçeleri analiz edin veya sıfırdan oluşturun."
+            tools={BELGE_TOOLS}
+            href="/dashboard/belge-studyosu"
+          />
         </div>
-      </footer>
+
+        <div style={{ marginTop: 24 }}>
+          <BottomTiles />
+        </div>
+      </motion.div>
     </div>
   );
 }

@@ -120,3 +120,64 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
   outline: none;
 }
 .input::placeholder { color: #ddd; }
+
+/* =========================================================
+   DASHBOARD DESIGN SYSTEM (sadece /dashboard ve hub landing
+   sayfalarında kullanılıyor — mevcut .glass / .card / diğer
+   komponent sınıfları hiç değişmedi).
+   ========================================================= */
+
+.dash-root {
+  --d-bg: #000000;
+  --d-surface: #0a0a0a;
+  --d-elevated: #111111;
+  --d-hair: #1e1e1e;
+  --d-hair-hover: #2e2e2e;
+  --d-text: #ffffff;
+  --d-text-2: #888888;
+  --d-text-3: #3a3a3a;
+  --d-accent: #FFD700;
+  --d-accent-dim: #4a3a00;
+  --d-accent-text: #b8960a;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+.dash-hair {
+  border: 0.5px solid var(--d-hair);
+}
+.dash-hair-b {
+  border-bottom: 0.5px solid var(--d-hair);
+}
+.dash-hair-l {
+  border-left: 0.5px solid var(--d-hair);
+}
+.dash-hair-t {
+  border-top: 0.5px solid var(--d-hair);
+}
+
+.dash-hero-line {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,215,0,0.27),
+    rgba(255,215,0,1),
+    rgba(255,215,0,0.27),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.dash-hub-stripe {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+}
+
+.dash-font-display { font-family: "Abril Fatface", serif; }
+.dash-font-serif   { font-family: "Libre Baskerville", serif; }
+.dash-font-sans    { font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; }
