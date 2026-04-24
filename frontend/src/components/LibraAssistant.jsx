@@ -30,7 +30,7 @@ function chatTitleFromFirstUserMessage(text) {
   return one;
 }
 
-const SIDEBAR_W = 264;
+const SIDEBAR_W = 280;
 
 export default function LibraAssistant({ caseText: caseTextProp = "" }) {
   const { user } = useAuth();
@@ -342,8 +342,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
 
   return (
     <motion.main
-      className="z-30 flex w-full max-w-full flex-col overflow-hidden bg-[var(--miron-bg)] font-body"
-      style={{ position: "fixed", top: "5rem", left: 0, right: 0, bottom: "5rem" }}
+      className="miron-chatgpt-shell flex h-full w-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#0f0f0f] text-[#ececec]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
@@ -364,7 +363,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
         </AnimatePresence>
 
         <aside
-          className="flex min-h-0 flex-col border-r border-[var(--miron-border)]"
+          className="flex min-h-0 flex-col"
           style={{
             width: showSidebar && narrow ? "min(100vw, 20rem)" : !narrow ? SIDEBAR_W : 0,
             minWidth: showSidebar && narrow ? "min(100vw, 20rem)" : !narrow ? SIDEBAR_W : 0,
@@ -376,7 +375,8 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
             top: 0,
             left: 0,
             maxWidth: narrow && sideOpen ? "min(100vw, 20rem)" : "none",
-            background: "rgba(10,10,10,0.95)",
+            background: "var(--chat-sidebar)",
+            borderRight: "1px solid var(--chat-hairline)",
             boxShadow: narrow && sideOpen ? "4px 0 24px rgba(0,0,0,0.5)" : "none",
             transition: narrow ? "min-width 0.2s ease" : "none",
           }}
@@ -415,9 +415,9 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
               <button
                 type="button"
                 onClick={newChat}
-                className="btn-primary mb-2 flex w-full items-center justify-center gap-2 !rounded-xl !px-3 !py-2.5 !text-sm"
+                className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/[0.04] py-2.5 text-sm font-medium text-white/90 transition hover:border-[#FFD700]/45 hover:bg-white/[0.08]"
               >
-                <Plus size={16} strokeWidth={2.2} />
+                <Plus size={17} strokeWidth={2.2} className="text-[#FFD700]/90" />
                 Yeni sohbet
               </button>
               <input
@@ -487,9 +487,12 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
 
         <div
           className="miron-assistant-messages flex min-h-0 min-w-0 flex-1 flex-col"
-          style={{ minWidth: 0, background: "var(--miron-bg)" }}
+          style={{ minWidth: 0, background: "var(--chat-main)" }}
         >
-          <header className="flex h-12 shrink-0 items-center border-b border-[var(--miron-border)] bg-black/50 px-2 backdrop-blur-md sm:px-3">
+          <header
+            className="flex h-[52px] shrink-0 items-center border-b px-2 sm:px-3"
+            style={{ borderColor: "var(--chat-hairline)", background: "var(--chat-main)" }}
+          >
             {narrow && (
               <button
                 type="button"
@@ -543,44 +546,42 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
 
           <div ref={scRef} className="min-h-0 flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
             {empty ? (
-              <div className="flex min-h-full flex-col items-center justify-center px-3 py-6 sm:px-6" style={{ paddingBottom: 140 }}>
-                <div className="w-full max-w-[42rem] text-center">
-                  <h2 className="font-heading m-0 text-2xl text-[var(--miron-text)] sm:text-3xl">Miron</h2>
-                  <p className="m-0 mt-1.5 text-base font-medium text-[#FFD700] sm:text-lg">Yapay zekâ asistan</p>
-                  <p className="text-muted m-0 mt-6 text-lg font-medium leading-snug sm:text-xl">Size nasıl yardımcı olabilirim?</p>
-                  <p className="text-subtle m-0 mt-2 text-sm" style={{ lineHeight: 1.5 }}>
-                    Hukuk, taslak, toplantı notu, e-posta veya günlük ofis — sorunuzu yazın, net ve sade yanıt alın.
+              <div className="flex min-h-full flex-col items-center justify-center px-3 py-5 sm:px-8" style={{ paddingBottom: 130 }}>
+                <div className="w-full max-w-2xl text-center">
+                  <h2 className="m-0 font-heading text-3xl text-white sm:text-4xl">
+                    Miron <span className="text-[#FFD700]">AI</span>
+                  </h2>
+                  <p className="m-0 mt-2 text-sm text-white/45">{greeting}, {avukat}</p>
+                  <p className="m-0 mt-10 text-2xl font-medium leading-tight text-white/95 sm:text-3xl">Nasıl yardımcı olabilirim?</p>
+                  <p className="m-0 mt-2 text-[15px] text-white/50" style={{ lineHeight: 1.5 }}>
+                    Sorunuzu yazın — net, paragraflar halinde, okunaklı cevaplar. Vurgu önemli noktalar.
                   </p>
                 </div>
-                <div className="mt-8 grid w-full max-w-3xl gap-2.5 sm:grid-cols-2" style={{ gap: "0.6rem" }}>
+                <div className="mt-10 w-full max-w-3xl grid-cols-1 gap-2.5 sm:grid sm:grid-cols-2" style={{ gap: "0.6rem" }}>
                   {SUGGEST.map((s) => (
                     <button
                       key={s.title}
                       type="button"
                       onClick={() => send(s.text)}
-                      className="card w-full !rounded-2xl border border-[var(--miron-border)] text-left !shadow-none transition hover:border-[#FFD700]/35 hover:bg-white/[0.04]"
-                      style={{ padding: "0.85rem 1rem" }}
+                      className="miron-gpt-suggest w-full cursor-pointer p-3.5 text-left"
                     >
                       <p className="m-0 text-sm font-medium text-white/90">{s.title}</p>
-                      <p className="text-subtle m-0 mt-1 text-xs" style={{ lineHeight: 1.45 }}>
-                        {s.sub}
-                      </p>
+                      <p className="m-0 mt-1 text-xs leading-snug text-white/45">{s.sub}</p>
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="mx-auto w-full max-w-3xl space-y-6 px-3 py-5 sm:px-5 sm:py-6">
+              <div className="mx-auto w-full max-w-3xl space-y-0 px-3 py-2 sm:px-5 sm:py-4">
                 {messages.map((m, i) =>
                   m.sender === "user" ? (
-                    <div key={m.id || `msg-${i}`} className="flex w-full justify-end">
+                    <div key={m.id || `msg-${i}`} className="flex w-full justify-end py-3 sm:py-4">
                       <div
-                        className="max-w-[min(100%,28rem)] rounded-3xl border text-[0.95rem] leading-[1.65] shadow-sm"
+                        className="max-w-[min(100%,85%)] rounded-2xl text-[0.95rem] leading-[1.65] sm:max-w-[32rem] sm:rounded-3xl sm:text-[1rem] sm:leading-7"
                         style={{
-                          background: "var(--miron-panel-2)",
-                          borderColor: "rgba(255,215,0,0.22)",
-                          color: "var(--miron-text)",
-                          padding: "0.65rem 1rem 0.75rem",
+                          background: "var(--chat-bubble-user)",
+                          color: "rgba(255,255,255,0.92)",
+                          padding: "0.75rem 1rem 0.85rem",
                         }}
                       >
                         <p className="m-0 whitespace-pre-wrap" style={{ wordBreak: "break-word" }}>
@@ -589,23 +590,23 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                       </div>
                     </div>
                   ) : (
-                    <div key={m.id || `msg-${i}`} className="flex w-full min-w-0 justify-start gap-2.5 sm:gap-3.5">
-                      <div
-                        className="mt-0.5 flex h-8 w-8 flex-shrink-0 select-none items-center justify-center self-start rounded-sm text-sm font-bold sm:h-9 sm:w-9"
-                        style={{
-                          background: "linear-gradient(160deg, #f6e27a, #d4a700)",
-                          color: "#111",
-                        }}
-                        aria-hidden
-                      >
-                        M
-                      </div>
-                      <div
-                        className="min-w-0 flex-1 pt-0.5 text-sm sm:text-base"
-                        style={{ color: "var(--miron-text-muted)" }}
-                      >
-                        <div className="miron-ai-markdown">
-                          <AssistantMessageContent text={m.text || ""} streaming={!!m.streaming} />
+                    <div key={m.id || `msg-${i}`} className="group flex w-full min-w-0 border-b border-white/[0.06] py-4" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+                      <div className="mt-0.5 flex w-full min-w-0 gap-2.5 sm:gap-4">
+                        <div
+                          className="flex h-7 w-7 flex-shrink-0 select-none items-center justify-center self-start rounded-md text-xs font-extrabold sm:h-8 sm:w-8"
+                          style={{
+                            background: "linear-gradient(145deg, #f7e17a, #b8860b)",
+                            color: "#0a0a0a",
+                          }}
+                          aria-hidden
+                        >
+                          M
+                        </div>
+                        <div className="min-w-0 flex-1 pt-0.5" style={{ color: "var(--miron-text-muted)" }}>
+                          <p className="m-0 mb-1.5 text-[0.7rem] font-medium uppercase tracking-wide text-[#FFD700]/90">Miron AI</p>
+                          <div className="miron-ai-markdown text-base leading-7 [font-family:var(--font-chat-ui)] sm:text-base">
+                            <AssistantMessageContent text={m.text || ""} streaming={!!m.streaming} />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -615,15 +616,12 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
             )}
           </div>
 
-          <div
-            className="z-10 w-full border-t border-[var(--miron-border)]"
-            style={{ background: "linear-gradient(to top, #000, rgba(0,0,0,0.88))" }}
-          >
-            <div className="mx-auto w-full max-w-3xl px-3 py-2.5 sm:px-4 sm:py-3">
-              <div className="miron-ai-composer flex w-full min-w-0 items-end gap-1.5 px-2.5 py-1.5 sm:gap-2 sm:px-3 sm:py-2">
+          <div className="z-10 w-full border-t" style={{ borderColor: "var(--chat-hairline)", background: "var(--chat-main)" }}>
+            <div className="mx-auto w-full max-w-3xl px-2.5 py-2.5 sm:px-3 sm:py-3">
+              <div className="miron-chatgpt-composer flex w-full min-w-0 items-end gap-2 pl-2.5 pr-1.5 sm:pl-3 sm:pr-2">
                 <textarea
                   ref={taRef}
-                  className="min-w-0 flex-1 bg-transparent pl-0.5 text-sm leading-relaxed"
+                  className="min-w-0 flex-1 max-h-[200px] min-h-[40px] resize-none border-0 bg-transparent py-2.5 pl-0.5 text-[0.95rem] leading-6 sm:text-base sm:leading-7"
                   value={input}
                   rows={1}
                   onChange={(e) => {
@@ -638,16 +636,11 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                       send(input);
                     }
                   }}
-                  placeholder="Bir mesaj gönderin…"
+                  placeholder="Mesajınızı buraya yazın"
                   style={{
-                    minHeight: 40,
-                    maxHeight: 200,
-                    color: "var(--miron-text)",
-                    border: "none",
+                    color: "rgba(255,255,255,0.9)",
                     outline: "none",
-                    resize: "none",
-                    fontFamily: "inherit",
-                    fontSize: 15,
+                    fontFamily: "var(--font-chat-ui)",
                   }}
                 />
                 <button
@@ -657,8 +650,8 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                   disabled={loading}
                   style={{
                     borderRadius: "9999px",
-                    background: input.trim() ? "var(--miron-gold)" : "rgba(255,255,255,0.06)",
-                    color: input.trim() ? "#000" : "rgba(255,255,255,0.25)",
+                    background: input.trim() ? "#FFD700" : "rgba(255,255,255,0.08)",
+                    color: input.trim() ? "#111" : "rgba(255,255,255,0.2)",
                     border: "none",
                     cursor: loading ? "not-allowed" : "pointer",
                     opacity: loading && input.trim() ? 0.6 : 1,
@@ -668,7 +661,9 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                   <ArrowUp size={18} strokeWidth={2.2} className="translate-y-[0.5px]" />
                 </button>
               </div>
-              <p className="text-subtle m-0 py-1.5 text-center text-[0.65rem] sm:text-xs">Miron AI hatalı bilgi verebilir. Önemli adımlarda kendi incelemenizi ekleyin.</p>
+              <p className="m-0 px-1 pt-1.5 text-center text-[0.64rem] text-white/40 sm:pt-2 sm:text-xs">
+                Miron AI cevaplarında hata olabilir. <span className="text-white/50">Kritik işlerde doğrulayın.</span>
+              </p>
             </div>
           </div>
         </div>

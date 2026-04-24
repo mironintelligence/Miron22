@@ -14,6 +14,13 @@
   --miron-border: rgba(255,255,255,0.12);
   --miron-border-strong: rgba(255,255,255,0.2);
   --miron-glow: 0 0 0 1px rgba(255,215,0,0.25), 0 0 24px rgba(255,215,0,0.18);
+  /* Sohbet arayüzü (ChatGPT/Claude tarzı) — sade, okunaklı gövde */
+  --font-chat-ui: ui-sans-serif, -apple-system, "Segoe UI", system-ui, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --chat-sidebar: #202020;
+  --chat-main: #0f0f0f;
+  --chat-bubble-user: #2f2f2f;
+  --chat-composer: #2f2f2f;
+  --chat-hairline: rgba(255, 255, 255, 0.08);
 }
 
 /* ---------- Genel Gövde ---------- */
@@ -134,6 +141,31 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
   border-radius: 1.5rem;
 }
 .miron-assistant-messages {
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-chat-ui);
   letter-spacing: 0.01em;
+}
+
+/* Asistan: tam ekran ChatGPT/Claude benzeri gövde */
+.miron-chatgpt-shell .miron-gpt-suggest {
+  border: 1px solid var(--chat-hairline);
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.miron-chatgpt-shell .miron-gpt-suggest:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 215, 0, 0.32);
+}
+.miron-chatgpt-shell {
+  font-family: var(--font-chat-ui);
+}
+.miron-chatgpt-composer {
+  background: var(--chat-composer);
+  border: 1px solid var(--chat-hairline);
+  border-radius: 1.5rem;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+.miron-chatgpt-composer:focus-within {
+  border-color: rgba(255, 215, 0, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.12);
 }
