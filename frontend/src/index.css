@@ -120,3 +120,20 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
   outline: none;
 }
 .input::placeholder { color: #ddd; }
+
+/* ---------- Miron AI sohbet (Claude/ChatGPT tarzı okunabilirlik) ---------- */
+.miron-ai-markdown a {
+  color: var(--miron-gold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.miron-ai-composer {
+  background: var(--miron-panel);
+  border: 1px solid var(--miron-border);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 8px 32px rgba(0,0,0,0.4);
+  border-radius: 1.5rem;
+}
+.miron-assistant-messages {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.01em;
+}

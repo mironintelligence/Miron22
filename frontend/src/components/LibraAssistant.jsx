@@ -1,42 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
-import {
-  ArrowUp,
-  Menu,
-  Plus,
-  Settings,
-  X,
-} from "lucide-react";
+import { ArrowUp, Menu, MoreHorizontal, Plus, Settings, X } from "lucide-react";
 import { authFetch } from "../auth/api";
 import { useAuth } from "../auth/AuthProvider";
 import { lawyerDisplayName, trGreeting, groupChatsForSidebar } from "../lib/assistantGreeting.js";
 import AssistantMessageContent from "./AssistantMessageContent.jsx";
 
+/* Yanıt tonu: Claude / ChatGPT açık okunabilirlik; modele gönderilen hafif yönerge. */
 const ASSISTANT_CONTEXT_HINT = `
-[Yönerge: Sadece hukukla sınırlı kalmayın. Avukatın günlük görevlerinde, iletişim, metin, planlama, toplantı, özet ve pratik tüyolarda net ve uygulanabilir yardım verin; gerektiğinde sınırlarını belirtin.]`;
+[Yanıt biçimi: Cevaplar ChatGPT veya Claude gibi açık ve düzenli olsun. Kısa paragraflar, gerektiğinde numaralı veya madde işaretli listeler, gereksiz süs cümle yok. Kritik terimler ve yasal/önemli noktalar cevabında **markdown kalın (önemli terim)** biçiminde vurgulansın.
+Konu: Sadece hukukla sınırlı değil; avukatın günlük iş, iletişim, metin, plan, özet gibi tüm alanlarda aynı netliği uygula.]`;
 
 const SUGGEST = [
-  {
-    title: "E-posta cevabı",
-    sub: "Kısa ve net ton",
-    text: "Bir avukatın dış dünyaya (müvekkil, karşı taraf vekiline) atacağı nazik ama sınırları belli, profesyonel bir cevabın taslağını yaz. Konu: örnek: davayı durdurduğumuz bilgisini kısaca ve net iletmek istiyoruz.",
-  },
-  {
-    title: "Toplantı özeti",
-    sub: "Madde madde not",
-    text: "5 dakikalık bir duruşma öncesi içerik toplantısında söyleyeceğiniz konuşma için madde listesi ve öncelik sırası öner. Adliye ve zaman baskısı yüksek senaryo.",
-  },
-  {
-    title: "Emsal tarama",
-    sub: "Hukuk + kaynak yolu",
-    text: "Feshe bağlı tazminat hattında Yargıtay emsalını hangi kavramlarla (şart, süre, ispat) taramam iyi olur, arama cümleleriyle özetle; varsayım açıkça söyle.",
-  },
-  {
-    title: "Enerji / mola",
-    sub: "Kısa rutin",
-    text: "Yoğun bir mahkeme gününden sonra toparlanmak için 10 dakikalık basit, bilimselleştirilmiş mola + su + göz molası rutini. Anlatımı sade, emir kipi.",
-  },
+  { title: "Dilekçe çerçevesi", sub: "Adım adım", text: "Belirteceğim türde bir dilekçe için madde madden iskelet; varsayımlarımı soru listesiyle sor." },
+  { title: "E-posta taslağı", sub: "Profesyonel ton", text: "Aşağıdaki konuya münhasır, kısa, nazik ama sınırları açık bir e-posta taslağı; konu: müvekkile erteleme." },
+  { title: "Toplantı maddeleri", sub: "Öncelikli liste", text: "10 dakikada bitecek dava toplantısı için konuşulacaklar listesi, öncelik sıralı, soru cümleleri ayrı." },
+  { title: "Araştırma ipuçları", sub: "Emsal / Mevzuat", text: "Bir borçlunun temerrüdü davası için emsal ve mevzuat taramasına nereden başlayayım; 5 anahtar kelime öner." },
 ];
 
 function trDate() {
@@ -49,6 +29,8 @@ function chatTitleFromFirstUserMessage(text) {
   if (one.length > 48) return `${one.slice(0, 45).trim()}…`;
   return one;
 }
+
+const SIDEBAR_W = 264;
 
 export default function LibraAssistant({ caseText: caseTextProp = "" }) {
   const { user } = useAuth();
@@ -91,7 +73,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
   const [nameDraft, setNameDraft] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [narrow, setNarrow] = useState(
-    () => typeof window !== "undefined" && window.innerWidth < 768
+    () => typeof window !== "undefined" && window.innerWidth < 1024
   );
 
   const scRef = useRef(null);
@@ -100,7 +82,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
   const streamTimerRef = useRef(null);
 
   useEffect(() => {
-    const f = () => setNarrow(window.innerWidth < 768);
+    const f = () => setNarrow(window.innerWidth < 1024);
     window.addEventListener("resize", f);
     return () => window.removeEventListener("resize", f);
   }, []);
@@ -193,7 +175,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
     }
     let i = 0;
     const step = 2;
-    const tick = 16;
+    const tick = 14;
     const run = () => {
       i = Math.min(i + step, full.length);
       setChats((prev) =>
@@ -279,17 +261,15 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
     }
     setLoading(true);
     setSideOpen(false);
-    const payload = {
-      message: t,
-      context: mergedContext,
-      chat_id: String(uid),
-    };
+    const payload = { message: t, context: mergedContext, chat_id: String(uid) };
     try {
       const data = await postAssistant(payload);
       const text = data?.reply || "Yanıt alınamadı.";
       const msgId = `a-${Date.now()}`;
       setChats((prev) =>
-        prev.map((c) => (c.id === uid ? { ...c, messages: [...(c.messages || []), { id: msgId, sender: "assistant", text: "", streaming: true }] } : c))
+        prev.map((c) =>
+          c.id === uid ? { ...c, messages: [...(c.messages || []), { id: msgId, sender: "assistant", text: "", streaming: true }] } : c
+        )
       );
       setLoading(false);
       runAssistantTypewriter(uid, msgId, text);
@@ -305,13 +285,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
   };
 
   const newChat = () => {
-    const n = {
-      id: Date.now(),
-      name: "Yeni sohbet",
-      date: trDate(),
-      createdAt: Date.now(),
-      messages: [],
-    };
+    const n = { id: Date.now(), name: "Yeni sohbet", date: trDate(), createdAt: Date.now(), messages: [] };
     setChats((p) => [n, ...p]);
     setCurrentChatId(n.id);
     if (narrow) setSideOpen(false);
@@ -364,38 +338,23 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
     setDeleteOpen(false);
   };
 
+  const showSidebar = !narrow || sideOpen;
+
   return (
     <motion.main
-      className="z-30 flex w-full max-w-full flex-col overflow-hidden bg-black"
+      className="z-30 flex w-full max-w-full flex-col overflow-hidden bg-[var(--miron-bg)] font-body"
       style={{ position: "fixed", top: "5rem", left: 0, right: 0, bottom: "5rem" }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
     >
-      {narrow && (
-        <div
-          className="flex items-center justify-end border-b border-[#1e1e1e] bg-[#0a0a0a] py-1.5 pr-3 md:hidden"
-          style={{ borderWidth: 0.5 }}
-        >
-          <button
-            type="button"
-            className="p-1.5"
-            style={{ border: "0.5px solid #1e1e1e", borderRadius: 6, background: "#0a0a0a" }}
-            onClick={() => setSideOpen(true)}
-            aria-label="Menu"
-          >
-            <Menu size={16} color="#3a3a3a" strokeWidth={1.5} />
-          </button>
-        </div>
-      )}
-
-      <div className="flex min-h-0 w-full flex-1" style={{ minHeight: 0 }}>
+      <div className="flex min-h-0 w-full min-w-0 flex-1" style={{ minHeight: 0 }}>
         <AnimatePresence>
           {narrow && sideOpen && (
             <motion.button
               type="button"
               className="fixed inset-0 z-40"
-              style={{ background: "rgba(0,0,0,0.55)" }}
+              style={{ background: "rgba(0,0,0,0.6)" }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -405,392 +364,273 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
         </AnimatePresence>
 
         <aside
-          className="flex min-h-0 flex-col border-r border-[#1e1e1e] bg-[#0a0a0a]"
+          className="flex min-h-0 flex-col border-r border-[var(--miron-border)]"
           style={{
-            width: narrow && !sideOpen ? 0 : 220,
-            minWidth: narrow && !sideOpen ? 0 : 220,
+            width: showSidebar && narrow ? "min(100vw, 20rem)" : !narrow ? SIDEBAR_W : 0,
+            minWidth: showSidebar && narrow ? "min(100vw, 20rem)" : !narrow ? SIDEBAR_W : 0,
+            flexShrink: 0,
             overflow: narrow && !sideOpen ? "hidden" : "visible",
-            position: narrow ? (sideOpen ? "fixed" : "static") : "relative",
+            position: narrow && sideOpen ? "fixed" : "relative",
             zIndex: narrow && sideOpen ? 50 : 1,
             height: narrow && sideOpen ? "100dvh" : "100%",
             top: 0,
             left: 0,
-            boxShadow: narrow && sideOpen ? "8px 0 20px rgba(0,0,0,0.4)" : "none",
+            maxWidth: narrow && sideOpen ? "min(100vw, 20rem)" : "none",
+            background: "rgba(10,10,10,0.95)",
+            boxShadow: narrow && sideOpen ? "4px 0 24px rgba(0,0,0,0.5)" : "none",
             transition: narrow ? "min-width 0.2s ease" : "none",
           }}
         >
           {narrow && sideOpen && (
             <button
               type="button"
-              className="absolute right-2 top-2 z-50 p-0.5"
-              style={{ background: "none", border: "none" }}
+              className="absolute right-3 top-3 z-[60] flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/5 hover:text-white"
               onClick={() => setSideOpen(false)}
               aria-label="Kapat"
             >
-              <X size={16} color="#3a3a3a" />
+              <X size={18} strokeWidth={1.5} />
             </button>
           )}
 
-          <div className="box-border flex h-full w-[220px] min-w-[220px] flex-col" style={{ padding: 12 }}>
-            <div className="mb-2">
-              <span
-                className="inline-block"
-                style={{ fontFamily: "Abril Fatface, serif", fontSize: 13, letterSpacing: "-0.01em" }}
-              >
-                <span className="text-white">Miron</span> <span style={{ color: "#FFD700" }}>AI</span>
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={newChat}
-              className="flex w-full items-center justify-center gap-1.5 border-0"
-              style={{
-                background: "#0a0a0a",
-                border: "0.5px solid #1e1e1e",
-                borderRadius: 8,
-                padding: "10px 12px",
-                color: "#555",
-                fontSize: 12,
-                fontWeight: 400,
-                fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-              }}
-            >
-              <Plus size={14} color="#333" strokeWidth={1.5} />
-              Yeni sohbet
-            </button>
-
-            <input
-              className="mt-3 w-full"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ara"
-              style={{
-                background: "#000",
-                border: "0.5px solid #1e1e1e",
-                borderRadius: 6,
-                padding: "6px 8px",
-                fontSize: 11,
-                color: "#888",
-                fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-                outline: "none",
-              }}
-            />
-
-            <div className="mt-2 min-h-0 flex-1 overflow-y-auto pr-0.5" style={{ marginTop: 8 }}>
-              <p
-                className="m-0 mb-2"
-                style={{
-                  fontSize: 10,
-                  color: "#2a2a2a",
-                  letterSpacing: 1.5,
-                  textTransform: "uppercase",
-                  fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-                }}
-              >
-                Geçmiş
-              </p>
-              {grouped.map((g, gi) => (
-                <div key={g.key} className="mb-0">
-                  <p
-                    className="m-0"
-                    style={{
-                      fontSize: 10,
-                      color: "#222",
-                      textTransform: "uppercase",
-                      marginTop: gi === 0 ? 0 : 16,
-                      fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-                    }}
-                  >
-                    {g.key}
-                  </p>
-                  <ul className="m-0 list-none p-0" style={{ marginTop: 6 }}>
-                    {g.items.map((c) => {
-                      const on = c.id === currentChatId;
-                      return (
-                        <li key={c.id} className="m-0 p-0">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCurrentChatId(c.id);
-                              if (narrow) setSideOpen(false);
-                            }}
-                            className="w-full cursor-pointer text-left"
-                            style={{
-                              padding: "7px 10px",
-                              borderRadius: 8,
-                              color: on ? "#ccc" : "#444",
-                              background: on ? "#0d0d0d" : "transparent",
-                              border: "none",
-                              borderLeft: on ? "2px solid #FFD700" : "2px solid transparent",
-                              fontSize: 12,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-                            }}
-                            title={c.name}
-                          >
-                            {c.name}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            <div
-              className="mt-2"
-              style={{ borderTop: "0.5px solid #1e1e1e", paddingTop: 14, marginTop: "auto", flexShrink: 0 }}
-            >
-              <div className="flex min-w-0 items-center gap-2">
-                <div
-                  className="flex flex-shrink-0 items-center justify-center"
-                  style={{ width: 28, height: 28, borderRadius: 999, background: "#FFD700", fontSize: 9, fontWeight: 700, color: "#000" }}
-                >
-                  {String(avukat.replace(/^Av\.\s*/i, "") || "A")
-                    .slice(0, 2)
-                    .toUpperCase()}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="m-0 truncate" style={{ fontSize: 11, color: "#555", fontFamily: '"IBM Plex Sans", system-ui' }}>
-                    {avukat}
-                  </p>
-                </div>
-                <Link to="/settings" className="p-0.5 no-underline" aria-label="Ayarlar" style={{ lineHeight: 0 }}>
-                  <Settings size={14} color="#2a2a2a" strokeWidth={1.5} />
-                </Link>
+          <div
+            className="box-border flex h-full min-h-0 flex-col gap-0 px-2.5 pb-3 pt-2.5 sm:px-3"
+            style={{ width: showSidebar && narrow ? "min(100vw, 20rem)" : !narrow ? SIDEBAR_W : 0, minWidth: "100%" }}
+          >
+            <div className="min-h-0 flex-1">
+              <div className="mb-3">
+                <span className="font-heading text-base tracking-tight text-[var(--miron-text)]">
+                  Miron <span className="text-[var(--miron-gold)]">AI</span>
+                </span>
+                <p className="m-0 mt-1.5 text-[0.7rem] leading-tight text-[var(--miron-text-subtle)]">
+                  {greeting}, {avukat}
+                </p>
               </div>
+              <Link
+                to="/dashboard/dava-merkezi"
+                className="text-muted mb-3 block text-xs no-underline transition hover:text-[var(--miron-gold)]"
+                onClick={() => narrow && setSideOpen(false)}
+              >
+                ← Dava merkezine dön
+              </Link>
+              <button
+                type="button"
+                onClick={newChat}
+                className="btn-primary mb-2 flex w-full items-center justify-center gap-2 !rounded-xl !px-3 !py-2.5 !text-sm"
+              >
+                <Plus size={16} strokeWidth={2.2} />
+                Yeni sohbet
+              </button>
+              <input
+                className="input !mb-3 !px-2.5 !py-1.5 !text-xs placeholder:text-subtle"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Ara"
+              />
+              <p className="text-subtle m-0 mb-1.5 text-[0.6rem] font-medium uppercase tracking-[0.12em]">Sohbetler</p>
+              <div className="min-h-0 max-h-[calc(100dvh-18rem)] space-y-3 overflow-y-auto pr-0.5" style={{ WebkitOverflowScrolling: "touch" }}>
+                {grouped.map((g, gi) => (
+                  <div key={g.key} className="m-0">
+                    <p className="text-subtle m-0 text-[0.6rem] font-semibold uppercase tracking-wider" style={{ marginTop: gi === 0 ? 0 : 10 }}>
+                      {g.key}
+                    </p>
+                    <ul className="m-0 mt-1.5 list-none p-0">
+                      {g.items.map((c) => {
+                        const on = c.id === currentChatId;
+                        return (
+                          <li key={c.id} className="m-0 p-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCurrentChatId(c.id);
+                                if (narrow) setSideOpen(false);
+                              }}
+                              className="w-full cursor-pointer rounded-lg border-0 text-left text-[0.8rem] transition"
+                              style={{
+                                padding: "0.4rem 0.55rem",
+                                color: on ? "var(--miron-text)" : "var(--miron-text-subtle)",
+                                background: on ? "rgba(255,255,255,0.06)" : "transparent",
+                                boxShadow: on ? "inset 2px 0 0 var(--miron-gold)" : "none",
+                              }}
+                              title={c.name}
+                            >
+                              {c.name}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div
+              className="mt-auto flex min-w-0 items-center gap-2 border-t border-[var(--miron-border)] pt-3"
+              style={{ flexShrink: 0 }}
+            >
+              <div
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[0.65rem] font-bold"
+                style={{ background: "var(--miron-gold)", color: "#000" }}
+              >
+                {String(avukat.replace(/^Av\.\s*/i, "") || "A")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-muted m-0 truncate text-xs">{avukat}</p>
+              </div>
+              <Link to="/settings" className="p-1 text-subtle no-underline hover:text-[var(--miron-gold)]" aria-label="Ayarlar">
+                <Settings size={16} strokeWidth={1.5} />
+              </Link>
             </div>
           </div>
         </aside>
 
         <div
-            className="flex min-h-0 min-w-0 flex-1 flex-col"
-            style={{ background: "#000", borderColor: "#1e1e1e" }}
-          >
-          <div
-            className="flex flex-shrink-0 flex-col gap-1.5"
-            style={{ borderBottom: "0.5px solid #1e1e1e", padding: "6px 12px 8px" }}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 max-w-[55%] sm:max-w-md">
-                <div className="flex flex-col gap-0.5">
-                  <Link
-                    to="/dashboard/dava-merkezi"
-                    className="no-underline"
-                    style={{ fontSize: 10, color: "#666", fontFamily: '"IBM Plex Sans", system-ui' }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    ← Dava Merkezine dön
-                  </Link>
-                  <span
-                    className="block"
-                    style={{
-                      fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-                      fontSize: 10,
-                      color: "#4a4a4a",
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {greeting}, {avukat}
-                  </span>
-                </div>
-                <h2
-                  className="m-0 mt-1.5 min-w-0 max-w-full truncate"
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "#FFD700",
-                    fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-                    letterSpacing: "-0.01em",
-                  }}
-                  title={current?.name || "Sohbet"}
-                >
-                  {current?.name || "Sohbet"}
-                </h2>
-              </div>
-              <div className="relative flex-shrink-0 pt-0.5" ref={menuRef}>
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen((m) => !m)}
-                  className="px-1"
-                  style={{ background: "none", border: "none", color: "#3a3a3a", fontSize: 14, letterSpacing: 2, lineHeight: 1 }}
-                  aria-label="Daha"
-                >
-                  &middot;&middot;&middot;
-                </button>
-                {menuOpen && (
-                  <div
-                    className="absolute right-0 z-20 mt-1 w-40"
-                    style={{ background: "#0a0a0a", border: "0.5px solid #1e1e1e", borderRadius: 8, padding: "2px 0" }}
-                  >
-                    <button
-                      type="button"
-                      onClick={openRename}
-                      className="w-full text-left"
-                      style={{ border: "none", background: "none", color: "#888", fontSize: 11, padding: "6px 10px" }}
-                    >
-                      Yeniden adlandır
-                    </button>
-                    <button
-                      type="button"
-                      onClick={exportChat}
-                      className="w-full text-left"
-                      style={{ border: "none", background: "none", color: "#888", fontSize: 11, padding: "6px 10px" }}
-                    >
-                      Dışa aktar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onDelete}
-                      className="w-full text-left"
-                      style={{ border: "none", background: "none", color: "#888", fontSize: 11, padding: "6px 10px" }}
-                    >
-                      Sil
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div
-            ref={scRef}
-            className="min-h-0 flex-1 overflow-y-auto"
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            {empty ? (
-              <div
-                className="flex h-full min-h-full flex-col items-center justify-center px-4"
-                style={{ paddingBottom: 160, paddingTop: 20 }}
+          className="miron-assistant-messages flex min-h-0 min-w-0 flex-1 flex-col"
+          style={{ minWidth: 0, background: "var(--miron-bg)" }}
+        >
+          <header className="flex h-12 shrink-0 items-center border-b border-[var(--miron-border)] bg-black/50 px-2 backdrop-blur-md sm:px-3">
+            {narrow && (
+              <button
+                type="button"
+                onClick={() => setSideOpen(true)}
+                className="mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/70 hover:bg-white/5"
+                aria-label="Menü"
               >
-                <h1
-                  className="m-0 p-0"
-                  style={{ fontFamily: "Abril Fatface, serif", fontSize: 44, color: "#fff", letterSpacing: "-0.5px" }}
-                >
-                  Miron
-                </h1>
-                <p
-                  className="m-0 p-0 text-center"
-                  style={{ fontFamily: "IBM Plex Sans, system-ui, sans-serif", fontSize: 14, color: "#6a6a6a" }}
-                >
-                  {greeting}, {avukat}
-                </p>
-                <p
-                  className="m-0 p-0 text-center"
-                  style={{
-                    fontFamily: "IBM Plex Sans, system-ui, sans-serif",
-                    fontSize: 13,
-                    color: "#4a4a4a",
-                    marginTop: 6,
-                    maxWidth: 420,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Dava, metin, e-posta, plan ve günlük işlerde yanındayız; sorunuzu aşağıdan yazın.
-                </p>
+                <Menu size={20} strokeWidth={1.5} />
+              </button>
+            )}
+            <div className="min-w-0 flex-1 text-center sm:pl-0">
+              <h1
+                className="m-0 max-w-full truncate text-center text-sm font-semibold tracking-tight"
+                style={{ color: "var(--miron-text)" }}
+                title={current?.name}
+              >
+                {current?.name || "Miron AI"}
+              </h1>
+              <p className="text-subtle m-0 mt-0.5 line-clamp-1 text-center text-[0.65rem]">
+                {empty ? "Yeni sohbet" : `${greeting} · `}
+                {avukat}
+              </p>
+            </div>
+            <div className="relative flex h-9 w-9 shrink-0 items-center justify-end" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((m) => !m)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/50 hover:bg-white/5 hover:text-white"
+                aria-label="Daha"
+              >
+                <MoreHorizontal size={20} strokeWidth={1.5} />
+              </button>
+              {menuOpen && (
                 <div
-                  className="mt-8 grid w-full max-w-3xl gap-2.5"
-                  style={{ marginTop: 32, gridTemplateColumns: narrow ? "1fr" : "1fr 1fr" }}
+                  className="card absolute right-0 z-20 mt-1.5 w-40 py-0.5 !p-0"
+                  style={{ maxWidth: "10rem" }}
                 >
+                  <button type="button" onClick={openRename} className="w-full text-left text-xs text-white/80 hover:bg-white/5" style={{ padding: "0.4rem 0.65rem" }}>
+                    Yeniden adlandır
+                  </button>
+                  <button type="button" onClick={exportChat} className="w-full text-left text-xs text-white/80 hover:bg-white/5" style={{ padding: "0.4rem 0.65rem" }}>
+                    Dışa aktar
+                  </button>
+                  <button type="button" onClick={onDelete} className="w-full text-left text-xs text-red-200/80 hover:bg-white/5" style={{ padding: "0.4rem 0.65rem" }}>
+                    Sil
+                  </button>
+                </div>
+              )}
+            </div>
+          </header>
+
+          <div ref={scRef} className="min-h-0 flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+            {empty ? (
+              <div className="flex min-h-full flex-col items-center justify-center px-3 py-6 sm:px-6" style={{ paddingBottom: 140 }}>
+                <div className="w-full max-w-[42rem] text-center">
+                  <h2 className="font-heading m-0 text-2xl text-[var(--miron-text)] sm:text-3xl">Miron</h2>
+                  <p className="m-0 mt-1.5 text-base font-medium text-[#FFD700] sm:text-lg">Yapay zekâ asistan</p>
+                  <p className="text-muted m-0 mt-6 text-lg font-medium leading-snug sm:text-xl">Size nasıl yardımcı olabilirim?</p>
+                  <p className="text-subtle m-0 mt-2 text-sm" style={{ lineHeight: 1.5 }}>
+                    Hukuk, taslak, toplantı notu, e-posta veya günlük ofis — sorunuzu yazın, net ve sade yanıt alın.
+                  </p>
+                </div>
+                <div className="mt-8 grid w-full max-w-3xl gap-2.5 sm:grid-cols-2" style={{ gap: "0.6rem" }}>
                   {SUGGEST.map((s) => (
                     <button
                       key={s.title}
                       type="button"
                       onClick={() => send(s.text)}
-                      className="w-full text-left"
-                      style={{
-                        background: "#0a0a0a",
-                        border: "0.5px solid #1e1e1e",
-                        borderRadius: 10,
-                        padding: "12px 14px",
-                        color: "#888",
-                        fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-                        cursor: "pointer",
-                      }}
+                      className="card w-full !rounded-2xl border border-[var(--miron-border)] text-left !shadow-none transition hover:border-[#FFD700]/35 hover:bg-white/[0.04]"
+                      style={{ padding: "0.85rem 1rem" }}
                     >
-                      <div style={{ fontSize: 12, fontWeight: 500, color: "#888" }}>{s.title}</div>
-                      <div style={{ fontSize: 11, color: "#333", marginTop: 4 }}>{s.sub}</div>
+                      <p className="m-0 text-sm font-medium text-white/90">{s.title}</p>
+                      <p className="text-subtle m-0 mt-1 text-xs" style={{ lineHeight: 1.45 }}>
+                        {s.sub}
+                      </p>
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
-              <div
-                className="mx-auto w-full space-y-3 px-3 py-2 sm:px-5"
-                style={{ maxWidth: 920, paddingBottom: 24, paddingTop: 8 }}
-              >
-                {messages.map((m, i) => (
-                  <div
-                    key={m.id || `msg-${i}`}
-                    className="flex w-full"
-                    style={{ justifyContent: m.sender === "user" ? "flex-end" : "flex-start" }}
-                  >
-                    {m.sender === "user" ? (
+              <div className="mx-auto w-full max-w-3xl space-y-6 px-3 py-5 sm:px-5 sm:py-6">
+                {messages.map((m, i) =>
+                  m.sender === "user" ? (
+                    <div key={m.id || `msg-${i}`} className="flex w-full justify-end">
                       <div
+                        className="max-w-[min(100%,28rem)] rounded-3xl border text-[0.95rem] leading-[1.65] shadow-sm"
                         style={{
-                          maxWidth: 520,
-                          background: "#0d0d0d",
-                          border: "0.5px solid #1e1e1e",
-                          borderRadius: 12,
-                          padding: "10px 14px",
-                          color: "#e5e5e5",
-                          fontSize: 14,
-                          lineHeight: 1.7,
-                          fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-                          whiteSpace: "pre-wrap",
-                          overflowWrap: "anywhere",
+                          background: "var(--miron-panel-2)",
+                          borderColor: "rgba(255,215,0,0.22)",
+                          color: "var(--miron-text)",
+                          padding: "0.65rem 1rem 0.75rem",
                         }}
                       >
-                        {m.text}
+                        <p className="m-0 whitespace-pre-wrap" style={{ wordBreak: "break-word" }}>
+                          {m.text}
+                        </p>
                       </div>
-                    ) : (
+                    </div>
+                  ) : (
+                    <div key={m.id || `msg-${i}`} className="flex w-full min-w-0 justify-start gap-2.5 sm:gap-3.5">
                       <div
+                        className="mt-0.5 flex h-8 w-8 flex-shrink-0 select-none items-center justify-center self-start rounded-sm text-sm font-bold sm:h-9 sm:w-9"
                         style={{
-                          maxWidth: "min(100%, 880px)",
-                          flex: 1,
-                          minWidth: 0,
-                          borderLeft: m.text || m.streaming ? "1px solid #1e1e1e" : "none",
-                          paddingLeft: 12,
-                          color: "#e8e8e8",
+                          background: "linear-gradient(160deg, #f6e27a, #d4a700)",
+                          color: "#111",
                         }}
+                        aria-hidden
                       >
-                        <AssistantMessageContent text={m.text || ""} streaming={!!m.streaming} />
+                        M
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div
+                        className="min-w-0 flex-1 pt-0.5 text-sm sm:text-base"
+                        style={{ color: "var(--miron-text-muted)" }}
+                      >
+                        <div className="miron-ai-markdown">
+                          <AssistantMessageContent text={m.text || ""} streaming={!!m.streaming} />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             )}
           </div>
 
           <div
-            className="w-full"
-            style={{ background: "#000", borderTop: "0.5px solid #1e1e1e", padding: narrow ? "10px 12px" : "12px 20px" }}
+            className="z-10 w-full border-t border-[var(--miron-border)]"
+            style={{ background: "linear-gradient(to top, #000, rgba(0,0,0,0.88))" }}
           >
-            <div className="mx-auto" style={{ maxWidth: 920 }}>
-              <div
-                className="w-full"
-                style={{
-                  display: "flex",
-                  background: "#0a0a0a",
-                  border: "0.5px solid #1e1e1e",
-                  borderRadius: 10,
-                  padding: "6px 8px",
-                }}
-              >
+            <div className="mx-auto w-full max-w-3xl px-3 py-2.5 sm:px-4 sm:py-3">
+              <div className="miron-ai-composer flex w-full min-w-0 items-end gap-1.5 px-2.5 py-1.5 sm:gap-2 sm:px-3 sm:py-2">
                 <textarea
                   ref={taRef}
-                  className="w-full"
+                  className="min-w-0 flex-1 bg-transparent pl-0.5 text-sm leading-relaxed"
                   value={input}
                   rows={1}
                   onChange={(e) => {
                     setInput(e.target.value);
                     const el = e.target;
                     el.style.height = "0px";
-                    el.style.height = `${Math.min(200, Math.max(44, el.scrollHeight))}px`;
+                    el.style.height = `${Math.min(200, Math.max(40, el.scrollHeight))}px`;
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -798,49 +638,37 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                       send(input);
                     }
                   }}
-                  placeholder="Sorunuzu veya konusu yazın…"
+                  placeholder="Bir mesaj gönderin…"
                   style={{
-                    minHeight: 44,
+                    minHeight: 40,
                     maxHeight: 200,
-                    background: "transparent",
-                    color: "#c8c8c8",
-                    fontSize: 14,
-                    fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+                    color: "var(--miron-text)",
                     border: "none",
-                    padding: "8px 4px",
                     outline: "none",
                     resize: "none",
+                    fontFamily: "inherit",
+                    fontSize: 15,
                   }}
                 />
                 <button
                   type="button"
-                  className="flex items-center justify-center"
+                  className="mb-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center self-end sm:h-9 sm:w-9"
                   onClick={() => send(input)}
                   disabled={loading}
                   style={{
-                    width: 36,
-                    height: 36,
-                    minWidth: 36,
-                    alignSelf: "flex-end",
-                    border: input.trim() ? "none" : "0.5px solid #1e1e1e",
-                    borderRadius: 8,
-                    background: input.trim() ? "#FFD700" : "#111",
-                    color: input.trim() ? "#000" : "#3a3a3a",
-                    marginBottom: 2,
+                    borderRadius: "9999px",
+                    background: input.trim() ? "var(--miron-gold)" : "rgba(255,255,255,0.06)",
+                    color: input.trim() ? "#000" : "rgba(255,255,255,0.25)",
+                    border: "none",
                     cursor: loading ? "not-allowed" : "pointer",
-                    opacity: loading && input.trim() ? 0.7 : 1,
+                    opacity: loading && input.trim() ? 0.6 : 1,
                   }}
                   aria-label="Gönder"
                 >
-                  <ArrowUp size={16} color={input.trim() ? "#000" : "#3a3a3a"} />
+                  <ArrowUp size={18} strokeWidth={2.2} className="translate-y-[0.5px]" />
                 </button>
               </div>
-              <p
-                className="m-0 text-center"
-                style={{ fontSize: 9, color: "#1a1a1a", marginTop: 8, fontFamily: '"IBM Plex Sans", system-ui' }}
-              >
-                Yapay zeka hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu kontrol edin.
-              </p>
+              <p className="text-subtle m-0 py-1.5 text-center text-[0.65rem] sm:text-xs">Miron AI hatalı bilgi verebilir. Önemli adımlarda kendi incelemenizi ekleyin.</p>
             </div>
           </div>
         </div>
@@ -849,8 +677,8 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
       <AnimatePresence>
         {renameOpen && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{ background: "rgba(0,0,0,0.45)" }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-2"
+            style={{ background: "rgba(0,0,0,0.5)" }}
             onClick={() => setRenameOpen(false)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -858,38 +686,23 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="w-full p-4"
-              style={{ maxWidth: 380, background: "#0a0a0a", border: "0.5px solid #1e1e1e", borderRadius: 10 }}
+              className="card w-full max-w-sm !p-4"
             >
-              <p className="m-0" style={{ color: "#fff", fontSize: 15 }}>
-                Sohbet adı
-              </p>
+              <p className="m-0 text-sm font-medium text-white">Sohbet adı</p>
               <input
-                className="mt-2 w-full"
+                className="input mt-2.5 w-full"
                 value={nameDraft}
                 onChange={(e) => setNameDraft(e.target.value)}
-                style={{
-                  background: "#000",
-                  color: "#fff",
-                  border: "0.5px solid #1e1e1e",
-                  borderRadius: 6,
-                  padding: 8,
-                  fontSize: 13,
-                }}
               />
-              <div className="mt-2 flex justify-end" style={{ gap: 6 }}>
+              <div className="mt-3 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setRenameOpen(false)}
-                  style={{ border: "0.5px solid #1e1e1e", background: "none", color: "#888", borderRadius: 6, padding: "4px 10px" }}
+                  className="btn-secondary !rounded-lg !px-3 !py-1.5 !text-sm"
                 >
                   Vazgeç
                 </button>
-                <button
-                  type="button"
-                  onClick={doRename}
-                  style={{ background: "#FFD700", color: "#000", border: "none", fontWeight: 600, borderRadius: 6, padding: "4px 10px" }}
-                >
+                <button type="button" onClick={doRename} className="btn-primary !rounded-lg !px-3 !py-1.5 !text-sm">
                   Kaydet
                 </button>
               </div>
@@ -902,34 +715,27 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
         {deleteOpen && (
           <motion.div
             className="fixed inset-0 z-50 flex items-center justify-center p-2"
-            style={{ background: "rgba(0,0,0,0.45)" }}
+            style={{ background: "rgba(0,0,0,0.5)" }}
             onClick={() => setDeleteOpen(false)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="w-full p-4"
-              style={{ maxWidth: 380, background: "#0a0a0a", border: "0.5px solid #1e1e1e", borderRadius: 10 }}
-            >
-              <p className="m-0" style={{ color: "#fff", fontSize: 15 }}>
-                Sohbet silinsin mi?
-              </p>
-              <p className="m-0 mt-1" style={{ color: "#666", fontSize: 12 }}>
-                Bu sohbet yerel taslaktan kaldırılır.
-              </p>
-              <div className="mt-2 flex justify-end" style={{ gap: 6 }}>
+            <div onClick={(e) => e.stopPropagation()} className="card w-full max-w-sm !p-4">
+              <p className="m-0 text-sm font-medium text-white">Sohbet silinsin mi?</p>
+              <p className="text-subtle m-0 mt-1.5 text-xs">Bu sohbet yalnızca bu cihazdaki geçici kayıttan silinir.</p>
+              <div className="mt-3 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setDeleteOpen(false)}
-                  style={{ border: "0.5px solid #1e1e1e", background: "none", color: "#888", borderRadius: 6, padding: "4px 10px" }}
+                  className="btn-secondary !rounded-lg !px-3 !py-1.5 !text-sm"
                 >
                   Vazgeç
                 </button>
                 <button
                   type="button"
                   onClick={doDelete}
-                  style={{ background: "#5a1a1a", color: "#f0d0d0", border: "none", borderRadius: 6, padding: "4px 10px" }}
+                  className="rounded-lg border border-red-500/50 bg-red-900/30 px-3 py-1.5 text-sm text-red-100"
                 >
                   Sil
                 </button>
