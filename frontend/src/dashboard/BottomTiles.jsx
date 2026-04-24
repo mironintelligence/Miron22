@@ -6,11 +6,11 @@ function isAdmin(user) {
   return String(user?.role || "").toLowerCase() === "admin";
 }
 
-function Tile({ href, title, description, icon }) {
+function Tile({ href, title, description, icon, className = "" }) {
   return (
     <Link
       to={href}
-      className="group flex items-center justify-between px-5 py-4 bg-[#0a0a0a] dash-hair transition-colors hover:border-[#2e2e2e] no-underline"
+      className={`group flex w-full items-center justify-between px-5 py-4 bg-[#0a0a0a] dash-hair transition-colors hover:border-[#2e2e2e] no-underline ${className}`.trim()}
       style={{ borderRadius: 14, textDecoration: "none" }}
     >
       <div className="flex items-center gap-3">
@@ -45,6 +45,7 @@ function Tile({ href, title, description, icon }) {
 
 export default function BottomTiles() {
   const { user } = useAuth();
+  const admin = isAdmin(user);
   const iconCalc = (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <rect x="4" y="2" width="16" height="20" rx="2" />
@@ -63,21 +64,29 @@ export default function BottomTiles() {
     </svg>
   );
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div
+      className={
+        admin
+          ? "grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2"
+          : "grid grid-cols-1 gap-3"
+      }
+    >
       <Tile
         href="/calculators"
         title="Hesaplamalar"
         description="Faiz · Harç · KDV · Vekalet · İcra"
         icon={iconCalc}
+        className={admin ? "min-h-[120px] h-full sm:min-h-0" : "min-h-[140px] py-6 sm:min-h-[152px] sm:py-7"}
       />
-      {isAdmin(user) && (
+      {admin ? (
         <Tile
           href="/admin"
           title="Yönetim Paneli"
           description="Kullanıcılar · Demo talepler · Ayarlar"
           icon={iconShield}
+          className="min-h-[120px] h-full sm:min-h-0"
         />
-      )}
+      ) : null}
     </div>
   );
 }

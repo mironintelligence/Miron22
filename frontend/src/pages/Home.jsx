@@ -18,7 +18,8 @@ const ARASTIRMA_TOOLS = [
 
 const BELGE_TOOLS = [
   { label: "Evrak Analizi" },
-  { label: "Sözleşme Analizi & Oluşturucu" },
+  { label: "Sözleşme Analizi" },
+  { label: "Sözleşme Oluşturucu" },
   { label: "Dilekçe Oluşturucu" },
 ];
 
