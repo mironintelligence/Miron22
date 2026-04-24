@@ -1,20 +1,64 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import {
+  ArrowUp,
+  Menu,
+  Plus,
+  Settings,
+  X,
+} from "lucide-react";
 import { authFetch } from "../auth/api";
 import { useAuth } from "../auth/AuthProvider";
+import { lawyerDisplayName, trGreeting, groupChatsForSidebar } from "../lib/assistantGreeting.js";
 
-export default function LibraAssistant({ show = true, onClose, caseText = "" }) {
-  const navigate = useNavigate();
+const SUGGEST = [
+  {
+    title: "Emsal ara",
+    sub: "Yargıtay emsal özetle",
+    text: "İş akdi feshi için güncel Yargıtay emsal çizgilerini maddeler halinde özetle; varsayımlarını açıkça yaz.",
+  },
+  {
+    title: "Sözleşme riski",
+    sub: "Hukuki risk taraması",
+    text: "Taraflar, süre, fesih ve yaptırımlar bağlamında sözleşme metninde dikkat edilmesi gereken riskleri listele. Metin henüz yüklenmediyse varsayım söyle.",
+  },
+  {
+    title: "Dilekçe taslağı",
+    sub: "Alacak davası",
+    text: "Alacak davası için gerekçeli dilekçe iskeleti hazırla; açık noktaları soru olarak işaretle.",
+  },
+  {
+    title: "Strateji",
+    sub: "Kısa yol haritası",
+    text: "Bir dava açıklaması verilmeden önce hangi adımlar atılmalı; delil, süre ve harç açısından maddelendir. Kanıt eksikliğini uyar.",
+  },
+];
+
+function trDate() {
+  return new Date().toLocaleDateString("tr-TR");
+}
+
+export default function LibraAssistant({ caseText: caseTextProp = "" }) {
   const { user } = useAuth();
+  const location = useLocation();
+  const stateCtx =
+    location.state && typeof location.state === "object" && location.state.caseText
+      ? String(location.state.caseText)
+      : "";
+  const mergedContext = [caseTextProp, stateCtx].filter(Boolean).join("\n\n");
 
-  // LocalStorage keys are scoped per-user so different accounts sharing a
-  // browser don't see each other's chat history.
   const userScope = user?.id ? String(user.id) : "anon";
   const LS_CHATS = `libraChats::${userScope}`;
   const LS_CURRENT = `libraCurrentChatId::${userScope}`;
 
-  const trDate = () => new Date().toLocaleDateString("tr-TR");
+  const [greetingTick, setGreetingTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setGreetingTick((x) => x + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const greeting = useMemo(() => trGreeting(), [greetingTick]);
+  const avukat = lawyerDisplayName(user);
 
   const [chats, setChats] = useState(() => {
     try {
@@ -23,217 +67,103 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
       return [];
     }
   });
-
   const [currentChatId, setCurrentChatId] = useState(() => {
-    const saved = localStorage.getItem(LS_CURRENT);
-    return saved ? Number(saved) : null;
+    const s = localStorage.getItem(LS_CURRENT);
+    return s ? Number(s) : null;
   });
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sideOpen, setSideOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768
+  );
 
-  // Re-hydrate state when the logged-in user changes (scoped keys).
+  const scRef = useRef(null);
+  const taRef = useRef(null);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const f = () => setNarrow(window.innerWidth < 768);
+    window.addEventListener("resize", f);
+    return () => window.removeEventListener("resize", f);
+  }, []);
+
   useEffect(() => {
     try {
-      const nextChats = JSON.parse(localStorage.getItem(LS_CHATS) || "[]");
-      setChats(Array.isArray(nextChats) ? nextChats : []);
+      setChats(JSON.parse(localStorage.getItem(LS_CHATS) || "[]"));
     } catch {
       setChats([]);
     }
-    const saved = localStorage.getItem(LS_CURRENT);
-    setCurrentChatId(saved ? Number(saved) : null);
-  }, [userScope]);
-
-  const currentChat = useMemo(
-    () => chats.find((c) => c.id === currentChatId) || null,
-    [chats, currentChatId]
-  );
+    const s = localStorage.getItem(LS_CURRENT);
+    setCurrentChatId(s ? Number(s) : null);
+  }, [userScope, LS_CHATS, LS_CURRENT]);
 
   useEffect(() => {
     localStorage.setItem(LS_CHATS, JSON.stringify(chats));
-  }, [chats]);
+  }, [chats, LS_CHATS]);
 
   useEffect(() => {
     if (currentChatId) localStorage.setItem(LS_CURRENT, String(currentChatId));
-  }, [currentChatId]);
+  }, [currentChatId, LS_CURRENT]);
 
-  // -----------------------------
-  // UI States
-  // -----------------------------
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const [query, setQuery] = useState("");
-  const chatScrollRef = useRef(null);
-  const [showDownButton, setShowDownButton] = useState(false);
-
-  // Menu + Modals
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  const [renameOpen, setRenameOpen] = useState(false);
-  const [nameDraft, setNameDraft] = useState("");
-
-  const [deleteOpen, setDeleteOpen] = useState(false);
-
-  // -----------------------------
-  // Boot: ensure at least 1 chat
-  // -----------------------------
   useEffect(() => {
-    if (!show) return;
-
-    // If there is no chat at all, seed the very first one.
-    if (chats.length === 0) {
-      const newChat = {
-        id: Date.now(),
-        name: "Sohbet 1",
-        date: trDate(),
-        messages: [
-          { sender: "assistant", text: "Merhaba! Size nasıl yardımcı olabilirim?" },
-        ],
-      };
-      setChats([newChat]);
-      setCurrentChatId(newChat.id);
-      return;
-    }
-
-    // If we have chats but no selection (or the saved id no longer exists),
-    // select the most recent one instead of nuking the whole history.
-    const hasCurrent = chats.some((c) => c.id === currentChatId);
-    if (!hasCurrent) {
-      setCurrentChatId(chats[0].id);
-    }
-  }, [show, chats, currentChatId]);
-
-  // -----------------------------
-  // Close outside menu
-  // -----------------------------
-  useEffect(() => {
-    const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false);
-      }
+    const h = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  // -----------------------------
-  // Scroll helpers
-  // -----------------------------
-  const scrollToBottom = (smooth = true) => {
-    const el = chatScrollRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
-  };
-
-  useEffect(() => {
-    const t = setTimeout(() => scrollToBottom(true), 60);
-    return () => clearTimeout(t);
-  }, [currentChat?.messages?.length, loading]);
-
-  const onChatScroll = () => {
-    const el = chatScrollRef.current;
-    if (!el) return;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
-    setShowDownButton(!nearBottom);
-  };
+  const current = useMemo(() => chats.find((c) => c.id === currentChatId) || null, [chats, currentChatId]);
+  const messages = current?.messages || [];
+  const empty = messages.length === 0;
 
   const filteredChats = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return chats;
-    return chats.filter((c) => {
-      const nameHit = (c.name || "").toLowerCase().includes(q);
-      const lastText = c.messages?.slice(-1)[0]?.text || "";
-      return nameHit || lastText.toLowerCase().includes(q);
-    });
+    return chats.filter(
+      (c) =>
+        (c.name || "").toLowerCase().includes(q) ||
+        String(c.messages?.slice(-1)[0]?.text || "").toLowerCase().includes(q)
+    );
   }, [chats, query]);
+  const grouped = useMemo(() => groupChatsForSidebar(filteredChats), [filteredChats]);
 
-  const createChat = () => {
-    const nextIndex = chats.length + 1;
-
-    const newChat = {
-      id: Date.now(),
-      name: `Sohbet ${nextIndex}`,
-      date: trDate(),
-      messages: [
-        { sender: "assistant", text: "Merhaba! Size nasıl yardımcı olabilirim?" },
-      ],
-    };
-
-    setChats((p) => [newChat, ...p]);
-    setCurrentChatId(newChat.id);
-
-    setNameDraft(newChat.name);
-    setRenameOpen(true);
-    setMenuOpen(false);
-  };
-
-  const openRename = () => {
-    if (!currentChat) return;
-    setNameDraft(currentChat.name || "");
-    setRenameOpen(true);
-    setMenuOpen(false);
-  };
-
-  const doRename = () => {
-    if (!currentChat) return;
-    const v = nameDraft.trim();
-    if (!v) {
-      setRenameOpen(false);
+  useEffect(() => {
+    if (chats.length === 0) {
+      const n = {
+        id: Date.now(),
+        name: "Sohbet 1",
+        date: trDate(),
+        createdAt: Date.now(),
+        messages: [],
+      };
+      setChats([n]);
+      setCurrentChatId(n.id);
       return;
     }
-    setChats((prev) =>
-      prev.map((c) => (c.id === currentChat.id ? { ...c, name: v } : c))
-    );
-    setRenameOpen(false);
+    if (!chats.some((c) => c.id === currentChatId)) {
+      setCurrentChatId(chats[0].id);
+    }
+  }, [chats, currentChatId]);
+
+  const scrollToBottom = () => {
+    const el = scRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   };
+  useEffect(() => {
+    const t = setTimeout(scrollToBottom, 50);
+    return () => clearTimeout(t);
+  }, [messages.length, loading]);
 
-  const exportChat = () => {
-    if (!currentChat) return;
-
-    const content = (currentChat.messages || [])
-      .map((m) => `${m.sender === "user" ? "👤" : "🤖"} ${m.text}`)
-      .join("\n\n");
-
-    const safeName = (currentChat.name || "Sohbet").replace(/[\\/:*?"<>|]/g, "-");
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${safeName}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    setMenuOpen(false);
-  };
-
-  const openDelete = () => {
-    setDeleteOpen(true);
-    setMenuOpen(false);
-  };
-
-  const doDelete = () => {
-    if (!currentChat) return;
-    const deletingId = currentChat.id;
-
-    setChats((prev) => prev.filter((c) => c.id !== deletingId));
-    setDeleteOpen(false);
-
-    setTimeout(() => {
-      const remaining = chats.filter((c) => c.id !== deletingId);
-      if (remaining.length > 0) setCurrentChatId(remaining[0].id);
-      else createChat();
-    }, 0);
-  };
-
-  // -----------------------------
-  // Backend call: try routes (404 fallback)
-  // -----------------------------
   const postAssistant = async (payload) => {
-    // Routes to try in order — first one that responds wins. authFetch handles
-    // Authorization + CSRF + 401 refresh automatically.
     const paths = ["/assistant-chat", "/api/assistant-chat", "/assistant/assistant-chat"];
     let lastErr = null;
-
     for (const path of paths) {
       try {
         const res = await authFetch(path, {
@@ -241,11 +171,8 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-
         if (res.status === 404) continue;
-
         const data = await res.json().catch(() => ({}));
-
         if (!res.ok) {
           const detail = data?.detail
             ? typeof data.detail === "string"
@@ -260,369 +187,668 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
                 : `HTTP ${res.status}`;
           throw new Error(detail);
         }
-
         return data;
       } catch (e) {
         lastErr = e;
       }
     }
-
     throw lastErr || new Error("Bağlantı hatası");
   };
 
-  // -----------------------------
-  // Send message
-  // -----------------------------
-  const sendMessage = async () => {
-    if (!currentChat) return;
-
-    const userText = input.trim();
-    if (!userText) return;
-
-    const userMsg = { sender: "user", text: userText };
-
+  const send = async (raw) => {
+    if (!current) return;
+    const t = String(raw || "").trim();
+    if (!t) return;
+    const uid = current.id;
+    const umsg = { sender: "user", text: t };
     setChats((prev) =>
-      prev.map((c) =>
-        c.id === currentChat.id ? { ...c, messages: [...c.messages, userMsg] } : c
-      )
+      prev.map((c) => (c.id === uid ? { ...c, messages: [...(c.messages || []), umsg] } : c))
     );
-
     setInput("");
+    if (taRef.current) {
+      taRef.current.style.height = "52px";
+    }
     setLoading(true);
-
+    setSideOpen(false);
     const payload = {
-      message: userText,
-      context: caseText || "",
-      chat_id: String(currentChat.id), // 422 azaltır
+      message: t,
+      context: mergedContext,
+      chat_id: String(uid),
     };
-
     try {
       const data = await postAssistant(payload);
-      const replyText = data?.reply || "⚠️ Yanıt alınamadı.";
-
-      const botMsg = { sender: "assistant", text: replyText };
-
-      setChats((prev) =>
-        prev.map((c) =>
-          c.id === currentChat.id ? { ...c, messages: [...c.messages, botMsg] } : c
-        )
-      );
+      const text = data?.reply || "Yanıt alınamadı.";
+      const bot = { sender: "assistant", text };
+      setChats((prev) => prev.map((c) => (c.id === uid ? { ...c, messages: [...(c.messages || []), bot] } : c)));
     } catch (e) {
-      const botMsg = {
-        sender: "assistant",
-        text: `⚠️ Yanıt alınamadı: ${e?.message || "Bilinmeyen hata"}`,
-      };
-      setChats((prev) =>
-        prev.map((c) =>
-          c.id === currentChat.id ? { ...c, messages: [...c.messages, botMsg] } : c
-        )
-      );
+      const bot = { sender: "assistant", text: `Yanıt alınamadı: ${e?.message || "Bilinmeyen hata"}` };
+      setChats((prev) => prev.map((c) => (c.id === uid ? { ...c, messages: [...(c.messages || []), bot] } : c)));
     } finally {
       setLoading(false);
     }
   };
 
-  // -----------------------------
-  // Close button
-  // -----------------------------
-  const closeAssistant = () => {
-    if (onClose) onClose();
-    else navigate("/dashboard");
+  const newChat = () => {
+    const n = {
+      id: Date.now(),
+      name: `Sohbet ${chats.length + 1}`,
+      date: trDate(),
+      createdAt: Date.now(),
+      messages: [],
+    };
+    setChats((p) => [n, ...p]);
+    setCurrentChatId(n.id);
+    if (narrow) setSideOpen(false);
   };
 
-  if (!show) return null;
+  const openRename = () => {
+    if (!current) return;
+    setNameDraft(current.name || "");
+    setRenameOpen(true);
+    setMenuOpen(false);
+  };
+  const doRename = () => {
+    if (!current) return;
+    const v = nameDraft.trim();
+    if (v) setChats((p) => p.map((c) => (c.id === current.id ? { ...c, name: v } : c)));
+    setRenameOpen(false);
+  };
+
+  const exportChat = () => {
+    if (!current) return;
+    const body = (current.messages || [])
+      .map((m) => `${m.sender === "user" ? "Kullanici" : "Asistan"}: ${m.text || ""}`)
+      .join("\n\n");
+    const b = new Blob([body], { type: "text/plain;charset=utf-8" });
+    const u = URL.createObjectURL(b);
+    const a = document.createElement("a");
+    a.href = u;
+    a.download = `${(current.name || "Sohbet").replace(/[\\/:*?"<>|]/g, "-")}.txt`;
+    a.click();
+    URL.revokeObjectURL(u);
+    setMenuOpen(false);
+  };
+
+  const onDelete = () => {
+    setMenuOpen(false);
+    setDeleteOpen(true);
+  };
+  const doDelete = () => {
+    if (!current) return;
+    const id = current.id;
+    const rest = chats.filter((c) => c.id !== id);
+    if (rest.length) {
+      setChats(rest);
+      setCurrentChatId(rest[0].id);
+    } else {
+      const n = { id: Date.now(), name: "Sohbet 1", date: trDate(), createdAt: Date.now(), messages: [] };
+      setChats([n]);
+      setCurrentChatId(n.id);
+    }
+    setDeleteOpen(false);
+  };
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="premium-scope fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-md"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
-        <motion.div
-          className="relative w-[96vw] max-w-6xl h-[86vh] md:h-[82vh] rounded-2xl shadow-2xl border border-white/15 overflow-hidden flex bg-white/10 backdrop-blur-2xl"
-          initial={{ y: 14, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ opacity: 0 }}
+    <motion.main
+      className="flex w-full max-w-full flex-col overflow-x-hidden"
+      style={{ minHeight: "calc(100dvh - 7.5rem)", maxHeight: "calc(100dvh - 7.5rem)" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+    >
+      {narrow && (
+        <div
+          className="flex items-center justify-end border-b border-[#1e1e1e] bg-[#0a0a0a] py-1.5 pr-3 md:hidden"
+          style={{ borderWidth: 0.5 }}
         >
-          {/* SOL PANEL */}
-          <div className="w-[320px] min-w-[280px] h-full border-r border-white/10 p-4 bg-white/5 backdrop-blur-2xl flex flex-col">
-            <div className="flex gap-2 mb-3">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Ara..."
-                className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-              <button
-                onClick={createChat}
-                className="px-3 py-2 rounded-xl bg-accent text-black font-semibold hover:scale-105 transition"
-                title="Yeni sohbet"
-              >
-                +
-              </button>
-            </div>
+          <button
+            type="button"
+            className="p-1.5"
+            style={{ border: "0.5px solid #1e1e1e", borderRadius: 6, background: "#0a0a0a" }}
+            onClick={() => setSideOpen(true)}
+            aria-label="Menu"
+          >
+            <Menu size={16} color="#3a3a3a" strokeWidth={1.5} />
+          </button>
+        </div>
+      )}
 
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              {filteredChats.map((c) => (
-                <div
-                  key={c.id}
-                  onClick={() => setCurrentChatId(c.id)}
-                  className={`p-3 rounded-xl cursor-pointer transition border ${
-                    c.id === currentChatId
-                      ? "bg-accent/20 border-accent/30"
-                      : "bg-white/5 border-white/10 hover:bg-white/10"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold truncate text-white">{c.name}</span>
-                    <span className="text-[11px] text-white/50">{c.date}</span>
-                  </div>
-                  <div className="text-xs text-white/50 mt-1 line-clamp-1">
-                    {c.messages?.slice(-1)[0]?.text || "—"}
-                  </div>
+      <div className="flex min-h-0 w-full flex-1" style={{ minHeight: 0 }}>
+        <AnimatePresence>
+          {narrow && sideOpen && (
+            <motion.button
+              type="button"
+              className="fixed inset-0 z-40"
+              style={{ background: "rgba(0,0,0,0.55)" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSideOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        <aside
+          className="flex min-h-0 flex-col border-r border-[#1e1e1e] bg-[#0a0a0a]"
+          style={{
+            width: narrow && !sideOpen ? 0 : 260,
+            minWidth: narrow && !sideOpen ? 0 : 260,
+            overflow: narrow && !sideOpen ? "hidden" : "visible",
+            position: narrow ? (sideOpen ? "fixed" : "static") : "relative",
+            zIndex: narrow && sideOpen ? 50 : 1,
+            height: narrow && sideOpen ? "100dvh" : "100%",
+            top: 0,
+            left: 0,
+            boxShadow: narrow && sideOpen ? "8px 0 20px rgba(0,0,0,0.4)" : "none",
+            transition: narrow ? "min-width 0.2s ease" : "none",
+          }}
+        >
+          {narrow && sideOpen && (
+            <button
+              type="button"
+              className="absolute right-2 top-2 z-50 p-0.5"
+              style={{ background: "none", border: "none" }}
+              onClick={() => setSideOpen(false)}
+              aria-label="Kapat"
+            >
+              <X size={16} color="#3a3a3a" />
+            </button>
+          )}
+
+          <div className="box-border flex h-full w-[260px] min-w-[260px] flex-col" style={{ padding: 16 }}>
+            <div className="mb-2">
+              <span
+                className="inline-block"
+                style={{ fontFamily: "Abril Fatface, serif", fontSize: 13, letterSpacing: "-0.01em" }}
+              >
+                <span className="text-white">Miron</span> <span style={{ color: "#FFD700" }}>AI</span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={newChat}
+              className="flex w-full items-center justify-center gap-1.5 border-0"
+              style={{
+                background: "#0a0a0a",
+                border: "0.5px solid #1e1e1e",
+                borderRadius: 8,
+                padding: "10px 12px",
+                color: "#555",
+                fontSize: 12,
+                fontWeight: 400,
+                fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+              }}
+            >
+              <Plus size={14} color="#333" strokeWidth={1.5} />
+              Yeni sohbet
+            </button>
+
+            <input
+              className="mt-3 w-full"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Ara"
+              style={{
+                background: "#000",
+                border: "0.5px solid #1e1e1e",
+                borderRadius: 6,
+                padding: "6px 8px",
+                fontSize: 11,
+                color: "#888",
+                fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+                outline: "none",
+              }}
+            />
+
+            <div className="mt-2 min-h-0 flex-1 overflow-y-auto pr-0.5" style={{ marginTop: 8 }}>
+              <p
+                className="m-0 mb-2"
+                style={{
+                  fontSize: 10,
+                  color: "#2a2a2a",
+                  letterSpacing: 1.5,
+                  textTransform: "uppercase",
+                  fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+                }}
+              >
+                Geçmiş
+              </p>
+              {grouped.map((g, gi) => (
+                <div key={g.key} className="mb-0">
+                  <p
+                    className="m-0"
+                    style={{
+                      fontSize: 10,
+                      color: "#222",
+                      textTransform: "uppercase",
+                      marginTop: gi === 0 ? 0 : 16,
+                      fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+                    }}
+                  >
+                    {g.key}
+                  </p>
+                  <ul className="m-0 list-none p-0" style={{ marginTop: 6 }}>
+                    {g.items.map((c) => {
+                      const on = c.id === currentChatId;
+                      return (
+                        <li key={c.id} className="m-0 p-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCurrentChatId(c.id);
+                              if (narrow) setSideOpen(false);
+                            }}
+                            className="w-full cursor-pointer text-left"
+                            style={{
+                              padding: "7px 10px",
+                              borderRadius: 8,
+                              color: on ? "#ccc" : "#444",
+                              background: on ? "#0d0d0d" : "transparent",
+                              border: "none",
+                              borderLeft: on ? "2px solid #FFD700" : "2px solid transparent",
+                              fontSize: 12,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+                            }}
+                            title={c.name}
+                          >
+                            {c.name}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               ))}
+            </div>
+
+            <div
+              className="mt-2"
+              style={{ borderTop: "0.5px solid #1e1e1e", paddingTop: 14, marginTop: "auto", flexShrink: 0 }}
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <div
+                  className="flex flex-shrink-0 items-center justify-center"
+                  style={{ width: 28, height: 28, borderRadius: 999, background: "#FFD700", fontSize: 9, fontWeight: 700, color: "#000" }}
+                >
+                  {String(avukat.replace(/^Av\.\s*/i, "") || "A")
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="m-0 truncate" style={{ fontSize: 11, color: "#555", fontFamily: '"IBM Plex Sans", system-ui' }}>
+                    {avukat}
+                  </p>
+                </div>
+                <Link to="/settings" className="p-0.5 no-underline" aria-label="Ayarlar" style={{ lineHeight: 0 }}>
+                  <Settings size={14} color="#2a2a2a" strokeWidth={1.5} />
+                </Link>
+              </div>
             </div>
           </div>
+        </aside>
 
-          {/* SAĞ PANEL */}
-          <div className="flex-1 min-w-0 h-full flex flex-col bg-black/10">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-[#111]">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[var(--miron-gold)] to-yellow-600 flex items-center justify-center">
-                  <span className="text-black font-bold text-xs">MA</span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-white">Miron Assistant</h3>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                    <span className="text-[10px] text-white/50">Çevrimiçi</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sağ üst: 3 nokta (solda) + kırmızı kapatma (sağda) */}
-              <div className="flex items-center gap-3">
-                <div className="relative" ref={menuRef}>
-                  <button
-                    onClick={() => setMenuOpen((s) => !s)}
-                    className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 transition text-xl leading-none flex items-center justify-center"
-                    title="Menü"
-                  >
-                    ⋮
-                  </button>
-
-                  <AnimatePresence>
-                    {menuOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 8 }}
-                        className="absolute right-0 mt-2 w-56 rounded-xl border border-white/15 bg-white/10 backdrop-blur-2xl shadow-2xl overflow-hidden z-50"
-                      >
-                        <button
-                          onClick={openRename}
-                          className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/10 transition"
-                        >
-                          ✏️ Yeniden adlandır
-                        </button>
-                        <button
-                          onClick={exportChat}
-                          className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/10 transition"
-                        >
-                          📤 Dışa aktar
-                        </button>
-                        <button
-                          onClick={openDelete}
-                          className="w-full text-left px-4 py-3 text-sm text-red-300 hover:bg-red-500/10 transition"
-                        >
-                          🗑 Sil
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
+        <div
+          className="flex min-h-0 min-w-0 flex-1 flex-col"
+          style={{ background: "#000", borderColor: "#1e1e1e" }}
+        >
+          <div
+            className="flex flex-shrink-0 flex-col gap-1"
+            style={{ borderBottom: "0.5px solid #1e1e1e", padding: "8px 16px 10px" }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <Link
+                to="/dashboard/dava-merkezi"
+                className="no-underline"
+                style={{ fontSize: 11, color: "#3a3a3a", fontFamily: '"IBM Plex Sans", system-ui' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                ← Dava Merkezine dön
+              </Link>
+              <div className="relative" ref={menuRef}>
                 <button
-                  onClick={closeAssistant}
-                  className="w-4 h-4 rounded-full bg-red-500 hover:bg-red-600 border border-red-400 shadow"
-                  title="Kapat"
-                />
+                  type="button"
+                  onClick={() => setMenuOpen((m) => !m)}
+                  className="px-1"
+                  style={{ background: "none", border: "none", color: "#3a3a3a", fontSize: 14, letterSpacing: 2, lineHeight: 1 }}
+                  aria-label="Daha"
+                >
+                  &middot;&middot;&middot;
+                </button>
+                {menuOpen && (
+                  <div
+                    className="absolute right-0 z-20 mt-1 w-40"
+                    style={{ background: "#0a0a0a", border: "0.5px solid #1e1e1e", borderRadius: 8, padding: "2px 0" }}
+                  >
+                    <button
+                      type="button"
+                      onClick={openRename}
+                      className="w-full text-left"
+                      style={{ border: "none", background: "none", color: "#888", fontSize: 11, padding: "6px 10px" }}
+                    >
+                      Yeniden adlandır
+                    </button>
+                    <button
+                      type="button"
+                      onClick={exportChat}
+                      className="w-full text-left"
+                      style={{ border: "none", background: "none", color: "#888", fontSize: 11, padding: "6px 10px" }}
+                    >
+                      Dışa aktar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onDelete}
+                      className="w-full text-left"
+                      style={{ border: "none", background: "none", color: "#888", fontSize: 11, padding: "6px 10px" }}
+                    >
+                      Sil
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Messages */}
-            <div
-              ref={chatScrollRef}
-              onScroll={onChatScroll}
-              className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-3"
+            <p
+              className="m-0"
+              style={{
+                fontFamily: '"Libre Baskerville", "Georgia", serif',
+                fontSize: 13,
+                color: "#888",
+                lineHeight: 1.45,
+                fontStyle: "italic",
+              }}
             >
-              {currentChat?.messages?.map((m, i) => (
+              {greeting}, {avukat}
+            </p>
+          </div>
+
+          <div
+            ref={scRef}
+            className="min-h-0 flex-1 overflow-y-auto"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            {empty ? (
+              <div
+                className="flex h-full min-h-full flex-col items-center justify-center px-4"
+                style={{ paddingBottom: 160, paddingTop: 20 }}
+              >
+                <h1
+                  className="m-0 p-0"
+                  style={{ fontFamily: "Abril Fatface, serif", fontSize: 44, color: "#fff", letterSpacing: "-0.5px" }}
+                >
+                  Miron
+                </h1>
+                <p
+                  className="m-0 p-0 text-center"
+                  style={{ fontFamily: "Libre Baskerville, serif", fontSize: 16, color: "#333", fontStyle: "italic" }}
+                >
+                  {greeting}, {avukat}
+                </p>
+                <p
+                  className="m-0 p-0 text-center"
+                  style={{
+                    fontFamily: '"Libre Baskerville", Georgia, serif',
+                    fontSize: 14,
+                    color: "#333",
+                    marginTop: 6,
+                    fontStyle: "italic",
+                  }}
+                >
+                  Hukuki asistanınız.
+                </p>
                 <div
-                  key={i}
-                  className={`w-full flex min-w-0 ${
-                    m.sender === "user" ? "justify-end" : "justify-start"
-                  }`}
+                  className="mt-8 grid w-full max-w-lg gap-2.5"
+                  style={{ marginTop: 32, gridTemplateColumns: narrow ? "1fr" : "1fr 1fr" }}
                 >
+                  {SUGGEST.map((s) => (
+                    <button
+                      key={s.title}
+                      type="button"
+                      onClick={() => send(s.text)}
+                      className="w-full text-left"
+                      style={{
+                        background: "#0a0a0a",
+                        border: "0.5px solid #1e1e1e",
+                        borderRadius: 10,
+                        padding: "12px 14px",
+                        color: "#888",
+                        fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ fontSize: 12, fontWeight: 500, color: "#888" }}>{s.title}</div>
+                      <div style={{ fontSize: 11, color: "#333", marginTop: 4 }}>{s.sub}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div
+                className="mx-auto w-full space-y-3 px-4 py-2"
+                style={{ maxWidth: 720, paddingBottom: 24, paddingTop: 8 }}
+              >
+                {messages.map((m, i) => (
                   <div
-                    className={[
-                      "min-w-0",
-                      "max-w-[88%] md:max-w-[72%]",
-                      "rounded-2xl px-4 py-3 text-sm",
-                      "whitespace-pre-wrap break-words",
-                      m.sender === "user"
-                        ? "bg-accent text-black"
-                        : "bg-white/10 text-white border border-white/10",
-                    ].join(" ")}
-                    style={{ overflowWrap: "anywhere" }}
+                    key={i}
+                    className="flex w-full"
+                    style={{ justifyContent: m.sender === "user" ? "flex-end" : "flex-start" }}
                   >
-                    {m.text}
+                    <div
+                      style={
+                        m.sender === "user"
+                          ? {
+                              maxWidth: 400,
+                              background: "#0d0d0d",
+                              border: "0.5px solid #1e1e1e",
+                              borderRadius: 12,
+                              padding: "10px 14px",
+                              color: "#ccc",
+                              fontSize: 13,
+                              lineHeight: 1.65,
+                              fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+                              whiteSpace: "pre-wrap",
+                              overflowWrap: "anywhere",
+                            }
+                          : {
+                              maxWidth: 560,
+                              color: "#999",
+                              fontSize: 14,
+                              lineHeight: 1.75,
+                              fontFamily: "Libre Baskerville, Georgia, serif",
+                              borderLeft: "1px solid #1e1e1e",
+                              paddingLeft: 12,
+                              whiteSpace: "pre-wrap",
+                              overflowWrap: "anywhere",
+                            }
+                      }
+                    >
+                      {m.text}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+                {loading && (
+                  <p className="m-0 pl-3" style={{ color: "#333", fontSize: 11, fontFamily: "IBM Plex Sans" }}>
+                    <span className="inline-block animate-pulse">Miron yazıyor...</span>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
 
-              {loading && (
-                <div className="w-full flex justify-start min-w-0">
-                  <div className="min-w-0 max-w-[88%] md:max-w-[72%] bg-white/10 text-white/70 border border-white/10 rounded-2xl px-4 py-3 text-sm">
-                    Asistan yazıyor<span className="ml-2 animate-pulse">...</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Scroll down */}
-            <AnimatePresence>
-              {showDownButton && (
-                <motion.button
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  onClick={() => scrollToBottom(true)}
-                  className="absolute right-6 bottom-24 px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15 transition"
-                >
-                  ↓
-                </motion.button>
-              )}
-            </AnimatePresence>
-
-            {/* Input */}
-            <div className="px-5 py-4 border-t border-white/10">
-              <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-3 py-3 backdrop-blur-2xl">
-                <input
+          <div
+            className="w-full"
+            style={{ background: "#000", borderTop: "0.5px solid #1e1e1e", padding: narrow ? "10px 12px" : "12px 20px" }}
+          >
+            <div className="mx-auto" style={{ maxWidth: 720 }}>
+              <div
+                className="w-full"
+                style={{
+                  display: "flex",
+                  background: "#0a0a0a",
+                  border: "0.5px solid #1e1e1e",
+                  borderRadius: 10,
+                  padding: "6px 8px",
+                }}
+              >
+                <textarea
+                  ref={taRef}
+                  className="w-full"
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  rows={1}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    const el = e.target;
+                    el.style.height = "0px";
+                    el.style.height = `${Math.min(200, Math.max(44, el.scrollHeight))}px`;
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      sendMessage();
+                      send(input);
                     }
                   }}
-                  placeholder="Mesajınızı yazın..."
-                  className="flex-1 min-w-0 bg-transparent text-white placeholder-white/40 outline-none px-2"
+                  placeholder="Hukuki sorunuzu yazın..."
+                  style={{
+                    minHeight: 44,
+                    maxHeight: 200,
+                    background: "transparent",
+                    color: "#888",
+                    fontSize: 14,
+                    fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+                    border: "none",
+                    padding: "8px 4px",
+                    outline: "none",
+                    resize: "none",
+                  }}
                 />
                 <button
-                  onClick={sendMessage}
+                  type="button"
+                  className="flex items-center justify-center"
+                  onClick={() => send(input)}
                   disabled={loading}
-                  className="px-5 py-2 rounded-xl bg-accent text-black font-semibold hover:scale-[1.02] transition disabled:opacity-60"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    minWidth: 36,
+                    alignSelf: "flex-end",
+                    border: input.trim() ? "none" : "0.5px solid #1e1e1e",
+                    borderRadius: 8,
+                    background: input.trim() ? "#FFD700" : "#111",
+                    color: input.trim() ? "#000" : "#3a3a3a",
+                    marginBottom: 2,
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading && input.trim() ? 0.7 : 1,
+                  }}
+                  aria-label="Gönder"
                 >
-                  Gönder
+                  <ArrowUp size={16} color={input.trim() ? "#000" : "#3a3a3a"} />
+                </button>
+              </div>
+              <p
+                className="m-0 text-center"
+                style={{ fontSize: 9, color: "#1a1a1a", marginTop: 8, fontFamily: '"IBM Plex Sans", system-ui' }}
+              >
+                Yapay zeka hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu kontrol edin.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {renameOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.45)" }}
+            onClick={() => setRenameOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full p-4"
+              style={{ maxWidth: 380, background: "#0a0a0a", border: "0.5px solid #1e1e1e", borderRadius: 10 }}
+            >
+              <p className="m-0" style={{ color: "#fff", fontSize: 15 }}>
+                Sohbet adı
+              </p>
+              <input
+                className="mt-2 w-full"
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                style={{
+                  background: "#000",
+                  color: "#fff",
+                  border: "0.5px solid #1e1e1e",
+                  borderRadius: 6,
+                  padding: 8,
+                  fontSize: 13,
+                }}
+              />
+              <div className="mt-2 flex justify-end" style={{ gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setRenameOpen(false)}
+                  style={{ border: "0.5px solid #1e1e1e", background: "none", color: "#888", borderRadius: 6, padding: "4px 10px" }}
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="button"
+                  onClick={doRename}
+                  style={{ background: "#FFD700", color: "#000", border: "none", fontWeight: 600, borderRadius: 6, padding: "4px 10px" }}
+                >
+                  Kaydet
                 </button>
               </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        {/* RENAME MODAL */}
-        <AnimatePresence>
-          {renameOpen && (
-            <motion.div
-              className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setRenameOpen(false)}
+      <AnimatePresence>
+        {deleteOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center p-2"
+            style={{ background: "rgba(0,0,0,0.45)" }}
+            onClick={() => setDeleteOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full p-4"
+              style={{ maxWidth: 380, background: "#0a0a0a", border: "0.5px solid #1e1e1e", borderRadius: 10 }}
             >
-              <motion.div
-                onClick={(e) => e.stopPropagation()}
-                initial={{ scale: 0.98, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="w-[92%] max-w-md rounded-2xl border border-white/15 bg-white/10 backdrop-blur-2xl shadow-2xl p-6"
-              >
-                <div className="text-white font-semibold text-lg">
-                  Sohbet Adını Yeniden Adlandır
-                </div>
-                <div className="text-white/60 text-sm mt-1">Yeni sohbet adı:</div>
-
-                <input
-                  value={nameDraft}
-                  onChange={(e) => setNameDraft(e.target.value)}
-                  className="mt-4 w-full px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-white placeholder-white/40 outline-none focus:ring-2 focus:ring-accent"
-                />
-
-                <div className="flex justify-end gap-2 mt-5">
-                  <button
-                    onClick={() => setRenameOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15 transition"
-                  >
-                    Vazgeç
-                  </button>
-                  <button
-                    onClick={doRename}
-                    className="px-4 py-2 rounded-xl bg-accent text-black font-semibold"
-                  >
-                    Kaydet
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* DELETE MODAL */}
-        <AnimatePresence>
-          {deleteOpen && (
-            <motion.div
-              className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setDeleteOpen(false)}
-            >
-              <motion.div
-                onClick={(e) => e.stopPropagation()}
-                initial={{ scale: 0.98, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="w-[92%] max-w-md rounded-2xl border border-white/15 bg-white/10 backdrop-blur-2xl shadow-2xl p-6"
-              >
-                <div className="text-white font-semibold text-lg">Sohbeti Sil</div>
-                <div className="text-white/70 text-sm mt-2">
-                  Bu sohbeti silmek istediğinizden emin misiniz?
-                </div>
-
-                <div className="flex justify-end gap-2 mt-6">
-                  <button
-                    onClick={() => setDeleteOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15 transition"
-                  >
-                    Vazgeç
-                  </button>
-                  <button
-                    onClick={doDelete}
-                    className="px-4 py-2 rounded-xl bg-red-500/80 border border-red-400/40 text-white hover:bg-red-500 transition"
-                  >
-                    Sil
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </AnimatePresence>
+              <p className="m-0" style={{ color: "#fff", fontSize: 15 }}>
+                Sohbet silinsin mi?
+              </p>
+              <p className="m-0 mt-1" style={{ color: "#666", fontSize: 12 }}>
+                Bu sohbet yerel taslaktan kaldırılır.
+              </p>
+              <div className="mt-2 flex justify-end" style={{ gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setDeleteOpen(false)}
+                  style={{ border: "0.5px solid #1e1e1e", background: "none", color: "#888", borderRadius: 6, padding: "4px 10px" }}
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="button"
+                  onClick={doDelete}
+                  style={{ background: "#5a1a1a", color: "#f0d0d0", border: "none", borderRadius: 6, padding: "4px 10px" }}
+                >
+                  Sil
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.main>
   );
 }

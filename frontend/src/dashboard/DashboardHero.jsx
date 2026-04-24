@@ -99,7 +99,7 @@ export default function DashboardHero({ activeCases = 0, todayHearings = 0 }) {
           </div>
 
           <Link
-            to="/assistant"
+            to="/dashboard/assistant"
             className="dash-font-sans inline-flex self-start items-center justify-center no-underline"
             style={{
               background: "#FFD700",
