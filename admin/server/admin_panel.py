@@ -1,18 +1,11 @@
 # admin_backend/admin_panel.py
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, Depends
 import json, os
 from datetime import datetime
 
-app = FastAPI(title="Libra AI Admin Backend", version="1.0")
+from auth import configure_admin_app, require_token
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = configure_admin_app(FastAPI(title="Libra AI Admin Backend", version="1.0"))
 
 DATA_DIR = "admin_data"
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -32,13 +25,13 @@ def write_json(path, data):
 
 @app.get("/")
 def root():
-    return {"message": "✅ Libra Admin Backend aktif"}
+    return {"message": "ok", "service": "libra-admin"}
 
-@app.get("/users")
+@app.get("/users", dependencies=[Depends(require_token)])
 def list_users():
     return read_json(USERS_FILE)
 
-@app.post("/users/add")
+@app.post("/users/add", dependencies=[Depends(require_token)])
 def add_user(name: str, surname: str):
     users = read_json(USERS_FILE)
     key = f"{name.lower()}.{surname.lower()}"
@@ -51,7 +44,7 @@ def add_user(name: str, surname: str):
     write_json(USERS_FILE, users)
     return {"status": "ok", "user": key}
 
-@app.delete("/users/delete/{key}")
+@app.delete("/users/delete/{key}", dependencies=[Depends(require_token)])
 def delete_user(key: str):
     users = read_json(USERS_FILE)
     if key not in users:
@@ -60,7 +53,7 @@ def delete_user(key: str):
     write_json(USERS_FILE, users)
     return {"status": "deleted"}
 
-@app.get("/stats")
+@app.get("/stats", dependencies=[Depends(require_token)])
 def get_stats():
     stats = read_json(STATS_FILE)
     users = read_json(USERS_FILE)
@@ -72,7 +65,7 @@ def get_stats():
         "last_updated": stats.get("last_updated", datetime.now().isoformat())
     }
 
-@app.post("/stats/update")
+@app.post("/stats/update", dependencies=[Depends(require_token)])
 def update_stats():
     data = {
         "last_updated": datetime.now().isoformat()

@@ -1,15 +1,10 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, Depends
 from datetime import datetime, timedelta
 import json, os
 
-app = FastAPI(title="Libra AI Admin Backend", version="2.0")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+from auth import configure_admin_app, require_token
+
+app = configure_admin_app(FastAPI(title="Libra AI Admin Backend", version="2.0"))
 
 DATA_PATH = "admin_data.json"
 os.makedirs(os.path.dirname(DATA_PATH) or ".", exist_ok=True)
@@ -27,13 +22,13 @@ def save_data(d):
 
 @app.get("/")
 def root():
-    return {"status": "✅ Libra Admin çalışıyor"}
+    return {"status": "ok", "service": "libra-admin"}
 
-@app.get("/users")
+@app.get("/users", dependencies=[Depends(require_token)])
 def list_users():
     return load_data()["users"]
 
-@app.post("/user/add")
+@app.post("/user/add", dependencies=[Depends(require_token)])
 def add_user(user: dict):
     data = load_data()
     key = f"{user['ad'].lower()}.{user['soyad'].lower()}"
@@ -54,7 +49,7 @@ def add_user(user: dict):
     save_data(data)
     return {"ok": True}
 
-@app.delete("/user/{key}")
+@app.delete("/user/{key}", dependencies=[Depends(require_token)])
 def delete_user(key: str):
     data = load_data()
     if key not in data["users"]:
@@ -63,7 +58,7 @@ def delete_user(key: str):
     save_data(data)
     return {"ok": True}
 
-@app.post("/user/update/{key}")
+@app.post("/user/update/{key}", dependencies=[Depends(require_token)])
 def update_user(key: str, update: dict):
     data = load_data()
     if key not in data["users"]:
@@ -72,7 +67,7 @@ def update_user(key: str, update: dict):
     save_data(data)
     return {"ok": True}
 
-@app.get("/stats")
+@app.get("/stats", dependencies=[Depends(require_token)])
 def stats():
     d = load_data()["users"]
     return {

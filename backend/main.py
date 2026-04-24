@@ -73,7 +73,57 @@ except Exception:
 # ---------------------------
 # APP
 # ---------------------------
-app = FastAPI(title="Miron AI Backend", version="1.4.0")
+_OPENAPI_TAGS = [
+    {"name": "health", "description": "Liveness & readiness probes. No auth required."},
+    {"name": "auth", "description": "Login, logout, token refresh, MFA, CSRF, session."},
+    {"name": "user", "description": "Authenticated user profile, preferences, quotas."},
+    {"name": "admin", "description": "Admin console endpoints. Require admin role + MFA."},
+    {"name": "cases", "description": "Yargıtay & mevzuat search, case detail, simulation."},
+    {"name": "contracts", "description": "Contract upload, risk analysis, report generation."},
+    {"name": "pleadings", "description": "Template-driven dilekçe (petition) generation."},
+    {"name": "calculators", "description": "Legal calculators (faiz, kıdem, harç, ...)."},
+    {"name": "assistant", "description": "Libra AI chat assistant streaming endpoints."},
+    {"name": "subscriptions", "description": "Plans, upgrades, invoicing, quota enforcement."},
+    {"name": "reminders", "description": "Reminder/notification CRUD."},
+    {"name": "feedback", "description": "User feedback submission."},
+    {"name": "metrics", "description": "Prometheus scrape endpoint."},
+]
+
+_OPENAPI_DESCRIPTION = """
+Miron AI backend — Turkish legal intelligence platform.
+
+**Error envelope**
+
+Every non-2xx response follows the same shape:
+
+```json
+{
+  "code": "AUTH_REQUIRED",
+  "detail": "Oturumunuz sona erdi.",
+  "request_id": "b0a2…"
+}
+```
+
+Clients should branch on the machine-readable `code` (enum defined in
+`backend/error_codes.py`), never on the localised `detail` string. The
+`request_id` matches the `X-Request-ID` response header and backend
+access logs — include it when reporting incidents.
+
+**Authentication**
+
+Most endpoints require a bearer JWT in the `Authorization` header.
+Auth and CSRF flows are documented under the `auth` tag.
+""".strip()
+
+app = FastAPI(
+    title="Miron AI Backend",
+    version="1.4.0",
+    description=_OPENAPI_DESCRIPTION,
+    openapi_tags=_OPENAPI_TAGS,
+    contact={"name": "Miron Intelligence", "url": "https://mironintelligence.vercel.app"},
+    license_info={"name": "Proprietary"},
+    swagger_ui_parameters={"defaultModelsExpandDepth": -1, "persistAuthorization": True},
+)
 
 def _database_url_declares_ssl(db_url: str) -> bool:
     """Render/Supabase bağlantı dizgilerinde sslmode farklı yazılabilir."""
@@ -189,13 +239,15 @@ async def startup_event():
         _plo, _phi = recommended_sync_pool_bounds()
         print(f"✅ Sync DB pool: min={_plo}, max={_phi}")
     except Exception as e:
-        print(f"🔥 CRITICAL: Sync DB Pool Init Failed: {e}")
-        
+        from logger_utils import log_exception as _log_exc
+        _log_exc("sync DB pool init failed", e, stage="startup.sync_pool")
+
     # Async DB Pool init
     try:
         await async_db.init_pools()
     except Exception as e:
-        print(f"🔥 CRITICAL: Async DB Pool Init Failed: {e}")
+        from logger_utils import log_exception as _log_exc
+        _log_exc("async DB pool init failed", e, stage="startup.async_pool")
 
     if (os.getenv("SKIP_ENSURE_SCHEMA", "false") or "").lower() == "true":
         print("⚠️ SKIP_ENSURE_SCHEMA=true — ensure_schema atlandı (yalnızca acil kurtarma).")
@@ -262,25 +314,63 @@ def _cors_hdr(request: Request) -> dict[str, str]:
     return {}
 
 
+from error_codes import AppError, ErrorCode, build_envelope, code_for_status
+from logger_utils import get_logger, log_exception
+
+_log = get_logger("miron.api")
+
+
+def _request_id(request: Request) -> str | None:
+    rid = getattr(request.state, "request_id", None)
+    return str(rid) if rid else None
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    import traceback
-    print(f"[ERROR] Global Exception on {request.method} {request.url.path}: {exc}")
-    traceback.print_exc()
+    request_id = _request_id(request)
+    log_exception(
+        "unhandled exception",
+        exc,
+        method=request.method,
+        path=request.url.path,
+        request_id=request_id,
+    )
+    body = build_envelope(
+        code=ErrorCode.INTERNAL_ERROR,
+        detail="Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.",
+        request_id=request_id,
+    )
+    return JSONResponse(status_code=500, content=body, headers=_cors_hdr(request))
 
+
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError):
+    request_id = _request_id(request)
+    body = build_envelope(
+        code=exc.code,
+        detail=str(exc.detail),
+        request_id=request_id,
+        context=exc.context or None,
+    )
     return JSONResponse(
-        status_code=500,
-        content={"detail": "Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin."},
-        headers=_cors_hdr(request),
+        status_code=int(exc.status_code),
+        content=body,
+        headers={**(exc.headers or {}), **_cors_hdr(request)},
     )
 
 
 @app.exception_handler(HTTPException)
 async def http_exception_with_cors(request: Request, exc: HTTPException):
+    request_id = _request_id(request)
+    body = build_envelope(
+        code=code_for_status(exc.status_code),
+        detail=str(exc.detail) if exc.detail is not None else "",
+        request_id=request_id,
+    )
     return JSONResponse(
         status_code=int(exc.status_code),
-        content={"detail": exc.detail},
-        headers=_cors_hdr(request),
+        content=body,
+        headers={**(exc.headers or {}), **_cors_hdr(request)},
     )
 
 
@@ -328,14 +418,26 @@ try:
         origin_regex=_origin_regex,
     )
 except Exception as e:
-    print(f"[WARN] EnforceCorsHeadersMiddleware not loaded: {e}")
+    from logger_utils import get_logger as _gl
+    _gl("miron.startup").warning("EnforceCorsHeadersMiddleware not loaded", extra={"error": str(e)})
 
 
-@app.get("/health")
+@app.get(
+    "/health",
+    tags=["health"],
+    summary="Liveness probe",
+    description="Lightweight liveness check. Returns 200 as long as the process is up.",
+    responses={200: {"content": {"application/json": {"example": {"ok": True}}}}},
+)
 def health():
     return {"ok": True}
 
-@app.get("/api/health")
+@app.get(
+    "/api/health",
+    tags=["health"],
+    summary="Liveness probe (api/ prefix)",
+    description="Identical to /health — provided so callers routed through the /api prefix can hit it without rewrites.",
+)
 def api_health():
     return {"ok": True}
 # ---------------------------
@@ -348,7 +450,11 @@ def _safe_import(path: str, name: str = "router"):
         mod = importlib.import_module(path)
         return getattr(mod, name)
     except Exception as e:
-        print(f"[WARN] Router import failed: {path}.{name} -> {e}")
+        from logger_utils import get_logger as _gl
+        _gl("miron.startup").warning(
+            "router import failed",
+            extra={"module": path, "attr": name, "error": str(e)},
+        )
         return None
 
 
@@ -376,7 +482,12 @@ admin_router     = _safe_import("admin_router", "router")
 # ---------------------------
 # ROOT
 # ---------------------------
-@app.get("/")
+@app.get(
+    "/",
+    tags=["health"],
+    summary="Service banner",
+    description="Public landing endpoint used by uptime checks and smoke tests.",
+)
 def root():
     return {"status": "ok", "msg": "Miron AI Backend çalışıyor!"}
 
