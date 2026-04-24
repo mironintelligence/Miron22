@@ -25,13 +25,13 @@ const HUB = {
   },
 };
 
-export default function HubCard({ color, title, description, tools = [], href }) {
+export default function HubCard({ color, title, description, tools = [], href, minHeight = 280 }) {
   const def = HUB[color];
   return (
     <Link
       to={href}
       className="group relative flex flex-col p-5 bg-[#0a0a0a] dash-hair transition-colors hover:border-[#2e2e2e] no-underline"
-      style={{ borderRadius: 14, textDecoration: "none", minHeight: 280 }}
+      style={{ borderRadius: 14, textDecoration: "none", minHeight }}
     >
       <span className="dash-hub-stripe" style={{ background: def.stripe }} aria-hidden />
 

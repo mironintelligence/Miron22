@@ -74,6 +74,7 @@ export default function Home() {
             description="Evrak, sözleşme ve dilekçeleri analiz edin veya sıfırdan oluşturun."
             tools={BELGE_TOOLS}
             href="/dashboard/belge-studyosu"
+            minHeight={320}
           />
         </div>
 
