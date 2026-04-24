@@ -5,6 +5,8 @@
     { "source": "/cases/:path*", "destination": "https://miron22.onrender.com/cases/:path*" },
     { "source": "/reports/:path*", "destination": "https://miron22.onrender.com/reports/:path*" },
     { "source": "/writer/:path*", "destination": "https://miron22.onrender.com/writer/:path*" },
+    { "source": "/assistant-chat/stream", "destination": "https://miron22.onrender.com/assistant-chat/stream" },
+    { "source": "/assistant-chat/title", "destination": "https://miron22.onrender.com/assistant-chat/title" },
     { "source": "/assistant-chat", "destination": "https://miron22.onrender.com/assistant-chat" },
     { "source": "/assistant/:path*", "destination": "https://miron22.onrender.com/assistant/:path*" },
     { "source": "/analyze", "destination": "https://miron22.onrender.com/analyze" },

@@ -2,6 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------- Miron Assistant Animations ---------- */
+@keyframes miron-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes miron-typing-dot {
+  0%, 80%, 100% { opacity: 0.2; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+.miron-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  background: #FFD700;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: miron-cursor-blink 0.9s ease-in-out infinite;
+}
+.miron-typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 0;
+}
+.miron-typing-dots span {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #444;
+  animation: miron-typing-dot 1.2s infinite ease-in-out both;
+}
+.miron-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.miron-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+.miron-msg p:last-child { margin-bottom: 0; }
+.miron-msg > *:first-child { margin-top: 0; }
+
 /* ---------- Varsayılan Tema ---------- */
 :root {
   --miron-bg: #000000;

@@ -67,11 +67,13 @@ export default function App() {
     setLoginOpen(false);
   }, [location.pathname, status, navigate]);
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [location.pathname]);
-
   const fullscreenRoute = location.pathname === "/dashboard/assistant";
+
+  useEffect(() => {
+    if (!fullscreenRoute) {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+  }, [location.pathname, fullscreenRoute]);
 
   return (
     <div className={fullscreenRoute ? "h-screen w-screen overflow-hidden bg-black text-white" : "min-h-screen bg-black text-white"}>

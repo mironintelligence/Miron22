@@ -36,6 +36,7 @@ const SUGGEST = [
 
 const EMOJI_RANGES = /[\u{1F300}-\u{1FFFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}]/gu;
 const VARIATION_SELECTOR = /\uFE0F/g;
+const HASH_BULLETS = /^#{1,4}\s+/gm;
 
 function stripEmojis(text) {
   return String(text || "")
@@ -49,12 +50,8 @@ function trDate() {
   return new Date().toLocaleDateString("tr-TR");
 }
 
-function resolveApiBase() {
-  const raw = String(
-    import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com"
-  ).trim();
-  return raw.replace(/\/+$/, "") || "https://miron22.onrender.com";
-}
+const ACTIVITY_TIMEOUT_MS = 30_000;
+const STREAM_ABORT_MS = 180_000;
 
 const FONT_SANS = '"IBM Plex Sans", system-ui, sans-serif';
 const FONT_SERIF = '"Libre Baskerville", Georgia, serif';
@@ -332,18 +329,38 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
       const r = await authFetch("/assistant-chat/title", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: firstMessage }),
+        body: JSON.stringify({ message: firstMessage.slice(0, 800) }),
       });
       if (!r.ok) return;
       const data = await r.json().catch(() => ({}));
-      let title = String(data?.title || "").trim();
+      let title = stripEmojis(String(data?.title || "").trim());
       if (!title) return;
-      title = stripEmojis(title);
       if (title.length > 32) title = title.slice(0, 32).trimEnd() + "…";
       setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, name: title } : c)));
     } catch {
       /* ignore */
     }
+  };
+
+  const sendFallback = async (uid, t, payload) => {
+    const paths = ["/assistant-chat", "/api/assistant-chat"];
+    let lastErr = null;
+    for (const p of paths) {
+      try {
+        const r = await authFetch(p, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (r.status === 404) continue;
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data?.detail || `HTTP ${r.status}`);
+        return stripEmojis(String(data?.reply || "")) || "Yanıt alınamadı.";
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("Bağlantı hatası");
   };
 
   const send = async (raw) => {
@@ -352,10 +369,10 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
     if (!t) return;
     const uid = current.id;
     const isFirstMessage = (current.messages || []).length === 0;
-    const umsg = { sender: "user", text: t };
+
     setChats((prev) =>
       prev.map((c) =>
-        c.id === uid ? { ...c, messages: [...(c.messages || []), umsg] } : c
+        c.id === uid ? { ...c, messages: [...(c.messages || []), { sender: "user", text: t }] } : c
       )
     );
     setInput("");
@@ -366,77 +383,108 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
 
     if (isFirstMessage) generateTitle(uid, t);
 
-    const API = resolveApiBase();
-    const path = "/assistant-chat/stream";
     const payload = {
-      message: t,
-      context: mergedContext,
+      message: t.slice(0, 8000),
+      context: mergedContext.slice(0, 10000),
       chat_id: String(uid),
     };
 
-    let accumulated = "";
-    let errorMessage = "";
-
+    let finalText = "";
     const abortCtrl = new AbortController();
-    const abortTimer = setTimeout(() => abortCtrl.abort(), 180000);
+    const abortTimer = setTimeout(() => abortCtrl.abort(), STREAM_ABORT_MS);
 
     try {
-      const res = await authFetch(path, {
+      const res = await authFetch("/assistant-chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
         body: JSON.stringify(payload),
         signal: abortCtrl.signal,
       });
-      if (!res.ok || !res.body) {
-        if (res.status === 404) {
-          throw new Error("Stream endpoint bulunamadı.");
-        }
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.detail || `HTTP ${res.status}`);
-      }
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const events = buf.split("\n\n");
-        buf = events.pop() || "";
-        for (const ev of events) {
-          const line = ev.split("\n").find((l) => l.startsWith("data:"));
-          if (!line) continue;
-          const json = line.slice(5).trim();
-          if (!json) continue;
-          try {
-            const obj = JSON.parse(json);
-            if (obj.error) {
-              errorMessage = obj.error;
-              continue;
-            }
-            if (obj.content) {
-              accumulated += obj.content;
-              setStreamText(accumulated);
-            }
-          } catch {
-            /* ignore parse */
+      if (!res.ok || !res.body) {
+        if (res.status === 404 || res.status === 405) {
+          finalText = await sendFallback(uid, t, payload);
+        } else {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.detail || `HTTP ${res.status}`);
+        }
+      } else {
+        let accumulated = "";
+        let errorMessage = "";
+        let lastActivity = Date.now();
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+
+        const activityInterval = setInterval(() => {
+          if (Date.now() - lastActivity > ACTIVITY_TIMEOUT_MS) {
+            clearInterval(activityInterval);
+            abortCtrl.abort();
           }
+        }, 5000);
+
+        try {
+          while (true) {
+            let done, value;
+            try {
+              ({ done, value } = await reader.read());
+            } catch {
+              break;
+            }
+            if (done) break;
+            lastActivity = Date.now();
+            buf += decoder.decode(value, { stream: true });
+            const events = buf.split("\n\n");
+            buf = events.pop() || "";
+            for (const ev of events) {
+              const line = ev.split("\n").find((l) => l.startsWith("data:"));
+              if (!line) continue;
+              const raw = line.slice(5).trim();
+              if (!raw) continue;
+              try {
+                const obj = JSON.parse(raw);
+                if (obj.error) { errorMessage = obj.error; }
+                if (obj.done && errorMessage) break;
+                if (obj.content) {
+                  accumulated += obj.content;
+                  setStreamText(stripEmojis(accumulated));
+                }
+              } catch { /* ignore */ }
+            }
+          }
+        } finally {
+          clearInterval(activityInterval);
+        }
+
+        if (errorMessage && !accumulated) {
+          try {
+            finalText = await sendFallback(uid, t, payload);
+          } catch {
+            finalText = `Yanıt alınamadı: ${errorMessage}`;
+          }
+        } else {
+          finalText = stripEmojis(accumulated) || "Yanıt alınamadı.";
         }
       }
     } catch (e) {
-      errorMessage = e?.message || "Bağlantı hatası";
+      if (abortCtrl.signal.aborted && !streamText) {
+        try {
+          finalText = await sendFallback(uid, t, payload);
+        } catch {
+          finalText = `Yanıt alınamadı: ${e?.message || "Bağlantı hatası"}`;
+        }
+      } else {
+        finalText = `Yanıt alınamadı: ${e?.message || "Bağlantı hatası"}`;
+      }
     } finally {
       clearTimeout(abortTimer);
     }
 
-    const finalText = errorMessage
-      ? `Yanıt alınamadı: ${errorMessage}`
-      : stripEmojis(accumulated) || "Yanıt alınamadı.";
-    const bot = { sender: "assistant", text: finalText };
     setChats((prev) =>
       prev.map((c) =>
-        c.id === uid ? { ...c, messages: [...(c.messages || []), bot] } : c
+        c.id === uid
+          ? { ...c, messages: [...(c.messages || []), { sender: "assistant", text: finalText }] }
+          : c
       )
     );
     setStreamText("");
@@ -513,37 +561,6 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
 
   return (
     <>
-      <style>{`
-        @keyframes mironCursorBlink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
-        }
-        @keyframes mironTypingDot {
-          0%, 80%, 100% { opacity: 0.2; }
-          40% { opacity: 1; }
-        }
-        .miron-cursor {
-          display: inline-block;
-          width: 2px;
-          height: 14px;
-          background: #FFD700;
-          margin-left: 2px;
-          vertical-align: text-bottom;
-          animation: mironCursorBlink 0.9s ease-in-out infinite;
-        }
-        .miron-typing-dots span {
-          display: inline-block;
-          width: 4px;
-          height: 4px;
-          margin: 0 1px;
-          border-radius: 50%;
-          background: #555;
-          animation: mironTypingDot 1.2s infinite ease-in-out both;
-        }
-        .miron-typing-dots span:nth-child(2) { animation-delay: 0.15s; }
-        .miron-typing-dots span:nth-child(3) { animation-delay: 0.3s; }
-        .miron-msg p:last-child { margin-bottom: 0; }
-      `}</style>
       <motion.div
         style={{
           display: "flex",

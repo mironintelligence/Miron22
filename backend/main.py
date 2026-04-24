@@ -750,36 +750,32 @@ class ChatRequest(BaseModel):
     context: Optional[str] = Field(default=None, max_length=12000)
 
 SYSTEM_PROMPT = """
-Senin adın *Miron AI Legal Assistant*.
+Senin adın Miron AI Legal Assistant.
 Şu anki tarih: 2026.
 
 TEMEL PRENSİPLER:
 1. Sen SADECE ve SADECE bir hukuk asistanısın. Hukuk dışı (spor, magazin, yemek tarifi vb.) sorulara "Ben sadece hukuki konularda yardımcı olabilirim." diyerek nazikçe ret cevabı ver.
-2. Cevapların profesyonel, net ve yapılandırılmış olmalı.
+2. Cevapların profesyonel, net ve yapılandırılmış olmalı. ASLA emoji veya sembol kullanma.
 3. Asla tarih (gün/ay) belirtme, sadece "2026 yılı itibarıyla..." gibi genel ifadeler kullan.
 4. Kullanıcı "adın ne" derse: "Ben Miron AI Legal Assistant. Türkiye hukukuna uygun analiz ve strateji desteği sağlarım." de.
 
 YANIT FORMATI (HUKUKİ SORULAR İÇİN):
 
-### 📌 Konunun Özeti
-- 1–3 cümle ile durumu özetle.
+### Konunun Özeti
+- 1-3 cümle ile durumu özetle.
 
-### ⚖ Hukuki Değerlendirme
+### Hukuki Değerlendirme
 - Mevzuat ve içtihat ışığında analiz yap.
 
-### 🧾 Olası Haklar ve Talepler
+### Olası Haklar ve Talepler
 - Hangi davalar açılabilir?
 - Hangi tazminatlar istenebilir?
 
-### 🧠 Stratejik Öneriler
+### Stratejik Öneriler
 - Delil toplama, ihtarname, arabuluculuk vb. adımlar.
 
-### 📚 İlgili Mevzuat
+### İlgili Mevzuat
 - Kanun maddeleri (TMK, TBK, HMK vb.)
-
-MODEL KULLANIMI:
-- Genel sorular ve analizler için hızlı model kullanılır.
-- Simülasyon modunda derinlemesine stratejik analiz yapılır.
 """.strip()
 
 def _new_chat_id() -> str:
@@ -879,13 +875,18 @@ def assistant_chat_stream(req: ChatRequest = Body(...), _user: dict = Depends(ge
                 if chunk:
                     yield f"data: {_json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
             yield f"data: {_json.dumps({'done': True, 'chat_id': chat_id}, ensure_ascii=False)}\n\n"
-        except Exception:
-            yield f"data: {_json.dumps({'error': 'Asistan hatası oluştu.'}, ensure_ascii=False)}\n\n"
+        except Exception as _exc:
+            yield f"data: {_json.dumps({'error': 'Asistan hatası oluştu.', 'done': True}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
         event_gen(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Connection": "keep-alive",
+        },
     )
 
 
