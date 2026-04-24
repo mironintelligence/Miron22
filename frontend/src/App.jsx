@@ -71,9 +71,11 @@ export default function App() {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [location.pathname]);
 
+  const fullscreenRoute = location.pathname === "/dashboard/assistant";
+
   return (
-    <div className="min-h-screen bg-black text-white">
-      <Navbar />
+    <div className={fullscreenRoute ? "h-screen w-screen overflow-hidden bg-black text-white" : "min-h-screen bg-black text-white"}>
+      {!fullscreenRoute && <Navbar />}
       <NotificationToasts />
       <GlobalToast />
       <LoginModal
@@ -90,7 +92,7 @@ export default function App() {
         }}
       />
 
-      <div className="pt-20 pb-20">
+      <div className={fullscreenRoute ? "h-screen w-screen overflow-hidden" : "pt-20 pb-20"}>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/demo-request" element={<DemoRequest />} />
@@ -375,9 +377,11 @@ export default function App() {
         </Suspense>
       </div>
 
-      <footer className="fixed bottom-0 left-0 w-full text-center text-xs py-3 bg-black/40 backdrop-blur-xl border-t border-white/10 text-white/70 pointer-events-none">
-        ⚠ Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
-      </footer>
+      {!fullscreenRoute && (
+        <footer className="fixed bottom-0 left-0 w-full text-center text-xs py-3 bg-black/40 backdrop-blur-xl border-t border-white/10 text-white/70 pointer-events-none">
+          ⚠ Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
+        </footer>
+      )}
     </div>
   );
 }

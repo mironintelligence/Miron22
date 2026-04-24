@@ -10,6 +10,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Body, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
@@ -839,6 +840,94 @@ def assistant_chat(req: ChatRequest = Body(...), _user: dict = Depends(get_curre
         raise HTTPException(status_code=500, detail="İşlem sırasında hata oluştu.")
 
 
+@app.post("/assistant-chat/stream")
+def assistant_chat_stream(req: ChatRequest = Body(...), _user: dict = Depends(get_current_user)):
+    """SSE stream of the assistant reply. Each event: data: {"content": "..."}."""
+    global client
+    if not client:
+        try:
+            client = get_openai_client()
+        except Exception:
+            pass
+    if not client:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY eksik/boş ya da client oluşturulamadı.")
+
+    chat_id = _sanitize_chat_id(req.chat_id)
+    user_text = sanitize_text(req.message)
+    context = sanitize_text(req.context or "")
+
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    if context:
+        messages.append({"role": "system", "content": f"Dava/Dosya Bağlamı (özet):\n{context}"})
+    messages.append({"role": "user", "content": user_text})
+
+    def event_gen():
+        import json as _json
+        try:
+            stream = chat_completions_create(
+                client,
+                temperature=0.2,
+                messages=messages,
+                stream=True,
+            )
+            for event in stream:
+                try:
+                    delta = event.choices[0].delta
+                    chunk = getattr(delta, "content", None) or ""
+                except Exception:
+                    chunk = ""
+                if chunk:
+                    yield f"data: {_json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+            yield f"data: {_json.dumps({'done': True, 'chat_id': chat_id}, ensure_ascii=False)}\n\n"
+        except Exception:
+            yield f"data: {_json.dumps({'error': 'Asistan hatası oluştu.'}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+class TitleRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=4000)
+
+
+@app.post("/assistant-chat/title")
+def assistant_chat_title(req: TitleRequest = Body(...), _user: dict = Depends(get_current_user)):
+    """Generate a short Turkish title (4-6 words) for the given user message."""
+    global client
+    if not client:
+        try:
+            client = get_openai_client()
+        except Exception:
+            pass
+    if not client:
+        return {"title": ""}
+
+    user_msg = sanitize_text(req.message)[:1500]
+    prompt = (
+        "Şu mesaj için 4-6 kelimelik kısa Türkçe başlık üret, "
+        "sadece başlığı yaz, başka hiçbir şey yazma, tırnak kullanma:\n\n"
+        f"{user_msg}"
+    )
+    try:
+        completion = chat_completions_create(
+            client,
+            model="gpt-4o-mini",
+            temperature=0.3,
+            max_tokens=20,
+            messages=[
+                {"role": "system", "content": "Sen kısa Türkçe sohbet başlığı üretirsin."},
+                {"role": "user", "content": prompt},
+            ],
+        )
+        title = (completion.choices[0].message.content or "").strip().strip('"').strip("'")
+        if len(title) > 32:
+            title = title[:32].rstrip() + "…"
+        return {"title": title}
+    except Exception:
+        return {"title": ""}
 
 
 
