@@ -16,7 +16,7 @@ export default function Header({ onOpenLogin }) {
         { to: "/case-simulation", label: "Dava Simülasyonu" },
         { to: "/yargitay", label: "Yargıtay Kararları" },
         { to: "/pleadings", label: "Dilekçe Oluşturucu" },
-        { to: "/assistant", label: "Asistan" },
+        { to: "/dashboard/assistant", label: "Asistan" },
         { to: "/calculators", label: "Hesaplama Araçları" },
       ];
       if (user?.role === "admin") {

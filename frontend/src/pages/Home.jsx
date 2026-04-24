@@ -36,7 +36,7 @@ export default function Home() {
         className="flex flex-col"
         style={{ gap: 12 }}
       >
-        <DashboardHero activeCases={3} todayHearings={1} />
+        <DashboardHero />
 
         <div
           className="dash-font-serif"
