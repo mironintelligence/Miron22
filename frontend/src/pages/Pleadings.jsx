@@ -153,7 +153,7 @@ export default function Pleadings() {
   };
 
   return (
-    <div className="min-h-screen overflow-y-auto pb-24 px-4">
+    <div className="premium-scope min-h-screen overflow-y-auto pb-24 px-4">
       <div className="max-w-7xl mx-auto pt-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-center text-accent mb-2">Dilekçe Oluşturucu</h1>
         <p className="text-center text-sm text-white/55 mb-8">Sol panelden kategori seçin; şablonlar ortada listelenir. Tür seçtikten sonra formu doldurun.</p>

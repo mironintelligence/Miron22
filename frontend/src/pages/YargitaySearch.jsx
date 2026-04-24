@@ -33,7 +33,7 @@ function DecisionCard({ item }) {
   const isOnama = (item.outcome || "").toUpperCase().includes("ONAMA");
   return (
     <div
-      className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-yellow-500/40 transition-all cursor-pointer group flex flex-col gap-3"
+      className="premium-scope bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-yellow-500/40 transition-all cursor-pointer group flex flex-col gap-3"
       onClick={() => setExpanded((v) => !v)}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">

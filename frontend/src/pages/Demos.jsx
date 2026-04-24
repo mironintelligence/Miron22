@@ -18,7 +18,7 @@ export default function Demos() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="premium-scope min-h-screen bg-black text-white p-6">
       <h1 className="text-2xl font-bold mb-4 text-accent">Demo Talepleri</h1>
 
       {demos.length === 0 ? (

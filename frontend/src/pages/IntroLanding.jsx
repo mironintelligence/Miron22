@@ -38,7 +38,7 @@ export default function IntroLanding() {
   }, []);
 
   return (
-    <div ref={containerRef} className="bg-[#020202] text-white font-sans overflow-hidden selection:bg-[var(--miron-gold)] selection:text-black">
+    <div  ref={containerRef} className="bg-[#020202] text-white font-sans overflow-hidden selection:bg-[var(--miron-gold)] selection:text-black">
       
       {/* -------------------- HERO SECTION -------------------- */}
       <motion.section 

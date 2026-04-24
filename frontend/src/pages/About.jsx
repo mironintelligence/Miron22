@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 export default function About() {
   return (
-    <div className="min-h-screen bg-black text-white pt-24 px-6 pb-20">
+    <div className="premium-scope min-h-screen bg-black text-white pt-24 px-6 pb-20">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold mb-6">Miron Intelligence</h1>

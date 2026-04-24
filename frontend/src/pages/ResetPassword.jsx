@@ -50,7 +50,7 @@ export default function ResetPassword() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+      <div className="premium-scope min-h-screen flex items-center justify-center bg-black text-white">
         <p>Geçersiz istek. Token bulunamadı.</p>
       </div>
     );

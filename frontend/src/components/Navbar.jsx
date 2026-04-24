@@ -7,8 +7,29 @@ import { useVisiblePolling } from "../hooks/useVisiblePolling";
 
 function BetaBadge() {
   return (
-    <span className="ml-1.5 align-middle text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/40 font-bold tracking-wide">
+    <span
+      className="ml-1.5 align-middle dash-font-sans"
+      style={{
+        fontSize: 9,
+        padding: "1px 5px",
+        borderRadius: 3,
+        background: "#141414",
+        color: "#b8960a",
+        border: "0.5px solid #2a2000",
+        letterSpacing: "0.5px",
+        textTransform: "uppercase",
+      }}
+    >
       BETA
+    </span>
+  );
+}
+
+function BrandMark() {
+  return (
+    <span className="dash-font-display inline-flex items-baseline gap-1" style={{ fontSize: 15, lineHeight: 1, letterSpacing: "-0.01em" }}>
+      <span style={{ color: "#ffffff" }}>Miron</span>
+      <span style={{ color: "#FFD700" }}>AI</span>
     </span>
   );
 }
@@ -19,19 +40,16 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, status, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+
   const baseNavLinks = [
     { name: "Ana Sayfa", path: "/dashboard" },
-    { name: "Analiz", path: "/analyze" },
-    { name: "Yargıtay Karar Arama", path: "/yargitay", beta: true },
-    { name: "Mevzuat Analizi", path: "/mevzuat", beta: true },
-    { name: "Dava Simülasyonu", path: "/case-simulation" },
-    { name: "Sözleşmeler", path: "/contracts/builder" },
+    { name: "Dava Merkezi", path: "/dashboard/dava-merkezi" },
+    { name: "Araştırma", path: "/dashboard/arastirma" },
+    { name: "Belge Stüdyosu", path: "/dashboard/belge-studyosu" },
+    { name: "Hesaplamalar", path: "/calculators" },
   ];
-
   const navLinks = baseNavLinks;
 
-  // 60s cadence is enough for a "you have unread" badge; the old 12s loop ran
-  // ~5x/minute/user with no visibility gating.
   useVisiblePolling(
     async (signal) => {
       try {
@@ -55,58 +73,147 @@ export default function Navbar() {
     navigate("/", { replace: true });
   };
 
+  const isActive = (p) => {
+    if (p === "/dashboard") return location.pathname === "/dashboard";
+    return location.pathname.startsWith(p);
+  };
+
+  // ---------------- GUEST NAVBAR ----------------
   if (status !== "authed") {
     return (
-      <nav className="fixed top-0 left-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-wrap">
-            <Link to="/" className="text-xl font-bold tracking-tight text-white">
-              Miron AI
+      <nav
+        className="fixed top-0 left-0 w-full z-50"
+        style={{
+          background: "#0a0a0a",
+          borderBottom: "0.5px solid #1e1e1e",
+          backdropFilter: "saturate(120%)",
+        }}
+      >
+        <div
+          className="mx-auto flex items-center justify-between"
+          style={{ maxWidth: 1200, padding: "0 40px", height: 64 }}
+        >
+          <div className="flex items-center gap-4 flex-wrap">
+            <Link to="/" className="no-underline" style={{ textDecoration: "none" }}>
+              <BrandMark />
             </Link>
             <Link
               to="/deneme-baslat"
-              className="text-[11px] sm:text-xs font-semibold text-amber-300 hover:text-amber-200 whitespace-nowrap"
+              className="dash-font-sans no-underline whitespace-nowrap transition-opacity"
+              style={{
+                fontSize: 11,
+                color: "#FFD700",
+                textDecoration: "none",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
               15 Günlük Deneme
             </Link>
           </div>
 
-          <div className="hidden md:flex items-center gap-8">
-            <Link to="/about" className="text-sm font-medium text-white/70 hover:text-white transition">
+          <div className="hidden md:flex items-center gap-6">
+            <Link
+              to="/about"
+              className="dash-font-sans no-underline transition-colors"
+              style={{ fontSize: 12, color: "#555", textDecoration: "none" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#ccc")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
+            >
               Biz Kimiz?
             </Link>
             <div className="relative group">
               <button
                 type="button"
-                className="text-sm font-medium text-white/70 hover:text-white transition flex items-center gap-1"
+                className="dash-font-sans flex items-center gap-1 transition-colors outline-none"
+                style={{ fontSize: 12, color: "#555", background: "transparent", border: "none" }}
               >
-                Kurumsal <span className="text-[10px]">▼</span>
+                Kurumsal
+                <span style={{ fontSize: 9 }}>▼</span>
               </button>
-              <div className="absolute left-0 top-full mt-2 w-48 bg-[#111] border border-white/10 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                <Link to="/privacy" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
-                  Gizlilik Politikası
-                </Link>
-                <Link to="/terms" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
-                  Kullanım Şartları
-                </Link>
-                <Link to="/user-agreement" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
-                  Kullanıcı Sözleşmesi
-                </Link>
+              <div
+                className="absolute left-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all"
+                style={{
+                  width: 192,
+                  background: "#0a0a0a",
+                  border: "0.5px solid #1e1e1e",
+                  borderRadius: 14,
+                  padding: "6px 0",
+                }}
+              >
+                {[
+                  ["/privacy", "Gizlilik Politikası"],
+                  ["/terms", "Kullanım Şartları"],
+                  ["/user-agreement", "Kullanıcı Sözleşmesi"],
+                ].map(([to, label]) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    className="dash-font-sans block no-underline transition-colors"
+                    style={{
+                      padding: "8px 14px",
+                      fontSize: 11,
+                      color: "#888",
+                      textDecoration: "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "#fff";
+                      e.currentTarget.style.background = "#111";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "#888";
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    {label}
+                  </Link>
+                ))}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Link
               to="/kaydol"
-              className="hidden sm:inline px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-700 text-black hover:brightness-110 transition"
+              className="hidden sm:inline-flex dash-font-sans items-center justify-center no-underline transition-opacity"
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                padding: "7px 14px",
+                borderRadius: 999,
+                background: "#FFD700",
+                color: "#000",
+                textDecoration: "none",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
               15 günlük ücretsiz deneme
             </Link>
-            <Link to="/login" className="text-white/70 hover:text-white transition">
+            <Link
+              to="/login"
+              className="dash-font-sans no-underline transition-colors"
+              style={{ fontSize: 12, color: "#888", textDecoration: "none" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
+            >
               Giriş Yap
             </Link>
-            <Link to="/kaydol" className="px-5 py-2 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition">
+            <Link
+              to="/kaydol"
+              className="dash-font-sans inline-flex items-center justify-center no-underline transition-opacity"
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "8px 16px",
+                borderRadius: 8,
+                background: "#ffffff",
+                color: "#000",
+                textDecoration: "none",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+            >
               Kaydol
             </Link>
           </div>
@@ -115,67 +222,191 @@ export default function Navbar() {
     );
   }
 
+  // ---------------- AUTHED NAVBAR ----------------
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-[#050505]/90 backdrop-blur-xl border-b border-white/5">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <Link to="/dashboard" className="text-xl font-bold tracking-tight text-white">
-          Miron AI
+    <nav
+      className="fixed top-0 left-0 w-full z-50"
+      style={{
+        background: "#0a0a0a",
+        borderBottom: "0.5px solid #1e1e1e",
+      }}
+    >
+      <div
+        className="mx-auto flex items-center justify-between"
+        style={{ maxWidth: 1200, padding: "0 40px", height: 52 }}
+      >
+        <Link to="/dashboard" className="no-underline" style={{ textDecoration: "none" }}>
+          <BrandMark />
         </Link>
 
-        <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              className={`text-sm font-medium transition-colors ${
-                link.prominent
-                  ? "px-3 py-2 rounded-xl bg-[var(--miron-gold)] text-black hover:brightness-110"
-                  : location.pathname === link.path
-                    ? "text-[var(--miron-gold)]"
-                    : "text-white/60 hover:text-white"
-              }`}
-            >
-              <span>{link.name}</span>
-              {link.beta ? <BetaBadge /> : null}
-            </Link>
-          ))}
+        <div className="hidden md:flex items-center gap-6">
+          {navLinks.map((link) => {
+            const active = isActive(link.path);
+            return (
+              <Link
+                key={link.path}
+                to={link.path}
+                className="dash-font-sans no-underline transition-colors"
+                style={{
+                  fontSize: 12,
+                  color: active ? "#FFD700" : "#555",
+                  textDecoration: "none",
+                  letterSpacing: "0.1px",
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.color = "#aaa";
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) e.currentTarget.style.color = "#555";
+                }}
+              >
+                <span>{link.name}</span>
+                {link.beta ? <BetaBadge /> : null}
+              </Link>
+            );
+          })}
         </div>
 
-        <div className="hidden md:flex items-center gap-6">
-          <Link to="/notifications" className="relative group p-1" aria-label="Bildirimler">
+        {/* SAĞ KISIM - İSİM/AVATAR/ABONELİK/ÇIKIŞ — fonksiyonellik aynen korunuyor */}
+        <div className="hidden md:flex items-center gap-5">
+          <Link
+            to="/notifications"
+            className="relative p-1 no-underline"
+            aria-label="Bildirimler"
+            style={{ textDecoration: "none" }}
+          >
             <Bell
-              className={`h-6 w-6 transition-colors ${unreadCount > 0 ? "text-amber-400" : "text-white/30"}`}
-              strokeWidth={unreadCount > 0 ? 2.25 : 1.5}
+              className="transition-colors"
+              style={{
+                width: 16,
+                height: 16,
+                color: unreadCount > 0 ? "#FFD700" : "#555",
+              }}
+              strokeWidth={1.5}
             />
             {unreadCount > 0 ? (
-              <span className="absolute -top-0.5 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center font-bold border-2 border-[#050505]">
+              <span
+                className="absolute dash-font-sans"
+                style={{
+                  top: -2,
+                  right: -4,
+                  minWidth: 16,
+                  height: 16,
+                  padding: "0 4px",
+                  borderRadius: 999,
+                  background: "#FFD700",
+                  color: "#000",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1.5px solid #0a0a0a",
+                }}
+              >
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             ) : null}
           </Link>
 
           <div className="relative group">
-            <button type="button" className="flex items-center gap-3 outline-none">
+            <button
+              type="button"
+              className="flex items-center gap-3 outline-none"
+              style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+            >
               <div className="text-right hidden lg:block">
-                <div className="text-sm font-bold text-white">
+                <div
+                  className="dash-font-sans"
+                  style={{ fontSize: 12, fontWeight: 600, color: "#ffffff", lineHeight: 1.2 }}
+                >
                   {user.firstName} {user.lastName}
                 </div>
-                <div className="text-xs text-white/40 uppercase tracking-wider">
+                <div
+                  className="dash-font-sans"
+                  style={{
+                    fontSize: 9,
+                    color: "#555",
+                    marginTop: 2,
+                    letterSpacing: 1.5,
+                    textTransform: "uppercase",
+                  }}
+                >
                   {user.role === "admin" ? "Yönetici" : "Avukat"}
                 </div>
               </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-white/20 flex items-center justify-center text-white font-bold">
-                {user.firstName?.[0]}
-                {user.lastName?.[0]}
+              <div
+                className="dash-font-sans"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 999,
+                  background: "#FFD700",
+                  color: "#000",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.2px",
+                }}
+              >
+                {(user.firstName?.[0] || "")}{(user.lastName?.[0] || "")}
               </div>
             </button>
 
-            <div className="absolute right-0 top-full mt-2 w-48 bg-[#111] border border-white/10 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top-right">
-              <Link to="/upgrade" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
+            <div
+              className="absolute right-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top-right"
+              style={{
+                width: 192,
+                background: "#0a0a0a",
+                border: "0.5px solid #1e1e1e",
+                borderRadius: 14,
+                padding: "6px 0",
+              }}
+            >
+              <Link
+                to="/upgrade"
+                className="dash-font-sans block no-underline transition-colors"
+                style={{
+                  padding: "8px 14px",
+                  fontSize: 11,
+                  color: "#888",
+                  textDecoration: "none",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#fff";
+                  e.currentTarget.style.background = "#111";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#888";
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
                 Abonelik
               </Link>
-              <div className="h-px bg-white/10 my-2" />
-              <button type="button" onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-300 hover:bg-white/5">
+              <div style={{ height: "0.5px", background: "#1e1e1e", margin: "4px 0" }} />
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="dash-font-sans w-full text-left transition-colors"
+                style={{
+                  padding: "8px 14px",
+                  fontSize: 11,
+                  color: "#c88",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#ff6464";
+                  e.currentTarget.style.background = "#111";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#c88";
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
                 Çıkış Yap
               </button>
             </div>
@@ -185,42 +416,82 @@ export default function Navbar() {
         <button
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
-          className="md:hidden text-white p-2 -mr-2 rounded hover:bg-white/10 transition"
+          className="md:hidden transition-colors"
           aria-label={menuOpen ? "Menüyü kapat" : "Menüyü aç"}
           aria-expanded={menuOpen}
+          style={{
+            background: "transparent",
+            color: "#fff",
+            border: "none",
+            padding: 8,
+            marginRight: -8,
+            cursor: "pointer",
+          }}
         >
-          {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {menuOpen ? <X style={{ width: 16, height: 16 }} strokeWidth={1.5} /> : <Menu style={{ width: 16, height: 16 }} strokeWidth={1.5} />}
         </button>
       </div>
 
-          {menuOpen && (
-        <div className="md:hidden bg-[#050505] border-t border-white/10 p-6 absolute w-full left-0 top-20">
+      {menuOpen && (
+        <div
+          className="md:hidden absolute w-full left-0"
+          style={{
+            top: 52,
+            background: "#0a0a0a",
+            borderTop: "0.5px solid #1e1e1e",
+            padding: 24,
+          }}
+        >
           <div className="flex flex-col gap-4">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                onClick={() => setMenuOpen(false)}
-                className={`text-lg font-medium ${
-                  link.prominent
-                    ? "text-black bg-[var(--miron-gold)] px-3 py-2 rounded-xl"
-                    : location.pathname === link.path
-                      ? "text-[var(--miron-gold)]"
-                      : "text-white/70"
-                }`}
-              >
-                <span>{link.name}</span>
-                {link.beta ? <BetaBadge /> : null}
-              </Link>
-            ))}
-            <div className="h-px bg-white/10 my-2" />
-            <Link to="/notifications" onClick={() => setMenuOpen(false)} className="text-lg text-white/70">
+            {navLinks.map((link) => {
+              const active = isActive(link.path);
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setMenuOpen(false)}
+                  className="dash-font-sans no-underline"
+                  style={{
+                    fontSize: 14,
+                    color: active ? "#FFD700" : "#888",
+                    textDecoration: "none",
+                  }}
+                >
+                  <span>{link.name}</span>
+                  {link.beta ? <BetaBadge /> : null}
+                </Link>
+              );
+            })}
+            <div style={{ height: "0.5px", background: "#1e1e1e", margin: "4px 0" }} />
+            <Link
+              to="/notifications"
+              onClick={() => setMenuOpen(false)}
+              className="dash-font-sans no-underline"
+              style={{ fontSize: 14, color: "#888", textDecoration: "none" }}
+            >
               Bildirimler
             </Link>
-            <Link to="/upgrade" onClick={() => setMenuOpen(false)} className="text-lg text-white/70">
+            <Link
+              to="/upgrade"
+              onClick={() => setMenuOpen(false)}
+              className="dash-font-sans no-underline"
+              style={{ fontSize: 14, color: "#888", textDecoration: "none" }}
+            >
               Abonelik
             </Link>
-            <button type="button" onClick={handleLogout} className="text-left text-red-300">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="dash-font-sans text-left"
+              style={{
+                fontSize: 14,
+                color: "#c88",
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+              }}
+            >
               Çıkış Yap
             </button>
           </div>

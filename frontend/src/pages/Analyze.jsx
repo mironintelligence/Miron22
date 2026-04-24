@@ -236,7 +236,7 @@ export default function Analyze() {
   const hasResult = Boolean(summary || caseType || fields.konu || analysisText);
 
   return (
-    <div className="min-h-screen px-6 sm:px-10 md:px-16 pb-12">
+    <div className="premium-scope min-h-screen px-6 sm:px-10 md:px-16 pb-12">
       <div className="glass p-6 sm:p-8 rounded-2xl">
         <div className="flex items-start justify-between gap-4 flex-col md:flex-row">
           <div>

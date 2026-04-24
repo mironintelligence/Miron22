@@ -51,7 +51,7 @@ export default function RiskStrategy() {
   const ListSection = ({ title, items, icon = "•" }) => {
     if (!items || items.length === 0) return null;
     return (
-      <div className="bg-white/5 border border-white/10 p-5 rounded-xl">
+      <div className="premium-scope bg-white/5 border border-white/10 p-5 rounded-xl">
         <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
           <span className="text-yellow-500">{icon}</span> {title}
         </h3>

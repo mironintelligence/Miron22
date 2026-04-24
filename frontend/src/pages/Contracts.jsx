@@ -382,7 +382,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white pt-24 px-6">
+    <div className="premium-scope min-h-screen bg-[#050505] text-white pt-24 px-6">
       <div className="max-w-7xl mx-auto">
         <header className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>

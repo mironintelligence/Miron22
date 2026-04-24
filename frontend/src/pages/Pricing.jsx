@@ -65,7 +65,7 @@ export default function Pricing() {
   }, [settings]);
 
   return (
-    <div className="min-h-screen px-6 sm:px-10 md:px-16 pb-12 bg-black text-white">
+    <div className="premium-scope min-h-screen px-6 sm:px-10 md:px-16 pb-12 bg-black text-white">
       {location.state?.demoExpired ? (
         <div className="max-w-6xl mx-auto mb-6 p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-100 text-sm text-center">
           Demo hesabınızın süresi doldu. Aşağıdan paket seçerek devam edebilir veya yeni hesap oluşturabilirsiniz.

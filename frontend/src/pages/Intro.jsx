@@ -51,7 +51,7 @@ export default function Intro() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-12">
+    <div className="premium-scope min-h-screen flex items-center justify-center px-6 py-12">
       <div className="max-w-4xl w-full glass p-10">
         <div className="flex flex-col md:flex-row gap-8 items-center">
           <div className="flex-1">

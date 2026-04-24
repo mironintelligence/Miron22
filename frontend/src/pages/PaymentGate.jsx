@@ -15,7 +15,7 @@ export default function PaymentGate() {
   }, [status, navigate]);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center px-4 pt-24 pb-16">
+    <div className="premium-scope min-h-screen bg-[#050505] text-white flex items-center justify-center px-4 pt-24 pb-16">
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}

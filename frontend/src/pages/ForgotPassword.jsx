@@ -36,7 +36,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black px-6">
+    <div className="premium-scope min-h-screen flex items-center justify-center bg-black px-6">
       <div className="w-full max-w-md bg-[#111] border border-white/10 rounded-2xl p-8">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-white mb-2">Şifre Sıfırlama</h1>

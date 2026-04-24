@@ -33,7 +33,7 @@ export default function Notifications() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white pt-24 px-6">
+    <div className="premium-scope min-h-screen bg-[#050505] text-white pt-24 px-6">
       <div className="max-w-3xl mx-auto">
         <header className="mb-10 flex justify-between items-end">
           <div>

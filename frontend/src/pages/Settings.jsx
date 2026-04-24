@@ -35,7 +35,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen px-6 sm:px-10 md:px-16 py-20 overflow-y-auto">
+    <div className="premium-scope min-h-screen px-6 sm:px-10 md:px-16 py-20 overflow-y-auto">
       <h1 className="text-3xl font-bold mb-2 text-accent"> Ayarlar</h1>
       <p className="text-sm text-subtle mb-8">
         {user?.email ? `Oturum: ${user.email}` : ""}

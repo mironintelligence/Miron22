@@ -71,7 +71,7 @@ export default function Calculators() {
   };
 
   return (
-    <div className="min-h-screen px-6 sm:px-10 md:px-16 py-16">
+    <div className="premium-scope min-h-screen px-6 sm:px-10 md:px-16 py-16">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-accent">Hesaplama Araçları</h1>
         <p className="text-sm text-white/60 mb-8">

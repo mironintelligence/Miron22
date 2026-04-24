@@ -2,7 +2,7 @@ import React from "react";
 
 export default function Terms() {
   return (
-    <div className="min-h-screen bg-bg text-fg">
+    <div className="premium-scope min-h-screen bg-bg text-fg">
       <div className="max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-3xl md:text-4xl font-extrabold text-accent">
           Kullanım Şartları

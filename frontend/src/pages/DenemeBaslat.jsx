@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 export default function DenemeBaslat() {
   return (
-    <div className="min-h-screen px-6 py-16 max-w-2xl mx-auto text-center">
+    <div className="premium-scope min-h-screen px-6 py-16 max-w-2xl mx-auto text-center">
       <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">Deneme süreci</h1>
       <p className="text-white/65 text-sm sm:text-base leading-relaxed mb-8">
         Kurumsal veya onaylı demo için talep oluşturun. Bireysel hesap için doğrudan kayıt adımlarını tamamlayın; kart

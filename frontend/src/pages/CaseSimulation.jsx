@@ -61,7 +61,7 @@ export default function CaseSimulation() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white py-12 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="premium-scope min-h-screen bg-black text-white py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-5xl mx-auto space-y-12">
         {/* Header */}
         <div className="text-center space-y-4">

@@ -127,7 +127,7 @@ export default function Reminders() {
   const archived = items.filter((x) => !!x.archived_at);
 
   return (
-    <div className="min-h-screen px-6 sm:px-10 md:px-16 py-16">
+    <div className="premium-scope min-h-screen px-6 sm:px-10 md:px-16 py-16">
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
         <div>
           <h1 className="text-3xl font-bold text-accent">Dava Hatırlatıcı</h1>

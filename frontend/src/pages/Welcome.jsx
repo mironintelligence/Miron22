@@ -13,7 +13,7 @@ export default function Welcome() {
   }, [navigate, consumeLastLoginMeta]);
 
   return (
-    <div className="min-h-[40vh] flex items-center justify-center text-subtle text-sm">
+    <div className="premium-scope min-h-[40vh] flex items-center justify-center text-subtle text-sm">
       Yönlendiriliyor…
     </div>
   );

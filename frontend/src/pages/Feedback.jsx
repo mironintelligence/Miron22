@@ -66,7 +66,7 @@ export default function Feedback() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white pt-24 px-6">
+    <div className="premium-scope min-h-screen bg-black text-white pt-24 px-6">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 16 }}

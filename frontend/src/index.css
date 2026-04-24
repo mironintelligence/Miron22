@@ -181,3 +181,468 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
 .dash-font-display { font-family: "Abril Fatface", serif; }
 .dash-font-serif   { font-family: "Libre Baskerville", serif; }
 .dash-font-sans    { font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; }
+
+/* =========================================================
+   PREMIUM DESIGN SYSTEM — feature sayfaları için ortak sınıflar.
+   Spec: IBM Plex Sans, 0.5px hairline, 14px card radius,
+   8px button radius, #0a0a0a surface, #111 elevated, #FFD700 accent.
+   Mevcut .glass / .card / .btn-* sınıfları ayrı ve değişmedi.
+   ========================================================= */
+
+.p-body {
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #ffffff;
+  background: #000000;
+}
+
+.p-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 40px 80px;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+}
+@media (max-width: 640px) {
+  .p-page { padding: 24px 20px 80px; }
+}
+
+.p-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.p-eyebrow {
+  font-family: "Libre Baskerville", serif;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #2a2a2a;
+  margin-bottom: 10px;
+}
+
+.p-title {
+  font-family: "Abril Fatface", serif;
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  color: #ffffff;
+  margin: 0;
+}
+.p-subtitle {
+  font-family: "Libre Baskerville", serif;
+  font-size: 14px;
+  font-style: italic;
+  color: #666;
+  margin: 4px 0 0 0;
+}
+
+.p-card {
+  background: #0a0a0a;
+  border: 0.5px solid #1e1e1e;
+  border-radius: 14px;
+  padding: 24px;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+}
+.p-card-tight { padding: 18px; }
+.p-card-sm    { padding: 14px; }
+
+.p-section-label {
+  font-family: "Libre Baskerville", serif;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #2a2a2a;
+  margin: 24px 0 10px;
+}
+
+.p-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #555;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.p-text { font-size: 13px; line-height: 1.7; color: #bbbbbb; }
+.p-text-sm { font-size: 12px; color: #888; }
+.p-text-xs { font-size: 11px; color: #666; }
+.p-muted { color: #555; }
+.p-faint { color: #3a3a3a; }
+.p-accent { color: #FFD700; }
+
+.p-input, .p-select, .p-textarea {
+  width: 100%;
+  background: #111111;
+  border: 0.5px solid #1e1e1e;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #ffffff;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.p-input:focus, .p-select:focus, .p-textarea:focus { border-color: #FFD700; }
+.p-input::placeholder, .p-textarea::placeholder { color: #555; }
+
+.p-textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+
+.p-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  text-decoration: none;
+}
+.p-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.p-btn-primary { background: #FFD700; color: #000; }
+.p-btn-primary:hover:not(:disabled) { opacity: 0.88; }
+
+.p-btn-ghost {
+  background: transparent;
+  color: #ffffff;
+  border: 0.5px solid #1e1e1e;
+}
+.p-btn-ghost:hover:not(:disabled) { border-color: #2e2e2e; background: #111; }
+
+.p-btn-danger {
+  background: transparent;
+  color: #c88;
+  border: 0.5px solid #3a1010;
+}
+.p-btn-danger:hover:not(:disabled) { color: #ff6464; border-color: #5a1818; background: #1a0a0a; }
+
+.p-btn-tab {
+  background: #0a0a0a;
+  color: #888;
+  border: 0.5px solid #1e1e1e;
+  padding: 8px 14px;
+  font-size: 11px;
+}
+.p-btn-tab:hover { border-color: #2e2e2e; color: #aaa; }
+.p-btn-tab.is-active {
+  background: #111;
+  color: #FFD700;
+  border-color: #2e2e2e;
+}
+
+.p-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #111;
+  color: #888;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  border: 0.5px solid #1e1e1e;
+}
+.p-pill-gold  { background: #1a1200; color: #b8960a; border-color: #2a2000; }
+.p-pill-green { background: #001a0e; color: #4cc98c; border-color: #003020; }
+.p-pill-blue  { background: #001220; color: #4c8cc9; border-color: #002040; }
+.p-pill-red   { background: #1a0a0a; color: #c88;    border-color: #3a1010; }
+
+.p-divider { height: 0.5px; background: #1e1e1e; margin: 16px 0; border: 0; }
+
+.p-hair { border: 0.5px solid #1e1e1e; }
+.p-hair-b { border-bottom: 0.5px solid #1e1e1e; }
+.p-hair-t { border-top: 0.5px solid #1e1e1e; }
+
+.p-list { list-style: none; padding: 0; margin: 0; }
+.p-list > li + li { border-top: 0.5px solid #1e1e1e; }
+.p-list > li { padding: 12px 0; font-size: 12px; color: #aaa; }
+
+.p-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+}
+.p-table th {
+  text-align: left;
+  padding: 10px 8px;
+  font-weight: 400;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #555;
+  border-bottom: 0.5px solid #1e1e1e;
+}
+.p-table td {
+  padding: 12px 8px;
+  color: #bbb;
+  border-bottom: 0.5px solid #1e1e1e;
+}
+.p-table tr:last-child td { border-bottom: 0; }
+
+.p-kbd {
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  background: #141414;
+  color: #666;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 0.5px solid #1e1e1e;
+  text-transform: uppercase;
+}
+
+
+/* =========================================================
+   PREMIUM SCOPE OVERRIDE
+   Her feature sayfasının root div'ine className="premium-scope"
+   eklenince mevcut .glass / .card / .btn-* / inputs otomatik
+   spec-uyumlu premium görünüm alır. JSX'i değiştirmeye gerek yok.
+   ========================================================= */
+
+.premium-scope,
+.premium-scope * {
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Arial, sans-serif !important;
+}
+
+/* Başlıklar */
+.premium-scope h1 {
+  font-family: "Abril Fatface", serif !important;
+  font-size: 32px !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.5px !important;
+  color: #ffffff !important;
+  font-weight: 400 !important;
+}
+.premium-scope h2 {
+  font-family: "Abril Fatface", serif !important;
+  font-size: 22px !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.3px !important;
+  color: #ffffff !important;
+  font-weight: 400 !important;
+}
+.premium-scope h3 {
+  font-family: "Libre Baskerville", serif !important;
+  font-size: 16px !important;
+  line-height: 1.2 !important;
+  color: #cccccc !important;
+  font-weight: 700 !important;
+}
+.premium-scope h4 {
+  font-family: "Libre Baskerville", serif !important;
+  font-size: 13px !important;
+  color: #cccccc !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px !important;
+}
+
+/* Kartlar (.glass ve .card) → premium surface */
+.premium-scope .glass,
+.premium-scope .card {
+  background: #0a0a0a !important;
+  border: 0.5px solid #1e1e1e !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+.premium-scope .glass:hover,
+.premium-scope .card:hover {
+  border-color: #2e2e2e !important;
+}
+
+/* Tailwind'in yaygın bordered/rounded sınıflarını premium'a çek */
+.premium-scope .rounded-2xl,
+.premium-scope .rounded-xl {
+  border-radius: 14px !important;
+}
+.premium-scope .rounded-lg { border-radius: 10px !important; }
+.premium-scope .rounded-md { border-radius: 8px !important; }
+
+.premium-scope .border-white\/5,
+.premium-scope .border-white\/10,
+.premium-scope .border-white\/15,
+.premium-scope .border-white\/20,
+.premium-scope .border-white\/25 {
+  border-color: #1e1e1e !important;
+}
+.premium-scope .bg-white\/5,
+.premium-scope .bg-white\/8,
+.premium-scope .bg-white\/10 {
+  background-color: #111111 !important;
+}
+.premium-scope .bg-black\/40,
+.premium-scope .bg-black\/60,
+.premium-scope .bg-black\/80 {
+  background-color: #0a0a0a !important;
+}
+
+/* Butonlar — birincil altın */
+.premium-scope .btn-primary {
+  background: #FFD700 !important;
+  color: #000 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 10px 18px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+}
+.premium-scope .btn-primary:hover { opacity: 0.88 !important; filter: none !important; }
+
+.premium-scope .btn-secondary {
+  background: transparent !important;
+  color: #ffffff !important;
+  border: 0.5px solid #1e1e1e !important;
+  border-radius: 8px !important;
+  padding: 10px 18px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+.premium-scope .btn-secondary:hover {
+  border-color: #2e2e2e !important;
+  background: #111 !important;
+}
+
+.premium-scope .btn-danger {
+  background: transparent !important;
+  color: #c88 !important;
+  border: 0.5px solid #3a1010 !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+}
+.premium-scope .btn-danger:hover {
+  color: #ff6464 !important;
+  border-color: #5a1818 !important;
+  background: #1a0a0a !important;
+}
+
+/* İnput ve select */
+.premium-scope input[type="text"],
+.premium-scope input[type="email"],
+.premium-scope input[type="password"],
+.premium-scope input[type="search"],
+.premium-scope input[type="tel"],
+.premium-scope input[type="url"],
+.premium-scope input[type="number"],
+.premium-scope input[type="date"],
+.premium-scope input[type="datetime-local"],
+.premium-scope input[type="time"],
+.premium-scope input:not([type]),
+.premium-scope select,
+.premium-scope textarea,
+.premium-scope .input {
+  background: #111111 !important;
+  border: 0.5px solid #1e1e1e !important;
+  border-radius: 8px !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  padding: 10px 12px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif !important;
+}
+.premium-scope input:focus,
+.premium-scope select:focus,
+.premium-scope textarea:focus,
+.premium-scope .input:focus {
+  border-color: #FFD700 !important;
+}
+.premium-scope input::placeholder,
+.premium-scope textarea::placeholder {
+  color: #555 !important;
+}
+
+/* Etiketler */
+.premium-scope label,
+.premium-scope .label {
+  font-size: 10px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.5px !important;
+  color: #888 !important;
+  font-weight: 400 !important;
+}
+
+/* Yardımcı metinler */
+.premium-scope .text-subtle { color: #555 !important; }
+.premium-scope .text-muted  { color: #888 !important; }
+.premium-scope .text-accent { color: #FFD700 !important; }
+
+/* Rozetler / pill'ler — var olan rounded-full patternleri */
+.premium-scope .rounded-full {
+  border-radius: 999px !important;
+}
+
+/* Gradient arka planı öldür (spec: no gradient) */
+.premium-scope .bg-gradient-to-r,
+.premium-scope .bg-gradient-to-l,
+.premium-scope .bg-gradient-to-b,
+.premium-scope .bg-gradient-to-t,
+.premium-scope .bg-gradient-to-br,
+.premium-scope .bg-gradient-to-bl,
+.premium-scope .bg-gradient-to-tr,
+.premium-scope .bg-gradient-to-tl {
+  background-image: none !important;
+}
+
+/* Box-shadow öldür (spec: no shadow) */
+.premium-scope .shadow,
+.premium-scope .shadow-sm,
+.premium-scope .shadow-md,
+.premium-scope .shadow-lg,
+.premium-scope .shadow-xl,
+.premium-scope .shadow-2xl {
+  box-shadow: none !important;
+}
+
+/* Tablo */
+.premium-scope table {
+  border-collapse: collapse !important;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif !important;
+}
+.premium-scope thead th {
+  font-size: 10px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.5px !important;
+  color: #555 !important;
+  font-weight: 400 !important;
+  text-align: left !important;
+  padding: 10px 8px !important;
+  border-bottom: 0.5px solid #1e1e1e !important;
+}
+.premium-scope tbody td {
+  padding: 12px 8px !important;
+  color: #bbb !important;
+  font-size: 12px !important;
+  border-bottom: 0.5px solid #1e1e1e !important;
+}
+
+/* Divider */
+.premium-scope hr,
+.premium-scope .divider {
+  border: 0 !important;
+  height: 0.5px !important;
+  background: #1e1e1e !important;
+}
+
+/* Erişilebilirlik: arka plan ana renk */
+.premium-scope {
+  background: transparent !important;
+}

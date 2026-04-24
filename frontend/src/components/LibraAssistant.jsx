@@ -335,7 +335,7 @@ export default function LibraAssistant({ show = true, onClose, caseText = "" }) 
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-md"
+        className="premium-scope fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-md"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}

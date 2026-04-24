@@ -954,7 +954,7 @@ export default function AdminPanel() {
 
   if (panelGate.phase === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-zinc-500">
+      <div className="premium-scope min-h-screen flex items-center justify-center bg-black text-zinc-500">
         Yükleniyor…
       </div>
     );

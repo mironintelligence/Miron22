@@ -73,7 +73,7 @@ export default function Upgrade() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white pt-24 px-6 pb-16">
+    <div className="premium-scope min-h-screen bg-black text-white pt-24 px-6 pb-16">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold text-[var(--miron-gold)]">Hesabı Yükselt</h1>
         <p className="text-white/60 mt-2">
