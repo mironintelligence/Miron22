@@ -232,18 +232,10 @@ export default function App() {
               }
             />
             <Route
-              path="/dashboard/assistant"
-              element={
-                <ProtectedRoute>
-                  <LibraAssistant />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/assistant"
               element={
                 <ProtectedRoute>
-                  <Navigate to="/dashboard/assistant" replace />
+                  <LibraAssistant show />
                 </ProtectedRoute>
               }
             />

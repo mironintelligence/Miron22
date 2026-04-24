@@ -159,7 +159,7 @@ export default function HubLanding({ color = "dava", question = "Bugün ne yapma
 
           <div className="text-center" style={{ marginTop: 48 }}>
             <Link
-              to="/dashboard/assistant"
+              to="/assistant"
               className="dash-font-sans no-underline"
               style={{ fontSize: 11, color: "#2a2a2a", textDecoration: "none" }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#FFD700")}
