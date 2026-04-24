@@ -73,6 +73,26 @@ export default function App() {
 
   const isAssistant = location.pathname === "/dashboard/assistant";
 
+  useEffect(() => {
+    if (!isAssistant) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const ph = { overflow: html.style.overflow, height: html.style.height, overscroll: html.style.overscrollBehavior };
+    const pb = { overflow: body.style.overflow, height: body.style.height };
+    html.style.overflow = "hidden";
+    html.style.height = "100%";
+    html.style.overscrollBehavior = "none";
+    body.style.overflow = "hidden";
+    body.style.height = "100%";
+    return () => {
+      html.style.overflow = ph.overflow;
+      html.style.height = ph.height;
+      html.style.overscrollBehavior = ph.overscroll;
+      body.style.overflow = pb.overflow;
+      body.style.height = pb.height;
+    };
+  }, [isAssistant]);
+
   return (
     <div
       className={

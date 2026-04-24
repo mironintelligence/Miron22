@@ -7,10 +7,9 @@ import { useAuth } from "../auth/AuthProvider";
 import { lawyerDisplayName, trGreeting, groupChatsForSidebar } from "../lib/assistantGreeting.js";
 import AssistantMessageContent from "./AssistantMessageContent.jsx";
 
-/* Yanıt tonu: Claude / ChatGPT açık okunabilirlik; modele gönderilen hafif yönerge. */
+/* Sistem yönergesi: üretim sohbet asistanı (Claude/ChatGPT seviyesi) */
 const ASSISTANT_CONTEXT_HINT = `
-[Yanıt biçimi: Cevaplar ChatGPT veya Claude gibi açık ve düzenli olsun. Kısa paragraflar, gerektiğinde numaralı veya madde işaretli listeler, gereksiz süs cümle yok. Kritik terimler ve yasal/önemli noktalar cevabında **markdown kalın (önemli terim)** biçiminde vurgulansın.
-Konu: Sadece hukukla sınırlı değil; avukatın günlük iş, iletişim, metin, plan, özet gibi tüm alanlarda aynı netliği uygula.]`;
+[Sen, Miron AI adlı üretim sohbet asistanısın. Davranış: ChatGPT ve Claude gibi doğal, sakin, net; robotik kalıp ve fazla tekrar yok. Okunabilirlik: kısa paragraflar, boş satırla nefes, gerekirse maddeler ve numaralar. Önce doğrudan cevap, sonra ayrıntı. Önemli hukuki/teknik/anahtar kavramları cevabında **markdown kalın** ile vurgula. Gerekirse kısa bir "Özet" veya "Dikkat" cümlesi ekle. Türkçe dilbilgisine dikkat et, resmi ama anlaşılır üslup. Konu sadece hukuk değil; ofis, metin, plan, müvekkil iletişimi ve günlük iş de dahil. Bilmediğini söyle, uydurma. Her cevabı tam ve bitmiş tut.]`;
 
 const SUGGEST = [
   { title: "Dilekçe çerçevesi", sub: "Adım adım", text: "Belirteceğim türde bir dilekçe için madde madden iskelet; varsayımlarımı soru listesiyle sor." },
@@ -113,18 +112,15 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  useEffect(() => {
-    const b = document.body;
-    const prev = b.style.overflow;
-    b.style.overflow = "hidden";
-    return () => {
-      b.style.overflow = prev;
+  useEffect(
+    () => () => {
       if (streamTimerRef.current) {
         clearTimeout(streamTimerRef.current);
         streamTimerRef.current = null;
       }
-    };
-  }, []);
+    },
+    []
+  );
 
   const current = useMemo(() => chats.find((c) => c.id === currentChatId) || null, [chats, currentChatId]);
   const messages = current?.messages || [];
@@ -174,10 +170,8 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
       streamTimerRef.current = null;
     }
     let i = 0;
-    const step = 2;
-    const tick = 14;
     const run = () => {
-      i = Math.min(i + step, full.length);
+      i = Math.min(i + 1, full.length);
       setChats((prev) =>
         prev.map((c) => {
           if (c.id !== uid) return c;
@@ -195,7 +189,8 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
         }
       });
       if (i < full.length) {
-        streamTimerRef.current = setTimeout(run, tick);
+        const d = 16 + (Math.random() * 24 | 0);
+        streamTimerRef.current = setTimeout(run, d);
       } else {
         streamTimerRef.current = null;
       }
@@ -342,12 +337,16 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
 
   return (
     <motion.main
-      className="miron-chatgpt-shell flex h-full w-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#0f0f0f] text-[#ececec]"
+      className="miron-chatgpt-shell fixed inset-0 z-[70] flex h-[100dvh] max-h-[100dvh] w-full min-w-0 flex-col bg-[#0f0f0f] text-[#ececec]"
+      style={{ top: 0, left: 0, right: 0, bottom: 0 }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
     >
-      <div className="flex min-h-0 w-full min-w-0 flex-1" style={{ minHeight: 0 }}>
+      <div
+        className="flex min-h-0 w-full min-w-0 flex-1 overflow-hidden"
+        style={{ minHeight: 0, maxHeight: "100%" }}
+      >
         <AnimatePresence>
           {narrow && sideOpen && (
             <motion.button
@@ -490,7 +489,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
           style={{ minWidth: 0, background: "var(--chat-main)" }}
         >
           <header
-            className="flex h-[52px] shrink-0 items-center border-b px-2 sm:px-3"
+            className="flex h-11 shrink-0 items-center border-b px-2 sm:h-12 sm:px-3"
             style={{ borderColor: "var(--chat-hairline)", background: "var(--chat-main)" }}
           >
             {narrow && (
@@ -503,18 +502,14 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                 <Menu size={20} strokeWidth={1.5} />
               </button>
             )}
-            <div className="min-w-0 flex-1 text-center sm:pl-0">
+            <div className="min-w-0 flex-1 self-center sm:pl-0">
               <h1
-                className="m-0 max-w-full truncate text-center text-sm font-semibold tracking-tight"
+                className="m-0 line-clamp-1 max-w-full truncate text-center text-sm font-semibold tracking-tight"
                 style={{ color: "var(--miron-text)" }}
                 title={current?.name}
               >
                 {current?.name || "Miron AI"}
               </h1>
-              <p className="text-subtle m-0 mt-0.5 line-clamp-1 text-center text-[0.65rem]">
-                {empty ? "Yeni sohbet" : `${greeting} · `}
-                {avukat}
-              </p>
             </div>
             <div className="relative flex h-9 w-9 shrink-0 items-center justify-end" ref={menuRef}>
               <button
@@ -544,7 +539,11 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
             </div>
           </header>
 
-          <div ref={scRef} className="min-h-0 flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+          <div
+            ref={scRef}
+            className="min-h-0 flex-1 overflow-y-auto [overscroll-behavior:contain]"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             {empty ? (
               <div className="flex min-h-full flex-col items-center justify-center px-3 py-5 sm:px-8" style={{ paddingBottom: 130 }}>
                 <div className="w-full max-w-2xl text-center">
@@ -661,9 +660,6 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                   <ArrowUp size={18} strokeWidth={2.2} className="translate-y-[0.5px]" />
                 </button>
               </div>
-              <p className="m-0 px-1 pt-1.5 text-center text-[0.64rem] text-white/40 sm:pt-2 sm:text-xs">
-                Miron AI cevaplarında hata olabilir. <span className="text-white/50">Kritik işlerde doğrulayın.</span>
-              </p>
             </div>
           </div>
         </div>
