@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { scroll-behavior: smooth; }
+body { background: #000; color: #fff; overflow-x: hidden; }
+
+::selection { background: #FFD700; color: #000; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #1a1a1a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #2e2e2e; }
+
+@keyframes gold-underline { from { width: 0 } to { width: 100% } }
+.animate-gold-underline { animation: gold-underline 0.8s ease-out 0.5s both; }
