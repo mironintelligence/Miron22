@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import LoadingScreen from "../components/LoadingScreen.jsx";
@@ -7,6 +8,7 @@ import ConfirmSheet from "../components/ConfirmSheet.jsx";
 import PasswordSheet from "../components/PasswordSheet.jsx";
 import { authFetch, apiDetailMessage } from "../auth/api";
 import { getApiBase } from "../lib/apiBase.js";
+import { legalDocSlug, LEGAL_DOC_TYPE_LABELS, LEGAL_DOC_TYPES_ORDER } from "../legalPublicLinks.js";
 
 const API_BASE = getApiBase();
 
@@ -131,6 +133,14 @@ export default function AdminPanel() {
   const [notif, setNotif] = useState({ title: "", message: "", type: "admin" });
   const [notifMode, setNotifMode] = useState("broadcast");
   const [notifUserId, setNotifUserId] = useState("");
+
+  const [legalTypes, setLegalTypes] = useState([]);
+  const [legalSelType, setLegalSelType] = useState("terms");
+  const [legalTitle, setLegalTitle] = useState("");
+  const [legalContent, setLegalContent] = useState("");
+  const [legalReq, setLegalReq] = useState(true);
+  const [legalVersions, setLegalVersions] = useState([]);
+  const [legalAuditRows, setLegalAuditRows] = useState([]);
 
   useEffect(() => {
     if (status !== "authed" || !isAdminUserRole(user?.role)) return;
@@ -399,6 +409,97 @@ export default function AdminPanel() {
       return;
     }
     setDiscounts(Array.isArray(data) ? data : []);
+  };
+
+  const fetchLegalSummaryOnly = async () => {
+    const data = await fetchWithAuth("/api/admin/legal/summary");
+    if (isAdminRequestFailed(data)) {
+      showMsg(adminErrorMessage(data), "error");
+      setLegalTypes([]);
+      return;
+    }
+    setLegalTypes(Array.isArray(data?.types) ? data.types : []);
+  };
+
+  const loadLegalEditorForType = async (docType) => {
+    const t = String(docType || "terms").trim();
+    setLegalSelType(t);
+    const slug = legalDocSlug(t);
+    try {
+      const r = await fetch(`${API_BASE}/api/legal/documents/${encodeURIComponent(slug)}`);
+      if (!r.ok) throw new Error("load");
+      const j = await r.json();
+      const doc = j?.document || {};
+      setLegalTitle(String(doc.title || ""));
+      setLegalContent(String(doc.content || ""));
+      setLegalReq(doc.requires_acceptance !== false);
+    } catch {
+      setLegalTitle("");
+      setLegalContent("");
+      setLegalReq(true);
+    }
+    const vdata = await fetchWithAuth(`/api/admin/legal/documents/${encodeURIComponent(t)}/versions`);
+    if (!isAdminRequestFailed(vdata)) {
+      setLegalVersions(Array.isArray(vdata?.versions) ? vdata.versions : []);
+    } else {
+      setLegalVersions([]);
+    }
+  };
+
+  const fetchLegalAuditRows = async () => {
+    const data = await fetchWithAuth("/api/admin/legal/audit?limit=80&offset=0");
+    if (isAdminRequestFailed(data)) {
+      showMsg(adminErrorMessage(data), "error");
+      setLegalAuditRows([]);
+      return;
+    }
+    setLegalAuditRows(Array.isArray(data?.rows) ? data.rows : []);
+  };
+
+  const publishLegalDoc = async () => {
+    const ok = await openConfirm({
+      title: "Yeni sürüm yayınla",
+      message: "Mevcut aktif sürüm yerine bu metin yayınlanacak. Onaylıyor musunuz?",
+      danger: false,
+    });
+    if (!ok) return;
+    const res = await fetchWithAuth("/api/admin/legal/publish", {
+      method: "POST",
+      body: JSON.stringify({
+        doc_type: legalSelType,
+        title: legalTitle.trim(),
+        content: legalContent,
+        requires_acceptance: !!legalReq,
+      }),
+    });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
+    showMsg("Hukuki belge yayınlandı.", "success");
+    await fetchLegalSummaryOnly();
+    await loadLegalEditorForType(legalSelType);
+    await fetchLegalAuditRows();
+  };
+
+  const activateLegalDoc = async (documentId) => {
+    const ok = await openConfirm({
+      title: "Sürümü aktifleştir",
+      message: "Seçilen sürüm aktif yapılacak (geri alma). Devam?",
+      danger: true,
+    });
+    if (!ok) return;
+    const res = await fetchWithAuth("/api/admin/legal/activate", {
+      method: "POST",
+      body: JSON.stringify({ document_id: String(documentId) }),
+    });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
+    showMsg("Aktif sürüm güncellendi.", "success");
+    await fetchLegalSummaryOnly();
+    await loadLegalEditorForType(legalSelType);
   };
 
   const fetchPricingConfig = async () => {
@@ -1064,7 +1165,7 @@ export default function AdminPanel() {
       <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto">
         {/* Navigation */}
         <div className="flex flex-wrap gap-2 mb-8 border-b border-zinc-800 pb-1">
-          {["users", "templates", "notifications", "audit", "sessions", "master", "logs", "discounts"].map((tab) => (
+          {["users", "templates", "notifications", "audit", "sessions", "master", "logs", "discounts", "legal"].map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -1075,6 +1176,11 @@ export default function AdminPanel() {
                 if (tab === "users") fetchUsers();
                 if (tab === "templates") fetchTemplates();
                 if (tab === "discounts") fetchDiscounts();
+                if (tab === "legal") {
+                  fetchLegalSummaryOnly();
+                  loadLegalEditorForType("terms");
+                  fetchLegalAuditRows();
+                }
               }}
               className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
                 activeTab === tab ? "text-amber-500 border-b-2 border-amber-500" : "text-zinc-600 hover:text-zinc-400"
@@ -1094,6 +1200,8 @@ export default function AdminPanel() {
                 ? "Sistem"
                 : tab === "discounts"
                 ? "İndirim Kodları"
+                : tab === "legal"
+                ? "Hukuki Dökümanlar"
                 : "Loglar"}
             </button>
           ))}
@@ -1790,6 +1898,159 @@ export default function AdminPanel() {
         )}
 
         {/* DISCOUNT CODES */}
+        {activeTab === "legal" && (
+          <div className="space-y-8">
+            <div className="grid lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-3 space-y-2">
+                <h3 className="text-amber-500 font-bold text-sm uppercase tracking-wider mb-2">Belge türü</h3>
+                <div className="flex flex-col gap-1">
+                  {(legalTypes.length
+                    ? legalTypes
+                    : LEGAL_DOC_TYPES_ORDER.map((type) => ({ type, active: null, version_count: 0 }))
+                  ).map((row) => {
+                    const t = String(row?.type || "");
+                    const active = row?.active;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => loadLegalEditorForType(t)}
+                        className={`text-left px-3 py-2 rounded border text-sm ${
+                          legalSelType === t
+                            ? "border-amber-600 bg-amber-900/20 text-amber-200"
+                            : "border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                        }`}
+                      >
+                        <div className="font-semibold text-white">{LEGAL_DOC_TYPE_LABELS[t] || t}</div>
+                        <div className="text-[11px] text-zinc-500 mt-0.5">
+                          Aktif: {active?.version || "—"} · {row?.version_count ?? 0} sürüm
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="lg:col-span-9 space-y-4">
+                <h3 className="text-amber-500 font-bold text-sm uppercase tracking-wider">Düzenle ve yayınla</h3>
+                <input
+                  className="w-full bg-zinc-900 border border-zinc-700 p-2 text-white rounded"
+                  placeholder="Başlık"
+                  value={legalTitle}
+                  onChange={(e) => setLegalTitle(e.target.value)}
+                />
+                <label className="flex items-center gap-2 text-sm text-zinc-400">
+                  <input type="checkbox" checked={legalReq} onChange={(e) => setLegalReq(e.target.checked)} />
+                  Yayın sonrası kullanıcı kabulü gerektirsin
+                </label>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs text-zinc-500 mb-1">Markdown</div>
+                    <textarea
+                      className="w-full min-h-[320px] bg-black border border-zinc-700 p-3 text-sm text-zinc-200 rounded font-mono"
+                      value={legalContent}
+                      onChange={(e) => setLegalContent(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <div className="text-xs text-zinc-500 mb-1">Önizleme</div>
+                    <div className="min-h-[320px] max-h-[480px] overflow-auto border border-zinc-800 rounded p-4 prose prose-invert prose-sm max-w-none bg-zinc-950/50">
+                      <ReactMarkdown>{legalContent || "*Boş*"}</ReactMarkdown>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={publishLegalDoc}
+                  className="bg-amber-600 text-black font-bold px-6 py-2 rounded hover:bg-amber-500"
+                >
+                  Yeni sürüm yayınla
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-amber-500 font-bold text-sm uppercase tracking-wider mb-3">Sürüm geçmişi</h3>
+              <div className="bg-zinc-900/20 border border-zinc-800 rounded overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-zinc-900/50 text-zinc-500 uppercase">
+                    <tr>
+                      <th className="p-2">Sürüm</th>
+                      <th className="p-2">Başlık</th>
+                      <th className="p-2">Aktif</th>
+                      <th className="p-2">Kabul</th>
+                      <th className="p-2">Güncelleme</th>
+                      <th className="p-2">İşlem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {legalVersions.map((v) => (
+                      <tr key={v.id} className="border-t border-zinc-800">
+                        <td className="p-2 font-mono text-white">{v.version}</td>
+                        <td className="p-2 text-zinc-300">{v.title}</td>
+                        <td className="p-2">{v.is_active ? <span className="text-green-400">Evet</span> : "—"}</td>
+                        <td className="p-2">{v.requires_acceptance ? "Evet" : "Hayır"}</td>
+                        <td className="p-2 text-zinc-500">
+                          {v.updated_at ? new Date(v.updated_at).toLocaleString("tr-TR") : "—"}
+                        </td>
+                        <td className="p-2">
+                          {!v.is_active && (
+                            <button
+                              type="button"
+                              onClick={() => activateLegalDoc(v.id)}
+                              className="text-amber-400 hover:underline"
+                            >
+                              Aktifleştir
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-amber-500 font-bold text-sm uppercase tracking-wider">Kabul kayıtları (son)</h3>
+                <button
+                  type="button"
+                  onClick={fetchLegalAuditRows}
+                  className="text-xs text-zinc-400 border border-zinc-700 px-2 py-1 rounded hover:bg-zinc-900"
+                >
+                  Yenile
+                </button>
+              </div>
+              <div className="bg-zinc-900/20 border border-zinc-800 rounded overflow-x-auto max-h-64 overflow-y-auto">
+                <table className="w-full text-left text-[11px]">
+                  <thead className="sticky top-0 bg-zinc-900/90 text-zinc-500 uppercase">
+                    <tr>
+                      <th className="p-2">E-posta</th>
+                      <th className="p-2">Tür</th>
+                      <th className="p-2">Sürüm</th>
+                      <th className="p-2">Yöntem</th>
+                      <th className="p-2">Tarih</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {legalAuditRows.map((r) => (
+                      <tr key={r.id} className="border-t border-zinc-800">
+                        <td className="p-2 text-zinc-300">{r.user_email || r.user_id}</td>
+                        <td className="p-2">{r.document_type}</td>
+                        <td className="p-2 font-mono">{r.document_version}</td>
+                        <td className="p-2 text-zinc-500">{r.acceptance_method}</td>
+                        <td className="p-2 text-zinc-500">
+                          {r.accepted_at ? new Date(r.accepted_at).toLocaleString("tr-TR") : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === "discounts" && (
           <div className="grid md:grid-cols-3 gap-8">
             <div className="md:col-span-1 space-y-4">

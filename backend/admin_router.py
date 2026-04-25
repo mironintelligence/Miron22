@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Body, Request, Header
+from fastapi import APIRouter, Depends, HTTPException, Body, Request, Header, BackgroundTasks
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -1017,6 +1017,122 @@ def get_admin_stats():
         "system_status": "Operational",
         "last_restart": _iso(_now())
     }
+
+
+# --- Legal CMS (admin JWT) ---
+class LegalPublishIn(BaseModel):
+    doc_type: str = Field(..., min_length=3, max_length=32)
+    title: str = Field(..., min_length=1, max_length=500)
+    content: str = Field(..., min_length=1)
+    requires_acceptance: bool = True
+
+
+class LegalActivateIn(BaseModel):
+    document_id: str = Field(..., min_length=10, max_length=64)
+
+
+@router.get("/legal/summary", dependencies=[Depends(require_admin)])
+def admin_legal_summary():
+    from legal_cms_config import LEGAL_DOC_TYPES
+    from services.legal_cms_service import get_active_document, list_all_versions_for_type
+
+    rows = []
+    for t in sorted(LEGAL_DOC_TYPES):
+        active = get_active_document(t)
+        versions = list_all_versions_for_type(t)
+        rows.append(
+            {
+                "type": t,
+                "active": active,
+                "version_count": len(versions),
+            }
+        )
+    return {"types": rows}
+
+
+@router.get("/legal/documents/{doc_type}/versions", dependencies=[Depends(require_admin)])
+def admin_legal_versions(doc_type: str):
+    from legal_cms_config import LEGAL_DOC_TYPES
+    from services.legal_cms_service import list_all_versions_for_type
+
+    if doc_type not in LEGAL_DOC_TYPES:
+        raise HTTPException(status_code=400, detail="Geçersiz belge türü.")
+    return {"versions": list_all_versions_for_type(doc_type)}
+
+
+@router.post("/legal/publish")
+def admin_legal_publish(
+    body: LegalPublishIn,
+    background_tasks: BackgroundTasks,
+    admin: Dict[str, Any] = Depends(require_admin),
+):
+    from legal_cms_config import LEGAL_DOC_TYPES
+    from services.legal_cms_service import publish_new_version
+    from services.legal_notify import fanout_legal_document_update
+
+    if body.doc_type not in LEGAL_DOC_TYPES:
+        raise HTTPException(status_code=400, detail="Geçersiz belge türü.")
+    admin_uid = str(admin.get("admin_id") or "").strip() or None
+    try:
+        row = publish_new_version(
+            body.doc_type,
+            body.title.strip(),
+            body.content,
+            body.requires_acceptance,
+            admin_uid if admin_uid else None,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if body.requires_acceptance:
+        background_tasks.add_task(
+            fanout_legal_document_update,
+            body.doc_type,
+            str(row.get("title") or body.title),
+            str(row.get("version") or ""),
+        )
+    try:
+        log_audit(str(admin.get("admin_id")), "LEGAL_PUBLISH", body.doc_type, {"version": row.get("version")})
+    except Exception:
+        pass
+    return {"ok": True, "document": row}
+
+
+@router.post("/legal/activate")
+def admin_legal_activate(body: LegalActivateIn, admin: Dict[str, Any] = Depends(require_admin)):
+    from services.legal_cms_service import activate_document_version
+
+    try:
+        row = activate_document_version(body.document_id.strip())
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Belge bulunamadı.")
+    try:
+        log_audit(str(admin.get("admin_id")), "LEGAL_ACTIVATE", "legal", {"id": body.document_id})
+    except Exception:
+        pass
+    return {"ok": True, "document": row}
+
+
+@router.get("/legal/audit", dependencies=[Depends(require_admin)])
+def admin_legal_audit(
+    user_id: Optional[str] = None,
+    document_type: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+):
+    from services.legal_cms_service import audit_acceptances
+
+    rows, total = audit_acceptances(
+        user_id=user_id,
+        document_type=document_type,
+        date_from=date_from,
+        date_to=date_to,
+        limit=limit,
+        offset=offset,
+    )
+    return {"rows": rows, "total": total, "limit": limit, "offset": offset}
+
 
 # Backward-compat
 api_router = router

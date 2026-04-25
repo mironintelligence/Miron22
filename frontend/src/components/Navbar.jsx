@@ -4,6 +4,7 @@ import { Bell, Menu, X } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { authFetch } from "../auth/api";
 import { useVisiblePolling } from "../hooks/useVisiblePolling";
+import { LEGAL_PUBLIC_LINKS } from "../legalPublicLinks.js";
 
 function BetaBadge() {
   return (
@@ -141,14 +142,10 @@ export default function Navbar() {
                   padding: "6px 0",
                 }}
               >
-                {[
-                  ["/privacy", "Gizlilik Politikası"],
-                  ["/terms", "Kullanım Şartları"],
-                  ["/user-agreement", "Kullanıcı Sözleşmesi"],
-                ].map(([to, label]) => (
+                {LEGAL_PUBLIC_LINKS.map(([slug, label]) => (
                   <Link
-                    key={to}
-                    to={to}
+                    key={slug}
+                    to={`/legal/${slug}`}
                     className="dash-font-sans block no-underline transition-colors"
                     style={{
                       padding: "8px 14px",

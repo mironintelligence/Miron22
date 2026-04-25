@@ -145,7 +145,8 @@ def test_xss_payload_handling():
         "email": "xss@test.com",
         "password": PASSWORD,
         "firstName": "<script>alert(1)</script>",
-        "lastName": "User"
+        "lastName": "User",
+        "accepted_terms_and_privacy": True,
     }
     # Clean up if exists
     try:

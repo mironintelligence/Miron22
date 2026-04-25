@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { LEGAL_PUBLIC_LINKS } from "../legalPublicLinks.js";
+import { SiteLegalCompanyLine } from "../components/SiteLegalFooter.jsx";
 import { motion, useScroll, useTransform } from "framer-motion";
 
 export default function IntroLanding() {
@@ -395,15 +397,19 @@ export default function IntroLanding() {
             <div className="text-2xl font-bold mb-2">Miron AI</div>
             <p className="text-white/40 text-sm">Hukuk Odaklı Yapay Zekâ Altyapısı</p>
           </div>
-          <div className="flex gap-8 text-sm text-white/60">
-            <Link to="/privacy" className="hover:text-white">Gizlilik</Link>
-            <Link to="/terms" className="hover:text-white">Kullanım Şartları</Link>
+          <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-white/60">
+            {LEGAL_PUBLIC_LINKS.map(([slug, label]) => (
+              <Link key={slug} to={`/legal/${slug}`} className="hover:text-white">
+                {label}
+              </Link>
+            ))}
             <Link to="/security" className="hover:text-white">Güvenlik</Link>
             <a href="mailto:contact@miron.ai" className="hover:text-white">İletişim</a>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-white/5 text-center text-xs text-white/20">
-          &copy; 2026 Miron Intelligence Inc. All rights reserved.
+        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col items-center gap-2">
+          <SiteLegalCompanyLine className="!text-white/50" />
+          <p className="text-[11px] text-white/25 text-center">All rights reserved.</p>
         </div>
       </footer>
 

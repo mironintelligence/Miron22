@@ -27,7 +27,7 @@ export default function Home() {
   return (
     <div
       className="dash-root max-w-[1200px] mx-auto px-5 md:px-10"
-      style={{ paddingBottom: 80 }}
+      style={{ paddingBottom: 120 }}
     >
       <motion.div
         initial={{ opacity: 0, y: 6 }}

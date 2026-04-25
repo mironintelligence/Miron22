@@ -211,7 +211,7 @@ export default function Pricing() {
       </div>
 
       <footer className="mt-8 mb-6 text-center text-xs text-subtle">
-        © 2025 Miron Intelligence — All Rights Reserved
+        © 2026 Miron Intelligence Ltd — All rights reserved
       </footer>
     </div>
   );

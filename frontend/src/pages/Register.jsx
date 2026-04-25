@@ -1,17 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { emitToast } from "../utils/toastBus";
 import { passwordMeetsPolicy } from "../utils/passwordPolicy";
 
 /**
- * Register.jsx
- * - mode: "single" | "multi"
- * - her kişi için: firstName, lastName, email, password (zorunlu)
- * - çoklu modda uyarı görünür: "aynı şifreyi kullanmayın"
- * - 3 doküman modalı + 3 onay kutusu (zorunlu)
- * - Kaydı Tamamla butonu yalnızca tüm zorunlu alanlar + 3 onay işaretlenince aktif
+ * Register.jsx — Kullanım Şartları + Gizlilik tek onay; sunucu `accepted_terms_and_privacy` doğrular.
  */
 
 function duplicatePasswordsExist(persons) {
@@ -41,14 +35,7 @@ export default function Register() {
     { firstName: "", lastName: "", email: "", password: "" }, // 
   ]);
 
-  // docs modal
-  const [termsOpen, setTermsOpen] = useState(false);
-  const [activeDoc, setActiveDoc] = useState("agreement"); // agreement | privacy | terms
-
-  const [consentSaas, setConsentSaas] = useState(false);
-  const [consentMss, setConsentMss] = useState(false);
-  const [consentPreinfo, setConsentPreinfo] = useState(false);
-  const [consentKvkk, setConsentKvkk] = useState(false);
+  const [acceptedTermsPrivacy, setAcceptedTermsPrivacy] = useState(false);
 
 
   const [submitting, setSubmitting] = useState(false);
@@ -86,11 +73,6 @@ export default function Register() {
     }
     fetchPrice();
   }, [mode, personCount, discountCode]);
-
-  const openDoc = (type) => {
-    setActiveDoc(type);
-    setTermsOpen(true);
-  };
 
   useEffect(() => {
     // ensure persons array length matches personCount
@@ -133,8 +115,7 @@ export default function Register() {
     );
   }, [firstName, lastName, email, password, personCount]);
 
-  const acceptedAll = consentSaas && consentMss && consentPreinfo && consentKvkk;
-  const disabled = !validSingle || !acceptedAll;
+  const disabled = !validSingle || !acceptedTermsPrivacy;
 
   const updatePerson = (idx, key, value) => {
     setPersons((prev) => {
@@ -194,12 +175,6 @@ export default function Register() {
       const list = payload.persons || [];
       let verificationNeeded = false;
       
-      const consents = {
-        saas: true,
-        mss: true,
-        preinfo: true,
-        kvkk: true,
-      };
       const cardPayload = null;
 
       for (const p of list) {
@@ -210,8 +185,9 @@ export default function Register() {
           lastName: p.lastName,
           mode: payload.mode,
           discountCode: normalizedDiscount || undefined,
-          consents,
+          consents: null,
           card: cardPayload,
+          acceptedTermsAndPrivacy: acceptedTermsPrivacy,
         });
         if (res && res.requires_verification) {
           verificationNeeded = true;
@@ -231,216 +207,7 @@ export default function Register() {
     }
   };
 
-  const duplicatePw = false;
-
-  const docTitle =
-    activeDoc === "agreement"
-      ? "KULLANICI SÖZLEŞMESİ"
-      : activeDoc === "privacy"
-      ? "GİZLİLİK POLİTİKASI"
-      : "KULLANIM ŞARTLARI";
-
-  const DocContent = () => {
-    if (activeDoc === "agreement") {
-      return (
-        <>
-          <h3>1) Taraflar ve Konu</h3>
-          <p>
-            İşbu sözleşme, Miron Intelligence (“Şirket”) ile Miron AI’yi kullanan gerçek/tüzel kişi (“Kullanıcı”) arasında,
-            Hizmet’in kullanım koşullarını düzenler.
-          </p>
-
-          <h3>2) Hizmetin Niteliği</h3>
-          <p className="text-muted">
-            Miron AI, hukuk profesyonellerine yönelik üretken yapay zekâ fonksiyonları sağlar. Üretilen çıktılar rehber
-            niteliktedir; nihai sorumluluk kullanıcıdadır.
-          </p>
-
-          <h3>3) Gizlilik ve Dosya İşleme</h3>
-          <p>
-            Kullanıcı, belge yüklediğinde belgenin içerik olarak analiz için işlenmesine izin verdiğini kabul eder. Varsayılan
-            prensip:
-            <b className="text-white"> Dosyalar ve dosya içerikleri kalıcı olarak saklanmaz.</b> İşleme tamamlandıktan
-            sonra bellekten temizleme hedeflenir.
-          </p>
-
-          <h3>4) Kullanıcının Beyan ve Taahhütleri</h3>
-          <ul className="list-disc pl-6 space-y-1 text-muted">
-            <li>Yüklediği içerik üzerinde gerekli hak/izinlere sahip olduğunu</li>
-            <li>Gizli bilgileri, müvekkil verilerini ve kişisel verileri hukuka uygun işlediğini</li>
-            <li>Çıktıları kontrol edip doğrulayacağını</li>
-          </ul>
-
-          <h3>5) Ücretlendirme / Paketler</h3>
-          <p className="text-muted">
-            Ücretlendirme, paketler ve deneme süreleri arayüzde veya satış kanallarında ayrıca belirtilebilir. (Ödeme altyapısı
-            aktif edildiğinde bu bölüm genişletilir.)
-          </p>
-
-          <h3>6) Yürürlük ve Fesih</h3>
-          <p className="text-muted">
-            Kullanıcı bu sözleşmeyi onaylayarak yürürlüğe sokar. Şirket, ağır ihlal durumunda erişimi askıya alabilir/sonlandırabilir.
-          </p>
-
-          <h3>7) Uyuşmazlık ve Yetki</h3>
-          <p className="text-muted">
-            Uyuşmazlıklarda Türkiye Cumhuriyeti hukuku uygulanır. Yetkili mahkeme/mercii, Şirket’in merkezinin bulunduğu yer esas
-            alınarak belirlenebilir (güncel adres/merkez bilgisi ayrıca duyurulur).
-          </p>
-        </>
-      );
-    }
-
-    if (activeDoc === "privacy") {
-      return (
-        <>
-          <h3>1) Kapsam</h3>
-          <p>
-            Bu Gizlilik Politikası; Miron AI web uygulaması (“Hizmet”) üzerinden oluşturulan hesap bilgileri, kullanım verileri,
-            geri bildirimler ve kullanıcının yüklediği belgeler dahil olmak üzere işlenen verilerin hangi amaçlarla işlendiğini açıklar.
-          </p>
-
-          <h3>2) Veri Sorumlusu / İletişim</h3>
-          <p>
-            Hizmetin sağlayıcısı: <b>Miron Intelligence</b> (“Şirket”). İletişim:
-            <span className="text-muted"> mironintelligenceqgmail.com</span> (veya uygulamada belirtilen güncel destek adresi).
-          </p>
-
-          <h3>3) Hangi Veriler İşlenir?</h3>
-          <ul className="list-disc pl-6 space-y-1 text-muted">
-            <li>
-              <b>Hesap verileri:</b> Ad, soyad, e-posta, rol ve benzeri temel kullanıcı bilgileri.
-            </li>
-            <li>
-              <b>Geri bildirim verileri:</b> Kullanıcının yazdığı mesajlar, konu başlığı, teknik hata ekran görüntüsü vb. (kullanıcı eklerse).
-            </li>
-            <li>
-              <b>Kullanım verileri:</b> Hata kayıtları (minimum seviyede), güvenlik olay kayıtları, performans ölçümleri.
-            </li>
-            <li>
-              <b>Belge/veri içeriği:</b> Kullanıcının analiz için yüklediği belgelerin içeriği ve bu içerikten üretilen çıktı/özetler.
-            </li>
-          </ul>
-
-          <h3>4) “Dosyalar Kaydedilmez” Taahhüdü (Varsayılan Çalışma)</h3>
-          <p>
-            Miron AI’nin varsayılan çalışma prensibi şudur:
-            <b className="text-white"> Kullanıcının yüklediği dosyalar ve dosya içerikleri sunucularda kalıcı olarak saklanmaz.</b>
-            Belge içeriği yalnızca analiz/işleme amacıyla <b>geçici</b> olarak işlenir ve işlem tamamlandıktan sonra sistem belleğinden
-            temizlenmesi hedeflenir.
-          </p>
-          <p className="text-muted">
-            Not: Hizmetin bazı özellikleri, talebin yerine getirilebilmesi için belge içeriğini üçüncü taraf yapay zekâ altyapısına iletebilir.
-            Bu durumda aktarım yalnızca ilgili işlem için yapılır.
-          </p>
-
-          <h3>5) İşleme Amaçları</h3>
-          <ul className="list-disc pl-6 space-y-1 text-muted">
-            <li>Belge analizi, özetleme, sınıflandırma ve raporlama</li>
-            <li>Miron Assistant üzerinden soru-cevap ve metin üretimi</li>
-            <li>Hizmet güvenliği, hata ayıklama ve performans iyileştirme</li>
-            <li>Kullanıcı destek süreçleri ve geri bildirimlerin yönetimi</li>
-          </ul>
-
-          <h3>6) Üçüncü Taraflar ve Aktarım</h3>
-          <p>
-            Hizmet, yapay zekâ yanıtı üretebilmek için üçüncü taraf sağlayıcılar kullanabilir (ör. model servisleri). Bu durumda paylaşım yalnızca
-            hizmetin çalışması için gereken minimum veriyle sınırlı tutulur.
-          </p>
-          <p className="text-muted">
-            Kullanıcı, hassas veri içeren belgeleri yüklemeden önce gerekli hukuki yetkilendirmelere sahip olduğunu ve gerekli aydınlatma/izin süreçlerini
-            yürüttüğünü kabul eder.
-          </p>
-
-          <h3>7) Güvenlik</h3>
-          <ul className="list-disc pl-6 space-y-1 text-muted">
-            <li>İletişim şifrelemesi (TLS/HTTPS)</li>
-            <li>Yetkisiz erişime karşı erişim kontrolleri</li>
-            <li>Minimum log prensibi (gereksiz içerik loglanmaz)</li>
-          </ul>
-
-          <h3>8) Saklama Süreleri</h3>
-          <p>
-            <b>Belge içerikleri:</b> Varsayılan olarak kalıcı saklanmaz.
-          </p>
-          <p className="text-muted">
-            <b>Hesap verileri:</b> Hesap aktif olduğu sürece; yasal yükümlülükler saklama gerektiriyorsa ilgili süre kadar.
-          </p>
-
-          <h3>9) KVKK Kapsamında Haklar</h3>
-          <p className="text-muted">
-            6698 sayılı KVKK kapsamında; veri işlenip işlenmediğini öğrenme, bilgi talep etme, düzeltilmesini/silinmesini isteme ve ilgili diğer haklarınızı
-            kullanmak için destek kanalından bize ulaşabilirsiniz.
-          </p>
-
-          <h3>10) Değişiklikler</h3>
-          <p className="text-muted">Bu politika güncellenebilir. Güncel sürüm bu sayfada yayınlanır.</p>
-        </>
-      );
-    }
-
-    return (
-      <>
-        <h3>1) Kabul ve Kapsam</h3>
-        <p>
-          Miron AI’ye erişerek ve/veya hesap oluşturarak bu Kullanım Şartları’nı kabul etmiş olursunuz. Kabul etmiyorsanız Hizmet’i kullanmayınız.
-        </p>
-
-        <h3>2) Hizmet Tanımı</h3>
-        <p>
-          Miron AI; belge analizi, özetleme, metin üretimi ve Miron Assistant üzerinden soru-cevap gibi yapay zekâ destekli araçlar sağlar.
-        </p>
-
-        <h3>3) Hukuki Uyarı (Çok Net)</h3>
-        <p>
-          Miron AI’nin çıktıları <b>hukuki danışmanlık değildir</b>. Nihai değerlendirme ve sorumluluk kullanıcıya (avukata/hukuk profesyoneline) aittir.
-          Miron AI tarafından üretilen içerikler hatalı/eksik olabilir; her zaman kaynak mevzuat ve içtihat üzerinden kontrol edilmelidir.
-        </p>
-
-        <h3>4) Gizlilik ve Dosya Saklama</h3>
-        <p>
-          Varsayılan prensip: <b>Yüklenen dosyalar kalıcı olarak saklanmaz.</b> Analiz için geçici işleme yapılır. Detaylar Gizlilik Politikası’nda açıklanır.
-        </p>
-
-        <h3>5) Kullanıcı Yükümlülükleri</h3>
-        <ul className="list-disc pl-6 space-y-1 text-muted">
-          <li>Hizmet’i yürürlükteki mevzuata uygun kullanmak</li>
-          <li>Üçüncü kişilere ait gizli/hassas veriler için gerekli izinleri almak</li>
-          <li>Hesap güvenliğini sağlamak ve şifreyi korumak</li>
-          <li>Yanıltıcı, yasa dışı veya hak ihlaline yol açacak içerik yüklememek</li>
-        </ul>
-
-        <h3>6) Yasaklı Kullanımlar</h3>
-        <ul className="list-disc pl-6 space-y-1 text-muted">
-          <li>Sistemi kötüye kullanma, servis dışı bırakma girişimleri</li>
-          <li>Yetkisiz erişim, tersine mühendislik, güvenlik testleri (izinsiz)</li>
-          <li>Telif/kişilik haklarını ihlal eden içerik yükleme</li>
-          <li>Hizmet’i yasa dışı amaçlarla kullanma</li>
-        </ul>
-
-        <h3>7) Fikri Mülkiyet</h3>
-        <p className="text-muted">
-          Miron AI arayüzü, markaları, tasarım dili ve yazılım bileşenleri Miron Intelligence’a aittir. İzinsiz kopyalanamaz/çoğaltılamaz.
-        </p>
-
-        <h3>8) Sorumluluk Sınırı</h3>
-        <p className="text-muted">
-          Hizmet “olduğu gibi” sunulur. Dolaylı zararlar, veri kaybı, iş kaybı, kar kaybı gibi sonuçlardan Şirket sorumlu tutulamaz. Kullanıcı, çıktıları
-          doğrulamakla yükümlüdür.
-        </p>
-
-        <h3>9) Hesabın Askıya Alınması / Fesih</h3>
-        <p className="text-muted">
-          Şirket, bu şartların ihlali halinde Hizmet’e erişimi geçici veya kalıcı olarak kısıtlayabilir.
-        </p>
-
-        <h3>10) Değişiklikler</h3>
-        <p className="text-muted">
-          Şartlar güncellenebilir. Güncel sürüm bu sayfada yayınlandığı anda yürürlüğe girer.
-        </p>
-      </>
-    );
-  };
+  const duplicatePw = duplicatePasswordsExist(persons);
 
   return (
     <div className="min-h-screen px-6 sm:px-10 md:px-16 pb-12">
@@ -686,75 +453,23 @@ export default function Register() {
 
             {/* Sözleşme onayı ve uyarılar */}
             <div className="mt-6 flex flex-col gap-3">
-              <p className="text-xs text-subtle uppercase tracking-wider">Yasal onaylar (zorunlu — clickwrap)</p>
+              <p className="text-xs text-subtle uppercase tracking-wider">Yasal onaylar (zorunlu)</p>
 
               <label className="flex items-start gap-3">
                 <input
                   type="checkbox"
-                  checked={consentSaas}
-                  onChange={(e) => setConsentSaas(e.target.checked)}
+                  checked={acceptedTermsPrivacy}
+                  onChange={(e) => setAcceptedTermsPrivacy(e.target.checked)}
                 />
                 <div className="text-sm">
-                  <button
-                    type="button"
-                    className="font-medium text-accent underline text-left"
-                    onClick={() => openDoc("agreement")}
-                  >
-                    SaaS / Hizmet sözleşmesi
-                  </button>{" "}
-                  <span className="font-medium">metnini okudum ve kabul ediyorum.</span>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={consentMss}
-                  onChange={(e) => setConsentMss(e.target.checked)}
-                />
-                <div className="text-sm">
-                  <button
-                    type="button"
-                    className="font-medium text-accent underline text-left"
-                    onClick={() => openDoc("terms")}
-                  >
-                    Mesafeli satış sözleşmesi
-                  </button>{" "}
-                  <span className="font-medium">hükümlerini okudum ve kabul ediyorum.</span>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={consentPreinfo}
-                  onChange={(e) => setConsentPreinfo(e.target.checked)}
-                />
-                <div className="text-sm">
-                  <button
-                    type="button"
-                    className="font-medium text-accent underline text-left"
-                    onClick={() => openDoc("terms")}
-                  >
-                    Ön bilgilendirme formu
-                  </button>{" "}
-                  <span className="font-medium">içeriğini okudum ve kabul ediyorum.</span>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={consentKvkk}
-                  onChange={(e) => setConsentKvkk(e.target.checked)}
-                />
-                <div className="text-sm">
-                  <Link to="/privacy" className="font-medium text-accent underline">
-                    KVKK / Gizlilik
-                  </Link>{" "}
-                  <span className="font-medium">
-                    kapsamında kişisel verilerimin işlenmesine açık rıza veriyorum.
-                  </span>
+                  <Link to="/legal/terms" className="font-medium text-accent underline" target="_blank" rel="noreferrer">
+                    Kullanım Şartları
+                  </Link>
+                  {" "}ve{" "}
+                  <Link to="/legal/privacy" className="font-medium text-accent underline" target="_blank" rel="noreferrer">
+                    Gizlilik Politikası
+                  </Link>
+                  ’nı okudum, kabul ediyorum.
                 </div>
               </label>
 
@@ -789,40 +504,8 @@ export default function Register() {
         </div>
       </div>
 
-      {/* Docs modal */}
-      <AnimatePresence>
-        {termsOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          >
-            <motion.div
-              initial={{ y: 12 }}
-              animate={{ y: 0 }}
-              exit={{ y: 12 }}
-              className="w-full max-w-3xl bg-black rounded-2xl shadow-2xl overflow-auto max-h-[85vh]"
-            >
-              <div className="p-4 border-b border-white/10">
-                <div className="text-sm font-semibold text-black bg-[var(--miron-gold)] px-3 py-2 rounded-md inline-block">
-                  {docTitle}
-                </div>
-                <button onClick={() => setTermsOpen(false)} className="float-right text-sm px-3 py-1">
-                  Kapat
-                </button>
-              </div>
-
-              <div className="p-6 prose prose-invert text-sm">
-                <DocContent />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <footer className="mt-8 mb-6 text-center text-xs text-subtle">
-        © 2025 Miron Intelligence — All Rights Reserved
+        © 2026 Miron Intelligence Ltd — All rights reserved
       </footer>
     </div>
   );

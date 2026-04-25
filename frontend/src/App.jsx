@@ -8,6 +8,8 @@ import LoadingScreen from "./components/LoadingScreen.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import GuestRoute from "./components/GuestRoute.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
+import LegalAcceptanceModal from "./components/LegalAcceptanceModal.jsx";
+import { SiteLegalFooterLinks, SiteLegalCompanyLine } from "./components/SiteLegalFooter.jsx";
 import { useAuth } from "./auth/AuthProvider";
 
 // Route-level code splitting. Every page is its own async chunk so the initial
@@ -25,14 +27,12 @@ const Pricing = lazy(() => import("./pages/Pricing.jsx"));
 const RiskStrategy = lazy(() => import("./pages/RiskStrategy"));
 const Intro = lazy(() => import("./pages/Intro.jsx"));
 const IntroLanding = lazy(() => import("./pages/IntroLanding.jsx"));
-const Privacy = lazy(() => import("./pages/Privacy.jsx"));
-const Terms = lazy(() => import("./pages/Terms.jsx"));
+const LegalDocument = lazy(() => import("./pages/LegalDocument.jsx"));
 const DemoRequest = lazy(() => import("./pages/DemoRequest.jsx"));
 const Demos = lazy(() => import("./pages/Demos.jsx"));
 const YargitaySearch = lazy(() => import("./pages/YargitaySearch"));
 const Mevzuat = lazy(() => import("./pages/Mevzuat"));
 const Feedback = lazy(() => import("./pages/Feedback"));
-const UserAgreement = lazy(() => import("./pages/UserAgreement"));
 const Calculators = lazy(() => import("./pages/Calculators"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel.jsx"));
 const Welcome = lazy(() => import("./pages/Welcome.jsx"));
@@ -50,10 +50,23 @@ const Arastirma = lazy(() => import("./pages/dashboard/Arastirma.jsx"));
 const BelgeStudyosu = lazy(() => import("./pages/dashboard/BelgeStudyosu.jsx"));
 
 export default function App() {
-  const { status } = useAuth();
+  const { status, refreshUser } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [loginOpen, setLoginOpen] = useState(false);
+  const [legalPending, setLegalPending] = useState(null);
+
+  useEffect(() => {
+    const onLegal = (ev) => {
+      const ctx = ev?.detail?.context || {};
+      const pending = ctx.pending_documents;
+      if (Array.isArray(pending) && pending.length) {
+        setLegalPending(pending);
+      }
+    };
+    window.addEventListener("miron:legal-acceptance-required", onLegal);
+    return () => window.removeEventListener("miron:legal-acceptance-required", onLegal);
+  }, []);
 
   useEffect(() => {
     if (location.pathname === "/login") {
@@ -78,6 +91,18 @@ export default function App() {
   return (
     <div className={fullscreenRoute ? "h-screen w-screen overflow-hidden bg-black text-white" : "min-h-screen bg-black text-white"}>
       {!fullscreenRoute && <Navbar />}
+      <LegalAcceptanceModal
+        open={status === "authed" && !!legalPending}
+        pendingDocuments={legalPending}
+        onResolved={async () => {
+          setLegalPending(null);
+          try {
+            await refreshUser();
+          } catch {
+            /* ignore */
+          }
+        }}
+      />
       <NotificationToasts />
       <GlobalToast />
       <LoginModal
@@ -362,9 +387,10 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/user-agreement" element={<UserAgreement />} />
+            <Route path="/legal/:slug" element={<LegalDocument />} />
+            <Route path="/privacy" element={<Navigate to="/legal/privacy" replace />} />
+            <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
+            <Route path="/user-agreement" element={<Navigate to="/legal/terms" replace />} />
             <Route
               path="*"
               element={
@@ -380,8 +406,14 @@ export default function App() {
       </div>
 
       {!fullscreenRoute && (
-        <footer className="fixed bottom-0 left-0 w-full text-center text-xs py-3 bg-black/40 backdrop-blur-xl border-t border-white/10 text-white/70 pointer-events-none">
-          ⚠ Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
+        <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-black/75 backdrop-blur-xl">
+          <div className="max-w-7xl mx-auto px-3 sm:px-5 py-2 pointer-events-auto">
+            <SiteLegalFooterLinks className="mb-1" />
+            <SiteLegalCompanyLine />
+            <p className="text-[10px] text-amber-200/65 text-center mt-1.5 pointer-events-none leading-snug px-1">
+              ⚠ Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
+            </p>
+          </div>
         </footer>
       )}
     </div>

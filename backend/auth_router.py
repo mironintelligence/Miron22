@@ -42,6 +42,7 @@ from security import (
 from user_auth import get_current_user
 from utils.request_meta import client_ip, client_meta, cookie_secure
 from legal_compliance import document_version_hash, luhn_valid, card_last_four
+from services.legal_cms_service import insert_acceptances as insert_user_legal_acceptances
 from system_runtime import maintenance_mode_enabled
 from supabase_password_login import try_supabase_password_login
 
@@ -188,6 +189,12 @@ def complete_registration(
 
     try:
         _insert_legal_consents(uid, ip)
+    except Exception:
+        pass
+
+    try:
+        ip2, ua2 = client_meta(request)
+        insert_user_legal_acceptances(uid, ["terms", "privacy", "ai_terms"], "complete_registration", ip2, ua2)
     except Exception:
         pass
 
@@ -362,6 +369,7 @@ class RegisterRequest(BaseModel):
     discountCode: Optional[str] = None
     consents: Optional[Dict[str, Any]] = None
     card: Optional[Dict[str, Any]] = None
+    accepted_terms_and_privacy: bool = False
 
     @validator("password")
     def _validate_register_password(cls, v):
@@ -380,9 +388,14 @@ def register_account(payload: RegisterRequest, request: Request):
     email_norm = str(payload.email).strip().lower()
     if find_user_by_email(email_norm):
         raise HTTPException(status_code=409, detail="Bu e-posta zaten kayıtlı.")
+    if not payload.accepted_terms_and_privacy:
+        raise HTTPException(
+            status_code=400,
+            detail="Kullanım Şartları ve Gizlilik Politikası kabul edilmelidir.",
+        )
     fn = (payload.firstName or "").strip()
     ln = (payload.lastName or "").strip()
-    create_user(
+    uid = create_user(
         {
             "email": email_norm,
             "hashed_password": hash_password(payload.password),
@@ -393,8 +406,11 @@ def register_account(payload: RegisterRequest, request: Request):
             "is_verified": True,
         }
     )
-    ip = client_ip(request)
-    ua = request.headers.get("user-agent", "unknown")
+    ip, ua = client_meta(request)
+    try:
+        insert_user_legal_acceptances(str(uid), ["terms", "privacy"], "signup", ip, ua)
+    except Exception:
+        pass
     try:
         log_audit(None, "USER_REGISTER", email_norm, {"email": email_norm}, ip, ua)
     except Exception:

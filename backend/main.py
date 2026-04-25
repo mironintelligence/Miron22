@@ -56,6 +56,7 @@ except ImportError:
     from db_async import db as async_db
 from security import sanitize_text
 from user_auth import get_current_user
+from legal_acceptance_deps import require_legal_acceptance
 
 # OpenAI error types (sürüm uyumlu)
 try:
@@ -87,6 +88,7 @@ _OPENAPI_TAGS = [
     {"name": "subscriptions", "description": "Plans, upgrades, invoicing, quota enforcement."},
     {"name": "reminders", "description": "Reminder/notification CRUD."},
     {"name": "feedback", "description": "User feedback submission."},
+    {"name": "legal", "description": "Public legal documents and authenticated acceptance."},
     {"name": "metrics", "description": "Prometheus scrape endpoint."},
 ]
 
@@ -257,6 +259,14 @@ async def startup_event():
         from schema import ensure_schema
 
         ensure_schema()
+        try:
+            from services.legal_cms_service import seed_v1_if_empty
+
+            seed_v1_if_empty()
+        except Exception as _seed_exc:
+            from logger_utils import get_logger as _gl
+
+            _gl("miron.startup").warning("legal CMS seed skipped", extra={"error": str(_seed_exc)})
     except Exception as e:
         import traceback
 
@@ -454,7 +464,7 @@ def _safe_import(path: str, name: str = "router"):
         from logger_utils import get_logger as _gl
         _gl("miron.startup").warning(
             "router import failed",
-            extra={"module": path, "attr": name, "error": str(e)},
+            extra={"import_path": path, "attr": name, "error": str(e)},
         )
         return None
 
@@ -479,6 +489,7 @@ search_router    = _safe_import("routes.search_routes", "router")
 reminder_router  = _safe_import("routes.reminder_routes", "router")
 admin_api_router = _safe_import("admin_router", "api_router")
 admin_router     = _safe_import("admin_router", "router")
+legal_router     = _safe_import("routes.legal_routes", "router")
 
 # ---------------------------
 # ROOT
@@ -694,7 +705,7 @@ _ALLOWED_ANALYZE_EXTS = {".pdf", ".docx", ".txt"}
 
 
 @app.post("/analyze")
-async def analyze_file(file: UploadFile = File(...), _user: dict = Depends(get_current_user)):
+async def analyze_file(file: UploadFile = File(...), _user: dict = Depends(require_legal_acceptance)):
     filename = (file.filename or "").strip()
     if not filename:
         raise HTTPException(status_code=400, detail="Dosya adı gerekli.")
@@ -793,7 +804,7 @@ def _run_llm(messages):
     return chat_completions_create(client, temperature=0.2, messages=messages)
 
 @app.post("/assistant-chat")
-def assistant_chat(req: ChatRequest = Body(...), _user: dict = Depends(get_current_user)):
+def assistant_chat(req: ChatRequest = Body(...), _user: dict = Depends(require_legal_acceptance)):
     global client
     if not client:
         # Try to init again if it failed at startup
@@ -837,7 +848,7 @@ def assistant_chat(req: ChatRequest = Body(...), _user: dict = Depends(get_curre
 
 
 @app.post("/assistant-chat/stream")
-def assistant_chat_stream(req: ChatRequest = Body(...), _user: dict = Depends(get_current_user)):
+def assistant_chat_stream(req: ChatRequest = Body(...), _user: dict = Depends(require_legal_acceptance)):
     """SSE stream of the assistant reply. Each event: data: {"content": "..."}."""
     global client
     if not client:
@@ -895,7 +906,7 @@ class TitleRequest(BaseModel):
 
 
 @app.post("/assistant-chat/title")
-def assistant_chat_title(req: TitleRequest = Body(...), _user: dict = Depends(get_current_user)):
+def assistant_chat_title(req: TitleRequest = Body(...), _user: dict = Depends(require_legal_acceptance)):
     """Generate a short Turkish title (4-6 words) for the given user message."""
     global client
     if not client:
@@ -935,10 +946,18 @@ def assistant_chat_title(req: TitleRequest = Body(...), _user: dict = Depends(ge
 # =============================
 # ROUTER REGISTRATION
 # =============================
-if writer_router:   app.include_router(writer_router)
-if assistant_router: app.include_router(assistant_router)
-if stats_router:    app.include_router(stats_router)
-if risk_router:     app.include_router(risk_router)
+_LEGAL_ACCEPTANCE_DEPS = [Depends(require_legal_acceptance)]
+
+if legal_router:
+    app.include_router(legal_router)
+if writer_router:
+    app.include_router(writer_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if assistant_router:
+    app.include_router(assistant_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if stats_router:
+    app.include_router(stats_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if risk_router:
+    app.include_router(risk_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
 if admin_router:
     # Admin API is exposed under both prefixes for backward-compat:
     #   /api/admin/* — preferred (used by the SPA + external clients)
@@ -947,19 +966,32 @@ if admin_router:
     # OpenAPI docs group them clearly.
     app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
     app.include_router(admin_router, prefix="/admin", tags=["admin-legacy"])
-if calc_router:     app.include_router(calc_router)
-if reports_router:  app.include_router(reports_router)
-if yargitay_router: app.include_router(yargitay_router)
-if mevzuat_router:  app.include_router(mevzuat_router)
-if uyap_udf_router: app.include_router(uyap_udf_router)
-if search_router:   app.include_router(search_router)
-if reminder_router: app.include_router(reminder_router)
-if contract_router: app.include_router(contract_router)
-if notification_router: app.include_router(notification_router)
-if billing_router:  app.include_router(billing_router)
-if feedback_router: app.include_router(feedback_router)
-if analyze_router:  app.include_router(analyze_router)
-if orchestrator_router: app.include_router(orchestrator_router)
+if calc_router:
+    app.include_router(calc_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if reports_router:
+    app.include_router(reports_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if yargitay_router:
+    app.include_router(yargitay_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if mevzuat_router:
+    app.include_router(mevzuat_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if uyap_udf_router:
+    app.include_router(uyap_udf_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if search_router:
+    app.include_router(search_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if reminder_router:
+    app.include_router(reminder_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if contract_router:
+    app.include_router(contract_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if notification_router:
+    app.include_router(notification_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if billing_router:
+    app.include_router(billing_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if feedback_router:
+    app.include_router(feedback_router)
+if analyze_router:
+    app.include_router(analyze_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
+if orchestrator_router:
+    app.include_router(orchestrator_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
 if demo_request_router: app.include_router(demo_request_router)
                     
                     

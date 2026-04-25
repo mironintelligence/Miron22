@@ -18,10 +18,7 @@ export default function Kaydol() {
   const [password, setPassword] = useState("");
   const [discountCode, setDiscountCode] = useState("");
 
-  const [consentSaas, setConsentSaas] = useState(false);
-  const [consentMss, setConsentMss] = useState(false);
-  const [consentPreinfo, setConsentPreinfo] = useState(false);
-  const [consentKvkk, setConsentKvkk] = useState(false);
+  const [acceptedTermsPrivacy, setAcceptedTermsPrivacy] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -41,14 +38,12 @@ export default function Kaydol() {
     );
   }, [firstName, lastName, email, password]);
 
-  const acceptedAll = consentSaas && consentMss && consentPreinfo && consentKvkk;
-  const disabled = !valid || !acceptedAll;
+  const disabled = !valid || !acceptedTermsPrivacy;
 
   const handleSubmit = async () => {
     if (submitting || disabled) return;
     setSubmitError("");
     setSubmitting(true);
-    const consents = { saas: true, mss: true, preinfo: true, kvkk: true };
     const normalizedDiscount = (discountCode || "").trim().toUpperCase();
     try {
       await register({
@@ -58,8 +53,9 @@ export default function Kaydol() {
         lastName: lastName.trim(),
         mode: mode === "demo" ? "demo" : "single",
         discountCode: normalizedDiscount || undefined,
-        consents,
+        consents: null,
         card: null,
+        acceptedTermsAndPrivacy: acceptedTermsPrivacy,
       });
       emitToast("Kayıt başarılı. Giriş yapabilirsiniz.", "success");
       navigate("/login");
@@ -157,39 +153,20 @@ export default function Kaydol() {
         <div className="mt-8 space-y-3">
           <p className="text-xs text-subtle uppercase tracking-wider">Yasal onaylar</p>
           <label className="flex items-start gap-3 text-sm">
-            <input type="checkbox" checked={consentSaas} onChange={(e) => setConsentSaas(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={acceptedTermsPrivacy}
+              onChange={(e) => setAcceptedTermsPrivacy(e.target.checked)}
+            />
             <span>
-              <Link to="/user-agreement" className="text-accent underline">
-                Hizmet sözleşmesi
-              </Link>{" "}
-              metnini okudum ve kabul ediyorum.
-            </span>
-          </label>
-          <label className="flex items-start gap-3 text-sm">
-            <input type="checkbox" checked={consentMss} onChange={(e) => setConsentMss(e.target.checked)} />
-            <span>
-              <Link to="/terms" className="text-accent underline">
-                Mesafeli satış
-              </Link>{" "}
-              hükümlerini okudum ve kabul ediyorum.
-            </span>
-          </label>
-          <label className="flex items-start gap-3 text-sm">
-            <input type="checkbox" checked={consentPreinfo} onChange={(e) => setConsentPreinfo(e.target.checked)} />
-            <span>
-              <Link to="/terms" className="text-accent underline">
-                Ön bilgilendirme
-              </Link>{" "}
-              formunu okudum ve kabul ediyorum.
-            </span>
-          </label>
-          <label className="flex items-start gap-3 text-sm">
-            <input type="checkbox" checked={consentKvkk} onChange={(e) => setConsentKvkk(e.target.checked)} />
-            <span>
-              <Link to="/privacy" className="text-accent underline">
-                KVKK / Gizlilik
-              </Link>{" "}
-              kapsamında kişisel verilerimin işlenmesine rıza veriyorum.
+              <Link to="/legal/terms" className="text-accent underline" target="_blank" rel="noreferrer">
+                Kullanım Şartları
+              </Link>
+              {" "}ve{" "}
+              <Link to="/legal/privacy" className="text-accent underline" target="_blank" rel="noreferrer">
+                Gizlilik Politikası
+              </Link>
+              ’nı okudum, kabul ediyorum.
             </span>
           </label>
         </div>

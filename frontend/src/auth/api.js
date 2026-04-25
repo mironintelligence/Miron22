@@ -251,7 +251,17 @@ export async function login(email, password, nameHint = null) {
   return data;
 }
 
-export async function register({ email, password, firstName, lastName, mode, discountCode, consents, card }) {
+export async function register({
+  email,
+  password,
+  firstName,
+  lastName,
+  mode,
+  discountCode,
+  consents,
+  card,
+  acceptedTermsAndPrivacy,
+}) {
   const r = await fetch(`${API}/api/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -264,6 +274,7 @@ export async function register({ email, password, firstName, lastName, mode, dis
       discountCode: discountCode || null,
       consents: consents || null,
       card: card || null,
+      accepted_terms_and_privacy: Boolean(acceptedTermsAndPrivacy),
     }),
     credentials: "include",
   });
@@ -369,6 +380,28 @@ export async function authFetch(path, options = {}) {
             /* ignore */
           }
         }
+      }
+    }
+    if (
+      res.status === 403 &&
+      typeof window !== "undefined" &&
+      !String(path).includes("/api/legal/accept") &&
+      !String(path).includes("/api/legal/acceptance-status")
+    ) {
+      try {
+        const ct = res.headers.get("content-type") || "";
+        if (ct.includes("application/json")) {
+          const t = await res.clone().json();
+          if (t && t.code === "LEGAL_ACCEPTANCE_REQUIRED") {
+            window.dispatchEvent(
+              new CustomEvent("miron:legal-acceptance-required", {
+                detail: { path, context: t.context || {} },
+              })
+            );
+          }
+        }
+      } catch {
+        /* ignore */
       }
     }
     return res;

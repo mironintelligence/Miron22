@@ -133,11 +133,9 @@ export default function DemoRequest() {
             <label className="flex items-start gap-2 cursor-pointer">
               <input type="checkbox" checked={termsOk} onChange={(e) => setTermsOk(e.target.checked)} className="mt-1" />
               <span>
-                <a className="text-accent hover:underline" href="/privacy" target="_blank" rel="noreferrer">Gizlilik Politikası</a>{" "}
+                <a className="text-accent hover:underline" href="/legal/privacy" target="_blank" rel="noreferrer">Gizlilik Politikası</a>{" "}
                 ve{" "}
-                <a className="text-accent hover:underline" href="/terms" target="_blank" rel="noreferrer">Kullanım Şartları</a>{" "}
-                ile{" "}
-                <a className="text-accent hover:underline" href="/user-agreement" target="_blank" rel="noreferrer">Kullanıcı Sözleşmesi</a>{" "}
+                <a className="text-accent hover:underline" href="/legal/terms" target="_blank" rel="noreferrer">Kullanım Şartları</a>{" "}
                 metinlerini okudum, kabul ediyorum.
               </span>
             </label>

@@ -219,7 +219,8 @@ def test_input_injection_unicode():
         "email": f"emoji_{int(time.time())}@test.com",
         "password": PASSWORD,
         "firstName": "🤣💩",
-        "lastName": "User"
+        "lastName": "User",
+        "accepted_terms_and_privacy": True,
     })
     assert res.status_code == 200 # Should be accepted but sanitized/stored safely
     
@@ -244,7 +245,8 @@ def test_unique_constraint_violation():
         "email": email,
         "password": PASSWORD,
         "firstName": "Test",
-        "lastName": "User"
+        "lastName": "User",
+        "accepted_terms_and_privacy": True,
     }
     
     # First time

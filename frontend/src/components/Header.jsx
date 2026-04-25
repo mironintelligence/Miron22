@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { LEGAL_PUBLIC_LINKS } from "../legalPublicLinks.js";
 
 export default function Header({ onOpenLogin }) {
   const navigate = useNavigate();
@@ -25,12 +26,7 @@ export default function Header({ onOpenLogin }) {
       
       return list;
     }
-    return [
-      { to: "/", label: "Tanıtım" },
-      { to: "/terms", label: "Kullanım Şartları" },
-      { to: "/privacy", label: "Gizlilik" },
-      { to: "/user-agreement", label: "Kullanıcı Sözleşmesi" },
-    ];
+    return [{ to: "/", label: "Tanıtım" }, ...LEGAL_PUBLIC_LINKS.map(([slug, label]) => ({ to: `/legal/${slug}`, label }))];
   }, [authed, user?.role]);
 
   const onLogout = () => {
