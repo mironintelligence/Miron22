@@ -9,7 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import GuestRoute from "./components/GuestRoute.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
 import LegalAcceptanceModal from "./components/LegalAcceptanceModal.jsx";
-import { SiteLegalFooterLinks, SiteLegalCompanyLine } from "./components/SiteLegalFooter.jsx";
+import { SitePageFooter } from "./components/SiteLegalFooter.jsx";
 import { useAuth } from "./auth/AuthProvider";
 
 // Route-level code splitting. Every page is its own async chunk so the initial
@@ -82,6 +82,12 @@ export default function App() {
 
   const fullscreenRoute = location.pathname === "/dashboard/assistant";
 
+  const hideFlowPageFooter =
+    fullscreenRoute ||
+    location.pathname === "/" ||
+    location.pathname === "/login" ||
+    location.pathname.startsWith("/legal/");
+
   useEffect(() => {
     if (!fullscreenRoute) {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -119,7 +125,7 @@ export default function App() {
         }}
       />
 
-      <div className={fullscreenRoute ? "h-screen w-screen overflow-hidden" : "pb-20"} style={fullscreenRoute ? {} : { paddingTop: 68 }}>
+      <div className={fullscreenRoute ? "h-screen w-screen overflow-hidden" : ""} style={fullscreenRoute ? {} : { paddingTop: 68 }}>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/demo-request" element={<DemoRequest />} />
@@ -403,19 +409,8 @@ export default function App() {
             />
           </Routes>
         </Suspense>
+        {!hideFlowPageFooter && <SitePageFooter />}
       </div>
-
-      {!fullscreenRoute && (
-        <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-black/75 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto px-3 sm:px-5 py-2 pointer-events-auto">
-            <SiteLegalFooterLinks className="mb-1" />
-            <SiteLegalCompanyLine />
-            <p className="text-[10px] text-amber-200/65 text-center mt-1.5 pointer-events-none leading-snug px-1">
-              ⚠ Yapay zekâ hatalı bilgi verebilir. Önemli kararlar öncesi doğruluğu lütfen kontrol edin.
-            </p>
-          </div>
-        </footer>
-      )}
     </div>
   );
 }

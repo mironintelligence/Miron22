@@ -63,7 +63,7 @@ export default function LegalDocument() {
   }, [slug]);
 
   return (
-    <div className="min-h-screen bg-[#020202] text-white selection:bg-[var(--miron-gold)] selection:text-black pb-32">
+    <div className="min-h-screen bg-[#020202] text-white selection:bg-[var(--miron-gold)] selection:text-black pb-16 md:pb-20">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,0,0.06),transparent_55%)]" />
       <div className="relative max-w-7xl mx-auto px-5 md:px-10 pt-8 md:pt-12">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
@@ -118,15 +118,9 @@ export default function LegalDocument() {
                     {doc.updated_at ? new Date(doc.updated_at).toLocaleDateString("tr-TR") : "—"}
                   </p>
                 </header>
-                <div className="px-6 sm:px-10 py-8 sm:py-10 prose prose-invert prose-headings:text-[var(--miron-gold)] prose-headings:font-bold prose-p:text-white/80 prose-li:text-white/80 prose-strong:text-white max-w-none prose-a:text-[var(--miron-gold)]">
+                <div className="px-6 sm:px-10 py-8 sm:py-10 pb-10 sm:pb-12 prose prose-invert prose-headings:text-[var(--miron-gold)] prose-headings:font-bold prose-p:text-white/80 prose-li:text-white/80 prose-strong:text-white max-w-none prose-a:text-[var(--miron-gold)]">
                   <ReactMarkdown>{doc.content || ""}</ReactMarkdown>
                 </div>
-                <footer className="px-6 sm:px-10 py-6 border-t border-white/10 bg-white/[0.02]">
-                  <p className="text-xs text-white/40">
-                    Bu metin bilgilendirme amaçlıdır; bağlayıcı koşullar güncel yayınlanmış sürüm ve hesabınızdaki
-                    onaylarla şekillenir.
-                  </p>
-                </footer>
               </article>
             )}
           </main>

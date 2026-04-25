@@ -391,25 +391,45 @@ export default function IntroLanding() {
       </section>
 
       {/* -------------------- FOOTER -------------------- */}
-      <footer className="py-20 px-6 bg-black border-t border-white/10">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
-          <div>
-            <div className="text-2xl font-bold mb-2">Miron AI</div>
-            <p className="text-white/40 text-sm">Hukuk Odaklı Yapay Zekâ Altyapısı</p>
+      <footer className="py-24 md:py-32 px-6 md:px-10 bg-black border-t border-white/10">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:justify-between lg:items-start gap-14 lg:gap-24">
+          <div className="max-w-md">
+            <div className="text-3xl md:text-4xl font-black tracking-tight text-white mb-4">Miron AI</div>
+            <p className="text-white/45 text-base leading-relaxed">Hukuk odaklı yapay zekâ altyapısı.</p>
           </div>
-          <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-white/60">
-            {LEGAL_PUBLIC_LINKS.map(([slug, label]) => (
-              <Link key={slug} to={`/legal/${slug}`} className="hover:text-white">
-                {label}
+          <div className="flex flex-col gap-8 min-w-0 lg:max-w-2xl">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/35 mb-4">
+                Hukuki belgeler
+              </div>
+              <div className="flex flex-wrap gap-x-6 gap-y-3 text-[15px] text-white/60">
+                {LEGAL_PUBLIC_LINKS.map(([slug, label]) => (
+                  <Link
+                    key={slug}
+                    to={`/legal/${slug}`}
+                    className="hover:text-white transition-colors underline-offset-4 hover:underline decoration-white/20"
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-3 text-[15px] text-white/55">
+              <Link to="/security" className="hover:text-white transition-colors">
+                Güvenlik
               </Link>
-            ))}
-            <Link to="/security" className="hover:text-white">Güvenlik</Link>
-            <a href="mailto:contact@miron.ai" className="hover:text-white">İletişim</a>
+              <a href="mailto:contact@miron.ai" className="hover:text-white transition-colors">
+                İletişim
+              </a>
+            </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col items-center gap-2">
-          <SiteLegalCompanyLine className="!text-white/50" />
-          <p className="text-[11px] text-white/25 text-center">All rights reserved.</p>
+        <div className="max-w-7xl mx-auto mt-16 md:mt-20 pt-10 md:pt-12 border-t border-white/10 flex flex-col items-center gap-4">
+          <SiteLegalCompanyLine className="text-sm !text-white/55" />
+          <p className="text-[12px] text-white/30 text-center tracking-wide">All rights reserved.</p>
+          <p className="text-center text-sm md:text-[15px] text-amber-200/50 max-w-2xl mx-auto leading-relaxed mt-4 px-2">
+            Yapay zekâ çıktıları hatalı veya eksik olabilir. Önemli hukuki kararlardan önce bilgiyi mutlaka doğrulayın.
+          </p>
         </div>
       </footer>
 
