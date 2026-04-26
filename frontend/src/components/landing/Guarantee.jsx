@@ -34,15 +34,6 @@ export function Guarantee() {
                 </span>
               ))}
             </div>
-
-            <div className="border-t border-border pt-7 mt-7">
-              <p className="font-ui font-light text-[13px] text-muted leading-loose max-w-[560px] mx-auto">
-                Bunları ölçülebilir biçimde sağlamazsak:{' '}
-                <em className="not-italic text-gold font-medium">tam ücret iadesi</em>
-                {' '}veya <em className="not-italic text-gold font-medium">ücretsiz devam</em>. Taahhüt kağıt üzerinde değil,
-                sözleşmenin içinde.
-              </p>
-            </div>
           </div>
         </Reveal>
       </Container>
