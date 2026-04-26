@@ -8,12 +8,16 @@ Zorunlu Çerezler: Platformun çalışması için teknik olarak gereklidir. Devr
 
 Tercih Çerezleri: Kullanıcı tercihlerini hatırlamak için kullanılır. Kapsar: dil tercihi, arayüz ayarları, son kullanılan filtreler.
 
-Analitik Çerezler: Platform performansını ölçmek ve iyileştirmek için kullanılır. Kişisel veri içermez.
+Analitik Çerezler: Platform performansını ölçmek ve iyileştirmek için kullanılır; kişisel veri içermez.
 
 ## 4.3 Kullanılmayan Çerezler
 
-Miron AI şu çerez türlerini kullanmaz: reklam çerezleri (platform reklam içermez), takip çerezleri (kullanıcı davranışı üçüncü taraf sistemlere aktarılmaz), sosyal medya çerezleri.
+Miron AI şu çerez türlerini kullanmaz: reklam çerezleri (platform reklam içermez), davranış takibi için üçüncü taraf pazarlama çerezleri, sosyal medya takip çerezleri.
 
 ## 4.4 Çerez Kontrolü
 
 Çerezleri tarayıcı ayarlarınızdan yönetebilirsiniz. Zorunlu çerezlerin devre dışı bırakılması platform işlevselliğini etkileyebilir.
+
+## 4.5 İletişim
+
+Çerez ve gizlilik soruları: **destek@mironintelligence.com** — KVKK başvuruları: **kvkk@mironintelligence.com**.

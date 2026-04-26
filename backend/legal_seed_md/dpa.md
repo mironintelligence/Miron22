@@ -6,22 +6,33 @@ Veri Sorumlusu: Kullanıcı (platforma veri yükleyen avukat veya hukuk profesyo
 
 Amaç: Belge analizi, yapay zeka destekli içerik üretimi, araştırma ve hukuki otomasyon araçlarının sunulması. Hukuki dayanak: KVKK md. 5/2-f (meşru menfaat) ve md. 5/2-c (sözleşmenin ifası); GDPR md. 6/1-b.
 
-## 3.3 Veri Güvenliği Yükümlülükleri
+## 3.3 İşlem İçeriği: Geçicilik, Eğitim Yok, Depolama Yok
 
-Miron AI, işlediği verilerin güvenliği için teknik altyapı güvenliğini sağlar, personel erişimini minimum düzeyde tutar, alt işleyicilerin güvenlik standartlarını denetler ve güvenlik olaylarını kayıt altına alır.
+Kullanıcı tarafından yüklenen veya işleme gönderilen **belge ve metin içeriği**:
 
-## 3.4 Alt Veri İşleyenler
+- Yalnızca ilgili isteğin işlendiği süre boyunca **geçici bellek (RAM)** üzerinde tutulur;
+- İşlem sonunda **anonimleştirme** uygulanır ve **kalıcı olarak silinir**;
+- **Model eğitimi veya ince ayar için kullanılmaz**;
+- **Kalıcı dosya veya veritabanı arşivi olarak kopyalanmaz veya depolanmaz**.
 
-Miron AI yapay zeka altyapısı ve bulut servisleri kapsamında alt işleyenler kullanabilir. Bu alt işleyenlere ait güncel liste platform destek sayfasında yayımlanmaktadır. Yeni alt işleyenler eklendiğinde Kullanıcıya bildirim yapılır.
+Hesap, faturalama ve yasal yükümlülükler kapsamında tutulabilecek kayıtlar, bu DPA'nın konusu dışındaki **hesap verisi** ile sınırlıdır (ayrıntı Gizlilik Politikası'nda).
 
-## 3.5 Uluslararası Veri Transferi
+## 3.4 Veri Güvenliği Yükümlülükleri
 
-Yapay zeka sağlayıcısının altyapısı yurt dışında konumlanmış ise, veri transferi KVKK md. 9 ve GDPR Bölüm V kapsamında geçerli mekanizmalar çerçevesinde gerçekleştirilir.
+Miron AI, teknik ve idari tedbirlerle güvenliği sağlar; personel erişimini asgari düzeyde tutar; alt işleyenleri sözleşmeyle bağlar.
 
-## 3.6 Veri Silme
+## 3.5 Alt Veri İşleyenler
 
-Kullanıcı hesabının kapatılması veya aboneliğin sona ermesiyle birlikte geçici veriler anında silinir, kalıcı veriler 30 gün içinde temizlenir. Fatura kayıtları yasal yükümlülük gereği korunur. Kullanıcı talebiyle de veri silinebilir.
+Yapay zeka çıkarımı ve bulut hizmetleri için alt işleyenler kullanılabilir. Liste ve güncellemeler **destek@mironintelligence.com** üzerinden talep edilebilir.
 
-## 3.7 Veri İhlali Prosedürü
+## 3.6 Uluslararası Veri Transferi
 
-Güvenlik ihlali durumunda Miron AI, ihlalin tespitinden itibaren 48 saat içinde Kullanıcıyı bilgilendirir. İhlalin kapsamı, etkilenen veriler ve alınan önlemler yazılı olarak bildirilir.
+Altyapı yurt dışında ise transfer, KVKK md. 9 ve GDPR Bölüm V uyarınca geçerli mekanizmalarla yapılır.
+
+## 3.7 Veri Silme
+
+Hesap kapanışında işlem içeriği zaten tutulmadığından ayrıca silinmesi gerekmez; hesap ve ödeme kayıtları yasal sürelere uygun şekilde yönetilir.
+
+## 3.8 Veri İhlali Prosedürü
+
+Güvenlik ihlali tespitinde Kullanıcı ve ilgili merciler, yasal süreler çerçevesinde bilgilendirilir.

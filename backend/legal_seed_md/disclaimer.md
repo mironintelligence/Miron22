@@ -17,3 +17,7 @@ Platform içindeki kanun maddeleri, içtihat referansları ve mevzuat bilgisi bi
 ## 6.5 Meslek Kuralları Uyumluluğu
 
 Türkiye Barolar Birliği ve bölgesel baroların meslek kurallarına uyum Kullanıcı'nın münhasır sorumluluğundadır. Platformun kullanımı bu kurallara uyumu sağlamaz veya garanti etmez.
+
+## 6.6 Halüsinasyon ve Doğrulama
+
+Yapay zekâ çıktılarında **halüsinasyon (gerçek dışı veya uydurma bilgi) riski** tasarım ve sürekli geliştirme ile **düşük** tutulmaya çalışılır; buna karşın risk **sıfır değildir**. Ürün arka planda sürekli geliştirildiği için bazı kullanım senaryolarında risk **farklılık gösterebilir**. **Tüm bilgileri** kullanıcı kendi mesleki sürecinde **doğrulamalıdır**. Sorular için: **destek@mironintelligence.com**.

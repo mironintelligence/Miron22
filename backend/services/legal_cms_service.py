@@ -55,6 +55,27 @@ def seed_v1_if_empty() -> None:
             )
 
 
+def sync_active_documents_from_seed_files() -> int:
+    """Overwrite **active** rows' title/content from `legal_seed_md/*.md` (one-off / after seed edits)."""
+    if _use_inmemory():
+        return 0
+    updated = 0
+    with get_db_cursor() as cur:
+        for dtype in sorted(LEGAL_DOC_TYPES):
+            content = _read_seed_markdown(dtype)
+            title = str(DISPLAY_TITLES.get(dtype) or dtype)
+            cur.execute(
+                """
+                UPDATE legal_documents
+                SET title = %s, content = %s, updated_at = NOW()
+                WHERE type = %s AND is_active = TRUE
+                """,
+                (title, content, dtype),
+            )
+            updated += int(cur.rowcount or 0)
+    return updated
+
+
 def get_active_document(doc_type: str) -> Optional[Dict[str, Any]]:
     if doc_type not in LEGAL_DOC_TYPES:
         return None

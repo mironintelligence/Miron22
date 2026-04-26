@@ -1,35 +1,41 @@
 ## 2.1 Temel İlkeler
 
-Miron AI olarak kullanıcı gizliliğini temel prensip olarak benimsiyoruz. Platformumuz avukatların işlediği gizli hukuki belgelerle çalışmaktadır; bu nedenle veri güvenliği standartlarımız sektör ortalamasının üzerinde tutulmaktadır. Temel prensiplerimiz: veri minimizasyonu (yalnızca gerekli veriyi topluyoruz), amaç sınırlılığı (topladığımız veriyi yalnızca belirtilen amaçla kullanıyoruz), şeffaflık ve güvenlik.
+Miron AI olarak kullanıcı gizliliğini temel prensip olarak benimsiyoruz. Platformumuz hukuki metin ve belgelerle çalışır; bu nedenle veri işleme süreçlerinde **minimizasyon**, **geçicilik** ve **şeffaflık** ön plandadır.
 
-## 2.2 İşlenen Veri Kategorileri
+## 2.2 İşlem Sırasında İşlenen İçerik (Geçici)
 
-Geçici Veriler: Platforma yüklenen hukuki belgeler, analiz için gönderilen metin içerikleri, sözleşme ve dilekçe üretim girdileri. Bu veriler işlem süresince tutulur ve işlem tamamlandıktan sonra sistemden silinir. Sunucuda kalıcı olarak depolanmaz.
+Yüklediğiniz veya analiz / üretim için gönderdiğiniz **belge ve metin içeriği**, yalnızca ilgili isteğin işlendiği süre boyunca **geçici bellek (RAM)** üzerinde tutulur; işlem tamamlandıktan sonra **anonimleştirme adımları uygulanır ve kalıcı olarak silinir**. Bu içerik **model eğitimi veya ince ayar (fine-tuning) için kullanılmaz**, **kalıcı dosya veya veritabanı arşivi olarak kopyalanmaz veya depolanmaz**.
 
-Kalıcı Veriler: Ad, soyad, e-posta adresi, baro numarası (isteğe bağlı), abonelik ve fatura bilgileri, hesap oluşturma ve son giriş tarihi, minimum düzeyde güvenlik logları.
+Hesabınıza bağlı olarak tutulan veriler yalnızca **hesap ve abonelik yönetimi** ile ilgili alanlarda (aşağıda “Kalıcı hesap verileri”) açıklanmıştır.
 
-Teknik Veriler: IP adresi, tarayıcı ve cihaz bilgisi, oturum ve bağlantı logları (sınırlı süre).
+## 2.3 Kalıcı Hesap Verileri
 
-## 2.3 Yapay Zeka Sağlayıcıları ile Veri Paylaşımı
+**Ad, soyad, e-posta adresi**, abonelik ve fatura bilgileri, hesap oluşturma ve son giriş bilgisi, sınırlı güvenlik ve denetim logları. **Baro numarası toplanmaz ve istenmez.**
 
-Miron AI, yapay zeka altyapısı için üçüncü taraf sağlayıcılar kullanmaktadır. Platforma yüklenen belgeler bu sağlayıcılara iletilmeden önce mümkün olduğunca anonimleştirme işlemine tabi tutulur. Ancak hukuki belgeler niteliği gereği kişisel ve gizli bilgiler içerebileceğinden, Kullanıcı bu durumu bilerek platforma belge yüklemektedir. Kullanılan yapay zeka sağlayıcısı ve güncel politikaları platform destek sayfasında yayımlanmaktadır.
+## 2.4 Teknik Veriler
 
-## 2.4 Üçüncü Taraflarla Veri Paylaşımı
+IP adresi, tarayıcı ve cihaz bilgisi, oturum ve bağlantı logları — güvenlik ve işletim için **sınırlı süre** ile.
 
-Miron AI kullanıcı verilerini şu durumlar dışında üçüncü taraflarla paylaşmaz: yasal zorunluluk (mahkeme kararı, savcılık talebi), hizmet sağlayıcılar (ödeme altyapısı, bulut depolama), yapay zeka altyapısı. Kullanıcı verileri hiçbir koşulda reklam amaçlı üçüncü taraflarla paylaşılmaz veya satılmaz.
+## 2.5 Yapay Zeka Altyapısı ve Üçüncü Taraflar
 
-## 2.5 Veri Saklama Süreleri
+Hizmet sunumu için yapay zeka ve bulut altyapısı sağlayıcıları kullanılabilir. **Kullanıcı içeriği**, sağlayıcıya yalnızca **anlık çıkarım (inference)** amacıyla iletilir; Miron AI politikası gereği **içerik model eğitimine beslenmez**. Sağlayıcıların kendi sözleşme ve politikaları geçerli olabilir; güncel liste ve açıklamalar destek kanalından talep edilebilir.
 
-Yüklenen belgeler: işlem sonrası anında silinir. Hesap bilgileri: hesap aktif olduğu sürece + 30 gün. Güvenlik logları: 90 gün. Fatura kayıtları: yasal yükümlülük gereği 10 yıl. Sözleşme kabul kayıtları: 10 yıl (yasal ispat için).
+Miron AI, kullanıcı verilerini **reklam veya profilleme amacıyla satmaz** ve bu amaçla üçüncü kişilere **devretmez**. Yasal zorunluluk (mahkeme kararı vb.) ve ödeme altyapısı gibi **hizmetin ifası için zorunlu** paylaşımlar saklıdır.
 
-## 2.6 Güvenlik Önlemleri
+## 2.6 Veri Saklama Süreleri
 
-Aktarım sırasında TLS/SSL şifreleme, veritabanı düzeyinde şifreleme, erişim kontrolü ve yetkilendirme sistemi, düzenli güvenlik denetimleri, minimum yetki ilkesi (least privilege).
+**Yüklenen veya işlenen belge/metin içeriği:** işlem sonrası kalıcı depoda tutulmaz (yukarıdaki geçici işleme politikası). **Hesap bilgileri:** hesap aktifken ve hesap kapanışından sonra yasal ve operasyonel gereklilikler çerçevesinde **sınırlı süre**. **Fatura kayıtları:** yasal yükümlülük süresi boyunca. **Sözleşme kabul kayıtları:** yasal ispat için ilgili mevzuatta öngörülen süre.
 
-## 2.7 Kullanıcı Hakları (KVKK ve GDPR)
+## 2.7 Güvenlik Önlemleri
 
-Kullanıcı şu haklara sahiptir: verilerinin işlenip işlenmediğini öğrenme, işlenen veriler hakkında bilgi talep etme, verilerin düzeltilmesini isteme, verilerin silinmesini talep etme (unutulma hakkı), veri işlemenin kısıtlanmasını isteme, verilerin taşınabilirliğini talep etme, otomatik karar alma süreçlerine itiraz etme. Talepler kvkk@mironai.com adresine iletilmelidir. Talepler 30 gün içinde yanıtlanır.
+TLS/SSL, erişim kontrolü, ayrıcalık minimizasyonu, düzenli güvenlik incelemeleri.
 
-## 2.8 Veri İhlali Bildirimi
+## 2.8 Kullanıcı Hakları (KVKK ve GDPR)
 
-Güvenlik ihlali tespit edilmesi durumunda ilgili kullanıcılar 72 saat içinde bilgilendirilir ve KVKK Kurulu'na bildirim yapılır.
+Aydınlatma metnimizde (KVKK bölümü) listelenen haklarınız saklıdır. Başvurular: **kvkk@mironintelligence.com** — yanıt hedefi **30 gün** içindedir.
+
+Genel destek: **destek@mironintelligence.com**.
+
+## 2.9 Veri İhlali Bildirimi
+
+Güvenlik ihlali tespitinde, yasal süreler çerçevesinde ilgili kullanıcılar ve Kurul bilgilendirilir.

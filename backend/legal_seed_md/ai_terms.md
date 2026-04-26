@@ -1,20 +1,20 @@
-## 5.1 Yapay Zekanın Doğası ve Sınırlılıkları
+## 5.1 Yapay Zeka İşlemi, Eğitim ve Veri
 
-Miron AI platformu büyük dil modelleri (LLM) ve makine öğrenmesi teknolojilerini kullanmaktadır.
+Miron AI platformu büyük dil modelleri (LLM) ve ilgili teknikler kullanır.
 
-Halüsinasyon riski: Yapay zeka sistemleri zaman zaman gerçek olmayan, yanlış veya tamamen uydurulmuş bilgiler üretebilir. Bu durum hukuki bağlamlarda özellikle tehlikeli sonuçlar doğurabilir.
+**Model eğitimi:** Kullanıcıların yüklediği veya işleme gönderdiği metin ve belgeler **model eğitimi veya ince ayar (fine-tuning) için kullanılmaz**. Kullanıcı içeriği **eğitim veri setine eklenmez**.
 
-Güncellik eksikliği: Model eğitim tarihi sonrasındaki mevzuat değişikliklerini, yeni Yargıtay kararlarını veya yasal düzenlemeleri bilemez.
+**Geçici işleme ve silme:** İstek süresince veriler **geçici bellek (RAM)** üzerinde işlenir; işlem tamamlandıktan sonra **anonimleştirme uygulanır ve içerik kalıcı olarak silinir**. **İşlem içeriği arşivlenmez, kopyalanmaz ve kalıcı depoda tutulmaz** (hesap ve yasal yükümlülük kapsamındaki kayıtlar hariç — Gizlilik Politikası).
 
-Bağlam sınırlılığı: Yapay zeka, her davaya özgü koşulları tam olarak kavrayamayabilir. Verilen bağlam ne kadar kapsamlı olursa çıktı kalitesi artar; ancak bu kalite garantisi anlamına gelmez.
+**Halüsinasyon (uydurma):** Tasarım ve sürekli geliştirme ile **risk düşük** tutulmaya çalışılır; yine de teorik olarak **yanlış, eksik veya uydurma bilgi** üretilebilir. Arka planda sürekli iyileştirme yapıldığından, bazı senaryolarda bu risk **artabilir veya farklı şekilde ortaya çıkabilir**. Kullanıcı, **kanun metni, içtihat ve tüm hukuki bilgileri bağımsız kaynaklardan doğrulamakla** yükümlüdür.
 
-Yorum farklılıkları: Hukuki yorumlarda yargı organları arasında farklılıklar olabilir. Yapay zeka tek bir yorumu doğru kabul ederek çıktı üretebilir; bu durum yanlış yönlendirmeye yol açabilir.
+**Güncellik ve bağlam:** Model, eğitim kesim tarihinden sonraki tüm değişiklikleri bilmez; dava özelinde bağlam her zaman tam yakalanmayabilir.
 
-Beta özellikler: "Beta" ibaresiyle sunulan özellikler (Yargıtay Karar Arama, Mevzuat Analizi) geliştirme aşamasındadır. Bu özellikler daha yüksek hata oranı içerebilir ve eksik sonuçlar üretebilir. Beta çıktılarına özellikle dikkatli yaklaşılmalı, mutlaka doğrulama yapılmalıdır.
+**Beta özellikler:** "Beta" ibaresiyle sunulan özellikler geliştirme aşamasındadır; hata oranı daha yüksek olabilir. Çıktılar mutlaka doğrulanmalıdır.
 
-## 5.2 Kullanıcı'nın Yapay Zeka Kullanımındaki Yükümlülükleri
+## 5.2 Kullanıcı'nın Yükümlülükleri
 
-Kullanıcı şunları yapmakla yükümlüdür: yapay zeka çıktısını kullanmadan önce bağımsız hukuki araştırma yapmak; atıf yapılan kanun maddelerini, Yargıtay kararlarını ve mevzuat referanslarını doğrulamak; üretilen belge ve dilekçeleri kullanmadan önce eksiksiz okumak ve gerekli düzenlemeleri yapmak; müvekkiline karşı yapay zeka çıktısını kendi mesleki görüşü olarak sunmadan önce bağımsız değerlendirme yapmak; platforma hassas müvekkil bilgileri yüklerken mesleki gizlilik yükümlülüklerini gözetmek.
+Yapay zeka çıktısını kullanmadan önce bağımsız hukuki araştırma; atıflı mevzuat ve kararları resmi kaynaklardan teyit; üretilen belgeleri tam okuyup düzenlemek; müvekkile sunumda mesleki değerlendirme yapmak; gizlilik yükümlülüklerine uymak.
 
 ## 5.3 Temel ve Değişmez Hüküm
 

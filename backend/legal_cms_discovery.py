@@ -15,4 +15,6 @@ SPA: `/legal/<slug>` (ai_terms → slug `ai-terms`). Legacy `/terms`, `/privacy`
 | backend/legal_compliance.py | legacy hashes | Archive for old `legal_consents` |
 | backend/auth_router.py register | terms, privacy | `insert_user_legal_acceptances` signup |
 | backend/auth_router.py complete-registration | terms, privacy, ai_terms | + legacy `legal_consents` |
+| backend/legal_seed_md/*.md | canonical copy | Model eğitimi yok; RAM + silme; iletişim @mironintelligence.com |
+| backend/scripts/sync_legal_documents_from_seed.py | DB sync | Aktif sürümleri seed dosyalarıyla günceller |
 """

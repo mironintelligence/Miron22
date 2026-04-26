@@ -1,19 +1,19 @@
 ## 7.1 Veri Sorumlusunun Kimliği
 
-6698 sayılı Kişisel Verilerin Korunması Kanunu'nun 10. maddesi kapsamında, veri sorumlusu sıfatıyla: Ticaret Unvanı: Miron Intelligence Ltd. E-posta: kvkk@mironai.com.
+6698 sayılı Kişisel Verilerin Korunması Kanunu'nun 10. maddesi kapsamında, veri sorumlusu sıfatıyla: **Ticaret Unvanı: Miron Intelligence Ltd.** İletişim: **kvkk@mironintelligence.com** (KVKK başvuruları). Genel destek: **destek@mironintelligence.com**.
 
 ## 7.2 İşlenen Kişisel Veriler
 
-Kimlik bilgileri (ad, soyad), iletişim bilgileri (e-posta), mesleki bilgiler (baro numarası), işlem güvenliği bilgileri (IP adresi, giriş logları), abonelik ve finansal bilgiler.
+Kimlik ve iletişim: ad, soyad, e-posta. **Baro numarası istenmez ve işlenmez.** İşlem güvenliği: IP adresi, oturum/güvenlik logları (sınırlı süre). Finans: abonelik ve fatura bilgileri (yasal saklama süreleri saklıdır).
 
 ## 7.3 Kişisel Verilerin İşlenme Amaçları
 
-Hizmetin sunulması ve abonelik yönetimi, müşteri desteği sağlanması, yasal yükümlülüklerin yerine getirilmesi, güvenlik ve dolandırıcılık önleme, hizmet geliştirme ve iyileştirme.
+Hizmetin sunulması ve abonelik yönetimi, müşteri desteği, yasal yükümlülükler, güvenlik ve dolandırıcılık önleme, ürün geliştirme (kişisel içerik **model eğitiminde kullanılmaz** — bkz. Gizlilik Politikası).
 
 ## 7.4 Kişisel Verilerin Aktarıldığı Taraflar
 
-Verileriniz; ödeme altyapı sağlayıcıları, bulut hizmet sağlayıcıları ve yapay zeka altyapı sağlayıcıları ile yalnızca hizmetin sunulması amacıyla paylaşılmaktadır.
+Ödeme altyapısı, bulut ve yapay zeka **çıkarım (inference)** sağlayıcıları — yalnızca hizmetin ifası için. İşlem sırasındaki belge içeriği **kalıcı olarak depolanmaz** (Gizlilik Politikası).
 
 ## 7.5 KVKK Kapsamındaki Haklarınız
 
-KVKK'nın 11. maddesi kapsamında: kişisel verilerinizin işlenip işlenmediğini öğrenme; işleniyorsa buna ilişkin bilgi talep etme; işleme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme; yurt içinde veya yurt dışında kişisel verilerin aktarıldığı üçüncü kişileri bilme; kişisel verilerin eksik veya yanlış işlenmiş olması hâlinde bunların düzeltilmesini isteme; KVKK'nın 7. maddesinde öngörülen şartlar çerçevesinde kişisel verilerin silinmesini veya yok edilmesini isteme; otomatik sistemler vasıtasıyla analiz edilmesi suretiyle ortaya çıkan sonuca itiraz etme; kişisel verilerin kanuna aykırı olarak işlenmesi sebebiyle zarara uğramanız hâlinde zararın giderilmesini talep etme haklarına sahipsiniz. Taleplerinizi kvkk@mironai.com adresine iletebilirsiniz.
+KVKK'nın 11. maddesi kapsamındaki haklarınız saklıdır. Başvurular: **kvkk@mironintelligence.com**.
