@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 
 const WORDS = ['Rakibiniz', 'şu', 'an', 'sizden', 'daha', 'hızlı', 'karar', 'veriyor.']
@@ -53,13 +54,23 @@ export function Hero() {
 
       {/* Content */}
       <div className="relative z-10 max-w-4xl mx-auto px-6">
+        <motion.div {...fadeIn(0.12)} className="flex justify-center mb-6">
+          <Image
+            src="/miron-logo.png"
+            alt="Miron AI"
+            width={72}
+            height={72}
+            priority
+            className="object-contain h-16 w-auto md:h-[72px]"
+          />
+        </motion.div>
 
         {/* Eyebrow */}
         <motion.p
           {...fadeIn(0.4)}
           className="font-ui text-[11px] tracking-[0.3em] uppercase text-gold"
         >
-          MİRON — TÜRKİYE'NİN EN AGRESİF HUKUK BÜROLARININ SİSTEMİ
+          MİRON — AVUKATLARIN YANINDA, DOSYADA NETLİK SUNAN SİSTEM
         </motion.p>
 
         {/* H1 word-by-word */}
@@ -87,9 +98,9 @@ export function Hero() {
           {...fadeIn(1.1)}
           className="font-ui font-light text-[clamp(14px,1.5vw,17px)] text-muted max-w-[580px] mx-auto leading-[1.7] mt-7"
         >
-          Üst düzey bürolar artık saatlerce dosya okumuyor.
+          Deneyimli avukatlar artık saatlerce dosya okumakla yetinmiyor.
           <br />
-          Sistem kurdular. Kazanıyorlar.
+          Rutinini sistemle destekliyor, karara odaklanıyor.
         </motion.p>
 
         {/* Filter box */}
@@ -98,13 +109,12 @@ export function Hero() {
           className="border border-border px-[28px] py-[22px] max-w-[620px] mx-auto mt-9"
         >
           <p className="font-ui text-[13px] text-muted leading-relaxed">
-            Bu sistem sıradan bürolar için değil.{' '}
-            <span className="text-text font-medium">Bölgesinde rakiplerini bıraktırmış</span>
+            Öncelikle kişisel ve bağımsız avukatlar için düşünüldü; büro ekibiyle
+            paylaşılabilir.{' '}
+            <span className="text-text font-medium">Disiplinli çalışmak</span>
             {' '}ve{' '}
-            <span className="text-text font-medium">
-              Türkiye'nin üst 100'ü içinde yer almayı hedefleyen
-            </span>
-            {' '}ekipler için tasarlandı.
+            <span className="text-text font-medium">müvekkiline süre kazanarak değer katmak</span>
+            {' '}isteyen meslektaşlar için tasarlandı.
           </p>
         </motion.div>
 

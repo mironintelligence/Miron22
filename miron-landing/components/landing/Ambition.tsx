@@ -9,7 +9,7 @@ export function Ambition() {
     <section className="bg-surface border-t border-border py-[120px] text-center">
       <Container>
         <Reveal>
-          <SectionTag num="14" text="VİZYON" center />
+          <SectionTag text="VİZYON" center />
         </Reveal>
         <Reveal delay={0.1}>
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4">
@@ -17,14 +17,15 @@ export function Ambition() {
             <span className="italic text-gold">bir başlangıçtır</span>.
           </h2>
           <p className="font-ui font-light text-[14px] text-muted max-w-[520px] mx-auto mb-12">
-            Ulusal ölçekte tanınan bir büro olmak farklı bir disiplin ister. Sistem kuran ekipler, 5 yıl sonra rakiplerini hatırlamaz.
+            Ulusal ölçekte tanınan bir avukat olmak farklı bir disiplin ister. Sürecini sistemle
+            destekleyenler, yıllar sonra farkı hissetmez — yaşar.
           </p>
         </Reveal>
 
         <div className="max-w-[480px] mx-auto">
           <Reveal delay={0.15}>
             <p className="font-display italic text-[28px] text-muted">
-              En iyi bürolar daha çok çalışmaz.
+              En iyi avukatlar daha çok çalışmaz.
             </p>
           </Reveal>
           <div className="w-14 h-[1px] bg-border mx-auto my-5" />

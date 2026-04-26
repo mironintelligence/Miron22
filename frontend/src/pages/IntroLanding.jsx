@@ -1,18 +1,11 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { LEGAL_PUBLIC_LINKS } from "../legalPublicLinks.js";
-import { SiteLegalCompanyLine } from "../components/SiteLegalFooter.jsx";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
+import { Zap, Scale, MessagesSquare } from "lucide-react";
 
 export default function IntroLanding() {
   const containerRef = useRef(null);
   const [counters, setCounters] = useState({ timeSaved: 0, accuracy: 0, decisions: 0 });
-  
-  // Scroll Animations
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  });
 
   const fadeUp = {
     hidden: { opacity: 0, y: 30 },
@@ -40,7 +33,11 @@ export default function IntroLanding() {
   }, []);
 
   return (
-    <div  ref={containerRef} className="bg-[#020202] text-white font-sans overflow-hidden selection:bg-[var(--miron-gold)] selection:text-black">
+    <div
+      ref={containerRef}
+      className="intro-landing-page bg-[#020202] text-white font-sans overflow-x-hidden selection:bg-[var(--miron-gold)] selection:text-black"
+      style={{ backgroundColor: "#020202", color: "#f5f5f5", minHeight: "100vh" }}
+    >
       
       {/* -------------------- HERO SECTION -------------------- */}
       <motion.section 
@@ -52,9 +49,19 @@ export default function IntroLanding() {
         <div className="absolute top-0 left-0 w-full h-full bg-[url('/noise.svg')] opacity-10 pointer-events-none" />
         
         <div className="max-w-7xl mx-auto px-6 z-10 w-full pt-20">
+          <motion.div variants={fadeUp} className="flex justify-center mb-8">
+            <img
+              src="/miron-logo.png"
+              alt="Miron AI"
+              width={80}
+              height={80}
+              className="h-16 w-16 md:h-20 md:w-20 object-contain drop-shadow-[0_0_24px_rgba(255,215,0,0.15)]"
+              decoding="async"
+            />
+          </motion.div>
           <motion.div variants={fadeUp} className="text-center mb-8">
             <span className="inline-block py-1 px-4 rounded-full bg-white/5 border border-white/10 text-xs font-bold tracking-[0.2em] text-[var(--miron-gold)] uppercase backdrop-blur-md">
-              Miron AI — Avukatlar İçin Netlik
+              Miron AI — Kişisel avukatlar için netlik ve süre
             </span>
           </motion.div>
           
@@ -64,7 +71,7 @@ export default function IntroLanding() {
           
           <motion.p variants={fadeUp} className="text-xl md:text-2xl text-white/50 text-center max-w-4xl mx-auto leading-relaxed font-light mb-8">
             Aynı evrakı defalarca okumak, eksik belge yüzünden gecikmek, son dakika dilekçesi yetiştirmek…
-            <span className="text-white/80"> Miron AI, bu baskıyı azaltmak için dosyayı hızla düzenler, eksikleri gösterir ve yol haritası çıkarır.</span>
+            <span className="text-white/80"> Miron AI, kişisel ve bağımsız avukatların yükünü hafifletmek için dosyayı düzenler, eksikleri gösterir ve yol haritası çıkarır.</span>
           </motion.p>
 
           <motion.div
@@ -169,29 +176,33 @@ export default function IntroLanding() {
               {
                 title: "Hızlı İçtihat Erişimi",
                 desc: "Dosyanızla benzer kararları saniyeler içinde yakalayın, güçlü dayanaklarla ilerleyin.",
-                icon: ""
+                Icon: Zap,
               },
               {
                 title: "Net Strateji Çerçevesi",
                 desc: "Usul, ispat, karşı argüman ve riskleri tek bir bakışta görün ve karar verin.",
-                icon: ""
+                Icon: Scale,
               },
               {
                 title: "Müvekkil İletişimi",
                 desc: "Risk ve olasılıkları anlaşılır şekilde sunun, güveni somut veriye dayandırın.",
-                icon: ""
-              }
+                Icon: MessagesSquare,
+              },
             ].map((item, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.2 }}
-                className="bg-white/5 border border-white/10 p-10 rounded-3xl hover:bg-white/10 transition-colors duration-500 group"
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ delay: i * 0.12, duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+                className="bg-white/5 border border-white/10 p-10 rounded-3xl hover:bg-white/10 hover:border-[var(--miron-gold)]/25 transition-all duration-500 group"
               >
-                <div className="text-4xl mb-6 group-hover:scale-110 transition-transform duration-300">{item.icon}</div>
-                <h3 className="text-2xl font-bold mb-4">{item.title}</h3>
+                <div className="mb-6 text-[var(--miron-gold)] group-hover:scale-110 transition-transform duration-300">
+                  <item.Icon size={40} strokeWidth={1.25} aria-hidden />
+                </div>
+                <h3 className="text-2xl font-bold mb-4" style={{ fontFamily: '"Abril Fatface", serif' }}>
+                  {item.title}
+                </h3>
                 <p className="text-white/60 leading-relaxed">{item.desc}</p>
               </motion.div>
             ))}
@@ -380,55 +391,21 @@ export default function IntroLanding() {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <Link to="/register" className="px-12 py-6 bg-white text-black font-bold text-xl rounded-full hover:bg-gray-200 transition-all shadow-[0_0_50px_rgba(255,255,255,0.2)]">
+            <Link
+              to="/kaydol"
+              className="px-12 py-6 bg-white text-black font-bold text-xl rounded-full hover:bg-gray-200 transition-all shadow-[0_0_50px_rgba(255,255,255,0.2)]"
+            >
               Ücretsiz Deneyin
             </Link>
-            <Link to="/contact" className="px-12 py-6 border border-white/20 text-white font-bold text-xl rounded-full hover:bg-white/5 transition-all">
+            <Link
+              to="/about"
+              className="px-12 py-6 border border-white/20 text-white font-bold text-xl rounded-full hover:bg-white/5 transition-all"
+            >
               Bize Ulaşın
             </Link>
           </div>
         </div>
       </section>
-
-      {/* -------------------- FOOTER -------------------- */}
-      <footer className="py-24 md:py-32 px-6 md:px-10 bg-black border-t border-white/10">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:justify-between lg:items-start gap-14 lg:gap-24">
-          <div className="max-w-md">
-            <div className="text-3xl md:text-4xl font-black tracking-tight text-white mb-4">Miron AI</div>
-            <p className="text-white/45 text-base leading-relaxed">Hukuk odaklı yapay zekâ altyapısı.</p>
-          </div>
-          <div className="flex flex-col gap-8 min-w-0 lg:max-w-2xl">
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/35 mb-4">
-                Hukuki belgeler
-              </div>
-              <div className="flex flex-wrap gap-x-6 gap-y-3 text-[15px] text-white/60">
-                {LEGAL_PUBLIC_LINKS.map(([slug, label]) => (
-                  <Link
-                    key={slug}
-                    to={`/legal/${slug}`}
-                    className="hover:text-white transition-colors underline-offset-4 hover:underline decoration-white/20"
-                  >
-                    {label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-x-6 gap-y-3 text-[15px] text-white/55">
-              <Link to="/security" className="hover:text-white transition-colors">
-                Güvenlik
-              </Link>
-              <a href="mailto:contact@miron.ai" className="hover:text-white transition-colors">
-                İletişim
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto mt-16 md:mt-20 pt-10 md:pt-12 border-t border-white/10 flex flex-col items-center gap-3">
-          <SiteLegalCompanyLine className="text-sm !text-white/55" />
-          <p className="text-[12px] text-white/30 text-center tracking-wide">All rights reserved.</p>
-        </div>
-      </footer>
 
     </div>
   );

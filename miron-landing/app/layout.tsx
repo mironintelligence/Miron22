@@ -26,8 +26,8 @@ const plex = IBM_Plex_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://miron.ai'),
-  title: 'Miron — Hukuk büroları için yapay zeka sistemi',
-  description: 'Üst düzey hukuk bürolarının dosya analizini saatlerden dakikalara indirdiği sistem.',
+  title: 'Miron — Avukatlar için yapay zeka destekli hukuk sistemi',
+  description: 'Kişisel ve bağımsız avukatların dosya analizini hızlandıran, karar kalitesini destekleyen sistem.',
   icons: {
     icon: [
       { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
@@ -36,15 +36,16 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   openGraph: {
-    title: 'Miron — Hukuk büroları için yapay zeka sistemi',
-    description: 'Üst düzey hukuk bürolarının dosya analizini saatlerden dakikalara indirdiği sistem.',
+    title: 'Miron — Avukatlar için yapay zeka destekli hukuk sistemi',
+    description: 'Kişisel ve bağımsız avukatların dosya analizini hızlandıran, karar kalitesini destekleyen sistem.',
     images: [{ url: '/og-image.png', width: 1200, height: 630 }],
     locale: 'tr_TR',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Miron — Hukuk büroları için yapay zeka sistemi',
+    title: 'Miron — Avukatlar için yapay zeka destekli hukuk sistemi',
+    description: 'Kişisel ve bağımsız avukatların dosya analizini hızlandıran, karar kalitesini destekleyen sistem.',
     images: ['/og-image.png'],
   },
 }

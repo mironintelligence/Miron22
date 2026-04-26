@@ -7,19 +7,16 @@ import { Reveal, Stagger } from '@/components/ui/Reveal'
 
 const CARDS = [
   {
-    num: '01',
     title: 'Uçtan Uca Şifreleme',
     desc: 'Belge platforma ulaştığı anda maskelenir. Sistem mimarisi gereği hiçbir çalışanımız verilerinize erişemez.',
     badges: ['AES-256', 'ZERO-ACCESS', 'E2E'],
   },
   {
-    num: '02',
     title: 'KVKK Tam Uyum',
     desc: 'Altyapı KVKK standartlarıyla tam uyum içinde. Uyum bağımsız denetçiler tarafından periyodik olarak doğrulanır.',
     badges: ['KVKK', 'DENETİMLİ', 'SERTİFİKALI'],
   },
   {
-    num: '03',
     title: 'Sıfır Veri Sızıntısı Mimarisi',
     desc: 'Belgeler size ait işlem alanında analiz edilir. İşlem bittiğinde veri silinir. Ne model eğitiminde kullanılır, ne üçüncü tarafla paylaşılır, ne de sistemde iz bırakır.',
     badges: ['ZERO-TRAIN', 'AUTO-DELETE', 'ISOLATED'],
@@ -37,7 +34,7 @@ export function Security() {
     <section id="guvenlik" className="py-[120px] border-t border-border">
       <Container>
         <Reveal>
-          <SectionTag num="09" text="GÜVENLİK" />
+          <SectionTag text="GÜVENLİK" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4">
             Avukatlık sırrı için{' '}
             <span className="italic text-gold">inşa edildi</span>.
@@ -50,19 +47,16 @@ export function Security() {
 
       <div className="max-w-[1200px] mx-auto px-6 lg:px-[52px]">
         <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-border">
-          {CARDS.map(({ num, title, desc, badges }) => (
+          {CARDS.map(({ title, desc, badges }) => (
             <motion.div
-              key={num}
+              key={title}
               variants={{
                 hidden: { opacity: 0, y: 16 },
                 show: { opacity: 1, y: 0, transition: { duration: 0.6 } },
               }}
               className="bg-surface px-10 py-[52px] group hover:bg-surface-3 transition-colors duration-200"
             >
-              <div className="font-display text-[64px] font-light text-border group-hover:text-gold/[0.12] transition-colors duration-300 leading-none mb-9">
-                {num}
-              </div>
-              <h3 className="font-sub font-bold text-[14px] mb-4 text-text">{title}</h3>
+              <h3 className="font-sub font-bold text-[15px] mb-4 text-text">{title}</h3>
               <p className="font-ui text-[13px] text-muted leading-relaxed mb-5">{desc}</p>
               <div className="flex flex-wrap gap-2">
                 {badges.map((b) => (

@@ -82,7 +82,6 @@ export default function App() {
 
   const hideFlowPageFooter =
     fullscreenRoute ||
-    location.pathname === "/" ||
     location.pathname === "/login" ||
     location.pathname.startsWith("/legal/");
 

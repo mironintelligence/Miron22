@@ -21,9 +21,9 @@ const config: Config = {
         danger: '#cc3333',
       },
       fontFamily: {
-        display: ['"Abril Fatface"', 'serif'],
-        sub: ['"Libre Baskerville"', 'serif'],
-        ui: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'serif'],
+        sub: ['var(--font-sub)', 'serif'],
+        ui: ['var(--font-ui)', 'system-ui', 'sans-serif'],
       },
       animation: {
         'pulse-slow': 'pulseSlow 5s ease-in-out infinite',

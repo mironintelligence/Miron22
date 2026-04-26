@@ -6,14 +6,12 @@ import { Container } from '@/components/ui/Container'
 import { Reveal } from '@/components/ui/Reveal'
 
 const FEATURES = [
-  'Sınırsız kullanıcı (büro genelinde)',
+  'Birden fazla kullanıcı (ekip paylaşımı)',
   '10 modülün tamamı, sınırsız kullanım',
   'Sınırsız dosya ve analiz hakkı',
   'Yargıtay & Danıştay emsal tarama',
   '11 hukuki hesaplama motoru',
   'Strateji motoru ve dava simülasyonu',
-  'Özel onboarding ve eğitim (2 hafta)',
-  'Haftalık 1:1 strateji oturumu',
 ]
 
 export function Pricing() {
@@ -21,7 +19,7 @@ export function Pricing() {
     <section id="yatirim" className="py-[120px] border-t border-border">
       <Container>
         <Reveal>
-          <SectionTag num="15" text="YATIRIM" />
+          <SectionTag text="YATIRIM" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4">
             Bu bir abonelik değil.
             <br />
@@ -79,20 +77,11 @@ export function Pricing() {
 
             <div className="border-t border-border mb-7" />
 
-            {/* ROI summary */}
-            <div className="grid grid-cols-2 gap-[1px] bg-border mb-8">
-              <div className="bg-surface-2 p-4">
-                <p className="font-ui text-[10px] tracking-[0.2em] uppercase text-muted mb-2">
-                  AYLIK YATIRIM
-                </p>
-                <p className="font-display text-[28px] text-text">12.000₺</p>
-              </div>
-              <div className="bg-surface-2 p-4">
-                <p className="font-ui text-[10px] tracking-[0.2em] uppercase text-gold mb-2">
-                  AYLIK GERİ DÖNÜŞ
-                </p>
-                <p className="font-display text-[28px] text-gold">320.000₺</p>
-              </div>
+            <div className="bg-surface-2 border border-border p-4 mb-8">
+              <p className="font-ui text-[10px] tracking-[0.2em] uppercase text-muted mb-2">
+                AYLIK YATIRIM
+              </p>
+              <p className="font-display text-[28px] text-text">12.000₺</p>
             </div>
 
             {/* Features */}
@@ -121,8 +110,10 @@ export function Pricing() {
         {/* Footnote */}
         <Reveal delay={0.2}>
           <p className="max-w-[580px] mx-auto mt-8 text-center font-ui text-[11px] text-muted leading-relaxed">
-            Her başvuru değerlendirilir. Kabul oranı %22. Kabul edilmeyen bürolara
-            başvuru süreci boyunca ücret alınmaz.
+            Her başvuru değerlendirilir. Kabul oranı %22. Kabul edilmeyen başvurularda
+            alınmış ücret tamamen iade edilir. Bunun dışında talebe bağlı iade yapılmaz;
+            avukat dilediği zaman iade talep edemez. Kabul sonrası iptal ve iade yalnızca
+            sözleşmede yazılı hallerde geçerlidir.
           </p>
         </Reveal>
       </Container>

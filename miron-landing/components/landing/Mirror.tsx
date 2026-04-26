@@ -26,11 +26,11 @@ export function Mirror() {
     <section className="py-[120px] border-t border-border">
       <Container>
         <Reveal>
-          <SectionTag num="02" text="AYNA" />
+          <SectionTag text="AYNA" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-6">
-            Sıradan bürolar dosya okuyor.
+            Sıradan çalışma düzeni dosya okumakla geçiyor.
             <br />
-            Kazanan bürolar{' '}
+            Kazanan avukatlar{' '}
             <span className="italic text-gold">sistem işletiyor</span>.
           </h2>
           <p className="font-sub italic text-[15px] text-muted max-w-[640px] mb-16">

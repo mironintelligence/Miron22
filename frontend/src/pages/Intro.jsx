@@ -8,10 +8,10 @@ export default function Intro() {
       <div className="max-w-4xl w-full glass p-10">
         <div className="flex flex-col md:flex-row gap-8 items-center">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-3 text-yellow-400">Miron AI — Hukuk İçin Stratejik Zekâ</h1>
+            <h1 className="text-3xl font-bold mb-3 text-yellow-400">Miron AI — Avukatlar için stratejik zekâ</h1>
             <p className="text-sm text-white/80 mb-6">
-              Evrak analizi, dilekçe yardımı, dava risk değerlendirmesi ve akıllı asistan ile işlerinizi hızlandırın.
-              Kayıt akışıyla uygunluk sorularını tamamlayıp hesabınızı oluşturabilirsiniz.
+              Kişisel ve bağımsız avukatlar için evrak analizi, dilekçe yardımı, risk değerlendirmesi ve asistan.
+              Kayıt akışında kısa uygunluk soruları; ardından hesabınızı oluşturabilirsiniz.
             </p>
 
             <ul className="space-y-2 text-white/80 mb-6">

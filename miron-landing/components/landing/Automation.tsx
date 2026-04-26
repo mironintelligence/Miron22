@@ -24,8 +24,8 @@ const CARDS = [
   },
   {
     Icon: Brain,
-    title: 'Sistem büronuzu öğrenir',
-    desc: 'Her kullanımda büronuzun kalıplarını öğrenir. Zamanla daha keskinleşir.',
+    title: 'Sizin çalışma tarzınıza uyum sağlar',
+    desc: 'Sık kullandığınız ifade ve tercihleri hatırlar; zamanla öneriler sizin pratiğinize yaklaşır.',
   },
 ]
 
@@ -34,11 +34,11 @@ export function Automation() {
     <section className="bg-surface border-y border-border py-[120px]">
       <Container>
         <Reveal>
-          <SectionTag num="08" text="OTOMASYON" />
+          <SectionTag text="OTOMASYON" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4">
             Operasyon avukatı yavaşlatmamalı.
             <br />
-            <span className="italic text-gold">Sistem onu yok eder.</span>
+            <span className="italic text-gold">Sistem yükünü hafifletir.</span>
           </h2>
           <p className="font-ui text-[15px] text-muted max-w-[520px] mb-16">
             Siz üretmiyorsunuz. Yön veriyorsunuz.

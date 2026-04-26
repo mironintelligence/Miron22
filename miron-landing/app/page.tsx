@@ -1,4 +1,3 @@
-import { Preload } from '@/components/landing/Preload'
 import { Nav } from '@/components/landing/Nav'
 import { Hero } from '@/components/landing/Hero'
 import { Mirror } from '@/components/landing/Mirror'
@@ -16,14 +15,12 @@ import { Ataturk } from '@/components/landing/Ataturk'
 import { EliteClub } from '@/components/landing/EliteClub'
 import { Ambition } from '@/components/landing/Ambition'
 import { Pricing } from '@/components/landing/Pricing'
-import { Guarantee } from '@/components/landing/Guarantee'
 import { Closing } from '@/components/landing/Closing'
 import { Footer } from '@/components/landing/Footer'
 
 export default function Home() {
   return (
     <>
-      <Preload />
       <Nav />
       <main>
         <Hero />
@@ -42,7 +39,6 @@ export default function Home() {
         <EliteClub />
         <Ambition />
         <Pricing />
-        <Guarantee />
         <Closing />
       </main>
       <Footer />

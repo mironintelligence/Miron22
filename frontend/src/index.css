@@ -683,3 +683,10 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
 .premium-scope {
   background: transparent !important;
 }
+
+/* Ana tanıtım (IntroLanding): Tailwind yüklenmese bile düz beyaz ekran olmasın */
+.intro-landing-page {
+  background-color: #020202;
+  color: #f5f5f5;
+  min-height: 100vh;
+}

@@ -6,16 +6,16 @@ import { Container } from '@/components/ui/Container'
 import { Reveal, Stagger } from '@/components/ui/Reveal'
 
 const MODULES = [
-  { num: '01', name: 'Dosya Analizi & UYAP Uyumlu Format Desteği' },
-  { num: '02', name: 'Yargıtay & Danıştay Emsal Tarama' },
-  { num: '03', name: 'Mevzuat Analizi & Güncel Takip' },
-  { num: '04', name: '11 Farklı Hukuki Hesaplama Motoru' },
-  { num: '05', name: 'Dilekçe Üretimi & Şablon Motoru' },
-  { num: '06', name: 'Sözleşme Üretimi & Risk Haritası' },
-  { num: '07', name: 'Strateji Motoru & Dava Simülasyonu' },
-  { num: '08', name: 'Müvekkil Otomasyon Sistemi' },
-  { num: '09', name: 'Süre & Duruşma Yönetimi' },
-  { num: '10', name: 'Çoklu Dava & Ekip Koordinasyonu' },
+  'Dosya Analizi & resmi mahkeme evrak formatları desteği',
+  'Yargıtay & Danıştay Emsal Tarama',
+  'Mevzuat Analizi & Güncel Takip',
+  '11 Farklı Hukuki Hesaplama Motoru',
+  'Dilekçe Üretimi & Şablon Motoru',
+  'Sözleşme Üretimi & Risk Haritası',
+  'Strateji Motoru & Dava Simülasyonu',
+  'Müvekkil Otomasyon Sistemi',
+  'Süre & Duruşma Yönetimi',
+  'Çoklu Dava & Ekip Koordinasyonu',
 ]
 
 export function SystemDepth() {
@@ -23,7 +23,7 @@ export function SystemDepth() {
     <section id="sistem" className="py-[120px] border-t border-border">
       <Container>
         <Reveal>
-          <SectionTag num="05" text="MODÜLLER" />
+          <SectionTag text="MODÜLLER" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4">
             10 ayrı araç yerine{' '}
             <br />
@@ -37,18 +37,16 @@ export function SystemDepth() {
 
       <div className="max-w-[1200px] mx-auto px-6 lg:px-[52px]">
         <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-[1px] bg-border mt-0">
-          {MODULES.map(({ num, name }) => (
+          {MODULES.map((name) => (
             <motion.div
-              key={num}
+              key={name}
               variants={{
                 hidden: { opacity: 0, y: 16 },
                 show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
               }}
-              className="bg-surface px-9 py-7 flex items-center gap-6 hover:bg-surface-3 transition-colors duration-200 group"
+              className="bg-surface px-9 py-7 flex items-center gap-4 hover:bg-surface-3 transition-colors duration-200 group"
             >
-              <span className="font-display text-[38px] font-light text-border group-hover:text-gold/35 transition-colors duration-300 leading-none shrink-0">
-                {num}
-              </span>
+              <span className="h-8 w-[2px] shrink-0 rounded-full bg-border group-hover:bg-gold/40 transition-colors duration-300" />
               <span className="font-ui text-[13px] text-muted group-hover:text-text transition-colors duration-200">
                 {name}
               </span>
@@ -57,7 +55,7 @@ export function SystemDepth() {
         </Stagger>
 
         <p className="mt-14 text-center font-sub italic text-[15px] text-muted">
-          Ayrı araçlarla çalışan bürolar, birleşik sistem kuranlara kaybediyor.
+          Ayrı araçlarla çalışanlar, birleşik sistem kuranlara göre yavaş kalıyor.
         </p>
       </div>
     </section>

@@ -46,7 +46,7 @@ export function Reveal({ children, variant = 'y', delay = 0, className }: Reveal
 
 const STAGGER: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.08 } },
 }
 
 interface StaggerProps {

@@ -32,7 +32,7 @@ export function Control() {
     <section className="py-[120px] border-t border-border">
       <Container>
         <Reveal>
-          <SectionTag num="12" text="KONTROL" />
+          <SectionTag text="KONTROL" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4">
             Hız değil,{' '}
             <span className="italic text-gold">hata sıfırı</span>.

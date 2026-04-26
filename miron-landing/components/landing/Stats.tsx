@@ -1,7 +1,6 @@
 'use client'
 
 import { useRef, useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { Container } from '@/components/ui/Container'
 import { Reveal } from '@/components/ui/Reveal'
@@ -45,8 +44,8 @@ function Counter({ target, suffix = '' }: { target: number; suffix?: string }) {
 
 const STATS = [
   { target: 73, suffix: '%', label: 'Daha hızlı analiz' },
-  { target: 26, suffix: 'x', label: 'Katı ROI (ortalama)' },
-  { target: 30, suffix: '', label: 'Gün tam iade garantisi' },
+  { target: 26, suffix: '', label: 'Katı ROI (ortalama)' },
+  { target: 11, suffix: '', label: 'Entegre hesaplama modülü' },
   { target: 100, suffix: '%', label: 'KVKK uyumlu altyapı' },
 ]
 
@@ -55,7 +54,7 @@ export function Stats() {
     <section className="py-[120px] border-t border-border">
       <Container>
         <Reveal>
-          <SectionTag num="11" text="ÖLÇÜM" />
+          <SectionTag text="ÖLÇÜM" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-12">
             Sistem{' '}
             <span className="italic text-gold">ölçülmüş sonuç</span>
@@ -67,7 +66,7 @@ export function Stats() {
           <div className="max-w-[600px] mx-auto border border-border p-4 text-center mb-12">
             <p className="font-ui text-[12px] text-muted tracking-[0.1em]">
               Şu anda{' '}
-              <span className="text-gold font-medium">47 büro</span>
+              <span className="text-gold font-medium">47 avukat ve ekip</span>
               {' '}bu sistemi aktif kullanıyor.
             </p>
           </div>

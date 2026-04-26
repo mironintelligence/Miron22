@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Logo } from '@/components/ui/Logo'
 
 const LINKS = [
   { label: 'Sistem', href: '#sistem' },
@@ -25,7 +24,9 @@ export function Nav() {
         scrolled ? 'border-border' : 'border-transparent'
       }`}
     >
-      <Logo size="sm" />
+      <a href="/" className="font-sub font-bold text-[18px] tracking-[0.06em] text-text no-underline">
+        Miron<span className="text-gold">.</span>
+      </a>
 
       <div className="hidden lg:flex items-center gap-9">
         {LINKS.map(({ label, href }) => (

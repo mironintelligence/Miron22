@@ -1,9 +1,9 @@
-import { Logo } from '@/components/ui/Logo'
-
 export function Footer() {
   return (
     <footer className="border-t border-border py-8 px-6 lg:px-[52px] flex flex-wrap justify-between items-center gap-4">
-      <Logo size="sm" />
+      <span className="font-sub font-bold text-[16px] tracking-[0.06em] text-text">
+        Miron<span className="text-gold">.</span>
+      </span>
       <span className="font-ui text-[11px] tracking-[0.1em] text-muted">
         &copy; 2026 Miron AI
       </span>
