@@ -89,11 +89,11 @@ export function Hero() {
           className="border border-border px-[28px] py-[22px] max-w-[620px] mx-auto mt-9"
         >
           <p className="font-ui text-[13px] text-muted leading-relaxed">
-            Bu sistem sıradan pratikler için değil.{' '}
-            <span className="text-white font-medium">Kendi ofisinde sözü geçen</span>
-            {' '}ve{' '}
-            <span className="text-white font-medium">ülke genelinde görünürlük hedefleyen</span>
-            {' '}avukatlar için tasarlandı.
+            Burada amaç baskı kurmak değil;{' '}
+            <span className="text-white font-medium">dosyada erken netlik</span>, tekrarlayan işlerde
+            {' '}
+            <span className="text-white font-medium">taslak disiplini</span> ve müvekkilinizle daha sakin bir tempo
+            isteyen kişisel avukatlar için bir çerçeve sunmak.
           </p>
         </motion.div>
 
