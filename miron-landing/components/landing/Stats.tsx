@@ -45,7 +45,7 @@ function Counter({ target, suffix = '' }: { target: number; suffix?: string }) {
 const STATS = [
   { target: 73, suffix: '%', label: 'Daha hızlı analiz' },
   { target: 26, suffix: '', label: 'Katı ROI (ortalama)' },
-  { target: 11, suffix: '', label: 'Entegre hesaplama modülü' },
+  { target: 10, suffix: '', label: 'Entegre sistem modülü' },
   { target: 100, suffix: '%', label: 'KVKK uyumlu altyapı' },
 ]
 

@@ -1,412 +1,350 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Zap, Scale, MessagesSquare } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  FileSearch,
+  Gavel,
+  Layers,
+  Lock,
+  Scale,
+  Sparkles,
+  Timer,
+  Zap,
+} from "lucide-react";
+
+const GOLD = "#FFD700";
+const BG = "#030303";
+const SURFACE = "#0c0c0c";
+
+const fade = {
+  hidden: { opacity: 0, y: 28 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] } },
+};
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.11, delayChildren: 0.08 } },
+};
+
+function Section({ children, className = "" }) {
+  return (
+    <section
+      className={`mx-auto max-w-6xl px-5 sm:px-8 py-20 sm:py-28 ${className}`}
+      style={{ color: "#e4e4e7" }}
+    >
+      {children}
+    </section>
+  );
+}
 
 export default function IntroLanding() {
-  const containerRef = useRef(null);
-  const [counters, setCounters] = useState({ timeSaved: 0, accuracy: 0, decisions: 0 });
-
-  const fadeUp = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
-  };
-  
-  const stagger = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.1 } },
-  };
+  const [n, setN] = useState(0);
 
   useEffect(() => {
-    const start = Date.now();
-    const duration = 1400;
-    const id = setInterval(() => {
-      const p = Math.min(1, (Date.now() - start) / duration);
-      setCounters({
-        timeSaved: Math.floor(72 * p),
-        accuracy: Math.floor(98 * p),
-        decisions: Math.floor(1200 * p),
-      });
-      if (p >= 1) clearInterval(id);
-    }, 30);
-    return () => clearInterval(id);
+    const t = setInterval(() => {
+      setN((v) => (v >= 94 ? 94 : v + 3));
+    }, 40);
+    const stop = setTimeout(() => clearInterval(t), 1200);
+    return () => {
+      clearInterval(t);
+      clearTimeout(stop);
+    };
   }, []);
 
   return (
     <div
-      ref={containerRef}
-      className="intro-landing-page bg-[#020202] text-white font-sans overflow-x-hidden selection:bg-[var(--miron-gold)] selection:text-black"
-      style={{ backgroundColor: "#020202", color: "#f5f5f5", minHeight: "100vh" }}
+      className="intro-landing-page min-h-screen w-full overflow-x-hidden font-sans antialiased"
+      style={{ backgroundColor: BG, color: "#fafafa" }}
     >
-      
-      {/* -------------------- HERO SECTION -------------------- */}
-      <motion.section 
-        variants={stagger} initial="hidden" animate="visible"
-        className="min-h-screen flex flex-col justify-center relative overflow-hidden"
-      >
-        {/* Animated Background Gradients */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,215,0,0.03),transparent_60%)] animate-pulse" />
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('/noise.svg')] opacity-10 pointer-events-none" />
-        
-        <div className="max-w-7xl mx-auto px-6 z-10 w-full pt-20">
-          <motion.div variants={fadeUp} className="flex justify-center mb-8">
+      {/* ——— Hero ——— */}
+      <header className="relative min-h-[calc(100vh-4.25rem)] flex flex-col justify-center pt-8 pb-16 sm:pb-24">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-90"
+          style={{
+            background: `
+              radial-gradient(ellipse 80% 55% at 50% -10%, rgba(255,215,0,0.14), transparent 55%),
+              radial-gradient(ellipse 60% 40% at 100% 50%, rgba(255,215,0,0.06), transparent 50%),
+              radial-gradient(ellipse 50% 40% at 0% 80%, rgba(255,215,0,0.05), transparent 45%),
+              linear-gradient(180deg, #050505 0%, ${BG} 45%, #000 100%)
+            `,
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,215,0,0.04) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,215,0,0.04) 1px, transparent 1px)`,
+            backgroundSize: "48px 48px",
+            maskImage: "radial-gradient(ellipse 70% 70% at 50% 40%, black 20%, transparent 75%)",
+            WebkitMaskImage: "radial-gradient(ellipse 70% 70% at 50% 40%, black 20%, transparent 75%)",
+          }}
+        />
+
+        <motion.div
+          className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center px-5 text-center"
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.div variants={fade} className="mb-8">
             <img
               src="/miron-logo.png"
               alt="Miron AI"
-              width={80}
-              height={80}
-              className="h-16 w-16 md:h-20 md:w-20 object-contain drop-shadow-[0_0_24px_rgba(255,215,0,0.15)]"
-              decoding="async"
+              width={88}
+              height={88}
+              className="mx-auto h-20 w-20 object-contain sm:h-24 sm:w-24"
+              style={{ filter: `drop-shadow(0 0 20px rgba(255,215,0,0.25))` }}
             />
           </motion.div>
-          <motion.div variants={fadeUp} className="text-center mb-8">
-            <span className="inline-block py-1 px-4 rounded-full bg-white/5 border border-white/10 text-xs font-bold tracking-[0.2em] text-[var(--miron-gold)] uppercase backdrop-blur-md">
-              Miron AI — Kişisel avukatlar için netlik ve süre
-            </span>
-          </motion.div>
-          
-          <motion.h1 variants={fadeUp} className="text-6xl sm:text-7xl md:text-9xl font-black tracking-tighter text-center leading-[0.9] mb-10 bg-gradient-to-b from-white via-white/90 to-white/40 bg-clip-text text-transparent">
-            Dosyanızın<br />Kontrolü Sizde.
-          </motion.h1>
-          
-          <motion.p variants={fadeUp} className="text-xl md:text-2xl text-white/50 text-center max-w-4xl mx-auto leading-relaxed font-light mb-8">
-            Aynı evrakı defalarca okumak, eksik belge yüzünden gecikmek, son dakika dilekçesi yetiştirmek…
-            <span className="text-white/80"> Miron AI, kişisel ve bağımsız avukatların yükünü hafifletmek için dosyayı düzenler, eksikleri gösterir ve yol haritası çıkarır.</span>
+
+          <motion.p
+            variants={fade}
+            className="mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em]"
+            style={{ borderColor: "rgba(255,215,0,0.35)", color: GOLD, backgroundColor: "rgba(255,215,0,0.06)" }}
+          >
+            <Sparkles className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+            Kişisel avukatlar için netlik ve dengeli tempo
           </motion.p>
 
-          <motion.div
-            variants={fadeUp}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-10 text-left text-sm"
+          <motion.h1
+            variants={fade}
+            className="mb-6 max-w-3xl text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl"
+            style={{
+              color: "#ffffff",
+              fontFamily: '"Abril Fatface", "Libre Baskerville", Georgia, serif',
+              fontWeight: 400,
+            }}
           >
-            <div className="rounded-2xl border border-red-500/25 bg-red-950/20 p-5">
-              <div className="text-xs font-bold text-red-300/90 uppercase tracking-widest mb-2">Cehennem</div>
-              <p className="text-white/60">
-                Gece yarısı Word arşivi, dağınık PDF&apos;ler, kaçan süreler ve &quot;bir daha okuyayım&quot; döngüsü.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
-              <div className="text-xs font-bold text-amber-200 uppercase tracking-widest mb-2">Cennet</div>
-              <p className="text-white/80">
-                Tek panelde özet, risk, emsal yönü ve net bir yapılacaklar sırası — hemen kullanmaya başlayın.
-              </p>
-            </div>
-          </motion.div>
+            Dosyada netlik,
+            <br />
+            <span style={{ color: GOLD }}>kararda güç.</span>
+          </motion.h1>
 
-          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-6">
+          <motion.p variants={fade} className="mb-10 max-w-2xl text-base leading-relaxed sm:text-lg" style={{ color: "rgba(255,255,255,0.72)" }}>
+            Öncelikle kişisel ve bağımsız avukatlar için: evrak özeti, içtihat yönü, risk çerçevesi ve tekrarlayan işleri
+            hızlandıran tek panel. Agresif rekabet söylemi değil; disiplinli çalışma ve sürdürülebilir tempo. Müvekkiline
+            süre kazandırın, karar kalitesine odaklanın.
+          </motion.p>
+
+          <motion.div variants={fade} className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
             <Link
               to="/kaydol"
-              className="group relative px-10 py-5 bg-white text-black font-bold rounded-full overflow-hidden hover:scale-105 transition-transform duration-300"
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-8 py-4 text-sm font-semibold text-black transition hover:opacity-90"
+              style={{ backgroundColor: GOLD }}
             >
-              <span className="relative z-10">Kayıt ol</span>
-              <div className="absolute inset-0 bg-[var(--miron-gold)] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
+              Hesap oluştur
+              <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
             <Link
-              to="/kaydol"
-              className="px-10 py-5 bg-transparent border border-white/10 text-white font-bold rounded-full hover:bg-white/5 transition-all hover:border-white/30"
+              to="/login"
+              className="inline-flex items-center justify-center rounded-xl border px-8 py-4 text-sm font-semibold text-white transition hover:bg-white/5"
+              style={{ borderColor: "rgba(255,255,255,0.2)" }}
             >
-              Uygunluk testi
+              Giriş yap
             </Link>
           </motion.div>
-        </div>
 
-        {/* Scroll Indicator */}
-        <motion.div 
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5, duration: 1 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3"
-        >
-          <span className="text-[10px] uppercase tracking-widest text-white/30">Keşfedin</span>
-          <div className="w-px h-16 bg-gradient-to-b from-white/30 to-transparent" />
+          <motion.p variants={fade} className="mt-8 text-xs" style={{ color: "rgba(255,255,255,0.38)" }}>
+            Kayıt öncesi kısa uygunluk soruları · Verileriniz model eğitimi için kullanılmaz
+          </motion.p>
         </motion.div>
-      </motion.section>
+      </header>
 
-
-      {/* -------------------- 2. THE STRUCTURAL PROBLEM -------------------- */}
-      <section className="py-40 px-6 border-t border-white/5 relative">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
-            className="grid lg:grid-cols-2 gap-20 items-start"
-          >
-            <div>
-              <motion.h2 variants={fadeUp} className="text-5xl md:text-7xl font-bold mb-10 leading-tight">
-                Hukuk Sistemi<br /><span className="text-white/30">Sürdürülemez.</span>
-              </motion.h2>
-            </div>
-            <div className="space-y-12">
-              <motion.div variants={fadeUp}>
-                <h3 className="text-2xl font-bold text-white mb-4">Veri Yığını ve Manuel Yük</h3>
-                <p className="text-lg text-white/50 leading-relaxed">
-                  Her yıl milyonlarca yeni dava dosyası açılıyor. Avukatlar zamanlarının %60'ını strateji geliştirmek yerine evrak taramak, içtihat aramak ve prosedürel metinler yazmakla harcıyor. Bu manuel süreçler hem maliyetli hem de hata riski taşıyor.
-                </p>
-              </motion.div>
-              <motion.div variants={fadeUp}>
-                <h3 className="text-2xl font-bold text-white mb-4">İçtihat Belirsizliği</h3>
-                <p className="text-lg text-white/50 leading-relaxed">
-                  Yargıtay ve Danıştay kararları arasındaki nüansları yakalamak insan kapasitesini aşıyor. Geleneksel arama motorları sadece kelime eşleşmesi yapıyor, bağlamsal analizi kaçırıyor.
-                </p>
-              </motion.div>
-              <motion.div variants={fadeUp}>
-                <h3 className="text-2xl font-bold text-white mb-4">Risk Yönetimi Eksikliği</h3>
-                <p className="text-lg text-white/50 leading-relaxed">
-                  Dava sonucunu öngörmek genellikle "hissiyat" ile yapılıyor. Oysa veri odaklı risk analizi, müvekkil beklentilerini yönetmek ve doğru stratejiyi kurmak için kritik öneme sahip.
-                </p>
-              </motion.div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-
-      {/* -------------------- 3. AI ARCHITECTURE (TECHNICAL) -------------------- */}
-      <section className="py-40 px-6 bg-[#050505] border-t border-white/5 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-[var(--miron-gold)]/5 to-transparent pointer-events-none" />
-        
-        <div className="max-w-7xl mx-auto">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="mb-20">
-            <motion.div variants={fadeUp} className="text-[var(--miron-gold)] text-sm font-bold tracking-[0.2em] uppercase mb-4">
-              Stratejik Avantaj
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-5xl md:text-6xl font-bold max-w-3xl">
-              Daha Hızlı, Daha Net,<br />Daha Güçlü Savunma.
-            </motion.h2>
-          </motion.div>
-
-          <div className="grid lg:grid-cols-3 gap-8">
+      {/* ——— Üç vaat ——— */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", backgroundColor: SURFACE }}>
+        <Section>
+          <div className="grid gap-5 sm:grid-cols-3">
             {[
               {
-                title: "Hızlı İçtihat Erişimi",
-                desc: "Dosyanızla benzer kararları saniyeler içinde yakalayın, güçlü dayanaklarla ilerleyin.",
-                Icon: Zap,
+                icon: Timer,
+                title: "Zaman",
+                text: "Özet ve yön tarama ile dosyaya ilk bakış dakikalara iner.",
               },
               {
-                title: "Net Strateji Çerçevesi",
-                desc: "Usul, ispat, karşı argüman ve riskleri tek bir bakışta görün ve karar verin.",
-                Icon: Scale,
+                icon: Scale,
+                title: "Netlik",
+                text: "Usul, ispat ve içtihat bağlamında yapılacaklar sırası belirginleşir.",
               },
               {
-                title: "Müvekkil İletişimi",
-                desc: "Risk ve olasılıkları anlaşılır şekilde sunun, güveni somut veriye dayandırın.",
-                Icon: MessagesSquare,
+                icon: Lock,
+                title: "Güven",
+                text: "KVKK odaklı süreç; şifreli iletişim ve rol bazlı erişim.",
               },
             ].map((item, i) => (
               <motion.div
                 key={item.title}
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ delay: i * 0.12, duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-white/5 border border-white/10 p-10 rounded-3xl hover:bg-white/10 hover:border-[var(--miron-gold)]/25 transition-all duration-500 group"
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ delay: i * 0.08, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="rounded-2xl border p-6 sm:p-7"
+                style={{
+                  borderColor: "rgba(255,255,255,0.1)",
+                  background: "linear-gradient(165deg, rgba(255,255,255,0.04), rgba(0,0,0,0.2))",
+                }}
               >
-                <div className="mb-6 text-[var(--miron-gold)] group-hover:scale-110 transition-transform duration-300">
-                  <item.Icon size={40} strokeWidth={1.25} aria-hidden />
-                </div>
-                <h3 className="text-2xl font-bold mb-4" style={{ fontFamily: '"Abril Fatface", serif' }}>
-                  {item.title}
-                </h3>
-                <p className="text-white/60 leading-relaxed">{item.desc}</p>
+                <item.icon className="mb-4 h-8 w-8" style={{ color: GOLD }} strokeWidth={1.5} aria-hidden />
+                <h2 className="mb-2 text-lg font-semibold text-white">{item.title}</h2>
+                <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.62)" }}>
+                  {item.text}
+                </p>
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
+        </Section>
+      </div>
 
-
-      {/* -------------------- 4. SUPREME COURT INTELLIGENCE -------------------- */}
-      <section className="py-40 px-6 border-t border-white/5 relative">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}>
-            <motion.div variants={fadeUp} className="text-[var(--miron-gold)] text-sm font-bold tracking-[0.2em] uppercase mb-4">
-              İçtihat Gücü
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-5xl md:text-6xl font-bold mb-8">
-              Yargıtay & Danıştay<br />İçtihat Analizi.
-            </motion.h2>
-            <motion.p variants={fadeUp} className="text-lg text-white/50 mb-10 leading-relaxed">
-              Davanızla benzer kararları hızlıca yakalayın, gerekçeyi netleştirin ve dosyanızı güçlendirin.
-              <br /><br />
-              Daire, yıl ve sonuç odaklı filtrelerle doğru içtihada hızlı erişin.
-            </motion.p>
-            
-            <motion.div variants={fadeUp} className="border-t border-white/10 pt-8">
-              <ul className="text-white/60 text-sm space-y-2">
-                <li>Doğru emsali bulmak için daire/yıl/konu filtreleri</li>
-                <li>Gerekçe özeti ve dosyanıza uygulanabilir argüman başlıkları</li>
-              </ul>
-            </motion.div>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1 }}
-            className="relative"
-          >
-            {/* Abstract UI representation */}
-            <div className="aspect-[4/5] bg-gradient-to-br from-white/10 to-transparent rounded-3xl border border-white/10 p-8 relative overflow-hidden">
-              <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
-              <div className="space-y-4">
-                {[1, 2, 3].map((_, i) => (
-                  <div key={i} className="bg-black/50 border border-white/10 p-6 rounded-xl backdrop-blur-md">
-                    <div className="h-2 w-1/3 bg-white/20 rounded mb-4" />
-                    <div className="h-2 w-full bg-white/10 rounded mb-2" />
-                    <div className="h-2 w-5/6 bg-white/10 rounded" />
-                  </div>
-                ))}
-              </div>
-              <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black to-transparent" />
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-
-      {/* -------------------- 5. DEEP CASE SIMULATION -------------------- */}
-      <section className="py-40 px-6 bg-[#080808] border-t border-white/5">
-        <div className="max-w-7xl mx-auto">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="text-center mb-24">
-            <motion.h2 variants={fadeUp} className="text-5xl md:text-7xl font-bold mb-6">
-              Dava Simülasyon Motoru
-            </motion.h2>
-            <motion.p variants={fadeUp} className="text-xl text-white/50 max-w-3xl mx-auto">
-              Sadece "tahmin" değil, matematiksel risk modellemesi.
-            </motion.p>
-          </motion.div>
-
-          <div className="grid lg:grid-cols-4 gap-6">
-            {[
-              { t: "Usul Analizi", d: "Görevli mahkeme, zamanaşımı ve hak düşürücü süre kontrolü." },
-              { t: "İspat Yükü", d: "TMK m.6 ve HMK uyarınca ispat yükünün hangi tarafta olduğunun tespiti." },
-              { t: "Karşı Strateji", d: "Rakibin olası savunmalarını ve en güçlü argümanlarını önceden simüle etme." },
-              { t: "Risk Skoru", d: "Davanın kazanılma ihtimalini 0-100 arasında puanlayan olasılık motoru." }
-            ].map((item, i) => (
-              <motion.div 
-                key={i}
-                whileHover={{ y: -10 }}
-                className="bg-white/5 border border-white/10 p-8 rounded-2xl"
-              >
-                <div className="w-12 h-12 rounded-full bg-[var(--miron-gold)]/10 flex items-center justify-center text-[var(--miron-gold)] mb-6 font-bold text-xl">
-                  {i + 1}
-                </div>
-                <h3 className="text-xl font-bold mb-3">{item.t}</h3>
-                <p className="text-white/50 text-sm leading-relaxed">{item.d}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-
-      {/* -------------------- 6. DOCUMENT INTELLIGENCE -------------------- */}
-      <section className="py-40 px-6 border-t border-white/5">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-16">
-          <div className="lg:col-span-5">
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="sticky top-32">
-              <motion.div variants={fadeUp} className="text-[var(--miron-gold)] text-sm font-bold tracking-[0.2em] uppercase mb-4">
-                Derin Analiz
-              </motion.div>
-              <motion.h2 variants={fadeUp} className="text-5xl font-bold mb-8">
-                Evraklarınızla<br />Konuşun.
-              </motion.h2>
-              <motion.p variants={fadeUp} className="text-lg text-white/50 mb-8 leading-relaxed">
-                Yüzlerce sayfalık dava dosyalarını, bilirkişi raporlarını ve sözleşmeleri saniyeler içinde analiz edin. 
-                <br/><br/>
-                Miron AI, belgedeki tarihleri, para birimlerini, tarafları ve hukuki iddiaları "entity extraction" yöntemiyle ayrıştırır. Size sadece yapılandırılmış özeti okumak kalır.
-              </motion.p>
-              <ul className="space-y-4 text-white/70">
-                {["Kronolojik Olay Örgüsü", "Delil Listesi Çıkarımı", "Çelişki Tespiti", "Eksik Evrak Uyarısı"].map((li, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <span className="text-[var(--miron-gold)]"></span> {li}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          </div>
-          <div className="lg:col-span-7">
-            {/* Document Visual */}
-            <div className="bg-[#111] rounded-2xl border border-white/10 p-8 md:p-12 relative">
-              <div className="font-mono text-xs text-white/30 mb-4">ANALYSIS_LOG_2026.txt</div>
-              <div className="space-y-3 font-mono text-sm text-green-400/80">
-                <p>{`> Belge yükleniyor... [OK]`}</p>
-                <p>{`> OCR taraması başlatıldı... [OK]`}</p>
-                <p>{`> Varlık tanıma (NER) aktif...`}</p>
-                <p className="text-white/50">{`  - Davacı: Ahmet Yılmaz`}</p>
-                <p className="text-white/50">{`  - Davalı: XYZ İnşaat A.Ş.`}</p>
-                <p className="text-white/50">{`  - Dava Değeri: 2.500.000 TL`}</p>
-                <p>{`> Hukuki atıflar çıkarılıyor...`}</p>
-                <p className="text-white/50">{`  - TBK m. 112 (Sözleşmeye Aykırılık)`}</p>
-                <p className="text-white/50">{`  - HMK m. 200 (Senetle İspat)`}</p>
-                <p>{`> Risk analizi tamamlandı.`}</p>
-                <p className="animate-pulse">{`> Rapor oluşturuluyor...`}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
-      {/* -------------------- 7. SECURITY & COMPLIANCE -------------------- */}
-      <section className="py-32 px-6 border-t border-white/5 bg-[#050505]">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-5xl font-bold mb-12">Kurumsal Güvenlik Standartları</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { t: "Uçtan Uca Şifreleme", d: "Tüm veriler AES-256 ile şifrelenir. Veritabanı ve iletişim kanalları SSL/TLS korumalıdır." },
-              { t: "Veri İzolasyonu", d: "Her müşterinin verisi mantıksal olarak izole edilir. Yapay zeka modelleri verilerinizle eğitilmez." },
-              { t: "KVKK Uyumluluğu", d: "Kişisel verilerin korunması kanununa tam uyumlu altyapı ve veri işleme politikaları." }
-            ].map((item, i) => (
-              <div key={i} className="p-6">
-                <div className="w-16 h-1 bg-white/10 mx-auto mb-6" />
-                <h3 className="text-xl font-bold mb-3">{item.t}</h3>
-                <p className="text-white/50 text-sm leading-relaxed">{item.d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-
-      {/* -------------------- 8. USE CASES -------------------- */}
-      {/* 
-         Removed "Sektörel Çözümler" and "Biz Kimiz" sections from here 
-         as per user request to focus solely on Miron AI for lawyers 
-         and move corporate info to "Biz Kimiz" page.
-      */}
-
-      {/* -------------------- 9. CLOSING VISION -------------------- */}
-      <section className="py-40 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[var(--miron-gold)]/5" />
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
+      {/* ——— Özellikler ——— */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", backgroundColor: BG }}>
+        <Section>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-6xl md:text-8xl font-black mb-12 tracking-tight"
+            transition={{ duration: 0.6 }}
+            className="mb-14 max-w-2xl"
           >
-            Hukukun Yeni Çağı.
-          </motion.h2>
-          <p className="text-2xl text-white/60 mb-16 leading-relaxed font-light">
-            Gelecek, veriyi en iyi işleyenlerin olacak.<br/>
-            Miron AI ile rekabette bir adım öne geçin.
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em]" style={{ color: GOLD }}>
+              Yetenekler
+            </p>
+            <h2
+              className="text-3xl font-bold tracking-tight sm:text-4xl"
+              style={{ fontFamily: '"Abril Fatface", Georgia, serif', color: "#fff", fontWeight: 400 }}
+            >
+              Bir panelde ne var?
+            </h2>
+            <p className="mt-4 text-base" style={{ color: "rgba(255,255,255,0.65)" }}>
+              Tek başınıza veya küçük ekiple: dava merkezi, araştırma, belge stüdyosu ve hesaplamalar aynı panelde.
+            </p>
+          </motion.div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              { Icon: FileSearch, t: "Evrak ve özet", d: "PDF ve metin üzerinde hızlı özet, eksik ve tarih çıkarımı." },
+              { Icon: Gavel, t: "İçtihat yönü", d: "Yargıtay / Danıştay hattında dosyanıza yakın kararları bulup çerçeveleyin." },
+              { Icon: Zap, t: "Risk ve strateji", d: "Dava simülasyonu ve risk skoru ile müvekkil beklentisini yönetin." },
+              { Icon: Layers, t: "Operasyon", d: "Dilekçe ve sözleşme üretiminde taslak; tekrarlayan işleri azaltın." },
+            ].map((row, i) => (
+              <motion.div
+                key={row.t}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ delay: i * 0.06, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="flex gap-4 rounded-2xl border p-5 sm:p-6"
+                style={{ borderColor: "rgba(255,255,255,0.1)", backgroundColor: "rgba(255,255,255,0.02)" }}
+              >
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                  style={{ backgroundColor: "rgba(255,215,0,0.1)", color: GOLD }}
+                >
+                  <row.Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+                </div>
+                <div>
+                  <h3 className="mb-1 font-semibold text-white">{row.t}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
+                    {row.d}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </Section>
+      </div>
+
+      {/* ——— Sayı bandı ——— */}
+      <div
+        className="border-y py-16 sm:py-20"
+        style={{ borderColor: "rgba(255,255,255,0.08)", background: `linear-gradient(90deg, transparent, rgba(255,215,0,0.06), transparent)` }}
+      >
+        <div className="mx-auto flex max-w-4xl flex-col items-center gap-2 px-5 text-center">
+          <span className="text-5xl font-bold tabular-nums sm:text-6xl" style={{ color: GOLD }}>
+            {n}%
+          </span>
+          <p className="text-sm font-medium uppercase tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.5)" }}>
+            Örnek geri bildirim — ilk haftalarda bildirilen zaman kazanımı (yüzde göstergesi örnektir)
           </p>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+        </div>
+      </div>
+
+      {/* ——— Güven maddeleri ——— */}
+      <div style={{ backgroundColor: SURFACE, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <Section>
+          <div className="mx-auto max-w-3xl text-center">
+            <h2
+              className="mb-10 text-2xl font-bold sm:text-3xl"
+              style={{ fontFamily: '"Abril Fatface", Georgia, serif', fontWeight: 400, color: "#fff" }}
+            >
+              Güven ve uyum
+            </h2>
+            <ul className="flex flex-col gap-4 text-left sm:mx-auto sm:max-w-xl">
+              {[
+                "Şifreli bağlantı ve rol bazlı erişim",
+                "Verileriniz üçüncü tarafla paylaşılmaz; model eğitiminde kullanılmaz",
+                "KVKK ve sözleşme metinleri hesap oluşturma öncesinde okunabilir",
+              ].map((line) => (
+                <motion.li
+                  key={line}
+                  initial={{ opacity: 0, x: -12 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  className="flex items-start gap-3 rounded-xl border px-4 py-3 text-sm"
+                  style={{ borderColor: "rgba(255,255,255,0.1)", backgroundColor: "rgba(0,0,0,0.25)" }}
+                >
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" style={{ color: GOLD }} aria-hidden />
+                  <span style={{ color: "rgba(255,255,255,0.78)" }}>{line}</span>
+                </motion.li>
+              ))}
+            </ul>
+          </div>
+        </Section>
+      </div>
+
+      {/* ——— Kapanış CTA ——— */}
+      <footer
+        className="px-5 pb-24 pt-20 sm:px-8"
+        style={{
+          background: `radial-gradient(ellipse 80% 80% at 50% 100%, rgba(255,215,0,0.12), transparent 55%), ${BG}`,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mx-auto max-w-2xl rounded-2xl border p-8 text-center sm:p-10"
+          style={{
+            borderColor: "rgba(255,215,0,0.35)",
+            backgroundColor: "rgba(0,0,0,0.55)",
+            boxShadow: "0 0 0 1px rgba(255,215,0,0.08), 0 24px 80px rgba(0,0,0,0.5)",
+          }}
+        >
+          <h2 className="mb-3 text-2xl font-bold text-white sm:text-3xl" style={{ fontFamily: '"Abril Fatface", Georgia, serif', fontWeight: 400 }}>
+            Hazırsanız başlayın
+          </h2>
+          <p className="mb-8 text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
+            Birkaç soruyla uygunluk kontrolü; ardından hesabınızı oluşturup panele geçin.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
               to="/kaydol"
-              className="px-12 py-6 bg-white text-black font-bold text-xl rounded-full hover:bg-gray-200 transition-all shadow-[0_0_50px_rgba(255,255,255,0.2)]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-sm font-semibold text-black"
+              style={{ backgroundColor: GOLD }}
             >
-              Ücretsiz Deneyin
+              Kayıt ol
+              <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
             <Link
               to="/about"
-              className="px-12 py-6 border border-white/20 text-white font-bold text-xl rounded-full hover:bg-white/5 transition-all"
+              className="inline-flex items-center justify-center rounded-xl border px-8 py-3.5 text-sm font-semibold text-white hover:bg-white/5"
+              style={{ borderColor: "rgba(255,255,255,0.25)" }}
             >
-              Bize Ulaşın
+              Biz kimiz?
             </Link>
           </div>
-        </div>
-      </section>
-
+        </motion.div>
+      </footer>
     </div>
   );
 }

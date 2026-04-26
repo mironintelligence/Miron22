@@ -24,9 +24,8 @@ const fadeIn = (delay: number) => ({
 
 export function Hero() {
   return (
-    <section className="min-h-screen flex items-center justify-center text-center relative overflow-hidden">
+    <section className="min-h-screen flex items-center justify-center text-center relative overflow-hidden pt-20">
 
-      {/* Layer 1: Grid */}
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={{
@@ -40,19 +39,16 @@ export function Hero() {
         }}
       />
 
-      {/* Layer 2: Glow */}
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full pointer-events-none z-0 animate-pulse-slow"
         style={{ background: 'radial-gradient(circle, rgba(255,215,0,0.055), transparent 65%)' }}
       />
 
-      {/* Layer 3: Orbits */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
         <div className="w-[500px] h-[500px] rounded-full border border-[rgba(255,215,0,0.07)] animate-spin-slow" />
         <div className="absolute w-[720px] h-[720px] rounded-full border border-[rgba(255,215,0,0.04)] animate-spin-reverse" />
       </div>
 
-      {/* Content */}
       <div className="relative z-10 max-w-4xl mx-auto px-6">
         <motion.div {...fadeIn(0.12)} className="flex justify-center mb-6">
           <Image
@@ -65,15 +61,13 @@ export function Hero() {
           />
         </motion.div>
 
-        {/* Eyebrow */}
         <motion.p
           {...fadeIn(0.4)}
           className="font-ui text-[11px] tracking-[0.3em] uppercase text-gold"
         >
-          MİRON — AVUKATLARIN YANINDA, DOSYADA NETLİK SUNAN SİSTEM
+          MİRON — KİŞİSEL AVUKATLAR İÇİN NETLİK VE DENGELİ TEMPO
         </motion.p>
 
-        {/* H1 word-by-word */}
         <motion.h1
           variants={wordContainer}
           initial="hidden"
@@ -93,32 +87,30 @@ export function Hero() {
           ))}
         </motion.h1>
 
-        {/* Sub */}
         <motion.p
           {...fadeIn(1.1)}
           className="font-ui font-light text-[clamp(14px,1.5vw,17px)] text-muted max-w-[580px] mx-auto leading-[1.7] mt-7"
         >
-          Deneyimli avukatlar artık saatlerce dosya okumakla yetinmiyor.
+          Deneyimli avukatlar artık yalnızca saatlerce dosya okumakla yetinmiyor.
           <br />
-          Rutinini sistemle destekliyor, karara odaklanıyor.
+          Rutinini sistemle destekliyor, müvekkile ve kendine zaman ayırıyor.
         </motion.p>
 
-        {/* Filter box */}
         <motion.div
           {...fadeIn(1.3)}
           className="border border-border px-[28px] py-[22px] max-w-[620px] mx-auto mt-9"
         >
           <p className="font-ui text-[13px] text-muted leading-relaxed">
-            Öncelikle kişisel ve bağımsız avukatlar için düşünüldü; büro ekibiyle
-            paylaşılabilir.{' '}
-            <span className="text-text font-medium">Disiplinli çalışmak</span>
+            Öncelikle{' '}
+            <span className="text-text font-medium">kişisel ve bağımsız avukatlar</span>
+            {' '}için tasarlandı; küçük ekiplerle paylaşılabilir. Agresif rekabet retoriği yerine,
+            <span className="text-text font-medium"> disiplinli çalışma</span>
             {' '}ve{' '}
-            <span className="text-text font-medium">müvekkiline süre kazanarak değer katmak</span>
-            {' '}isteyen meslektaşlar için tasarlandı.
+            <span className="text-text font-medium">sürdürülebilir tempo</span>
+            {' '}isteyen meslektaşlar için.
           </p>
         </motion.div>
 
-        {/* CTAs */}
         <motion.div
           {...fadeIn(1.5)}
           className="flex gap-4 justify-center flex-wrap mt-12"
@@ -136,7 +128,6 @@ export function Hero() {
             Sistemi incele
           </a>
         </motion.div>
-
       </div>
     </section>
   )

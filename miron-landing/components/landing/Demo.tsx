@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Upload } from 'lucide-react'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { Container } from '@/components/ui/Container'
 import { Reveal } from '@/components/ui/Reveal'
@@ -64,7 +63,9 @@ export function Demo() {
     }, 2500)
   }
 
-  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current) }, [])
+  useEffect(() => () => {
+    if (intervalRef.current) clearInterval(intervalRef.current)
+  }, [])
 
   return (
     <section id="kanit" className="py-[120px] border-t border-border">
@@ -77,14 +78,12 @@ export function Demo() {
             {' '}görün.
           </h2>
           <p className="font-ui text-[15px] text-muted max-w-[520px] mb-16">
-            Saatler süren ön analiz, 90 saniyede bitiyor. Bu sadece yüzey katmanı.
+            Saatler süren ön analiz, dakikalara iniyor. Bu sadece yüzey katmanı.
           </p>
         </Reveal>
 
         <Reveal>
           <div className="max-w-[720px] mx-auto bg-surface border border-border overflow-hidden rounded-lg">
-
-            {/* Toolbar */}
             <div className="bg-surface-2 border-b border-border py-3 px-5 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#cc3333]" />
               <span className="w-2 h-2 rounded-full bg-gold" />
@@ -92,19 +91,17 @@ export function Demo() {
               <span className="ml-auto font-ui text-[11px] text-muted">Miron — Canlı Analiz</span>
             </div>
 
-            {/* Body */}
             <div className="p-10">
-
               {phase === 'idle' && (
                 <button
                   type="button"
                   onClick={startSimulation}
-                  className="w-full border border-dashed border-border p-11 text-center hover:border-gold transition-colors duration-200 cursor-pointer"
+                  className="w-full border border-dashed border-border p-11 text-center hover:border-gold transition-colors duration-200 cursor-pointer bg-transparent"
                 >
-                  <Upload size={24} className="text-muted opacity-30 mx-auto mb-4" />
                   <p className="font-ui text-[13px] text-muted mb-6">
                     Canlı analiz akışını görmek için{' '}
-                    <span className="text-gold">çalıştırın</span>.
+                    <span className="text-gold">Çalıştır</span>
+                    {' '}aşamasına geçin.
                   </p>
                   <span className="inline-block bg-gold text-bg font-ui text-[11px] tracking-[0.18em] uppercase font-medium px-7 py-3 hover:opacity-85 transition-opacity">
                     Çalıştır
@@ -125,9 +122,7 @@ export function Demo() {
                       className="absolute left-0 top-0 h-full w-full bg-gold"
                     />
                   </div>
-                  <p className="font-ui text-[12px] text-muted mt-4">
-                    {STATUS[statusIdx]}
-                  </p>
+                  <p className="font-ui text-[12px] text-muted mt-4">{STATUS[statusIdx]}</p>
                 </div>
               )}
 
@@ -157,7 +152,6 @@ export function Demo() {
                   </p>
                 </div>
               )}
-
             </div>
           </div>
         </Reveal>

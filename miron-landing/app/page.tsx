@@ -1,3 +1,4 @@
+import { Preload } from '@/components/landing/Preload'
 import { Nav } from '@/components/landing/Nav'
 import { Hero } from '@/components/landing/Hero'
 import { Mirror } from '@/components/landing/Mirror'
@@ -21,6 +22,7 @@ import { Footer } from '@/components/landing/Footer'
 export default function Home() {
   return (
     <>
+      <Preload />
       <Nav />
       <main>
         <Hero />

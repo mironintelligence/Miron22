@@ -2,6 +2,7 @@
 
 import { Reveal } from '@/components/ui/Reveal'
 import { Container } from '@/components/ui/Container'
+import { appUrl } from '@/lib/appUrl'
 
 export function Closing() {
   return (
@@ -36,8 +37,9 @@ export function Closing() {
         <Reveal delay={0.3}>
           <div className="flex gap-4 justify-center flex-wrap">
             <a
-              href="#yatirim"
-              className="bg-gold text-bg font-ui font-medium text-[11px] tracking-[0.18em] uppercase px-[34px] py-[15px] hover:opacity-85 transition-opacity"
+              href={appUrl('/kaydol')}
+              className="bg-gold text-bg font-ui font-medium text-[11px] tracking-[0.18em] uppercase px-[34px] py-[15px] hover:opacity-85 transition-opacity no-underline"
+              style={{ textDecoration: 'none' }}
             >
               Kurucu fiyatı kilitle →
             </a>

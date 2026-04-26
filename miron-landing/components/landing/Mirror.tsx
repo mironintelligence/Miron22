@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { SectionTag } from '@/components/ui/SectionTag'
 import { Container } from '@/components/ui/Container'
-import { Reveal, Stagger } from '@/components/ui/Reveal'
+import { Reveal } from '@/components/ui/Reveal'
 
 const WINNERS = [
   'Dosya bir dakikada özetlenir',
