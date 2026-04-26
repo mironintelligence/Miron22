@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes gold-underline {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+.animate-gold-underline {
+  animation: gold-underline 0.8s ease-out 0.5s both;
+}
+
 /* ---------- Miron Assistant Animations ---------- */
 @keyframes miron-cursor-blink {
   0%, 100% { opacity: 1; }

@@ -80,9 +80,12 @@ export default function App() {
 
   const fullscreenRoute = location.pathname === "/dashboard/assistant";
 
+  const landingShell = location.pathname === "/" || location.pathname === "/login";
+
   const hideFlowPageFooter =
     fullscreenRoute ||
     location.pathname === "/login" ||
+    location.pathname === "/" ||
     location.pathname.startsWith("/legal/");
 
   /** Giriş sonrası sabit uyarı çubuğu; ana menü (/dashboard) ve tam ekran asistan hariç. */
@@ -97,7 +100,7 @@ export default function App() {
 
   return (
     <div className={fullscreenRoute ? "h-screen w-screen overflow-hidden bg-black text-white" : "min-h-screen bg-black text-white"}>
-      {!fullscreenRoute && <Navbar />}
+      {!fullscreenRoute && !landingShell && <Navbar />}
       <LegalAcceptanceModal
         open={status === "authed" && !!legalPending}
         pendingDocuments={legalPending}
@@ -128,7 +131,7 @@ export default function App() {
 
       <div
         className={`${fullscreenRoute ? "h-screen w-screen overflow-hidden" : ""} ${showAuthedAiDisclaimerBar ? "pb-16 sm:pb-[4.5rem]" : ""}`}
-        style={fullscreenRoute ? {} : { paddingTop: 68 }}
+        style={fullscreenRoute || landingShell ? {} : { paddingTop: 68 }}
       >
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
