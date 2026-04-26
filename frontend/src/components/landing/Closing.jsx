@@ -15,7 +15,7 @@ export function Closing() {
       <Container className="relative z-10">
         <Reveal>
           <p className="font-display text-[clamp(26px,3.8vw,50px)] font-light text-white">
-            Bazı bürolar önümüzdeki 3 yılda ayrılacak.
+            Bazı avukatlar önümüzdeki 3 yılda ayrılacak.
           </p>
         </Reveal>
         <Reveal delay={0.1}>
@@ -39,7 +39,7 @@ export function Closing() {
               Sistemi incele
             </a>
           </div>
-          <p className="font-ui text-[11px] tracking-[0.2em] uppercase text-danger mt-14">Bu ay için 4 büro kontenjanı kaldı.</p>
+          <p className="font-ui text-[11px] tracking-[0.2em] uppercase text-danger mt-14">Bu ay için sınırlı kontenjan.</p>
         </Reveal>
       </Container>
     </section>

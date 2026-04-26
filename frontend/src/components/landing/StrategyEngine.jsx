@@ -43,7 +43,7 @@ export function StrategyEngine() {
     <section className="py-[120px] border-t border-border">
       <Container>
         <Reveal>
-          <SectionTag num="07" text="STRATEJİ" />
+          <SectionTag text="STRATEJİ" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4">
             Her dosyada{' '}
             <span className="italic text-gold">ikinci bir beyin</span>.

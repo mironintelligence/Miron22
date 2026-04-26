@@ -21,7 +21,7 @@ export function Roi() {
     <section className="bg-surface border-y border-border py-[120px]">
       <Container>
         <Reveal>
-          <SectionTag num="10" text="HESAP" />
+          <SectionTag text="HESAP" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4">
             Zamanınız{' '}
             <span className="italic text-gold">haftada 88.000₺ ediyor</span>.
@@ -39,7 +39,7 @@ export function Roi() {
             <div className="border-b border-border p-5 flex items-center gap-3">
               <span className="w-2 h-2 bg-gold rounded-full animate-pulse" />
               <span className="font-ui text-[11px] tracking-[0.22em] uppercase text-gold">
-                ORTALAMA BÜRO — HAFTALIK KAYIP ANALİZİ
+                ÖRNEK SENARYO — HAFTALIK KAYIP ANALİZİ
               </span>
             </div>
 

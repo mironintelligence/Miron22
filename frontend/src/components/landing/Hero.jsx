@@ -55,7 +55,7 @@ export function Hero() {
           {...fadeIn(0.4)}
           className="font-ui text-[11px] tracking-[0.3em] uppercase text-gold"
         >
-          MİRON — TÜRKİYE'NİN EN AGRESİF HUKUK BÜROLARININ SİSTEMİ
+          MİRON — KİŞİSEL AVUKATLAR İÇİN NETLİK, TEMPO VE GÜVEN
         </motion.p>
 
         <motion.h1
@@ -79,9 +79,9 @@ export function Hero() {
           {...fadeIn(1.1)}
           className="font-ui font-light text-[clamp(14px,1.5vw,17px)] text-muted max-w-[580px] mx-auto leading-[1.7] mt-7"
         >
-          Üst düzey bürolar artık saatlerce dosya okumuyor.
+          Disiplinli avukatlar artık saatlerce dosya okumuyor.
           <br />
-          Sistem kurdular. Kazanıyorlar.
+          Sistem kuruyorlar. Kazanıyorlar.
         </motion.p>
 
         <motion.div
@@ -89,13 +89,11 @@ export function Hero() {
           className="border border-border px-[28px] py-[22px] max-w-[620px] mx-auto mt-9"
         >
           <p className="font-ui text-[13px] text-muted leading-relaxed">
-            Bu sistem sıradan bürolar için değil.{' '}
-            <span className="text-white font-medium">Bölgesinde rakiplerini bıraktırmış</span>
+            Bu sistem sıradan pratikler için değil.{' '}
+            <span className="text-white font-medium">Kendi ofisinde sözü geçen</span>
             {' '}ve{' '}
-            <span className="text-white font-medium">
-              Türkiye'nin üst 100'ü içinde yer almayı hedefleyen
-            </span>
-            {' '}ekipler için tasarlandı.
+            <span className="text-white font-medium">ülke genelinde görünürlük hedefleyen</span>
+            {' '}avukatlar için tasarlandı.
           </p>
         </motion.div>
 

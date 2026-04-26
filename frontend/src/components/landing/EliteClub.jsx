@@ -7,7 +7,7 @@ export function EliteClub() {
     <section id="uygunluk" className="py-[120px] border-t border-border">
       <Container>
         <Reveal>
-          <SectionTag num="13" text="SEÇİM" />
+          <SectionTag text="SEÇİM" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-5 text-white">
             Bu sistem <span className="italic text-gold">herkese açık değil</span>.
           </h2>
@@ -25,11 +25,11 @@ export function EliteClub() {
                 I
               </span>
               <h3 className="font-sub font-bold text-[22px] mb-5 leading-snug text-white relative">
-                Bölgesini kilitlemiş bürolar
+                Kendi pratiğinde sözü geçen avukatlar
               </h3>
               <p className="font-ui font-light text-[13px] text-muted leading-loose relative">
-                Kendi bölgesinde rakip bırakmamış ekipler. Bu pozisyon tesadüf değil — sistem kurmuş olmanın sonucu. Sistemi
-                büyütüp savunmak için geliyorlar.
+                Bölgesinde güvenilir ve düzenli çalışan meslektaşlar. İş yükünü dengelemek ve müvekkile süre kazandırmak
+                için sistemi derinlemesine kullanmak isteyenler.
               </p>
             </div>
           </Reveal>
@@ -40,11 +40,11 @@ export function EliteClub() {
                 II
               </span>
               <h3 className="font-sub font-bold text-[22px] mb-5 leading-snug text-white relative">
-                Ulusal ölçeğe çıkanlar
+                Ülke çapında görünürlük hedefleyenler
               </h3>
               <p className="font-ui font-light text-[13px] text-muted leading-loose relative">
-                Türkiye&apos;nin ilk 100 bürosunu hedefleyen ekipler. Farklı şehirde büro açmak değil — farklı bir disiplin
-                kurmak gerektiğini anlayanlar.
+                Tek başına veya küçük ekiple ülke genelinde dosya yürüten avukatlar. Disiplin ve tekrar edilebilir süreç
+                kurmanın önemini bilenler.
               </p>
             </div>
           </Reveal>

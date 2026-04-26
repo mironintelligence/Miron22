@@ -35,7 +35,7 @@ export function Gap() {
   return (
     <section className="bg-surface border-y border-border py-[120px] text-center">
       <Container>
-        <SectionTag num="03" text="KIRILMA NOKTASI" center />
+        <SectionTag text="KIRILMA NOKTASI" center />
 
         <div
           ref={ref}

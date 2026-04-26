@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { FileText, ScrollText, AlertTriangle, Brain } from 'lucide-react'
+import { FileText, ScrollText, AlertTriangle, Shield } from 'lucide-react'
 import { SectionTag } from './SectionTag'
 import { Container } from './Container'
 import { Reveal, Stagger } from './Reveal'
@@ -21,9 +21,9 @@ const CARDS = [
     desc: 'Herhangi bir belgede risk, yükümlülük ve kritik tarih tek ekranda.',
   },
   {
-    Icon: Brain,
-    title: 'Sistem büronuzu öğrenir',
-    desc: 'Her kullanımda büronuzun kalıplarını öğrenir. Zamanla daha keskinleşir.',
+    Icon: Shield,
+    title: 'Tamamen bir kasa',
+    desc: 'Hiçbir dosya kalıcı kaydedilmez; LLM eğitimi için kullanılmaz. İçerik kısa süreli bellekte tutulur, işlem sonunda silinir.',
   },
 ]
 
@@ -32,7 +32,7 @@ export function Automation() {
     <section className="bg-surface border-y border-border py-[120px]">
       <Container>
         <Reveal>
-          <SectionTag num="08" text="OTOMASYON" />
+          <SectionTag text="OTOMASYON" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4">
             Operasyon avukatı yavaşlatmamalı.
             <br />

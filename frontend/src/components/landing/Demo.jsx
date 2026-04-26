@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Upload } from 'lucide-react'
 import { SectionTag } from './SectionTag'
 import { Container } from './Container'
 import { Reveal } from './Reveal'
@@ -66,7 +65,7 @@ export function Demo() {
     <section id="kanit" className="py-[120px] border-t border-border">
       <Container>
         <Reveal>
-          <SectionTag num="04" text="KANIT" />
+          <SectionTag text="KANIT" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4">
             Sistemi{' '}
             <span className="italic text-gold">çalışırken</span>
@@ -90,13 +89,9 @@ export function Demo() {
             <div className="p-10">
 
               {phase === 'idle' && (
-                <div className="border border-dashed border-border p-11 text-center hover:border-gold transition-colors duration-200 cursor-pointer">
-                  <Upload size={24} className="text-muted opacity-30 mx-auto mb-4" />
-                  <p className="font-ui text-[13px] text-muted mb-6">
-                    Dosya yükleyin veya{' '}
-                    <span className="text-gold">simülasyonu başlatın</span>
-                  </p>
+                <div className="border border-dashed border-border p-11 text-center hover:border-gold transition-colors duration-200">
                   <button
+                    type="button"
                     onClick={startSimulation}
                     className="bg-gold text-bg font-ui text-[11px] tracking-[0.18em] uppercase font-medium px-7 py-3 hover:opacity-85 transition-opacity"
                   >

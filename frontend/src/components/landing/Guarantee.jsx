@@ -9,7 +9,7 @@ export function Guarantee() {
     <section className="py-[120px] border-t border-border text-center">
       <Container>
         <Reveal>
-          <SectionTag num="16" text="TAAHHÜT" center />
+          <SectionTag text="TAAHHÜT" center />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4 text-white">
             30 günde <span className="italic text-gold">fark görmezseniz</span>, tam iade.
           </h2>

@@ -52,7 +52,7 @@ export function Stats() {
     <section className="py-[120px] border-t border-border">
       <Container>
         <Reveal>
-          <SectionTag num="11" text="ÖLÇÜM" />
+          <SectionTag text="ÖLÇÜM" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-12">
             Sistem{' '}
             <span className="italic text-gold">ölçülmüş sonuç</span>
@@ -64,7 +64,7 @@ export function Stats() {
           <div className="max-w-[600px] mx-auto border border-border p-4 text-center mb-12">
             <p className="font-ui text-[12px] text-muted tracking-[0.1em]">
               Şu anda{' '}
-              <span className="text-gold font-medium">47 büro</span>
+              <span className="text-gold font-medium">47 avukat</span>
               {' '}bu sistemi aktif kullanıyor.
             </p>
           </div>

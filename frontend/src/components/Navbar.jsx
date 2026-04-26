@@ -95,12 +95,53 @@ export default function Navbar() {
           style={{ maxWidth: 1200, padding: "0 40px", height: 64 }}
         >
           <div className="flex items-center gap-4 flex-wrap">
-            <Link to="/" className="no-underline" style={{ textDecoration: "none" }}>
+            <Link to="/" className="no-underline flex items-center gap-2" style={{ textDecoration: "none" }}>
+              <img src="/miron-logo.png" alt="Miron" width={28} height={28} className="object-contain shrink-0" />
               <BrandMark />
             </Link>
           </div>
 
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-5">
+            {location.pathname === "/" ? (
+              <>
+                <a
+                  href="#sistem"
+                  className="dash-font-sans no-underline transition-colors uppercase"
+                  style={{ fontSize: 11, letterSpacing: "0.14em", color: "#555", textDecoration: "none" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#ccc")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
+                >
+                  Sistem
+                </a>
+                <a
+                  href="#mimari"
+                  className="dash-font-sans no-underline transition-colors uppercase"
+                  style={{ fontSize: 11, letterSpacing: "0.14em", color: "#555", textDecoration: "none" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#ccc")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
+                >
+                  Mimari
+                </a>
+                <a
+                  href="#guvenlik"
+                  className="dash-font-sans no-underline transition-colors uppercase"
+                  style={{ fontSize: 11, letterSpacing: "0.14em", color: "#555", textDecoration: "none" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#ccc")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
+                >
+                  Güvenlik
+                </a>
+                <a
+                  href="#yatirim"
+                  className="dash-font-sans no-underline transition-colors uppercase"
+                  style={{ fontSize: 11, letterSpacing: "0.14em", color: "#555", textDecoration: "none" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#ccc")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "#555")}
+                >
+                  Yatırım
+                </a>
+              </>
+            ) : null}
             <Link
               to="/about"
               className="dash-font-sans no-underline transition-colors"

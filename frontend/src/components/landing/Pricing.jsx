@@ -5,7 +5,7 @@ import { Container } from './Container'
 import { Reveal } from './Reveal'
 
 const FEATURES = [
-  'Sınırsız kullanıcı (büro genelinde)',
+  'Sınırsız kullanıcı (hesabınızda)',
   '10 modülün tamamı, sınırsız kullanım',
   'Sınırsız dosya ve analiz hakkı',
   'Yargıtay & Danıştay emsal tarama',
@@ -20,7 +20,7 @@ export function Pricing() {
     <section id="yatirim" className="py-[120px] border-t border-border">
       <Container>
         <Reveal>
-          <SectionTag num="15" text="YATIRIM" />
+          <SectionTag text="YATIRIM" />
           <h2 className="font-display text-[clamp(28px,4vw,54px)] leading-[1.15] mb-4 text-white">
             Bu bir abonelik değil.
             <br />
@@ -99,7 +99,7 @@ export function Pricing() {
 
         <Reveal delay={0.2}>
           <p className="max-w-[580px] mx-auto mt-8 text-center font-ui text-[11px] text-muted leading-relaxed">
-            Her başvuru değerlendirilir. Kabul oranı %22. Kabul edilmeyen bürolara başvuru süreci boyunca ücret alınmaz.
+            Her başvuru değerlendirilir. Kabul oranı %22. Kabul edilmeyen başvurulara süreç boyunca ücret alınmaz.
           </p>
         </Reveal>
       </Container>
