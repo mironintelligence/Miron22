@@ -90,14 +90,14 @@ export default function IntroLanding() {
               to="/kaydol"
               className="group relative px-10 py-5 bg-white text-black font-bold rounded-full overflow-hidden hover:scale-105 transition-transform duration-300"
             >
-              <span className="relative z-10">15 günlük ücretsiz deneme</span>
+              <span className="relative z-10">Kayıt ol</span>
               <div className="absolute inset-0 bg-[var(--miron-gold)] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
             </Link>
             <Link
               to="/kaydol"
               className="px-10 py-5 bg-transparent border border-white/10 text-white font-bold rounded-full hover:bg-white/5 transition-all hover:border-white/30"
             >
-              Kaydol
+              Uygunluk testi
             </Link>
           </motion.div>
         </div>
@@ -424,12 +424,9 @@ export default function IntroLanding() {
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-16 md:mt-20 pt-10 md:pt-12 border-t border-white/10 flex flex-col items-center gap-4">
+        <div className="max-w-7xl mx-auto mt-16 md:mt-20 pt-10 md:pt-12 border-t border-white/10 flex flex-col items-center gap-3">
           <SiteLegalCompanyLine className="text-sm !text-white/55" />
           <p className="text-[12px] text-white/30 text-center tracking-wide">All rights reserved.</p>
-          <p className="text-center text-sm md:text-[15px] text-amber-200/50 max-w-2xl mx-auto leading-relaxed mt-4 px-2">
-            Yapay zekâ çıktıları hatalı veya eksik olabilir. Önemli hukuki kararlardan önce bilgiyi mutlaka doğrulayın.
-          </p>
         </div>
       </footer>
 

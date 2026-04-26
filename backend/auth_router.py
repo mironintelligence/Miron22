@@ -45,6 +45,7 @@ from legal_compliance import document_version_hash, luhn_valid, card_last_four
 from services.legal_cms_service import insert_acceptances as insert_user_legal_acceptances
 from system_runtime import maintenance_mode_enabled
 from supabase_password_login import try_supabase_password_login
+from supabase_jwt import decode_supabase_access_token
 
 try:
     from services.pricing_service import find_valid_discount, increment_usage
@@ -80,7 +81,7 @@ class CardPayload(BaseModel):
 class CompleteRegistrationRequest(BaseModel):
     firstName: str = Field(min_length=1, max_length=64)
     lastName: str = Field(min_length=1, max_length=64)
-    mode: Optional[str] = Field(default="single", pattern="^(single|demo)$", max_length=16)
+    mode: Optional[str] = Field(default="single", pattern="^single$", max_length=16)
     discountCode: Optional[str] = Field(default=None, max_length=64)
     consents: ConsentPayload
     card: Optional[CardPayload] = None
@@ -88,7 +89,29 @@ class CompleteRegistrationRequest(BaseModel):
 
 import secrets
 from db import get_db_cursor
-from services.mail_service import send_reset_password_email
+from services.mail_service import send_reset_password_email, send_password_reset_otp_email
+
+
+def _register_requires_supabase_jwt() -> bool:
+    return (os.getenv("MIRON_REGISTER_REQUIRES_SUPABASE", "").strip().lower() in ("1", "true", "yes"))
+
+
+def _supabase_jwt_email(request: Request) -> str:
+    raw = (request.headers.get("authorization") or "").strip()
+    if not raw.lower().startswith("bearer "):
+        return ""
+    tok = raw[7:].strip()
+    if not tok:
+        return ""
+    try:
+        claims = decode_supabase_access_token(tok)
+        return str(claims.get("email") or "").strip().lower()
+    except Exception:
+        return ""
+
+
+def _norm_name_part(s: str) -> str:
+    return " ".join((s or "").strip().lower().split())
 
 
 def _permissions_for_user_row(u: Dict[str, Any]) -> list:
@@ -149,11 +172,6 @@ def complete_registration(
         used_code = dc["code"]
 
     role = "user"
-    demo_expires_at = None
-    if payload.mode == "demo":
-        demo_days = int(os.getenv("DEMO_ACCOUNT_DAYS", "15"))
-        demo_expires_at = datetime.now(timezone.utc) + timedelta(days=demo_days)
-        role = "demo"
 
     payment_on_file = bool(payload.card and payload.card.number and luhn_valid(payload.card.number))
 
@@ -165,8 +183,6 @@ def complete_registration(
     }
     if used_code:
         fields["used_discount_code"] = used_code
-    if demo_expires_at is not None:
-        fields["demo_expires_at"] = demo_expires_at
 
     if payload.mode == "single":
         fields["trial_ends_at"] = datetime.now(timezone.utc) + timedelta(days=15)
@@ -253,36 +269,119 @@ def verify_email_endpoint(token: str = Body(..., embed=True)):
 
 
 class ForgotPasswordBody(BaseModel):
-    # EmailStr validates format server-side and rejects header-injection
-    # payloads (e.g. "a@b\r\nBcc: attacker@x"). The previous endpoint took a
-    # raw str and forwarded it straight into the SMTP pipeline.
     email: EmailStr
+    firstName: str = Field(..., min_length=1, max_length=64)
+    lastName: str = Field(..., min_length=1, max_length=64)
 
 
 @router.post("/forgot-password")
 def forgot_password(body: ForgotPasswordBody):
     email_norm = str(body.email).strip().lower()
     user = find_user_by_email(email_norm)
-    # Always respond with the same generic message to prevent account
-    # enumeration. The caller cannot distinguish "no such email" from
-    # "email sent".
-    generic = {"status": "ok", "message": "Eğer kayıtlıysa şifre sıfırlama bağlantısı gönderildi."}
+    generic = {
+        "status": "ok",
+        "message": "Bilgiler kayıtlı bir hesapla eşleşirse e-postanıza 12 haneli doğrulama kodu gönderilir.",
+    }
     if not user:
         return generic
+
+    row_fn = str(user.get("first_name") or user.get("firstName") or "")
+    row_ln = str(user.get("last_name") or user.get("lastName") or "")
+    if _norm_name_part(row_fn) != _norm_name_part(body.firstName) or _norm_name_part(row_ln) != _norm_name_part(body.lastName):
+        return generic
+
+    key = (os.getenv("DATA_HASH_KEY") or "").strip()
+    if not key:
+        return generic
+
+    code = f"{secrets.randbelow(10**12):012d}"
+    otp_hash = hmac_hash(code, key)
+    with get_db_cursor() as cur:
+        cur.execute(
+            """
+            UPDATE users SET
+              password_reset_otp_hash = %s,
+              password_reset_otp_expires = NOW() + INTERVAL '15 minutes',
+              reset_password_token = NULL,
+              reset_password_expires_at = NULL
+            WHERE id = %s
+            """,
+            (otp_hash, user["id"]),
+        )
+
+    try:
+        send_password_reset_otp_email(email_norm, code)
+    except Exception:
+        pass
+    return generic
+
+
+class VerifyForgotOtpBody(BaseModel):
+    email: EmailStr
+    code: str = Field(..., min_length=6, max_length=32)
+
+
+@router.post("/verify-forgot-otp")
+def verify_forgot_otp(body: VerifyForgotOtpBody):
+    email_norm = str(body.email).strip().lower()
+    digits = re.sub(r"\D", "", body.code or "")
+    if len(digits) != 12:
+        raise HTTPException(status_code=400, detail="Kod 12 haneli olmalıdır.")
+
+    user = find_user_by_email(email_norm)
+    if not user:
+        raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş kod.")
+
+    key = (os.getenv("DATA_HASH_KEY") or "").strip()
+    if not key:
+        raise HTTPException(status_code=503, detail="Sunucu yapılandırması eksik.")
+
+    otp_hash = hmac_hash(digits, key)
+    uid = str(user.get("id") or "")
+    with get_db_cursor() as cur:
+        cur.execute(
+            """
+            SELECT password_reset_otp_hash, password_reset_otp_expires
+            FROM users WHERE id = %s
+            """,
+            (uid,),
+        )
+        row = cur.fetchone()
+    if not row or not row.get("password_reset_otp_hash"):
+        raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş kod.")
+    exp = row.get("password_reset_otp_expires")
+    exp_dt: Optional[datetime] = None
+    if isinstance(exp, datetime):
+        exp_dt = exp
+    elif isinstance(exp, str) and exp.strip():
+        try:
+            exp_dt = datetime.fromisoformat(exp.strip().replace("Z", "+00:00"))
+        except ValueError:
+            exp_dt = None
+    if exp_dt is not None and exp_dt.tzinfo is None:
+        exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+    if exp_dt is None or exp_dt < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş kod.")
+    if str(row.get("password_reset_otp_hash") or "") != otp_hash:
+        raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş kod.")
 
     reset_token = secrets.token_urlsafe(32)
     with get_db_cursor() as cur:
         cur.execute(
-            "UPDATE users SET reset_password_token = %s, reset_password_expires_at = NOW() + INTERVAL '1 hour' WHERE id = %s",
-            (reset_token, user["id"]),
+            """
+            UPDATE users SET
+              reset_password_token = %s,
+              reset_password_expires_at = NOW() + INTERVAL '1 hour',
+              password_reset_otp_hash = NULL,
+              password_reset_otp_expires = NULL
+            WHERE id = %s AND password_reset_otp_hash = %s
+            """,
+            (reset_token, uid, otp_hash),
         )
+        if cur.rowcount != 1:
+            raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş kod.")
 
-    try:
-        send_reset_password_email(email_norm, reset_token)
-    except Exception:
-        # Do not leak SMTP failures to the caller — log internally only.
-        pass
-    return generic
+    return {"status": "ok", "reset_token": reset_token}
 
 
 def _validate_password_complexity(password: str) -> str:
@@ -325,7 +424,23 @@ def reset_password_endpoint(body: ResetPasswordBody):
     if not u:
         raise HTTPException(status_code=400, detail="Geçersiz veya süresi dolmuş token.")
 
-    update_password(str(u["id"]), hash_password(body.new_password))
+    uid = str(u["id"])
+    update_password(uid, hash_password(body.new_password))
+    try:
+        with get_db_cursor() as cur:
+            cur.execute(
+                """
+                UPDATE users SET
+                  reset_password_token = NULL,
+                  reset_password_expires_at = NULL,
+                  password_reset_otp_hash = NULL,
+                  password_reset_otp_expires = NULL
+                WHERE id = %s
+                """,
+                (uid,),
+            )
+    except Exception:
+        pass
     return {"status": "ok", "message": "Şifreniz başarıyla güncellendi."}
 
 
@@ -370,10 +485,32 @@ class RegisterRequest(BaseModel):
     consents: Optional[Dict[str, Any]] = None
     card: Optional[Dict[str, Any]] = None
     accepted_terms_and_privacy: bool = False
+    phone: Optional[str] = Field(default=None, max_length=32)
+    city: Optional[str] = Field(default=None, max_length=128)
+    law_firm: Optional[str] = Field(default=None, max_length=256)
+    registration_plan: Optional[str] = Field(default=None, max_length=32)
 
     @validator("password")
     def _validate_register_password(cls, v):
         return _validate_password_complexity(v)
+
+    @validator("mode")
+    def _validate_mode(cls, v):
+        if v is None or str(v).strip() == "":
+            return "single"
+        vv = str(v).strip().lower()
+        if vv not in ("single", "multi"):
+            raise ValueError("Geçersiz kayıt modu.")
+        return vv
+
+    @validator("registration_plan")
+    def _validate_plan(cls, v):
+        if v is None or str(v).strip() == "":
+            return None
+        vv = str(v).strip().lower()
+        if vv not in ("legal", "enterprise"):
+            raise ValueError("Geçersiz plan.")
+        return vv
 
 
 class LoginRequest(BaseModel):
@@ -393,19 +530,46 @@ def register_account(payload: RegisterRequest, request: Request):
             status_code=400,
             detail="Kullanım Şartları ve Gizlilik Politikası kabul edilmelidir.",
         )
+    if _register_requires_supabase_jwt():
+        jwt_em = _supabase_jwt_email(request)
+        if not jwt_em or jwt_em != email_norm:
+            raise HTTPException(
+                status_code=401,
+                detail="E-posta doğrulaması tamamlanmalıdır (Supabase oturumu gerekli).",
+            )
+
+    plan = (payload.registration_plan or "").strip().lower()
+    if plan == "legal":
+        if not (payload.phone or "").strip() or not (payload.city or "").strip() or not (payload.law_firm or "").strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Miron AI Legal için telefon, şehir ve hukuk bürosu zorunludur.",
+            )
+
     fn = (payload.firstName or "").strip()
     ln = (payload.lastName or "").strip()
-    uid = create_user(
-        {
-            "email": email_norm,
-            "hashed_password": hash_password(payload.password),
-            "firstName": fn,
-            "lastName": ln,
-            "role": "user",
-            "is_active": True,
-            "is_verified": True,
-        }
-    )
+    row: Dict[str, Any] = {
+        "email": email_norm,
+        "hashed_password": hash_password(payload.password),
+        "firstName": fn,
+        "lastName": ln,
+        "role": "user",
+        "is_active": True,
+        "is_verified": True,
+    }
+    if (payload.phone or "").strip():
+        row["phone"] = (payload.phone or "").strip()
+    if (payload.city or "").strip():
+        row["city"] = (payload.city or "").strip()
+    if (payload.law_firm or "").strip():
+        row["law_firm"] = (payload.law_firm or "").strip()
+    if plan == "enterprise":
+        row["enterprise_inquiry"] = True
+        row["subscription_plan"] = "enterprise"
+    elif plan == "legal":
+        row["subscription_plan"] = "legal"
+
+    uid = create_user(row)
     ip, ua = client_meta(request)
     try:
         insert_user_legal_acceptances(str(uid), ["terms", "privacy"], "signup", ip, ua)

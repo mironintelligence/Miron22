@@ -34,6 +34,8 @@ DEFAULT_CONFIG = {
     "base_price": 6999.0,
     "discount_rate": 12.5,
     "bulk_threshold": 3,
+    "legal_list_price": 24000.0,
+    "legal_sale_price": 12000.0,
 }
 
 
@@ -41,7 +43,11 @@ def _load_config_from_db() -> Optional[Dict[str, Any]]:
     try:
         with get_db_cursor() as cur:
             cur.execute(
-                "SELECT base_price, discount_rate, bulk_threshold FROM pricing_settings WHERE id = 1 LIMIT 1"
+                """
+                SELECT base_price, discount_rate, bulk_threshold,
+                       legal_list_price, legal_sale_price
+                FROM pricing_settings WHERE id = 1 LIMIT 1
+                """
             )
             row = cur.fetchone()
             if not row:
@@ -50,6 +56,8 @@ def _load_config_from_db() -> Optional[Dict[str, Any]]:
                 "base_price": float(row.get("base_price") or DEFAULT_CONFIG["base_price"]),
                 "discount_rate": float(row.get("discount_rate") or DEFAULT_CONFIG["discount_rate"]),
                 "bulk_threshold": int(row.get("bulk_threshold") or DEFAULT_CONFIG["bulk_threshold"]),
+                "legal_list_price": float(row.get("legal_list_price") or 24000.0),
+                "legal_sale_price": float(row.get("legal_sale_price") or 12000.0),
             }
     except Exception:
         return None
@@ -59,18 +67,25 @@ def _save_config_to_db(config: Dict[str, Any]) -> None:
     with get_db_cursor() as cur:
         cur.execute(
             """
-            INSERT INTO pricing_settings (id, base_price, discount_rate, bulk_threshold, updated_at)
-            VALUES (1, %s, %s, %s, NOW())
+            INSERT INTO pricing_settings (
+              id, base_price, discount_rate, bulk_threshold,
+              legal_list_price, legal_sale_price, updated_at
+            )
+            VALUES (1, %s, %s, %s, %s, %s, NOW())
             ON CONFLICT (id) DO UPDATE SET
               base_price = EXCLUDED.base_price,
               discount_rate = EXCLUDED.discount_rate,
               bulk_threshold = EXCLUDED.bulk_threshold,
+              legal_list_price = EXCLUDED.legal_list_price,
+              legal_sale_price = EXCLUDED.legal_sale_price,
               updated_at = NOW()
             """,
             (
                 float(config["base_price"]),
                 float(config["discount_rate"]),
                 int(config["bulk_threshold"]),
+                float(config.get("legal_list_price") or 24000.0),
+                float(config.get("legal_sale_price") or 12000.0),
             ),
         )
 
@@ -79,6 +94,8 @@ class PricingConfig(BaseModel):
     base_price: float = Field(..., gt=0)
     discount_rate: float = Field(..., ge=0, le=100)
     bulk_threshold: int = Field(..., gt=1)
+    legal_list_price: float = Field(default=24000.0, gt=0)
+    legal_sale_price: float = Field(default=12000.0, gt=0)
 
 
 class CalculateRequest(BaseModel):
@@ -213,11 +230,15 @@ def get_public_pricing_settings():
     dr = float(cfg.get("discount_rate", DEFAULT_CONFIG["discount_rate"]))
     th = int(cfg.get("bulk_threshold", DEFAULT_CONFIG["bulk_threshold"]))
     unit_discounted = round(bp * (1 - dr / 100.0), 2)
+    ll = float(cfg.get("legal_list_price") or 24000.0)
+    ls = float(cfg.get("legal_sale_price") or 12000.0)
     return {
         "base_price": bp,
         "bulk_discount_rate": dr,
         "bulk_threshold": th,
         "bulk_discounted_unit_price": unit_discounted,
+        "legal_list_price": ll,
+        "legal_sale_price": ls,
     }
 
 

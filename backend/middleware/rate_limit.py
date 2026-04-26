@@ -99,6 +99,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             limit = 20 if is_test else 3
             window = 3600
             policy_name = "forgot_password"
+        elif path.endswith("/api/auth/verify-forgot-otp"):
+            limit = 30 if is_test else 10
+            window = 3600
+            policy_name = "verify_forgot_otp"
         elif path.endswith("/auth/reset-password") or path.endswith("/api/auth/reset-password"):
             limit = 30 if is_test else 5
             window = 3600

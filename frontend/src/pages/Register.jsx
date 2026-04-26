@@ -18,7 +18,7 @@ export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
 
-  const [mode, setMode] = useState("single"); // single | demo
+  const [mode, setMode] = useState("single");
   const [city, setCity] = useState("");
   const [firm, setFirm] = useState("");
 
@@ -138,10 +138,10 @@ export default function Register() {
 
     const normalizedDiscount = (discountCode || "").trim().toUpperCase();
     
-    const modeToSend = mode === "demo" ? "demo" : "single";
+    const modeToSend = "single";
 
     const payload =
-      (mode === "single" || mode === "demo")
+      mode === "single"
         ? {
             mode: modeToSend,
             count: 1,
@@ -228,11 +228,6 @@ export default function Register() {
               <input type="radio" name="mode" checked={mode === "single"} onChange={() => setMode("single")} />
               <span>Şahıs (tek kullanıcı)</span>
             </label>
-            <label className="flex items-center gap-2 mt-2">
-              <input type="radio" name="mode" checked={mode === "demo"} onChange={() => setMode("demo")} />
-              <span>Demo (onaylı)</span>
-            </label>
-
             <div className="mt-4">
               <div className="text-sm mb-1">Şehir (opsiyonel)</div>
               <input
@@ -255,7 +250,7 @@ export default function Register() {
           </div>
 
           <div className="md:col-span-2 glass p-4 rounded-xl">
-            {mode === "single" || mode === "demo" ? (
+            {mode === "single" ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm mb-1">

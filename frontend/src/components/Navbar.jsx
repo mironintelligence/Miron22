@@ -98,19 +98,6 @@ export default function Navbar() {
             <Link to="/" className="no-underline" style={{ textDecoration: "none" }}>
               <BrandMark />
             </Link>
-            <Link
-              to="/deneme-baslat"
-              className="dash-font-sans no-underline whitespace-nowrap transition-opacity"
-              style={{
-                fontSize: 11,
-                color: "#FFD700",
-                textDecoration: "none",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-            >
-              15 Günlük Deneme
-            </Link>
           </div>
 
           <div className="hidden md:flex items-center gap-6">
@@ -185,7 +172,7 @@ export default function Navbar() {
               onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
               onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
-              15 günlük ücretsiz deneme
+              Kayıt ol
             </Link>
             <Link
               to="/login"

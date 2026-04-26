@@ -42,8 +42,8 @@ export default function LoginModal({ open, onClose, onSuccess }) {
       onSuccess?.();
     } catch (err) {
       if (err?.code === "DEMO_EXPIRED") {
-        emitToast("Demo hesabınızın süresi doldu. Satın alma sayfasına yönlendiriliyorsunuz.", "error");
-        navigate("/pricing", { replace: true, state: { demoExpired: true } });
+        emitToast("Aboneliğinizin süresi doldu. Paketler için yönlendiriliyorsunuz.", "error");
+        navigate("/pricing", { replace: true });
         onClose?.();
         return;
       }

@@ -124,6 +124,8 @@ export default function AdminPanel() {
     base_price: 8000.0,
     discount_rate: 20.0,
     bulk_threshold: 3,
+    legal_list_price: 24000,
+    legal_sale_price: 12000,
   });
   
   // Forms
@@ -510,6 +512,8 @@ export default function AdminPanel() {
       base_price: Number(data?.base_price ?? 8000),
       discount_rate: Number(data?.discount_rate ?? 20),
       bulk_threshold: Number(data?.bulk_threshold ?? 3),
+      legal_list_price: Number(data?.legal_list_price ?? 24000),
+      legal_sale_price: Number(data?.legal_sale_price ?? 12000),
     });
   };
 
@@ -744,9 +748,17 @@ export default function AdminPanel() {
       base_price: Number(pricingDraft?.base_price),
       discount_rate: Number(pricingDraft?.discount_rate),
       bulk_threshold: Number(pricingDraft?.bulk_threshold),
+      legal_list_price: Number(pricingDraft?.legal_list_price),
+      legal_sale_price: Number(pricingDraft?.legal_sale_price),
     };
 
-    if (!Number.isFinite(payload.base_price) || !Number.isFinite(payload.discount_rate) || !Number.isFinite(payload.bulk_threshold)) {
+    if (
+      !Number.isFinite(payload.base_price) ||
+      !Number.isFinite(payload.discount_rate) ||
+      !Number.isFinite(payload.bulk_threshold) ||
+      !Number.isFinite(payload.legal_list_price) ||
+      !Number.isFinite(payload.legal_sale_price)
+    ) {
       showMsg("Fiyat/indirim/limit sayısal olmalı", "error");
       return;
     }
@@ -764,6 +776,8 @@ export default function AdminPanel() {
         base_price: Number(next?.base_price ?? payload.base_price),
         discount_rate: Number(next?.discount_rate ?? payload.discount_rate),
         bulk_threshold: Number(next?.bulk_threshold ?? payload.bulk_threshold),
+        legal_list_price: Number(next?.legal_list_price ?? payload.legal_list_price),
+        legal_sale_price: Number(next?.legal_sale_price ?? payload.legal_sale_price),
       });
     } else {
       showMsg(" Pricing ayarları güncellenemedi", "error");
@@ -1358,6 +1372,26 @@ export default function AdminPanel() {
                     onChange={(e) => setPricingDraft((p) => ({ ...(p || {}), bulk_threshold: e.target.value }))}
                   />
                 </div>
+                <div>
+                  <div className="text-zinc-400 text-xs uppercase tracking-wider mb-2">Miron Legal liste (TL)</div>
+                  <input
+                    type="number"
+                    step="1"
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    value={pricingDraft?.legal_list_price ?? 24000}
+                    onChange={(e) => setPricingDraft((p) => ({ ...(p || {}), legal_list_price: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <div className="text-zinc-400 text-xs uppercase tracking-wider mb-2">Miron Legal satış (TL)</div>
+                  <input
+                    type="number"
+                    step="1"
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    value={pricingDraft?.legal_sale_price ?? 12000}
+                    onChange={(e) => setPricingDraft((p) => ({ ...(p || {}), legal_sale_price: e.target.value }))}
+                  />
+                </div>
               </div>
               <div className="mt-5 flex justify-end">
                 <button
@@ -1407,7 +1441,6 @@ export default function AdminPanel() {
                       onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                     >
                       <option value="user">Normal User</option>
-                      <option value="demo">Demo User</option>
                       <option value="admin">Admin</option>
                     </select>
                     <select
@@ -1453,7 +1486,6 @@ export default function AdminPanel() {
                     >
                       <option value="">Tüm Roller</option>
                       <option value="user">User</option>
-                      <option value="demo">Demo</option>
                       <option value="admin">Admin</option>
                     </select>
                     <select
@@ -1502,7 +1534,6 @@ export default function AdminPanel() {
                         onChange={(e) => setBulk({ ...bulk, role: e.target.value })}
                       >
                         <option value="user">User</option>
-                        <option value="demo">Demo</option>
                         <option value="admin">Admin</option>
                       </select>
                     )}
@@ -1564,7 +1595,6 @@ export default function AdminPanel() {
                             className="bg-black border border-zinc-700 text-xs rounded p-2 text-zinc-300 outline-none focus:border-amber-500"
                           >
                             <option value="user">User</option>
-                            <option value="demo">Demo</option>
                             <option value="admin">Admin</option>
                           </select>
                         </td>

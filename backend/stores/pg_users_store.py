@@ -130,6 +130,9 @@ def create_user(user: Dict[str, Any]) -> str:
         "mfa_secret": "mfa_secret",
         "payment_card_on_file": "payment_card_on_file",
         "trial_ends_at": "trial_ends_at",
+        "phone": "phone",
+        "city": "city",
+        "law_firm": "law_firm",
     }
 
     with get_db_cursor() as cur:

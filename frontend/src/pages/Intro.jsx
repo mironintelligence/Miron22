@@ -1,55 +1,8 @@
 // src/pages/Intro.jsx
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-
-const API = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+import React from "react";
+import { Link } from "react-router-dom";
 
 export default function Intro() {
-  const [demo, setDemo] = useState({ name: "", email: "", city: "", office: "" });
-  const [sending, setSending] = useState(false);
-  const [msg, setMsg] = useState("");
-  const nav = useNavigate();
-
-  const handleDemoSubmit = async (e) => {
-    e.preventDefault();
-    setMsg("");
-    setSending(true);
-    try {
-      const fullName = (demo.name || "").trim();
-      const parts = fullName.split(/\s+/).filter(Boolean);
-      const firstName = parts[0] || "";
-      const lastName = parts.slice(1).join(" ") || "-";
-      const noteParts = [];
-      if (demo.city) noteParts.push(`Şehir: ${demo.city}`);
-      if (demo.office) noteParts.push(`Büro/Şirket: ${demo.office}`);
-      noteParts.push("Kaynak: Tanıtım sayfası demo formu");
-
-      const res = await fetch(`${API}/api/demo-request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: demo.email,
-          firstName,
-          lastName,
-          phone: null,
-          note: noteParts.join("\n"),
-        }),
-      });
-
-      if (res.ok) {
-        setMsg(" Demo talebiniz alındı. 24 saat içinde geri dönüş yapılacaktır.");
-        setDemo({ name: "", email: "", city: "", office: "" });
-      } else {
-        const t = await res.json().catch(() => ({}));
-        setMsg(t.detail || " Demo talebi gönderilemedi. Lütfen tekrar deneyin.");
-      }
-    } catch (err) {
-      setMsg(" Demo talebi gönderilemedi. Lütfen tekrar deneyin.");
-    } finally {
-      setSending(false);
-    }
-  };
-
   return (
     <div className="premium-scope min-h-screen flex items-center justify-center px-6 py-12">
       <div className="max-w-4xl w-full glass p-10">
@@ -57,73 +10,43 @@ export default function Intro() {
           <div className="flex-1">
             <h1 className="text-3xl font-bold mb-3 text-yellow-400">Miron AI — Hukuk İçin Stratejik Zekâ</h1>
             <p className="text-sm text-white/80 mb-6">
-              Evrak analizi, otomatik dilekçe, dava risk değerlendirmesi ve akıllı asistan ile işlerinizi hızlandırın.
-              Giriş yapmadığınız sürece ana menüye erişim engellenir. Demo isteği gönderin, 24 saatte geri döneriz.
+              Evrak analizi, dilekçe yardımı, dava risk değerlendirmesi ve akıllı asistan ile işlerinizi hızlandırın.
+              Kayıt akışıyla uygunluk sorularını tamamlayıp hesabınızı oluşturabilirsiniz.
             </p>
 
             <ul className="space-y-2 text-white/80 mb-6">
-              <li>• Evrak Analizi (PDF, DOCX, TXT)</li>
-              <li>• Otomatik Dilekçe Oluşturucu</li>
-              <li>• Risk & Kazanma Olasılığı Analizi</li>
-              <li>• Güvenli dosya işleme (kalıcı kayıt yok)</li>
+              <li>• Evrak analizi (PDF, DOCX, TXT)</li>
+              <li>• Belge stüdyosu ve dilekçe yardımı</li>
+              <li>• Risk ve strateji analizi</li>
+              <li>• Güvenli dosya işleme</li>
             </ul>
 
-            <div className="flex gap-3">
-              <Link to="/login" className="px-4 py-2 rounded bg-yellow-400 text-black hover:bg-yellow-500 transition">Giriş Yap</Link>
-              <Link to="/kaydol" className="px-4 py-2 rounded border border-white/20 text-white">15 günlük ücretsiz deneme</Link>
+            <div className="flex flex-wrap gap-3">
+              <Link to="/login" className="px-4 py-2 rounded bg-yellow-400 text-black hover:bg-yellow-500 transition">
+                Giriş Yap
+              </Link>
+              <Link to="/kaydol" className="px-4 py-2 rounded border border-white/20 text-white hover:bg-white/5 transition">
+                Kayıt ol
+              </Link>
             </div>
           </div>
 
-          <div className="w-full md:w-[420px]">
-            <div className="bg-white/5 p-5 rounded-xl">
-              <h3 className="text-lg font-semibold mb-3 text-white">Demo İsteği Gönder</h3>
-
-              <form onSubmit={handleDemoSubmit} className="space-y-3">
-                <input
-                  required
-                  value={demo.name}
-                  onChange={(e) => setDemo((s) => ({ ...s, name: e.target.value }))}
-                  placeholder="Ad Soyad"
-                  className="w-full p-2 rounded bg-white/5 border border-white/10 text-white"
-                />
-                <input
-                  required
-                  value={demo.email}
-                  onChange={(e) => setDemo((s) => ({ ...s, email: e.target.value }))}
-                  placeholder="E-posta (gmail vb.)"
-                  className="w-full p-2 rounded bg-white/5 border border-white/10 text-white"
-                />
-                <input
-                  value={demo.city}
-                  onChange={(e) => setDemo((s) => ({ ...s, city: e.target.value }))}
-                  placeholder="Şehir (opsiyonel)"
-                  className="w-full p-2 rounded bg-white/5 border border-white/10 text-white"
-                />
-                <input
-                  value={demo.office}
-                  onChange={(e) => setDemo((s) => ({ ...s, office: e.target.value }))}
-                  placeholder="Hukuk Bürosu (opsiyonel)"
-                  className="w-full p-2 rounded bg-white/5 border border-white/10 text-white"
-                />
-
-                <div className="flex items-center justify-between">
-                  <button
-                    type="submit"
-                    disabled={sending}
-                    className="px-4 py-2 rounded bg-yellow-400 text-black hover:bg-yellow-500 transition"
-                  >
-                    {sending ? "Gönderiliyor..." : "Demo İsteği Gönder"}
-                  </button>
-                </div>
-              </form>
-
-              {msg && <div className="mt-3 text-sm text-green-300">{msg}</div>}
+          <div className="w-full md:w-[360px] text-center md:text-left">
+            <div className="bg-white/5 p-6 rounded-xl border border-white/10">
+              <h3 className="text-lg font-semibold mb-2 text-white">Nasıl devam ederim?</h3>
+              <p className="text-sm text-white/60 mb-4">
+                Önce birkaç kısa soruyla uygunluk kontrolü yapılır; ardından Miron AI Legal veya Enterprise seçenekleri
+                gösterilir.
+              </p>
+              <Link to="/kaydol" className="inline-block px-5 py-2.5 rounded-lg bg-yellow-400 text-black font-semibold hover:bg-yellow-500 transition">
+                Kayıt akışına git
+              </Link>
             </div>
           </div>
         </div>
 
         <div className="mt-8 text-xs text-subtle">
-          <strong>İletişim:</strong> mironintelligence@gmail.com — 24 saat içinde dönüş yapılır.
+          <strong>İletişim:</strong> mironai@mironintelligence.com
         </div>
       </div>
     </div>

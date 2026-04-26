@@ -1,0 +1,17 @@
+-- Kayıt: iletişim alanları; şifre sıfırlama OTP; Miron Legal vitrin fiyatları
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS law_firm TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_otp_hash TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_otp_expires TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS pricing_settings (
+  id INTEGER PRIMARY KEY,
+  base_price DOUBLE PRECISION NOT NULL DEFAULT 6999,
+  discount_rate DOUBLE PRECISION NOT NULL DEFAULT 12.5,
+  bulk_threshold INTEGER NOT NULL DEFAULT 3,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE pricing_settings ADD COLUMN IF NOT EXISTS legal_list_price DOUBLE PRECISION DEFAULT 24000;
+ALTER TABLE pricing_settings ADD COLUMN IF NOT EXISTS legal_sale_price DOUBLE PRECISION DEFAULT 12000;

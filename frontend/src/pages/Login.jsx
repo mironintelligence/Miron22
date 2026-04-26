@@ -56,8 +56,8 @@ const Login = () => {
       navigate("/welcome", { replace: true });
     } catch (err) {
       if (err?.code === "DEMO_EXPIRED") {
-        emitToast("Demo hesabınızın süresi doldu. Satın alma sayfasına yönlendiriliyorsunuz.", "error");
-        navigate("/pricing", { replace: true, state: { demoExpired: true } });
+        emitToast("Aboneliğinizin süresi doldu. Paketler için yönlendiriliyorsunuz.", "error");
+        navigate("/pricing", { replace: true });
         return;
       }
       setError(err.message);

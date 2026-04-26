@@ -82,7 +82,7 @@ export default function BottomTiles() {
         <Tile
           href="/admin"
           title="Yönetim Paneli"
-          description="Kullanıcılar · Demo talepler · Ayarlar"
+          description="Kullanıcılar · Ayarlar"
           icon={iconShield}
           className="min-h-[130px] h-full sm:min-h-0"
         />

@@ -32,7 +32,7 @@ export function SiteLegalCompanyLine({ className = "" }) {
   );
 }
 
-/** Sayfa sonunda (sabit değil): hukuki linkler, şirket satırı, yapay zekâ uyarısı — geniş aralıklı. */
+/** Sayfa sonunda (sabit değil): hukuki linkler ve şirket satırı — geniş aralıklı. */
 export function SitePageFooter() {
   return (
     <footer className="mt-16 border-t border-white/10 bg-gradient-to-b from-black via-zinc-950/40 to-black">
@@ -44,12 +44,9 @@ export function SitePageFooter() {
           className="justify-center gap-x-5 gap-y-3 max-w-4xl mx-auto mb-10"
           linkClassName="text-sm md:text-[15px] text-white/55 hover:text-[var(--miron-gold)] transition-colors px-1 py-0.5"
         />
-        <div className="flex justify-center mb-10">
+        <div className="flex justify-center">
           <SiteLegalCompanyLine className="text-sm !text-white/50" />
         </div>
-        <p className="text-center text-sm md:text-[15px] text-amber-200/55 max-w-2xl mx-auto leading-relaxed px-2">
-          Yapay zekâ çıktıları hatalı veya eksik olabilir. Önemli hukuki kararlardan önce bilgiyi mutlaka doğrulayın.
-        </p>
       </div>
     </footer>
   );

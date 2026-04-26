@@ -61,6 +61,20 @@ def send_verification_email(to_email: str, token: str):
     # Thread içinde gönder (API cevabını geciktirmemek için)
     threading.Thread(target=_send_async, args=(to_email, subject, html)).start()
 
+def send_password_reset_otp_email(to_email: str, code: str):
+    """12 haneli şifre sıfırlama OTP (e-posta içeriği)."""
+    subject = "Miron — Şifre sıfırlama doğrulama kodu"
+    html = f"""
+    <div style="font-family: Arial, sans-serif; color: #333;">
+        <h2>Doğrulama kodunuz</h2>
+        <p>Şifrenizi sıfırlamak için aşağıdaki 12 haneli kodu uygulamada girin:</p>
+        <p style="font-size: 22px; letter-spacing: 4px; font-weight: bold; color: #111;">{code}</p>
+        <p style="font-size: 12px; color: #666;">Bu kod 15 dakika geçerlidir. İsteği siz yapmadıysanız bu e-postayı yok sayın.</p>
+    </div>
+    """
+    threading.Thread(target=_send_async, args=(to_email, subject, html)).start()
+
+
 def send_reset_password_email(to_email: str, token: str):
     link = f"https://miron22.onrender.com/reset-password?token={token}"
     subject = "Şifre Sıfırlama İsteği"

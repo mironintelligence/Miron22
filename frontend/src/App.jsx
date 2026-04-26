@@ -28,8 +28,6 @@ const RiskStrategy = lazy(() => import("./pages/RiskStrategy"));
 const Intro = lazy(() => import("./pages/Intro.jsx"));
 const IntroLanding = lazy(() => import("./pages/IntroLanding.jsx"));
 const LegalDocument = lazy(() => import("./pages/LegalDocument.jsx"));
-const DemoRequest = lazy(() => import("./pages/DemoRequest.jsx"));
-const Demos = lazy(() => import("./pages/Demos.jsx"));
 const YargitaySearch = lazy(() => import("./pages/YargitaySearch"));
 const Mevzuat = lazy(() => import("./pages/Mevzuat"));
 const Feedback = lazy(() => import("./pages/Feedback"));
@@ -88,6 +86,10 @@ export default function App() {
     location.pathname === "/login" ||
     location.pathname.startsWith("/legal/");
 
+  /** Giriş sonrası sabit uyarı çubuğu; ana menü (/dashboard) ve tam ekran asistan hariç. */
+  const showAuthedAiDisclaimerBar =
+    status === "authed" && !fullscreenRoute && location.pathname !== "/dashboard";
+
   useEffect(() => {
     if (!fullscreenRoute) {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -125,10 +127,12 @@ export default function App() {
         }}
       />
 
-      <div className={fullscreenRoute ? "h-screen w-screen overflow-hidden" : ""} style={fullscreenRoute ? {} : { paddingTop: 68 }}>
+      <div
+        className={`${fullscreenRoute ? "h-screen w-screen overflow-hidden" : ""} ${showAuthedAiDisclaimerBar ? "pb-16 sm:pb-[4.5rem]" : ""}`}
+        style={fullscreenRoute ? {} : { paddingTop: 68 }}
+      >
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
-            <Route path="/demo-request" element={<DemoRequest />} />
             <Route
               path="/"
               element={
@@ -299,14 +303,6 @@ export default function App() {
               }
             />
             <Route
-              path="/demos"
-              element={
-                <ProtectedRoute>
-                  <Demos />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/calculators"
               element={
                 <ProtectedRoute>
@@ -411,6 +407,16 @@ export default function App() {
         </Suspense>
         {!hideFlowPageFooter && <SitePageFooter />}
       </div>
+
+      {showAuthedAiDisclaimerBar && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-0 left-0 right-0 z-30 border-t border-amber-900/35 bg-black/90 backdrop-blur-md px-3 sm:px-5 py-2.5 text-center text-[11px] sm:text-xs text-amber-100/75 leading-snug pointer-events-none"
+        >
+          Yapay zekâ çıktıları hatalı veya eksik olabilir. Önemli hukuki kararlardan önce bilgiyi mutlaka doğrulayın.
+        </div>
+      )}
     </div>
   );
 }

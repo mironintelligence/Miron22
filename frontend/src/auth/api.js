@@ -251,20 +251,30 @@ export async function login(email, password, nameHint = null) {
   return data;
 }
 
-export async function register({
-  email,
-  password,
-  firstName,
-  lastName,
-  mode,
-  discountCode,
-  consents,
-  card,
-  acceptedTermsAndPrivacy,
-}) {
+export async function register(
+  {
+    email,
+    password,
+    firstName,
+    lastName,
+    mode,
+    discountCode,
+    consents,
+    card,
+    acceptedTermsAndPrivacy,
+    phone,
+    law_firm,
+    city,
+    registration_plan,
+  },
+  opts = {}
+) {
+  const headers = { "Content-Type": "application/json" };
+  const sb = opts.supabaseAccessToken;
+  if (sb) headers.Authorization = `Bearer ${sb}`;
   const r = await fetch(`${API}/api/auth/register`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({
       email,
       password,
@@ -275,6 +285,10 @@ export async function register({
       consents: consents || null,
       card: card || null,
       accepted_terms_and_privacy: Boolean(acceptedTermsAndPrivacy),
+      phone: phone || null,
+      law_firm: law_firm || null,
+      city: city || null,
+      registration_plan: registration_plan || null,
     }),
     credentials: "include",
   });
