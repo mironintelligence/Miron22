@@ -43,7 +43,7 @@ function Counter({ target, suffix = '' }) {
 const STATS = [
   { target: 73, suffix: '%', label: 'Daha hızlı analiz' },
   { target: 26, suffix: '', label: 'Katı ROI (ortalama)' },
-  { target: 30, suffix: '', label: 'Gün tam iade garantisi' },
+  { target: 30, suffix: '', label: 'İlk ayda iade penceresi (gün)' },
   { target: 100, suffix: '%', label: 'KVKK uyumlu altyapı' },
 ]
 
