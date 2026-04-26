@@ -158,23 +158,6 @@ export default function Navbar() {
 
           <div className="flex items-center gap-3">
             <Link
-              to="/kaydol"
-              className="hidden sm:inline-flex dash-font-sans items-center justify-center no-underline transition-opacity"
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                padding: "7px 14px",
-                borderRadius: 999,
-                background: "#FFD700",
-                color: "#000",
-                textDecoration: "none",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-            >
-              Kayıt ol
-            </Link>
-            <Link
               to="/login"
               className="dash-font-sans no-underline transition-colors"
               style={{ fontSize: 12, color: "#888", textDecoration: "none" }}
