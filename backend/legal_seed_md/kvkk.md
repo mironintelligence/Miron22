@@ -17,3 +17,7 @@ Hizmetin sunulması ve abonelik yönetimi, müşteri desteği, yasal yükümlül
 ## 7.5 KVKK Kapsamındaki Haklarınız
 
 KVKK'nın 11. maddesi kapsamındaki haklarınız saklıdır. Başvurular: **kvkk@mironintelligence.com**.
+
+## 7.6 İşlenen belge içeriği (özet)
+
+Yüklenen belge/metin: **LLM eğitiminde kullanılmaz**; **RAM**’de kısa süre; sonra **anonimleştirilip silinir**; **kalıcı kopya veya depolama yok** (işlem içeriği için). Halüsinasyon riski **çok düşük**, **ihtimal dahilinde**; bilgiler **kontrol edilmelidir**. Destek: **destek@mironintelligence.com**.

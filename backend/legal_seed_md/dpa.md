@@ -36,3 +36,7 @@ Hesap kapanışında işlem içeriği zaten tutulmadığından ayrıca silinmesi
 ## 3.8 Veri İhlali Prosedürü
 
 Güvenlik ihlali tespitinde Kullanıcı ve ilgili merciler, yasal süreler çerçevesinde bilgilendirilir.
+
+## 3.9 Yapay zekâ çıktıları ve halüsinasyon
+
+İşlem içeriği **LLM eğitiminde kullanılmaz**; **RAM**’de kısa süre işlenir, ardından **anonimleştirilip silinir**; kalıcı **kopya/depolama** olmaz (işlem içeriği için — bkz. §3.3). Çıktılarda **halüsinasyon riski çok düşüktür**, fakat **ihtimal dahilindedir**; **tüm bilgiler** kullanıcı tarafından **doğrulanmalıdır**. **destek@mironintelligence.com**

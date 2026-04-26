@@ -18,7 +18,7 @@ Kesin ve bağlayıcı hüküm: Platform tarafından üretilen hiçbir içerik, a
 
 **Geçici işleme:** İstek süresince içerik **geçici bellek (RAM)** üzerinde işlenir; işlem bittiğinde **anonimleştirme ve kalıcı silme** ilkeleri uygulanır. **İşlem içeriği kalıcı dosya veya veri tabanı arşivi olarak kopyalanmaz veya depolanmaz** (hesap, fatura ve yasal zorunluluk kapsamındaki kayıtlar hariç — bkz. Gizlilik Politikası).
 
-**Halüsinasyon (uydurma) riski:** Sistem tasarımı ve sürekli geliştirme ile risk **düşük tutulmaya çalışılır**; ancak teorik olarak **yanlış veya eksik çıktı** üretilebilir. Arka planda sürekli geliştirme yapıldığından, bazı durumlarda bu risk **gözlemlenebilir**. Kullanıcı, **tüm çıktıları bağımsız doğrulamakla** yükümlüdür.
+**Halüsinasyon (uydurma) riski:** Tasarım ve sürekli geliştirme ile risk **çok düşük** tutulmaya çalışılır; yine de **ihtimal dahilindedir** ve hatasız çıktı **garanti edilmez**. Arka planda sürekli geliştirme yapıldığından, **bazı durumlarda** halüsinasyon veya yanlış/eksik bilgi riski **daha belirgin hale gelebilir**. Kullanıcı, **tüm bilgileri, atıfları ve hukuki dayanakları kendi imkânlarıyla kontrol edip doğrulamakla** yükümlüdür.
 
 Diğer sınırlılıklar: mevzuat ve içtihat güncelliği anlık olmayabilir; dava sonucu veya hukuki başarı **garanti edilmez**.
 
@@ -38,11 +38,15 @@ Platforma erişim için geçerli bir e-posta adresiyle kayıt zorunludur. **Baro
 
 Platform, abonelik bazlı bir ücretlendirme modeli ile sunulmaktadır. Abonelik ücretleri, belirlenen ödeme döneminde otomatik olarak tahsil edilir. Miron AI ücretlendirme koşullarını önceden bildirim yaparak değiştirme hakkını saklı tutar. Ödeme işlemleri üçüncü taraf ödeme altyapıları aracılığıyla güvenli biçimde gerçekleştirilir.
 
-## 1.8 İptal Koşulları
+## 1.8 İptal ve iade
 
-Kullanıcı, aboneliğini dilediği zaman platform üzerindeki hesap ayarlarından veya destek kanalı aracılığıyla iptal edebilir. İptal talebi, mevcut fatura döneminin sonunda geçerli olur. İptal tarihinden önceki dönem için erişim aktif kalmaya devam eder. Fatura döneminin ortasında yapılan iptal taleplerinde kalan süre için herhangi bir ücret iadesi yapılmaz. Yıllık abonelik alan Kullanıcı aboneliğini istediği zaman iptal edebilir; ancak kalan ay için ücret iadesi yapılmaz.
+**İlk ay – %100 iade (30 gün):** Kullanıcının **ilk ücretlendirme / ilk ödeme** tarihinden itibaren **30 takvim günü** içinde, **destek@mironintelligence.com** üzerinden (veya platformda bildirilen kanallar) iletilecek yazılı talep üzerine, söz konusu **ilk dönem ücreti** için **%100 iade** yapılır. Bu hak **yalnızca ilk abonelik dönemindeki ilk ödeme** için geçerlidir; **hesap başına bir kez** uygulanır.
 
-Açık ve kesin hüküm: Miron AI iade politikası uygulamaz. Yapılan ödemeler iade edilmez.
+**Sonraki dönemler:** İlk 30 gün dolduktan sonra **herhangi bir ücret iadesi yapılmaz**. Kullanıcı aboneliğini **iptal edebilir**; iptal, mevcut fatura veya üyelik dönemi kurallarına tabidir (genelde dönem sonunda sona erer). **Kısmi, oransal veya kalan süre iadesi yoktur** — sadece iptal.
+
+**Aylık ve yıllık plan:** Yıllık abonelikte de **ilk ödeme** için aynı 30 günlük %100 iade kuralı geçerlidir. İlk 30 gün sonrasında yılın veya sonraki dönemlerin kalanına ilişkin **iade talep edilemez**; yalnızca **iptal** mümkündür.
+
+İade işlemlerinde ödeme altyapısı süreleri ve banka işlem günleri Miron AI’nın makul kontrolü dışında olabilir.
 
 ## 1.9 Sorumluluk Reddi ve Sınırı
 

@@ -6,7 +6,7 @@ Miron AI platformu büyük dil modelleri (LLM) ve ilgili teknikler kullanır.
 
 **Geçici işleme ve silme:** İstek süresince veriler **geçici bellek (RAM)** üzerinde işlenir; işlem tamamlandıktan sonra **anonimleştirme uygulanır ve içerik kalıcı olarak silinir**. **İşlem içeriği arşivlenmez, kopyalanmaz ve kalıcı depoda tutulmaz** (hesap ve yasal yükümlülük kapsamındaki kayıtlar hariç — Gizlilik Politikası).
 
-**Halüsinasyon (uydurma):** Tasarım ve sürekli geliştirme ile **risk düşük** tutulmaya çalışılır; yine de teorik olarak **yanlış, eksik veya uydurma bilgi** üretilebilir. Arka planda sürekli iyileştirme yapıldığından, bazı senaryolarda bu risk **artabilir veya farklı şekilde ortaya çıkabilir**. Kullanıcı, **kanun metni, içtihat ve tüm hukuki bilgileri bağımsız kaynaklardan doğrulamakla** yükümlüdür.
+**Halüsinasyon (uydurma):** Risk **çok düşük** tutulmaya çalışılır; **ihtimal dahilindedir** (çıktıların tam doğruluğu **garanti edilmez**). Arka planda sürekli geliştirme olduğundan **bazı durumlarda** risk **daha belirgin hale gelebilir**. Kullanıcı **tüm bilgileri, kanun metinlerini ve içtihat atıflarını** bağımsız kaynaklardan **kontrol edip doğrulamakla** yükümlüdür.
 
 **Güncellik ve bağlam:** Model, eğitim kesim tarihinden sonraki tüm değişiklikleri bilmez; dava özelinde bağlam her zaman tam yakalanmayabilir.
 

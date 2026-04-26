@@ -21,3 +21,7 @@ Miron AI şu çerez türlerini kullanmaz: reklam çerezleri (platform reklam iç
 ## 4.5 İletişim
 
 Çerez ve gizlilik soruları: **destek@mironintelligence.com** — KVKK başvuruları: **kvkk@mironintelligence.com**.
+
+## 4.6 İşlem içeriği ve LLM
+
+Çerezler, yüklediğiniz belge içeriğinden bağımsızdır. Belge/dosya işleme: **LLM eğitimi yok**, içerik **kısa süre RAM**’de, sonra **anonimleştirilip silinir**; işlem içeriği **kalıcı kopyalanmaz veya depolanmaz** — ayrıntı **Gizlilik Politikası**.

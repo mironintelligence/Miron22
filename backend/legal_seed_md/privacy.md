@@ -4,9 +4,16 @@ Miron AI olarak kullanıcı gizliliğini temel prensip olarak benimsiyoruz. Plat
 
 ## 2.2 İşlem Sırasında İşlenen İçerik (Geçici)
 
-Yüklediğiniz veya analiz / üretim için gönderdiğiniz **belge ve metin içeriği**, yalnızca ilgili isteğin işlendiği süre boyunca **geçici bellek (RAM)** üzerinde tutulur; işlem tamamlandıktan sonra **anonimleştirme adımları uygulanır ve kalıcı olarak silinir**. Bu içerik **model eğitimi veya ince ayar (fine-tuning) için kullanılmaz**, **kalıcı dosya veya veritabanı arşivi olarak kopyalanmaz veya depolanmaz**.
+Yüklediğiniz veya analiz / üretim için gönderdiğiniz **belge, dosya ve metin içeriği** (birlikte “işlem içeriği”):
 
-Hesabınıza bağlı olarak tutulan veriler yalnızca **hesap ve abonelik yönetimi** ile ilgili alanlarda (aşağıda “Kalıcı hesap verileri”) açıklanmıştır.
+1. **LLM eğitimi yok:** Bu içerik, büyük dil modellerinin **eğitimi veya fine-tuning’i için kullanılmaz**.
+2. **RAM ve kısa süre:** İşlem içeriği yalnızca ilgili isteğin işlendiği süre boyunca **geçici bellek (RAM)** üzerinde tutulur.
+3. **Anonimleştirme ve silme:** İşlem bittikten sonra **anonimleştirme** uygulanır ve içerik **kalıcı olarak silinir**.
+4. **Kopya ve depolama yok (işlem içeriği için):** İşlem içeriği bakımından veri, dosya veya çıktı **hiçbir şekilde kalıcı olarak kopyalanmaz veya depolanmaz**; kalıcı **arşiv dosyası** veya “iş yükü” kopyası oluşturulmaz.
+
+**Halüsinasyon:** Risk **çok düşük** tutulmaya çalışılır; **ihtimal dahilindedir**. Sürekli arka plan geliştirmesi nedeniyle **bazı durumlarda** risk **daha görünür olabilir**. Kullanıcı **tüm bilgileri** kendi sürecinde **kontrol etmelidir**.
+
+Hesap, fatura ve yasal zorunluluk kapsamındaki kayıtlar (aşağıda “Kalıcı hesap verileri”) bu “işlem içeriği” tanımının dışındadır.
 
 ## 2.3 Kalıcı Hesap Verileri
 

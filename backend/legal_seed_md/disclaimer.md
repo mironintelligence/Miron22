@@ -18,6 +18,6 @@ Platform içindeki kanun maddeleri, içtihat referansları ve mevzuat bilgisi bi
 
 Türkiye Barolar Birliği ve bölgesel baroların meslek kurallarına uyum Kullanıcı'nın münhasır sorumluluğundadır. Platformun kullanımı bu kurallara uyumu sağlamaz veya garanti etmez.
 
-## 6.6 Halüsinasyon ve Doğrulama
+## 6.6 Halüsinasyon ve doğrulama
 
-Yapay zekâ çıktılarında **halüsinasyon (gerçek dışı veya uydurma bilgi) riski** tasarım ve sürekli geliştirme ile **düşük** tutulmaya çalışılır; buna karşın risk **sıfır değildir**. Ürün arka planda sürekli geliştirildiği için bazı kullanım senaryolarında risk **farklılık gösterebilir**. **Tüm bilgileri** kullanıcı kendi mesleki sürecinde **doğrulamalıdır**. Sorular için: **destek@mironintelligence.com**.
+**Halüsinasyon (uydurma) riski** teknik olarak **çok düşük** tutulmaya çalışılır; ancak **ihtimal dahilindedir**. Ürün **arka planda sürekli geliştirildiği** için, **bazı durumlarda** bu risk **daha görünür veya farklı şekilde ortaya çıkabilir**. Kullanıcı, **tüm bilgileri** mesleki özen çerçevesinde **kontrol etmeli ve doğrulamalıdır**. İletişim: **destek@mironintelligence.com** — KVKK: **kvkk@mironintelligence.com**.
