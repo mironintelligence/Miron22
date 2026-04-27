@@ -97,24 +97,6 @@ export function Hero() {
           </p>
         </motion.div>
 
-        <motion.div
-          {...fadeIn(1.5)}
-          className="flex gap-4 justify-center flex-wrap mt-12"
-        >
-          <a
-            href="#uygunluk"
-            className="bg-gold text-bg font-ui font-medium text-[11px] tracking-[0.18em] uppercase px-[34px] py-[15px] hover:opacity-85 transition-opacity"
-          >
-            Uygunluğumu görüntüle →
-          </a>
-          <a
-            href="#sistem"
-            className="border border-border text-muted font-ui text-[11px] tracking-[0.18em] uppercase px-[34px] py-[15px] hover:border-white hover:text-white transition-all duration-200"
-          >
-            Sistemi incele
-          </a>
-        </motion.div>
-
       </div>
     </section>
   )
