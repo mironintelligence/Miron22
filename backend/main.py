@@ -401,6 +401,15 @@ app.add_middleware(TimeoutMiddleware) # Global Timeout
 app.add_middleware(PrometheusMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(LoggingMiddleware) # Request logger (still inside CORS)
+
+# Zero-persistence: her request'e session-scoped RAM vector store bağla.
+# Response sonrası otomatik temizlenir — disk'e asla yazılmaz.
+try:
+    from services.vector_memory import make_vector_store_middleware
+    app.middleware("http")(make_vector_store_middleware(dimension=1536))
+except Exception as _vm_err:
+    from logger_utils import get_logger as _gl
+    _gl("miron.startup").warning("vector_memory middleware yüklenemedi", extra={"error": str(_vm_err)})
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
@@ -490,6 +499,7 @@ reminder_router  = _safe_import("routes.reminder_routes", "router")
 admin_api_router = _safe_import("admin_router", "api_router")
 admin_router     = _safe_import("admin_router", "router")
 legal_router     = _safe_import("routes.legal_routes", "router")
+secure_upload_router = _safe_import("api.upload", "router")
 
 # ---------------------------
 # ROOT
@@ -993,6 +1003,8 @@ if analyze_router:
 if orchestrator_router:
     app.include_router(orchestrator_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
 if demo_request_router: app.include_router(demo_request_router)
+if secure_upload_router:
+    app.include_router(secure_upload_router, dependencies=_LEGAL_ACCEPTANCE_DEPS)
                     
                     
 
