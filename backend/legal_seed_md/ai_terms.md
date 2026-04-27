@@ -1,21 +1,19 @@
-## 5.1 Yapay Zeka İşlemi, Eğitim ve Veri
+## 5.1 Yapay zekanın doğası ve sınırlılıkları
 
-Miron AI platformu büyük dil modelleri (LLM) ve ilgili teknikler kullanır.
+Miron AI platformu **büyük dil modelleri (LLM)** ve **makine öğrenmesi** destekli teknikler kullanır. **Kullanıcıların yüklediği veya işleme gönderdiği içerik**, **model eğitimi veya fine-tuning için kullanılmaz**; yalnızca ilgili istek süresince **geçici bellek (RAM)** üzerinde işlenir, ardından **anonimleştirilip kalıcı olarak silinir** — kalıcı **kopya veya arşiv depolama** olmaz (işlem içeriği için; ayrıntı **Gizlilik Politikası**).
 
-**Model eğitimi:** Kullanıcıların yüklediği veya işleme gönderdiği metin ve belgeler **model eğitimi veya ince ayar (fine-tuning) için kullanılmaz**. Kullanıcı içeriği **eğitim veri setine eklenmez**.
+**Halüsinasyon riski:** Yapay zekâ sistemleri zaman zaman **gerçek olmayan, yanlış veya uydurma** bilgi üretebilir; hukuk bağlamında bu **özellikle ciddi** olabilir. Miron AI riski **çok düşük** tutmaya çalışır; buna rağmen risk **ihtimal dahilindedir** ve çıktıların **eksiksiz doğruluğu garanti edilmez**. Arka planda **sürekli geliştirme** yapıldığından, **bazı durumlarda** hata veya halüsinasyon **daha belirgin** görülebilir. **Tüm bilgileri, atıfları ve hukuki sonuçları** kendi mesleki sürecinizde **kontrol edip doğrulamanız** esastır.
 
-**Geçici işleme ve silme:** İstek süresince veriler **geçici bellek (RAM)** üzerinde işlenir; işlem tamamlandıktan sonra **anonimleştirme uygulanır ve içerik kalıcı olarak silinir**. **İşlem içeriği arşivlenmez, kopyalanmaz ve kalıcı depoda tutulmaz** (hesap ve yasal yükümlülük kapsamındaki kayıtlar hariç — Gizlilik Politikası).
+**Güncellik eksikliği:** Temel model, **eğitim kesim tarihinden sonraki** mevzuat değişikliklerini, yeni Yargıtay kararlarını veya tüm yasal düzenlemeleri **otomatik olarak bilmez**; platformda sunulan özet veya atıflar da **resmi kaynakların yerine geçmez**. **Resmi Gazete, Yargıtay Bilgi Bankası** ve benzeri kaynaklardan **güncel metni sizin teyit etmeniz** gerekir.
 
-**Halüsinasyon (uydurma):** Risk **çok düşük** tutulmaya çalışılır; **ihtimal dahilindedir** (çıktıların tam doğruluğu **garanti edilmez**). Arka planda sürekli geliştirme olduğundan **bazı durumlarda** risk **daha belirgin hale gelebilir**. Kullanıcı **tüm bilgileri, kanun metinlerini ve içtihat atıflarını** bağımsız kaynaklardan **kontrol edip doğrulamakla** yükümlüdür.
+**Bağlam:** Her dosyanın özgün koşulları tam modellenmeyebilir; verdiğiniz bağlam ne kadar eksiksiz olursa çıktı kalitesi o kadar artar — bu yine de **garanti** anlamına gelmez.
 
-**Güncellik ve bağlam:** Model, eğitim kesim tarihinden sonraki tüm değişiklikleri bilmez; dava özelinde bağlam her zaman tam yakalanmayabilir.
+**Beta özellikler:** "Beta" ile işaretlenen özellikler geliştirme aşamasındadır; hata oranı daha yüksek olabilir. Çıktılar **mutlaka** doğrulanmalıdır.
 
-**Beta özellikler:** "Beta" ibaresiyle sunulan özellikler geliştirme aşamasındadır; hata oranı daha yüksek olabilir. Çıktılar mutlaka doğrulanmalıdır.
+## 5.2 Kullanıcı'nın yükümlülükleri
 
-## 5.2 Kullanıcı'nın Yükümlülükleri
+Yapay zekâ çıktısını kullanmadan önce bağımsız hukuki araştırma; atıflı mevzuat ve kararları resmi kaynaklardan teyit; üretilen belgeleri tam okuyup düzenlemek; müvekkile sunumda mesleki değerlendirme yapmak; gizlilik yükümlülüklerine uymak. İletişim: **destek@mironintelligence.com**.
 
-Yapay zeka çıktısını kullanmadan önce bağımsız hukuki araştırma; atıflı mevzuat ve kararları resmi kaynaklardan teyit; üretilen belgeleri tam okuyup düzenlemek; müvekkile sunumda mesleki değerlendirme yapmak; gizlilik yükümlülüklerine uymak.
-
-## 5.3 Temel ve Değişmez Hüküm
+## 5.3 Temel ve değişmez hüküm
 
 Miron AI tarafından üretilen tüm içerikler — belge, analiz, öneri, simülasyon sonucu veya başka herhangi bir çıktı — profesyonel hukuki danışmanlık yerine geçmez, geçemez ve bu şekilde yorumlanamaz.
