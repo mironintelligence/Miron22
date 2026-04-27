@@ -1,12 +1,23 @@
-import React, { useState } from "react";
-import { authFetch } from "../auth/api";
+import React, { useRef, useState } from "react";
+import { authFetch, apiDetailMessage } from "../auth/api";
+
+const SIM_ALLOWED_EXT = [".pdf", ".docx", ".txt"];
+const SIM_MAX_BYTES = 15 * 1024 * 1024;
+
+function extOf(name) {
+  const n = String(name || "").toLowerCase();
+  const i = n.lastIndexOf(".");
+  return i >= 0 ? n.slice(i) : "";
+}
 
 export default function CaseSimulation() {
+  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
     case_description: "",
     jurisdiction: "Türkiye",
     user_role: "Davacı",
   });
+  const [attachment, setAttachment] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -15,10 +26,37 @@ export default function CaseSimulation() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const clearAttachment = () => {
+    setAttachment(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const onPickFile = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) {
+      setAttachment(null);
+      return;
+    }
+    const ex = extOf(f.name);
+    if (!SIM_ALLOWED_EXT.includes(ex)) {
+      setError(`Yalnızca ${SIM_ALLOWED_EXT.join(", ")} yükleyebilirsiniz.`);
+      clearAttachment();
+      return;
+    }
+    if (f.size > SIM_MAX_BYTES) {
+      setError(`Dosya en fazla ${SIM_MAX_BYTES / (1024 * 1024)} MB olabilir.`);
+      clearAttachment();
+      return;
+    }
+    setError("");
+    setAttachment(f);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.case_description.trim()) {
-      setError("Lütfen dava senaryosu ve detayları alanına metin girin.");
+    const desc = formData.case_description.trim();
+    if (!desc && !attachment) {
+      setError("Dava senaryosu yazın veya PDF/DOCX/TXT dosyası yükleyin (ikisi birlikte de olabilir).");
       return;
     }
     setLoading(true);
@@ -27,16 +65,27 @@ export default function CaseSimulation() {
 
     try {
       const payload = new FormData();
-      payload.append("case_description", formData.case_description.trim());
+      payload.append("case_description", desc);
       payload.append("jurisdiction", formData.jurisdiction);
       payload.append("user_role", formData.user_role);
+      if (attachment) {
+        payload.append("file", attachment, attachment.name);
+      }
 
       const resp = await authFetch("/api/risk/simulate", {
         method: "POST",
         body: payload,
       });
       if (!resp.ok) {
-        throw new Error("request_failed");
+        let detail = "Simülasyon başarısız oldu.";
+        try {
+          const t = await resp.json();
+          detail = apiDetailMessage(t) || detail;
+        } catch {
+          /* ignore */
+        }
+        setError(detail);
+        return;
       }
       const data = await resp.json();
       setResult(data);
@@ -110,8 +159,39 @@ export default function CaseSimulation() {
                 placeholder="Olayın detaylarını, eldeki delilleri, karşı tarafın olası iddialarını ve hukuki süreci detaylıca anlatın..."
               />
               <p className="text-xs text-white/40 mt-2 text-right">
-                Ne kadar detay verirseniz simülasyon o kadar isabetli olur.
+                Ne kadar detay verirseniz simülasyon o kadar isabetli olur. İsterseniz aşağıdan dilekçe / özet PDF veya DOCX yükleyin; metin çıkarılıp simülasyona eklenir.
               </p>
+            </div>
+
+            <div className="rounded-xl border border-white/15 bg-white/[0.03] p-4 space-y-3">
+              <label className="block text-sm font-medium text-white/80">
+                Dosya yükle (isteğe bağlı)
+              </label>
+              <p className="text-xs text-white/45">
+                PDF, DOCX veya TXT — en fazla 15 MB. Yüklenen dosyanın metni sunucuda çıkarılır ve dava senaryosuyla birlikte modele gönderilir.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  onChange={onPickFile}
+                  className="text-sm text-white/80 file:mr-3 file:rounded-lg file:border-0 file:bg-yellow-500/20 file:px-3 file:py-2 file:text-yellow-200 file:font-medium"
+                />
+                {attachment ? (
+                  <span className="text-sm text-white/70 flex items-center gap-2">
+                    <span className="text-yellow-400/90">{attachment.name}</span>
+                    <span className="text-white/40">({(attachment.size / 1024).toFixed(0)} KB)</span>
+                    <button
+                      type="button"
+                      onClick={clearAttachment}
+                      className="text-xs text-red-300 hover:text-red-200 underline"
+                    >
+                      Kaldır
+                    </button>
+                  </span>
+                ) : null}
+              </div>
             </div>
 
             <div
@@ -148,7 +228,31 @@ export default function CaseSimulation() {
         {/* Results */}
         {result && (
           <div className="space-y-8 animate-fade-in-up">
-            
+            {result.simulation_input_meta?.file_attached ? (
+              <div className="rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100/95">
+                <span className="font-semibold text-emerald-300">Dosya işlendi ve analize dahil edildi.</span>{" "}
+                {result.simulation_input_meta.file_name ? (
+                  <>
+                    <span className="text-white/80">{result.simulation_input_meta.file_name}</span>
+                    {" — "}
+                  </>
+                ) : null}
+                Çıkarılan metin:{" "}
+                <span className="tabular-nums text-white">
+                  {(result.simulation_input_meta.file_text_chars_extracted ?? 0).toLocaleString("tr-TR")}
+                </span>{" "}
+                karakter; modele gömülen bölüm:{" "}
+                <span className="tabular-nums text-white">
+                  {(result.simulation_input_meta.file_text_chars_embedded ?? 0).toLocaleString("tr-TR")}
+                </span>{" "}
+                karakter
+                {(result.simulation_input_meta.file_text_chars_extracted || 0) >
+                (result.simulation_input_meta.file_text_chars_embedded || 0)
+                  ? " (uzun dosyalarda ilk kısım kullanılır)."
+                  : "."}
+              </div>
+            ) : null}
+
             {/* Top Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">

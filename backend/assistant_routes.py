@@ -47,8 +47,10 @@ async def assistant_chat(req: AssistantReq):
         try:
             client = get_openai_client()
             system = (
-                "Sen Miron Asistanısın. Türk hukuku odaklı analiz ve strateji önerileri sunarsın. "
-                "Gizli bilgileri asla açıklama. Kısa, net ve yapılandırılmış yaz."
+                "Sen Miron AI asistanısın. Kullanıcının sorusunu tam yanıtla; yalnızca hukuki sorulara ret verme. "
+                "Türkiye hukukuna ve kamu düzenine uy; yasadışı veya zarar verici talimat verme. "
+                "\"Sadece hukuki konularda yardımcı olabilirim\" gibi ifadeler kullanma. "
+                "Gizli bilgileri açıklama. Kısa, net ve yapılandırılmış yaz."
             )
             
             # chat_completions_create is a blocking HTTP call. Inside an async

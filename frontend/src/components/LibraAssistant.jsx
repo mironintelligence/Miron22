@@ -1013,7 +1013,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                     textAlign: "center",
                   }}
                 >
-                  Hukuki asistanınız.
+                  Yasal çerçevede sorularınıza yanıt verir.
                 </p>
                 <div
                   style={{
@@ -1203,7 +1203,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                   onBlur={(e) => {
                     e.target.parentElement.style.borderColor = "#1e1e1e";
                   }}
-                  placeholder="Hukuki sorunuzu yazın..."
+                  placeholder="Sorunuzu yazın..."
                   disabled={streaming}
                   style={{
                     flex: 1,

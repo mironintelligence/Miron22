@@ -76,25 +76,33 @@ async def simulate_case(
         raise HTTPException(status_code=500, detail="AI Client init failed.")
     
     # 1. Dosya varsa oku ve metne ekle (size-limited, type-restricted).
+    file_meta: Dict[str, Any] = {
+        "file_attached": False,
+        "file_name": None,
+        "file_text_chars_extracted": 0,
+        "file_text_chars_embedded": 0,
+    }
     file_content = ""
     if file:
         raw = await _read_upload_limited(file)
         safe_name = _safe_basename(file.filename or "")
-        try:
-            lower_name = safe_name.lower()
-            if lower_name.endswith(".pdf"):
-                with pdfplumber.open(io.BytesIO(raw)) as pdf:
-                    file_content = "\n".join([p.extract_text() or "" for p in pdf.pages])
-            elif lower_name.endswith(".docx"):
-                doc = Document(io.BytesIO(raw))
-                file_content = "\n".join([p.text for p in doc.paragraphs])
-            else:
-                file_content = raw.decode("utf-8", errors="ignore")
-
-            file_content = f"\n\n[EK DOSYA İÇERİĞİ ({safe_name})]:\n{file_content[:10000]}"
-        except Exception:
-            # Never surface parser exceptions; treat as empty content.
-            file_content = ""
+        extracted = (extract_text_from_bytes(safe_name, raw) or "").strip()
+        file_meta["file_attached"] = True
+        file_meta["file_name"] = safe_name or None
+        file_meta["file_text_chars_extracted"] = len(extracted)
+        if not extracted:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Yüklenen dosyadan okunabilir metin çıkarılamadı. "
+                    "PDF şifreli veya taranmış görüntü olabilir; DOCX/TXT deneyin."
+                ),
+            )
+        embedded = extracted[:12000]
+        file_meta["file_text_chars_embedded"] = len(embedded)
+        file_content = (
+            f"\n\n[EK DOSYA — simülasyonda kullanılacak: {safe_name}]\n{embedded}"
+        )
 
     text_part = (case_description or "").strip()
     if not text_part and not file_content:
@@ -110,6 +118,8 @@ async def simulate_case(
     prompt = f"""
     Sen kıdemli bir stratejik dava danışmanısın.
     Aşağıdaki dava senaryosunu derinlemesine simüle et.
+    "[EK DOSYA" ile başlayan bölüm varsa, bu metni senaryonun ayrılmaz parçası say;
+    içindeki somut iddia, tarih, tutar ve şartları analizinde açıkça dikkate al.
     
     SENARYO:
     {clean_case}
@@ -178,6 +188,9 @@ async def simulate_case(
             response_format={"type": "json_object"},
         )
         result = json.loads(completion.choices[0].message.content)
+        file_meta["prompt_chars_after_sanitize"] = len(clean_case or "")
+        file_meta["description_chars"] = len(text_part)
+        result["simulation_input_meta"] = file_meta
         return result
     except Exception:
         # Never leak the raw exception chain to the client in production,
@@ -200,7 +213,11 @@ def extract_text_from_bytes(filename: str, b: bytes) -> str:
     elif name.endswith(".docx"):
         try:
             doc = Document(io.BytesIO(b))
-            return "\n".join([p.text for p in doc.paragraphs])
+            parts = [p.text for p in doc.paragraphs]
+            for table in doc.tables:
+                for row in table.rows:
+                    parts.append(" | ".join((cell.text or "").strip() for cell in row.cells))
+            return "\n".join(parts)
         except Exception:
             return b.decode("utf-8", errors="ignore")
     return b.decode("utf-8", errors="ignore")
