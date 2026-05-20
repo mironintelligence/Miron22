@@ -12,7 +12,7 @@ export default function Settings() {
 
   const testConnection = async () => {
     try {
-      const r = await fetch(`${import.meta.env.VITE_API_URL || "https://miron22.onrender.com"}/`);
+      const r = await fetch(`${import.meta.env.VITE_API_BASE_URL || ""}/`);
       if (r.ok) setConnection("Bağlantı başarılı ");
       else setConnection("Sunucuya erişilemiyor ");
     } catch {

@@ -1,4 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { getApiBase } from "../lib/apiBase.js";
+
+const _API_BASE = getApiBase();
 
 function tl(n) {
   return n.toLocaleString("tr-TR") + " TL";
@@ -20,7 +23,7 @@ export default function Pricing() {
     async function fetchPrice() {
       setLoadingPrice(true);
       try {
-        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+        const base = _API_BASE;
         const payload = { count: people };
         const res = await fetch(`${base}/api/pricing/calculate`, {
           method: "POST",
@@ -43,7 +46,7 @@ export default function Pricing() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+        const base = _API_BASE;
         const res = await fetch(`${base}/api/pricing/public-settings`);
         if (res.ok) {
           const data = await res.json();

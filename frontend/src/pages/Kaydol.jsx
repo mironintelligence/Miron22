@@ -5,6 +5,7 @@ import { register as apiRegister } from "../auth/api";
 import { emitToast } from "../utils/toastBus";
 import { passwordMeetsPolicy } from "../utils/passwordPolicy";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient.js";
+import { getApiBase } from "../lib/apiBase.js";
 
 const panelMotion = {
   initial: { opacity: 0, y: 16 },
@@ -183,7 +184,7 @@ export default function Kaydol() {
   }, [persist]);
 
   useEffect(() => {
-    const base = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "https://miron22.onrender.com";
+    const base = getApiBase();
     fetch(`${String(base).replace(/\/+$/, "")}/api/pricing/public-settings`)
       .then((r) => (r.ok ? r.json() : null))
       .then(setPublicPrices)

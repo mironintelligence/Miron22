@@ -73,7 +73,7 @@ function adminErrorMessage(x) {
 
 export default function AdminPanel() {
   const { status, user } = useAuth();
-  const [token, setToken] = useState(readAdminToken());
+  const [token, setToken] = useState("");
   const [otp, setOtp] = useState("");
   const [mfaSetup, setMfaSetup] = useState(null);
   const [authed, setAuthed] = useState(false);
@@ -148,17 +148,7 @@ export default function AdminPanel() {
     if (status !== "authed" || !isAdminUserRole(user?.role)) return;
     let cancelled = false;
     (async () => {
-      const stored = readAdminToken();
-      if (stored) {
-        const ok = await checkAuthWithToken(stored);
-        if (cancelled) return;
-        if (ok) {
-          setPanelGate({ phase: "ready", configured: true });
-          return;
-        }
-        clearAdminToken();
-        setToken("");
-      }
+      clearAdminToken();
       try {
         const res = await authFetch("/api/admin/panel-unlock/status", { method: "GET" });
         const data = await res.json().catch(() => ({}));
@@ -232,7 +222,6 @@ export default function AdminPanel() {
         setPanelPassword("");
         setOtp("");
         setToken(adminJwt);
-        persistAdminToken(adminJwt);
         markAdminPanelSession(true);
         setMfaSetup(null);
         setAuthed(true);
@@ -256,11 +245,9 @@ export default function AdminPanel() {
   };
 
   const bootstrap = async () => {
-    const t = token || readAdminToken();
-    if (t) {
-      const ok = await checkAuthWithToken(t);
+    if (token) {
+      const ok = await checkAuthWithToken(token);
       if (ok) return;
-      clearAdminToken();
       setToken("");
     }
     await exchangeAdminToken("");
@@ -276,7 +263,6 @@ export default function AdminPanel() {
       if (res.ok) {
         setAuthed(true);
         setToken(t);
-        persistAdminToken(t);
         markAdminPanelSession(true);
         refreshAll();
         return true;
@@ -339,20 +325,13 @@ export default function AdminPanel() {
               .find((c) => c.startsWith("csrf_token="))
           : null;
       const csrfToken = csrf ? decodeURIComponent(csrf.split("=", 2)[1] || "") : "";
-      const activeToken = (token && String(token).trim()) || readAdminToken();
-      if (!activeToken) {
-        return {
-          _adminRequestFailed: true,
-          _httpStatus: 0,
-          detail: "Admin oturumu yok; panel şifresini giriniz.",
-        };
-      }
+      const activeToken = (token && String(token).trim()) || "";
       const res = await fetch(`${API_BASE}${url}`, {
         ...options,
         credentials: "include",
         headers: {
           ...options.headers,
-          Authorization: `Bearer ${activeToken}`,
+          ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
           "Content-Type": "application/json",
           ...(unsafe && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
         },
@@ -658,7 +637,6 @@ export default function AdminPanel() {
             : "";
       if (res.ok && exJwt.length > 20) {
         setToken(exJwt);
-        persistAdminToken(exJwt);
         markAdminPanelSession(true);
         setAuthed(true);
         setMfaSetup(null);
@@ -902,6 +880,7 @@ export default function AdminPanel() {
       setToken("");
       clearAdminToken();
     }
+
   };
 
   const createUser = async () => {
@@ -1022,7 +1001,7 @@ export default function AdminPanel() {
       qs.set("format", format);
       const res = await fetch(`${API_BASE}/api/admin/users/export?${qs.toString()}`, {
         credentials: "include",
-        headers: { Authorization: `Bearer ${(token && String(token).trim()) || readAdminToken()}` },
+        headers: token ? { Authorization: `Bearer ${String(token).trim()}` } : {},
       });
       if (!res.ok) throw new Error("Export başarısız");
       const blob = await res.blob();

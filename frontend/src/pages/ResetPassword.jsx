@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { getApiBase } from "../lib/apiBase.js";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -27,7 +28,7 @@ export default function ResetPassword() {
     setError("");
     
     try {
-      const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+      const base = getApiBase();
       const res = await fetch(`${base}/api/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
