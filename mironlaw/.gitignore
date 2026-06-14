@@ -1,0 +1,8 @@
+raw_data/
+processed/
+training/mironlaw-1.0/
+training/mironlaw-1.0_merged/
+training/mironlaw-1.0_gguf/
+__pycache__/
+*.pyc
+.env
