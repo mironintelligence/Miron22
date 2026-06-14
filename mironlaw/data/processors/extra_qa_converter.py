@@ -223,6 +223,80 @@ def convert_ontology(path: Path) -> List[Dict]:
     return results
 
 
+def convert_mevzuat(path: Path) -> List[Dict]:
+    """muhammetakkurt/mevzuat-gov-dataset: kanun metinleri → Q&A"""
+    results = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            r = json.loads(line)
+            text = str(r.get("text") or "").strip()
+            kanun_adi = str(r.get("kanun_adi") or "").strip()
+            kanun_no = str(r.get("kanun_no") or "").strip()
+            if not text or len(text) < 100:
+                continue
+            label = kanun_adi or "Bu kanun"
+            no_str = f" (Kanun No: {kanun_no})" if kanun_no else ""
+            results.append(_msg(
+                f"{label}{no_str} hakkında bilgi verir misin?",
+                f"{label}{no_str} hükümleri:\n\n{text[:2800]}"
+            ))
+            results.append(_msg(
+                f"{label}'nun temel maddelerini açıkla.",
+                f"Bu kanunun temel hükümleri şunlardır:\n\n{text[:2200]}"
+            ))
+    return results
+
+
+def convert_mevzuat_qa(path: Path) -> List[Dict]:
+    """yusufbaykaloglu/University_Mevzuat_QA_v2: questions/answers fields"""
+    results = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            r = json.loads(line)
+            q = str(r.get("question") or r.get("questions") or r.get("soru") or "").strip()
+            a = str(r.get("answer") or r.get("answers") or r.get("cevap") or "").strip()
+            if not q or not a or len(a) < 20:
+                continue
+            results.append(_msg(q, a))
+    return results
+
+
+def convert_academic_theses(path: Path) -> List[Dict]:
+    """umutertugrul/turkish-academic-theses-dataset: hukuk tez özetleri"""
+    results = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            r = json.loads(line)
+            title = str(r.get("title") or r.get("baslik") or "").strip()
+            text = str(r.get("text") or "").strip()
+            if not title or not text or len(text) < 100:
+                continue
+            results.append(_msg(
+                f"'{title}' konulu hukuk tezini özetle.",
+                text[:2000]
+            ))
+    return results
+
+
+def convert_hukuk_soru_cevap(path: Path) -> List[Dict]:
+    """alibayram/hukuk_soru_cevap"""
+    results = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            r = json.loads(line)
+            q = str(r.get("question") or r.get("soru") or "").strip()
+            a = str(r.get("answer") or r.get("cevap") or "").strip()
+            if not q or not a or len(a) < 20:
+                continue
+            results.append(_msg(q, a))
+    return results
+
+
+def convert_yargitay_2025_hf(path: Path) -> List[Dict]:
+    """aketen0654/9_yargitay_kararlari_2025"""
+    return convert_yargitay_2025(path)
+
+
 CONVERTERS = [
     ("extra_orion_qa.jsonl", convert_orion_qa),
     ("extra_eqa.jsonl", convert_eqa),
@@ -233,6 +307,13 @@ CONVERTERS = [
     ("extra_law_qa.jsonl", convert_law_qa),
     ("extra_ontology.jsonl", convert_ontology),
     ("legal_nli.jsonl", convert_legal_nli),
+    # Yeni kaynaklar
+    ("mevzuat_main.jsonl", convert_mevzuat),
+    ("mevzuat_university.jsonl", convert_mevzuat),
+    ("mevzuat_qa.jsonl", convert_mevzuat_qa),
+    ("academic_theses.jsonl", convert_academic_theses),
+    ("hukuk_soru_cevap.jsonl", convert_hukuk_soru_cevap),
+    ("yargitay_2025_9d.jsonl", convert_yargitay_2025_hf),
 ]
 
 
