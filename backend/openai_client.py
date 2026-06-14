@@ -11,6 +11,11 @@ except Exception:
 
 from openai import OpenAI
 
+# ── MironLaw 1.0 desteği ──
+# MIRONLAW_MODE=1 env var'ı set edilirse kendi modelimizi kullanır,
+# OpenAI API'ye hiç gitmez.
+_MIRONLAW_MODE = os.getenv("MIRONLAW_MODE", "").lower() in ("1", "true", "yes")
+
 
 def _load_env() -> None:
     """
@@ -40,7 +45,19 @@ def get_openai_api_key() -> str:
     return key
 
 
-def get_openai_client() -> OpenAI:
+def get_openai_client():
+    """
+    MIRONLAW_MODE=1 ise MironLaw 1.0 client döner (ücretsiz, HF üzerinden).
+    Aksi halde OpenAI client döner.
+    """
+    if _MIRONLAW_MODE:
+        try:
+            import sys, pathlib
+            sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+            from mironlaw.serve.hf_client import get_mironlaw_client
+            return get_mironlaw_client()
+        except Exception as e:
+            print(f"[WARN] MironLaw client yüklenemedi, OpenAI'a fallback: {e}")
     key = get_openai_api_key()
     return OpenAI(api_key=key)
 
