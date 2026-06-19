@@ -4,14 +4,13 @@ from typing import Optional, Dict, Any, List
 import os
 import logging
 from db import get_db_cursor
-from openai_client import get_openai_client
+from openai_client import get_openai_client, get_embedding_client
 from llm_gateway import chat_completions_create
 
 router = APIRouter(prefix="/api/yargitay", tags=["Yargıtay Search & RAG"])
 
 def get_embedding(text: str):
-    """Generate embedding using OpenAI"""
-    client = get_openai_client()
+    client = get_embedding_client()
     if not client:
         return None
     try:

@@ -1,6 +1,6 @@
 """
-Merkezi LLM çağrıları: env'den model, primary -> fallback (rate limit / bağlantı).
-Geçersiz model adları kullanılmaz; varsayılan gpt-4o-mini -> gpt-4o.
+Merkezi LLM çağrıları: env'den model, primary -> fallback.
+GROQ_API_KEY varsa Groq modelleri, yoksa OpenAI modelleri kullanılır.
 """
 from __future__ import annotations
 
@@ -13,19 +13,43 @@ except Exception:  # pragma: no cover
     RateLimitError = APIConnectionError = APITimeoutError = Exception  # type: ignore
 
 
+def _groq_active() -> bool:
+    from openai_client import is_groq_active
+    return is_groq_active()
+
+
 def llm_primary_model() -> str:
-    return (os.getenv("LLM_MODEL_PRIMARY") or "gpt-4o-mini").strip()
+    explicit = (os.getenv("LLM_MODEL_PRIMARY") or "").strip()
+    if explicit:
+        return explicit
+    return "llama-3.3-70b-versatile" if _groq_active() else "gpt-4o-mini"
 
 
 def llm_fallback_model() -> str:
-    return (os.getenv("LLM_MODEL_FALLBACK") or "gpt-4o").strip()
+    explicit = (os.getenv("LLM_MODEL_FALLBACK") or "").strip()
+    if explicit:
+        return explicit
+    return "llama-3.1-8b-instant" if _groq_active() else "gpt-4o"
+
+
+def _map_to_groq(model: str) -> str:
+    """OpenAI model adını Groq eşdeğerine çevirir."""
+    mapping = {
+        "gpt-4o": "llama-3.3-70b-versatile",
+        "gpt-4o-mini": "llama-3.3-70b-versatile",
+        "gpt-4-turbo": "llama-3.3-70b-versatile",
+        "gpt-4": "llama-3.3-70b-versatile",
+        "gpt-3.5-turbo": "llama-3.1-8b-instant",
+    }
+    return mapping.get(model, model)
 
 
 def _model_chain(explicit: Optional[str]) -> list[str]:
-    """İlk denenen model + yedek; tekrar yok."""
     seen: set[str] = set()
     out: list[str] = []
     first = (explicit or "").strip() or llm_primary_model()
+    if _groq_active():
+        first = _map_to_groq(first)
     for m in (first, llm_fallback_model()):
         if m and m not in seen:
             seen.add(m)
@@ -35,8 +59,8 @@ def _model_chain(explicit: Optional[str]) -> list[str]:
 
 def chat_completions_create(client: Any, **kwargs: Any):
     """
-    OpenAI senkron client.chat.completions.create ile aynı imza (model= dahil).
-    RateLimitError / APIConnectionError / APITimeoutError sonrası fallback modele geçer.
+    OpenAI/Groq senkron client.chat.completions.create.
+    RateLimitError / APIConnectionError / APITimeoutError sonrası fallback.
     """
     kwargs = dict(kwargs)
     model = kwargs.pop("model", None)
@@ -53,7 +77,7 @@ def chat_completions_create(client: Any, **kwargs: Any):
 
 
 async def chat_completions_create_async(client: Any, **kwargs: Any):
-    """AsyncOpenAI için aynı mantık."""
+    """AsyncOpenAI/Groq için aynı mantık."""
     kwargs = dict(kwargs)
     model = kwargs.pop("model", None)
     last_err: Optional[BaseException] = None
