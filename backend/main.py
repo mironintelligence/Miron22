@@ -292,6 +292,8 @@ from starlette.requests import Request
 # keep a narrow default allowlist.
 _origins_env = os.getenv("FRONTEND_ORIGINS")
 _allowed_origins = [
+    "https://www.mironintelligence.com",
+    "https://mironintelligence.com",
     "https://miron22.vercel.app",
     "https://mironintelligence.vercel.app",
     "https://www.mironintelligence.vercel.app",

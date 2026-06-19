@@ -20,9 +20,8 @@ export default function Pricing() {
     async function fetchPrice() {
       setLoadingPrice(true);
       try {
-        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
         const payload = { count: people };
-        const res = await fetch(`${base}/api/pricing/calculate`, {
+        const res = await fetch(`/api/pricing/calculate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -43,8 +42,7 @@ export default function Pricing() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
-        const res = await fetch(`${base}/api/pricing/public-settings`);
+        const res = await fetch(`/api/pricing/public-settings`);
         if (res.ok) {
           const data = await res.json();
           setSettings({
