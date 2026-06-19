@@ -7,6 +7,8 @@ import { useAuth } from "../auth/AuthProvider";
 export default function LoginModal({ open, onClose, onSuccess }) {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -15,6 +17,10 @@ export default function LoginModal({ open, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Ad ve soyad zorunludur.");
+      return;
+    }
     if (!email.trim() || !password.trim()) {
       setError("E-posta ve şifre zorunludur.");
       return;
@@ -26,7 +32,11 @@ export default function LoginModal({ open, onClose, onSuccess }) {
     setError("");
     setLoading(true);
     try {
-      await login(email.trim(), password);
+      const fn = firstName.trim();
+      const ln = lastName.trim();
+      await login(email.trim(), password, { firstName: fn, lastName: ln });
+      setFirstName("");
+      setLastName("");
       setEmail("");
       setPassword("");
       onSuccess?.();
@@ -52,6 +62,32 @@ export default function LoginModal({ open, onClose, onSuccess }) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm text-subtle mb-1">Ad <span className="text-red-400">*</span></label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              disabled={loading}
+              autoComplete="given-name"
+              className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
+              placeholder="Ad"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-subtle mb-1">Soyad <span className="text-red-400">*</span></label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              disabled={loading}
+              autoComplete="family-name"
+              className="w-full bg-black/40 border border-white/15 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--miron-gold)]"
+              placeholder="Soyad"
+            />
+          </div>
+        </div>
         <div>
           <label className="block text-sm text-subtle mb-1">E-posta</label>
           <input
