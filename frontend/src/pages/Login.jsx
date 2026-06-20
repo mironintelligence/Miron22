@@ -81,9 +81,7 @@ const Login = () => {
         {/* Logo */}
         <div className="text-center mb-10">
           <Link to="/" className="inline-block">
-            <span className="text-3xl font-black tracking-tighter bg-gradient-to-r from-[#ebac00] to-amber-400 bg-clip-text text-transparent">
-              Miron AI
-            </span>
+            <span className="text-3xl font-bold tracking-tight text-white">Miron </span><span className="text-3xl font-bold tracking-tight text-[#ebac00]">AI</span>
           </Link>
           <p className="text-[11px] text-white/30 tracking-[0.2em] uppercase mt-1">Miron GROUP LLC</p>
         </div>
@@ -206,16 +204,9 @@ const Login = () => {
               type="submit"
               disabled={loading}
               style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)' }}
-              className="w-full text-black py-3.5 mt-2 hover:opacity-85 transition-opacity disabled:opacity-50 flex items-center justify-center"
+              className="w-full text-black font-bold text-[13px] tracking-[0.1em] uppercase py-3.5 mt-2 hover:opacity-85 transition-opacity disabled:opacity-50"
             >
-              {loading ? (
-                <span className="text-[13px] font-bold tracking-[0.1em] uppercase">Doğrulanıyor...</span>
-              ) : (
-                <span className="flex items-center gap-1">
-                  <span className="font-serif text-[18px] font-light tracking-tight text-black">Miron</span>
-                  <span className="font-black text-[18px] tracking-tight text-black">AI</span>
-                </span>
-              )}
+              {loading ? "Doğrulanıyor..." : "Giriş Yap"}
             </button>
           </form>
 
