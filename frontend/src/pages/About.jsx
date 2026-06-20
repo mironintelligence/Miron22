@@ -12,7 +12,7 @@ export default function About() {
           <p className="text-[11px] font-bold tracking-[0.28em] uppercase text-white/30 mb-5">Miron Group LLC</p>
           <h1 className="text-4xl md:text-5xl font-bold mb-8 leading-tight">
             Yapay zekâyı gerçek işlere<br />
-            <span className="bg-gradient-to-r from-[var(--miron-gold)] to-amber-300 bg-clip-text text-transparent">
+            <span className="bg-clip-text text-transparent" style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               taşıyoruz.
             </span>
           </h1>
@@ -69,7 +69,7 @@ export default function About() {
         {/* Miron AI */}
         <div className="mb-20">
           <div className="flex items-center gap-3 mb-6">
-            <span className="text-[10px] font-bold tracking-[0.25em] uppercase px-3 py-1 border border-amber-300/30 text-amber-300 bg-amber-300/5">
+            <span className="text-[10px] font-bold tracking-[0.25em] uppercase px-3 py-1 border border-[#ebac00]/30 text-[#ebac00] bg-[#ebac00]/5">
               Miron AI
             </span>
             <span className="text-[11px] text-white/25">Hukuk</span>

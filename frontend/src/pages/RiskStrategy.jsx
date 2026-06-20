@@ -53,7 +53,7 @@ export default function RiskStrategy() {
     return (
       <div className="premium-scope bg-white/5 border border-white/10 p-5 rounded-xl">
         <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-          <span className="text-yellow-500">{icon}</span> {title}
+          <span className="text-[#ebac00]">{icon}</span> {title}
         </h3>
         <ul className="space-y-2">
           {items.map((item, i) => (
@@ -90,7 +90,7 @@ export default function RiskStrategy() {
                 <input
                   type="file"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="w-full text-sm text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-600 file:text-black hover:file:bg-yellow-500 transition"
+                  className="w-full text-sm text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#ebac00] file:text-black hover:file:opacity-85 transition"
                   accept=".pdf,.docx,.txt"
                 />
               </div>
@@ -111,14 +111,15 @@ export default function RiskStrategy() {
                   value={caseText}
                   onChange={(e) => setCaseText(e.target.value)}
                   placeholder="Dava dilekçesi, olay özeti veya hukuki uyuşmazlık metnini buraya yapıştırın..."
-                  className="w-full bg-black/50 border border-white/20 rounded-xl p-4 text-white text-sm focus:ring-2 focus:ring-yellow-500 outline-none resize-none"
+                  className="w-full bg-black/50 border border-white/20 rounded-xl p-4 text-white text-sm focus:ring-2 focus:ring-[#ebac00] outline-none resize-none"
                 />
               </div>
 
               <button
                 onClick={handleAnalyze}
                 disabled={loading}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-yellow-500 text-black font-bold shadow-lg hover:brightness-110 transition disabled:opacity-50 flex justify-center items-center gap-2"
+                style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)' }}
+                className="w-full py-3 rounded-xl text-black font-bold shadow-lg hover:opacity-85 transition disabled:opacity-50 flex justify-center items-center gap-2"
               >
                 {loading ? (
                   <>
@@ -178,7 +179,7 @@ export default function RiskStrategy() {
               {/* Probability Logic */}
               <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
                 <h3 className="text-sm font-bold text-white/50 uppercase mb-3">Analiz Mantığı</h3>
-                <p className="text-white/90 leading-relaxed italic border-l-4 border-yellow-500 pl-4">
+                <p className="text-white/90 leading-relaxed italic border-l-4 border-[#ebac00] pl-4">
                   "{res.probability_logic}"
                 </p>
               </div>

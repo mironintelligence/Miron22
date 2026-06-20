@@ -45,7 +45,7 @@ export function Guarantee() {
           <div className="max-w-[860px] mx-auto mt-16 bg-surface border border-border p-12 relative">
             <div
               className="absolute top-0 left-0 right-0 h-[1px]"
-              style={{ background: 'linear-gradient(90deg, transparent, #FFD700, transparent)' }}
+              style={{ background: 'linear-gradient(90deg, transparent, #ebac00, transparent)' }}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">

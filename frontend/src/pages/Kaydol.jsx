@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { register as apiRegister } from "../auth/api";
+import { register as apiRegister, login as apiLogin } from "../auth/api";
 import { emitToast } from "../utils/toastBus";
 import { passwordMeetsPolicy } from "../utils/passwordPolicy";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient.js";
@@ -382,6 +382,37 @@ export default function Kaydol() {
     }
   };
 
+  const goToCheckout = async (plan) => {
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const loginData = await apiLogin(email.trim(), password, { firstName, lastName });
+      const token = loginData?.access_token;
+      if (!token) throw new Error("Giriş yapılamadı, lütfen tekrar deneyin.");
+      const apiBase = String(getApiBase()).replace(/\/+$/, "");
+      const res = await fetch(`${apiBase}/api/stripe/create-checkout-session`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ plan }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Ödeme başlatılamadı.");
+      }
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    } catch (e) {
+      const msg = e?.message || "Ödeme başlatılamadı.";
+      setSubmitError(msg);
+      emitToast(msg, "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const resendSignup = async () => {
     if (!isSupabaseConfigured || !supabase) return;
     try {
@@ -744,15 +775,59 @@ export default function Kaydol() {
         )}
 
         {phase === "payment" && (
-          <motion.div key="payment" className="w-full max-w-lg" {...panelMotion}>
-        <div className="glass p-8 rounded-2xl border border-emerald-500/20 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
-          <h2 className="text-xl font-bold text-white mb-2">Ödeme</h2>
-          <p className="text-sm text-subtle mb-6">
-            Ödeme altyapısı yakında aktif edilecek. Şimdilik kaydınız tamamlandı; giriş yaparak devam edebilirsiniz.
-          </p>
-          <Link to="/login" className="inline-flex px-6 py-3 rounded-xl bg-[var(--miron-gold)] text-black font-bold hover:brightness-110 transition">
-            Giriş sayfası
-          </Link>
+          <motion.div key="payment" className="w-full max-w-md" {...panelMotion}>
+        <div className="glass p-8 rounded-2xl border border-emerald-500/20 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+          <div className="text-center mb-6">
+            <div className="text-3xl mb-2">✓</div>
+            <h2 className="text-xl font-bold text-white mb-1">Hesabınız oluşturuldu</h2>
+            <p className="text-sm text-subtle">
+              Plan seçerek ödemeyi tamamlayın. Ödeme onaylandıktan sonra hesabınız aktif hale gelir.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => goToCheckout("monthly")}
+              className="w-full py-4 rounded-xl border border-white/20 text-white font-bold hover:bg-white/5 transition disabled:opacity-50"
+            >
+              {submitting ? "Yönlendiriliyor..." : (
+                <>
+                  <div className="text-sm font-bold">Aylık Plan</div>
+                  <div className="text-xs text-white/50 font-normal mt-0.5">
+                    {publicPrices ? `${Number(publicPrices.base_price).toLocaleString("tr-TR")} TL/ay` : "—"}
+                  </div>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => goToCheckout("yearly")}
+              className="w-full py-4 rounded-xl bg-[var(--miron-gold)] text-black font-black hover:brightness-110 transition disabled:opacity-50"
+            >
+              {submitting ? "Yönlendiriliyor..." : (
+                <>
+                  <div className="text-sm font-bold">Yıllık Plan — En Avantajlı</div>
+                  <div className="text-xs text-black/60 font-normal mt-0.5">
+                    {publicPrices ? `${Number(publicPrices.yearly_price).toLocaleString("tr-TR")} TL/yıl` : "—"}
+                  </div>
+                </>
+              )}
+            </button>
+          </div>
+
+          {submitError && (
+            <div className="mt-4 p-3 rounded-xl border border-red-400/30 bg-red-500/10 text-sm text-red-200 text-center">{submitError}</div>
+          )}
+
+          <div className="mt-5 text-center">
+            <Link to="/login" className="text-xs text-white/30 hover:text-white/60 underline transition">
+              Ödemeyi daha sonra yapmak istiyorum → Giriş
+            </Link>
+          </div>
         </div>
           </motion.div>
         )}

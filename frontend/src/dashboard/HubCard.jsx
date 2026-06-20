@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 
 const HUB = {
   dava: {
-    stripe: "#FFD700",
+    stripe: "#ebac00",
     pill: { bg: "#1a1200", color: "#6b5420", border: "#2a2000", text: "Dava Yönetimi" },
     dot: "#3a2f00",
     link: "#6b5420",
-    linkHover: "#FFD700",
+    linkHover: "#ebac00",
   },
   arastirma: {
     stripe: "#4c8cc9",

@@ -470,7 +470,7 @@ export default function Register() {
               </label>
 
               {mode === "multi" && duplicatePw && (
-                <div className="p-3 rounded-xl border border-yellow-400/30 bg-yellow-500/5 text-sm text-yellow-600">
+                <div className="p-3 rounded-xl border border-[#ebac00]/30 bg-[#ebac00]/5 text-sm text-[#ebac00]">
                    Uyarı: Kayıt edilen kişiler arasında aynı şifre tespit edildi. Her kullanıcı için benzersiz bir şifre
                   belirleyin.
                 </div>

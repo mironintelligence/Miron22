@@ -79,7 +79,7 @@ const Login = () => {
         {/* Logo */}
         <div className="text-center mb-10">
           <Link to="/" className="inline-block">
-            <span className="text-3xl font-black tracking-tighter bg-gradient-to-r from-[#F5C518] to-amber-400 bg-clip-text text-transparent">
+            <span className="text-3xl font-black tracking-tighter bg-gradient-to-r from-[#ebac00] to-amber-400 bg-clip-text text-transparent">
               Miron AI
             </span>
           </Link>
@@ -90,13 +90,13 @@ const Login = () => {
         <div
           className="relative border border-white/12 bg-[#0d0d0d] p-8"
           style={{
-            boxShadow: '0 0 0 1px rgba(245,197,24,0.06), 0 24px 64px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04)',
+            boxShadow: '0 0 0 1px rgba(235,172,0,0.06), 0 24px 64px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04)',
           }}
         >
           {/* Gold top line */}
           <div
             className="absolute top-0 left-0 right-0 h-[1px]"
-            style={{ background: 'linear-gradient(90deg, transparent, #F5C518, transparent)' }}
+            style={{ background: 'linear-gradient(90deg, transparent, #ebac00, transparent)' }}
           />
 
           <h1 className="text-xl font-bold text-white mb-1">Güvenli Giriş</h1>
@@ -126,7 +126,7 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
                 placeholder="ornek@mail.com"
-                className="w-full bg-black/60 border border-white/10 text-white text-sm px-4 py-3 outline-none focus:border-[#F5C518]/50 focus:ring-1 focus:ring-[#F5C518]/20 transition-all placeholder:text-white/20 disabled:opacity-50"
+                className="w-full bg-black/60 border border-white/10 text-white text-sm px-4 py-3 outline-none focus:border-[#ebac00]/50 focus:ring-1 focus:ring-[#ebac00]/20 transition-all placeholder:text-white/20 disabled:opacity-50"
               />
             </div>
 
@@ -137,7 +137,7 @@ const Login = () => {
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="text-[11px] text-[#F5C518]/60 hover:text-[#F5C518] transition-colors"
+                  className="text-[11px] text-[#ebac00]/60 hover:text-[#ebac00] transition-colors"
                 >
                   Şifremi unuttum
                 </Link>
@@ -150,7 +150,7 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
                 placeholder="••••••••"
-                className="w-full bg-black/60 border border-white/10 text-white text-sm px-4 py-3 outline-none focus:border-[#F5C518]/50 focus:ring-1 focus:ring-[#F5C518]/20 transition-all placeholder:text-white/20 disabled:opacity-50"
+                className="w-full bg-black/60 border border-white/10 text-white text-sm px-4 py-3 outline-none focus:border-[#ebac00]/50 focus:ring-1 focus:ring-[#ebac00]/20 transition-all placeholder:text-white/20 disabled:opacity-50"
               />
             </div>
 
@@ -158,12 +158,12 @@ const Login = () => {
               <div
                 onClick={() => setRememberMe((v) => !v)}
                 className={`w-4 h-4 border shrink-0 flex items-center justify-center transition-colors ${
-                  rememberMe ? 'border-[#F5C518] bg-[#F5C518]/15' : 'border-white/20 group-hover:border-white/35'
+                  rememberMe ? 'border-[#ebac00] bg-[#ebac00]/15' : 'border-white/20 group-hover:border-white/35'
                 }`}
               >
                 {rememberMe && (
                   <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
-                    <path d="M1 3.5L3.5 6L8 1" stroke="#F5C518" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M1 3.5L3.5 6L8 1" stroke="#ebac00" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
               </div>
@@ -173,7 +173,8 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#F5C518] text-black font-bold text-[13px] tracking-[0.1em] uppercase py-3.5 mt-2 hover:opacity-85 transition-opacity disabled:opacity-50"
+              style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)' }}
+            className="w-full text-black font-bold text-[13px] tracking-[0.1em] uppercase py-3.5 mt-2 hover:opacity-85 transition-opacity disabled:opacity-50"
             >
               {loading ? "Doğrulanıyor..." : "Giriş Yap"}
             </button>
@@ -181,7 +182,7 @@ const Login = () => {
 
           <p className="text-center text-[12px] text-white/30 mt-6">
             Hesabınız yok mu?{" "}
-            <Link to="/kaydol" className="text-[#F5C518]/70 hover:text-[#F5C518] transition-colors">
+            <Link to="/kaydol" className="text-[#ebac00]/70 hover:text-[#ebac00] transition-colors">
               Kayıt olun
             </Link>
           </p>

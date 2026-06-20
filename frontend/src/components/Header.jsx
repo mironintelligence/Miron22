@@ -52,7 +52,7 @@ export default function Header({ onOpenLogin }) {
             <Link to={authed ? "/dashboard" : "/"} className="flex items-center gap-2">
               <img src="/logo.jpg" alt="Miron AI" className="h-8 w-auto rounded-md object-contain" onError={(e) => e.target.style.display = 'none'} />
               <div className="flex flex-col leading-tight">
-                <span className="text-2xl font-bold tracking-tighter bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">
+                <span className="text-2xl font-bold tracking-tighter bg-clip-text text-transparent" style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                   Miron AI
                 </span>
                 {!authed && (
@@ -106,13 +106,14 @@ export default function Header({ onOpenLogin }) {
                 <button
                   type="button"
                   onClick={onOpenLogin}
-                  className="px-4 py-2 text-sm font-semibold rounded-xl bg-[var(--miron-gold)] text-black hover:brightness-105 transition"
+                  style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)' }}
+                  className="px-4 py-2 text-sm font-semibold rounded-xl text-black hover:opacity-85 transition"
                 >
                   Giriş Yap
                 </button>
                 <Link
                   to="/kaydol"
-                  className="px-4 py-2 text-sm font-semibold rounded-xl border border-accent text-[var(--miron-gold)] hover:bg-[rgba(255,215,0,0.12)] transition"
+                  className="px-4 py-2 text-sm font-semibold rounded-xl border border-accent text-[#ebac00] hover:bg-[rgba(235,172,0,0.12)] transition"
                 >
                   Kaydol
                 </Link>
@@ -134,7 +135,7 @@ export default function Header({ onOpenLogin }) {
                   [
                     "block px-4 py-3 rounded-xl border transition",
                     isActive
-                      ? "bg-yellow-500/20 border-yellow-500/40 text-white"
+                      ? "bg-[#ebac00]/20 border-[#ebac00]/40 text-white"
                       : "bg-white/5 border-white/10 text-white/80 hover:bg-white/10",
                   ].join(" ")
                 }
@@ -147,7 +148,7 @@ export default function Header({ onOpenLogin }) {
               <button
                 type="button"
                 onClick={onLogout}
-                className="w-full text-left px-4 py-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 hover:bg-yellow-500/20 transition text-white"
+                className="w-full text-left px-4 py-3 rounded-xl border border-[#ebac00]/40 bg-[#ebac00]/10 hover:bg-[#ebac00]/20 transition text-white"
               >
                 Çıkış
               </button>

@@ -29,13 +29,13 @@ export default function DashboardHero() {
               fontSize: 11,
               letterSpacing: 2,
               textTransform: "uppercase",
-              color: "#FFD700",
+              color: "#ebac00",
             }}
           >
             <span
               aria-hidden
               className="inline-block animate-pulseDot"
-              style={{ width: 6, height: 6, background: "#FFD700", borderRadius: 999 }}
+              style={{ width: 6, height: 6, background: "#ebac00", borderRadius: 999 }}
             />
             <span>Miron Assistant · Çevrimiçi</span>
           </div>
@@ -80,7 +80,7 @@ export default function DashboardHero() {
             to="/dashboard/assistant"
             className="dash-font-sans inline-flex items-center justify-center no-underline"
             style={{
-              background: "#FFD700",
+              background: "#ebac00",
               color: "#000",
               fontWeight: 600,
               fontSize: 14,

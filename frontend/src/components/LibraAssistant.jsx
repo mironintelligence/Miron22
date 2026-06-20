@@ -146,7 +146,7 @@ const markdownComponents = {
   ),
   em: ({ node, ...props }) => <em style={{ color: "#888" }} {...props} />,
   a: ({ node, ...props }) => (
-    <a style={{ color: "#FFD700", textDecoration: "none" }} {...props} />
+    <a style={{ color: "#ebac00", textDecoration: "none" }} {...props} />
   ),
   code: ({ inline, className, children, ...props }) => {
     if (inline) {
@@ -662,7 +662,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
               }}
             >
               <span style={{ color: "#ffffff" }}>Miron</span>{" "}
-              <span style={{ color: "#FFD700" }}>AI</span>
+              <span style={{ color: "#ebac00" }}>AI</span>
             </span>
           </div>
 
@@ -780,7 +780,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                             color: on ? "#ccc" : "#444",
                             background: on ? "#0d0d0d" : "transparent",
                             border: "none",
-                            borderLeft: on ? "2px solid #FFD700" : "2px solid transparent",
+                            borderLeft: on ? "2px solid #ebac00" : "2px solid transparent",
                             fontSize: 12,
                             overflow: "hidden",
                             textOverflow: "ellipsis",
@@ -825,7 +825,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                   width: 28,
                   height: 28,
                   borderRadius: 999,
-                  background: "#FFD700",
+                  background: "#ebac00",
                   fontSize: 9,
                   fontWeight: 700,
                   color: "#000",
@@ -1230,7 +1230,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                     alignSelf: "flex-end",
                     border: input.trim() ? "none" : "0.5px solid #1e1e1e",
                     borderRadius: 8,
-                    background: input.trim() ? "#FFD700" : "#111",
+                    background: input.trim() ? "#ebac00" : "#111",
                     color: input.trim() ? "#000" : "#333",
                     marginBottom: 2,
                     cursor: streaming || !input.trim() ? "not-allowed" : "pointer",
@@ -1327,7 +1327,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                     type="button"
                     onClick={doRename}
                     style={{
-                      background: "#FFD700",
+                      background: "#ebac00",
                       color: "#000",
                       border: "none",
                       fontWeight: 600,

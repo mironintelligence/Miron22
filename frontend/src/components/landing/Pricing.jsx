@@ -41,7 +41,7 @@ export function Pricing() {
           <div className="max-w-[580px] mx-auto bg-surface border border-border p-12 relative mt-4">
             <div
               className="absolute top-0 left-0 right-0 h-[1px]"
-              style={{ background: 'linear-gradient(90deg, transparent, #FFD700, transparent)' }}
+              style={{ background: 'linear-gradient(90deg, transparent, #ebac00, transparent)' }}
             />
 
             <div className="inline-block px-3 py-1 bg-gold/10 border border-gold/30 text-gold font-ui text-[10px] tracking-[0.2em] uppercase mb-6">

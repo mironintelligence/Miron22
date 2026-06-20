@@ -31,7 +31,7 @@ html {
   display: inline-block;
   width: 2px;
   height: 14px;
-  background: #FFD700;
+  background: #ebac00;
   margin-left: 2px;
   vertical-align: text-bottom;
   animation: miron-cursor-blink 0.9s ease-in-out infinite;
@@ -59,14 +59,16 @@ html {
 :root {
   --miron-bg: #000000;
   --miron-text: #FFFFFF;
-  --miron-gold: #FFD700;
+  --miron-gold: #ebac00;
+  --miron-gold-end: #b88700;
+  --miron-gold-gradient: linear-gradient(90deg, #ebac00, #b88700);
   --miron-text-muted: rgba(255,255,255,0.78);
   --miron-text-subtle: rgba(255,255,255,0.62);
   --miron-panel: rgba(255,255,255,0.05);
   --miron-panel-2: rgba(255,255,255,0.08);
   --miron-border: rgba(255,255,255,0.12);
   --miron-border-strong: rgba(255,255,255,0.2);
-  --miron-glow: 0 0 0 1px rgba(255,215,0,0.25), 0 0 24px rgba(255,215,0,0.18);
+  --miron-glow: 0 0 0 1px rgba(235,172,0,0.25), 0 0 24px rgba(235,172,0,0.18);
 }
 
 /* ---------- Genel Gövde ---------- */
@@ -99,7 +101,7 @@ h1, h2, h3, h4 {
 @layer components {
   .btn-primary {
     @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold transition;
-    background: var(--miron-gold);
+    background: var(--miron-gold-gradient);
     color: #000000;
     box-shadow: 0 0 0 rgba(0,0,0,0);
   }
@@ -110,17 +112,17 @@ h1, h2, h3, h4 {
     @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold transition;
     background: transparent;
     color: var(--miron-gold);
-    border: 1px solid rgba(255,215,0,0.45);
+    border: 1px solid rgba(235,172,0,0.45);
   }
-  .btn-secondary:hover { background: rgba(255,215,0,0.12); box-shadow: var(--miron-glow); }
+  .btn-secondary:hover { background: rgba(235,172,0,0.12); box-shadow: var(--miron-glow); }
 
   .btn-danger {
     @apply inline-flex items-center justify-center rounded-xl px-5 py-3 font-semibold transition;
     background: rgba(255,255,255,0.04);
     color: #FFFFFF;
-    border: 1px solid rgba(255,215,0,0.25);
+    border: 1px solid rgba(235,172,0,0.25);
   }
-  .btn-danger:hover { border-color: rgba(255,215,0,0.5); background: rgba(255,255,255,0.06); }
+  .btn-danger:hover { border-color: rgba(235,172,0,0.5); background: rgba(255,255,255,0.06); }
 
   .card {
     @apply rounded-2xl;
@@ -131,8 +133,14 @@ h1, h2, h3, h4 {
 
   .text-muted { color: var(--miron-text-muted); }
   .text-subtle { color: var(--miron-text-subtle); }
-  .text-accent { color: var(--miron-gold); }
-  .border-accent { border-color: rgba(255,215,0,0.45); }
+  .text-accent {
+    background: var(--miron-gold-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .border-accent { border-color: rgba(235,172,0,0.45); }
 }
 
 /* ---------- Markdown Okunabilirliği ---------- */
@@ -161,8 +169,8 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
 
 /* ---------- Scrollbar ---------- */
 ::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.35); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 215, 0, 0.55); }
+::-webkit-scrollbar-thumb { background: rgba(235, 172, 0, 0.35); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(235, 172, 0, 0.55); }
 
 .input {
   padding: 12px;
@@ -189,7 +197,7 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
   --d-text: #ffffff;
   --d-text-2: #888888;
   --d-text-3: #3a3a3a;
-  --d-accent: #FFD700;
+  --d-accent: #ebac00;
   --d-accent-dim: #4a3a00;
   --d-accent-text: #b8960a;
   font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
@@ -215,9 +223,9 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255,215,0,0.27),
-    rgba(255,215,0,1),
-    rgba(255,215,0,0.27),
+    rgba(235,172,0,0.27),
+    rgba(235,172,0,1),
+    rgba(235,172,0,0.27),
     transparent
   );
   pointer-events: none;
@@ -238,7 +246,7 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
 /* =========================================================
    PREMIUM DESIGN SYSTEM — feature sayfaları için ortak sınıflar.
    Spec: IBM Plex Sans, 0.5px hairline, 14px card radius,
-   8px button radius, #0a0a0a surface, #111 elevated, #FFD700 accent.
+   8px button radius, #0a0a0a surface, #111 elevated, #ebac00 accent.
    Mevcut .glass / .card / .btn-* sınıfları ayrı ve değişmedi.
    ========================================================= */
 
@@ -328,7 +336,13 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
 .p-text-xs { font-size: 11px; color: #666; }
 .p-muted { color: #555; }
 .p-faint { color: #3a3a3a; }
-.p-accent { color: #FFD700; }
+.p-accent {
+  background: linear-gradient(90deg, #ebac00, #b88700);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
 
 .p-input, .p-select, .p-textarea {
   width: 100%;
@@ -342,7 +356,7 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
   outline: none;
   transition: border-color 0.15s ease;
 }
-.p-input:focus, .p-select:focus, .p-textarea:focus { border-color: #FFD700; }
+.p-input:focus, .p-select:focus, .p-textarea:focus { border-color: #ebac00; }
 .p-input::placeholder, .p-textarea::placeholder { color: #555; }
 
 .p-textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
@@ -364,7 +378,7 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
 }
 .p-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.p-btn-primary { background: #FFD700; color: #000; }
+.p-btn-primary { background: linear-gradient(90deg, #ebac00, #b88700); color: #000; }
 .p-btn-primary:hover:not(:disabled) { opacity: 0.88; }
 
 .p-btn-ghost {
@@ -391,7 +405,7 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
 .p-btn-tab:hover { border-color: #2e2e2e; color: #aaa; }
 .p-btn-tab.is-active {
   background: #111;
-  color: #FFD700;
+  color: #b88700;
   border-color: #2e2e2e;
 }
 
@@ -547,7 +561,7 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
 
 /* Butonlar — birincil altın */
 .premium-scope .btn-primary {
-  background: #FFD700 !important;
+  background: linear-gradient(90deg, #ebac00, #b88700) !important;
   color: #000 !important;
   border: none !important;
   border-radius: 8px !important;
@@ -616,7 +630,7 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
 .premium-scope select:focus,
 .premium-scope textarea:focus,
 .premium-scope .input:focus {
-  border-color: #FFD700 !important;
+  border-color: #ebac00 !important;
 }
 .premium-scope input::placeholder,
 .premium-scope textarea::placeholder {
@@ -636,7 +650,13 @@ body.fadeout * { animation: fadeOutSmooth 0.3s ease forwards; }
 /* Yardımcı metinler */
 .premium-scope .text-subtle { color: #555 !important; }
 .premium-scope .text-muted  { color: #888 !important; }
-.premium-scope .text-accent { color: #FFD700 !important; }
+.premium-scope .text-accent {
+  background: linear-gradient(90deg, #ebac00, #b88700) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
 
 /* Rozetler / pill'ler — var olan rounded-full patternleri */
 .premium-scope .rounded-full {
