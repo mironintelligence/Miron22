@@ -4,6 +4,8 @@ import { useAuth } from "../auth/AuthProvider";
 import { purgeLegacyTokenStorage } from "../utils/auth";
 
 const Login = () => {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -99,9 +101,6 @@ const Login = () => {
             style={{ background: 'linear-gradient(90deg, transparent, #ebac00, transparent)' }}
           />
 
-          <h1 className="text-xl font-bold text-white mb-1">Güvenli Giriş</h1>
-          <p className="text-[12px] text-white/35 mb-7">Hesabınıza erişmek için kimliğinizi doğrulayın.</p>
-
           {success && (
             <div className="mb-5 px-4 py-3 border border-emerald-500/30 bg-emerald-950/30 text-emerald-300 text-[12px] leading-relaxed">
               {success}
@@ -114,6 +113,39 @@ const Login = () => {
           )}
 
           <form onSubmit={handleLogin} className="space-y-4" autoComplete="on">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-[0.15em] mb-2">
+                  Ad
+                </label>
+                <input
+                  type="text"
+                  name="given-name"
+                  autoComplete="given-name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  disabled={loading}
+                  placeholder="Adınız"
+                  className="w-full bg-black/60 border border-white/10 text-white text-sm px-4 py-3 outline-none focus:border-[#ebac00]/50 focus:ring-1 focus:ring-[#ebac00]/20 transition-all placeholder:text-white/20 disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-[0.15em] mb-2">
+                  Soyad
+                </label>
+                <input
+                  type="text"
+                  name="family-name"
+                  autoComplete="family-name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  disabled={loading}
+                  placeholder="Soyadınız"
+                  className="w-full bg-black/60 border border-white/10 text-white text-sm px-4 py-3 outline-none focus:border-[#ebac00]/50 focus:ring-1 focus:ring-[#ebac00]/20 transition-all placeholder:text-white/20 disabled:opacity-50"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-[0.15em] mb-2">
                 E-posta
