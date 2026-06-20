@@ -516,8 +516,8 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=1, max_length=256)
-    firstName: Optional[str] = Field(default="", max_length=64)
-    lastName: Optional[str] = Field(default="", max_length=64)
+    firstName: str = Field(..., min_length=1, max_length=64)
+    lastName: str = Field(..., min_length=1, max_length=64)
 
 
 @router.post("/register")
@@ -646,6 +646,15 @@ def login_account(payload: LoginRequest, request: Request, response: Response):
                 log_audit(str(user.get("id")), "USER_LOGIN_SUPABASE", row_email, {"via": "gotrue_password"}, ip, ua)
             except Exception:
                 pass
+
+        # Ad/Soyad doğrulaması — kayıtlı isimle eşleşmeli
+        row_fn = str(user.get("first_name") or user.get("firstName") or "").strip()
+        row_ln = str(user.get("last_name") or user.get("lastName") or "").strip()
+        if row_fn and row_ln:
+            if _norm_name_part(row_fn) != _norm_name_part(payload.firstName) or \
+               _norm_name_part(row_ln) != _norm_name_part(payload.lastName):
+                increment_failed_login(email_norm)
+                raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya şifre hatalı.")
 
         if maintenance_mode_enabled():
             r = str(user.get("role") or "user").strip().lower()

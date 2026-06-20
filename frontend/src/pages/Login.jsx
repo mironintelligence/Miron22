@@ -35,6 +35,14 @@ const Login = () => {
     setError("");
     setSuccess("");
 
+    if (!firstName.trim()) {
+      setError("Ad zorunludur.");
+      return;
+    }
+    if (!lastName.trim()) {
+      setError("Soyad zorunludur.");
+      return;
+    }
     if (!email.trim()) {
       setError("E-posta adresi zorunludur.");
       return;
@@ -51,7 +59,7 @@ const Login = () => {
     setLoading(true);
     try {
       purgeLegacyTokenStorage();
-      await login(email.trim(), password, { rememberMe });
+      await login(email.trim(), password, { rememberMe, firstName: firstName.trim(), lastName: lastName.trim() });
       navigate("/dashboard", { replace: true });
     } catch (err) {
       if (err?.code === "DEMO_EXPIRED" || err?.code === "SUBSCRIPTION_EXPIRED") {

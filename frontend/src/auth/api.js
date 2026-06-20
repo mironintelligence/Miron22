@@ -226,11 +226,12 @@ function shouldSkip401Retry(path) {
 }
 
 export async function login(email, password, nameHint = null) {
-  const body = { email, password };
-  if (nameHint && (nameHint.firstName || nameHint.lastName)) {
-    body.firstName = String(nameHint.firstName || "").trim();
-    body.lastName = String(nameHint.lastName || "").trim();
-  }
+  const body = {
+    email,
+    password,
+    firstName: String((nameHint && nameHint.firstName) || "").trim(),
+    lastName: String((nameHint && nameHint.lastName) || "").trim(),
+  };
   const r = await fetch(`${API}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
