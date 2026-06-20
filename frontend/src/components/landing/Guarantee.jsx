@@ -7,7 +7,7 @@ const TRUST_ITEMS = [
   {
     icon: ShieldCheck,
     title: 'KVKK & GDPR Uyumlu',
-    desc: 'Tüm veriler Türkiye'de şifrelenmiş sunucularda işlenir. Kişisel veri yükümlülüklerini tamamen karşılar.',
+    desc: "Tüm veriler Türkiye'de şifrelenmiş sunucularda işlenir. Kişisel veri yükümlülüklerini tamamen karşılar.",
   },
   {
     icon: Lock,
