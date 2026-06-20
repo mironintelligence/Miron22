@@ -323,7 +323,7 @@ export default function Settings() {
       </AnimatePresence>
 
       <footer className="text-center text-xs text-subtle mt-20 py-8 glass border-t border-white/10 rounded-t-2xl">
-        © 2026 Miron Intelligence Ltd — Tüm hakları saklıdır.
+        © 2026 Miron GROUP LLC — Tüm hakları saklıdır.
       </footer>
     </div>
   );

@@ -54,7 +54,7 @@ export function Pricing() {
               <span className="font-ui text-[18px] text-muted">₺</span>
               <span className="font-ui text-[14px] text-muted">/ ay</span>
             </div>
-            <p className="font-ui text-[11px] text-muted mb-6">KDV dahil. Tek paket, taahhütsüz.</p>
+            <p className="font-ui text-[11px] text-muted mb-6">KDV dahil değildir, alıcı ülke mevzuatına göre vergi yükümlülüğü alıcıya aittir. Tek paket, taahhütsüz.</p>
 
             <div className="p-4 border border-gold/30 bg-gold/5 mb-8">
               <p className="font-ui text-[12px] text-white leading-relaxed">

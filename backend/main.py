@@ -123,7 +123,7 @@ app = FastAPI(
     version="1.4.0",
     description=_OPENAPI_DESCRIPTION,
     openapi_tags=_OPENAPI_TAGS,
-    contact={"name": "Miron Intelligence", "url": "https://mironintelligence.vercel.app"},
+    contact={"name": "Miron GROUP LLC", "url": "https://mironintelligence.vercel.app"},
     license_info={"name": "Proprietary"},
     swagger_ui_parameters={"defaultModelsExpandDepth": -1, "persistAuthorization": True},
 )
@@ -1016,6 +1016,11 @@ except ImportError:
     from pricing_router import router as pricing_router
 
 app.include_router(pricing_router, prefix="/api/pricing", tags=["Pricing"])
+
+# Stripe Router
+stripe_router = _safe_import("routes.stripe_router", "router")
+if stripe_router:
+    app.include_router(stripe_router)
 
 
 # Admin Router (ensure it is included)

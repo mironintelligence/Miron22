@@ -25,7 +25,7 @@ export function SiteLegalCompanyLine({ className = "" }) {
   const y = new Date().getFullYear();
   return (
     <p className={`text-[11px] text-white/45 text-center ${className}`}>
-      <span className="text-white/80 font-medium">Miron Intelligence Ltd</span>
+      <span className="text-white/80 font-medium">Miron GROUP LLC</span>
       <span className="mx-1.5 text-white/25">·</span>
       <span>© {y}</span>
     </p>

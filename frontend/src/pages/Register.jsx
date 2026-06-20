@@ -501,7 +501,7 @@ export default function Register() {
       </div>
 
       <footer className="mt-8 mb-6 text-center text-xs text-subtle">
-        © 2026 Miron Intelligence Ltd — All rights reserved
+        © 2026 Miron GROUP LLC — All rights reserved
       </footer>
     </div>
   );

@@ -57,7 +57,7 @@ export default function Header({ onOpenLogin }) {
                 </span>
                 {!authed && (
                   <span className="text-[10px] text-white/60 uppercase tracking-widest -mt-1">
-                    Miron Intelligence tarafından
+                    Miron GROUP LLC
                   </span>
                 )}
               </div>
