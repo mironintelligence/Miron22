@@ -29,23 +29,23 @@ const FONT_DISPLAY = '"Abril Fatface", serif';
 const FONT_MONO = '"IBM Plex Mono", ui-monospace, monospace';
 
 function makeMarkdownComponents(collapsed) {
-  const baseFontSize = collapsed ? 16 : 14;
+  const baseFontSize = collapsed ? 19 : 17;
   return {
-    h1: ({ node, ...p }) => <h3 style={{ fontFamily: FONT_SANS, fontSize: baseFontSize, fontWeight: 500, color: "#cccccc", marginTop: 22, marginBottom: 8 }} {...p} />,
-    h2: ({ node, ...p }) => <h3 style={{ fontFamily: FONT_SANS, fontSize: baseFontSize - 1, fontWeight: 500, color: "#cccccc", marginTop: 20, marginBottom: 8 }} {...p} />,
-    h3: ({ node, ...p }) => <h3 style={{ fontFamily: FONT_SANS, fontSize: baseFontSize - 1, fontWeight: 500, color: "#cccccc", marginTop: 20, marginBottom: 8 }} {...p} />,
-    h4: ({ node, ...p }) => <h4 style={{ fontFamily: FONT_SANS, fontSize: baseFontSize - 2, fontWeight: 500, color: "#bbb", marginTop: 16, marginBottom: 6 }} {...p} />,
-    p: ({ node, ...p }) => <p style={{ fontFamily: FONT_SERIF, fontSize: baseFontSize, color: "#888", lineHeight: 1.85, margin: "0 0 12px" }} {...p} />,
-    ul: ({ node, ...p }) => <ul style={{ margin: "0 0 12px", paddingLeft: 16, listStyle: "disc" }} {...p} />,
-    ol: ({ node, ...p }) => <ol style={{ margin: "0 0 12px", paddingLeft: 18 }} {...p} />,
-    li: ({ node, ...p }) => <li style={{ fontFamily: FONT_SERIF, fontSize: baseFontSize, color: "#666", lineHeight: 1.85, marginBottom: 4 }} {...p} />,
-    strong: ({ node, ...p }) => <strong style={{ color: "#bbb", fontWeight: 600 }} {...p} />,
-    em: ({ node, ...p }) => <em style={{ color: "#888" }} {...p} />,
+    h1: ({ node, ...p }) => <h3 style={{ fontFamily: FONT_SANS, fontSize: baseFontSize + 1, fontWeight: 600, color: "#d4d4d4", marginTop: 26, marginBottom: 10 }} {...p} />,
+    h2: ({ node, ...p }) => <h3 style={{ fontFamily: FONT_SANS, fontSize: baseFontSize, fontWeight: 600, color: "#d4d4d4", marginTop: 24, marginBottom: 10 }} {...p} />,
+    h3: ({ node, ...p }) => <h3 style={{ fontFamily: FONT_SANS, fontSize: baseFontSize, fontWeight: 600, color: "#d4d4d4", marginTop: 22, marginBottom: 8 }} {...p} />,
+    h4: ({ node, ...p }) => <h4 style={{ fontFamily: FONT_SANS, fontSize: baseFontSize - 1, fontWeight: 500, color: "#bbb", marginTop: 18, marginBottom: 6 }} {...p} />,
+    p: ({ node, ...p }) => <p style={{ fontFamily: FONT_SERIF, fontSize: baseFontSize, color: "#999", lineHeight: 2.0, margin: "0 0 16px" }} {...p} />,
+    ul: ({ node, ...p }) => <ul style={{ margin: "0 0 16px", paddingLeft: 20, listStyle: "disc" }} {...p} />,
+    ol: ({ node, ...p }) => <ol style={{ margin: "0 0 16px", paddingLeft: 22 }} {...p} />,
+    li: ({ node, ...p }) => <li style={{ fontFamily: FONT_SERIF, fontSize: baseFontSize, color: "#888", lineHeight: 2.0, marginBottom: 6 }} {...p} />,
+    strong: ({ node, ...p }) => <strong style={{ color: "#d4d4d4", fontWeight: 600 }} {...p} />,
+    em: ({ node, ...p }) => <em style={{ color: "#999" }} {...p} />,
     a: ({ node, ...p }) => <a style={{ color: "#ebac00", textDecoration: "none" }} {...p} />,
     code: ({ inline, children, ...p }) => inline
-      ? <code style={{ fontFamily: FONT_MONO, fontSize: 12, background: "#0a0a0a", padding: "2px 6px", borderRadius: 4, color: "#c9a84c" }} {...p}>{children}</code>
-      : <pre style={{ background: "#0a0a0a", border: "0.5px solid #1e1e1e", padding: 16, borderRadius: 8, overflowX: "auto", margin: "0 0 12px" }}><code style={{ fontFamily: FONT_MONO, fontSize: 12, color: "#c9a84c" }} {...p}>{children}</code></pre>,
-    blockquote: ({ node, ...p }) => <blockquote style={{ borderLeft: "2px solid #2a2a2a", paddingLeft: 12, margin: "0 0 12px", color: "#777", fontStyle: "italic", fontFamily: FONT_SERIF }} {...p} />,
+      ? <code style={{ fontFamily: FONT_MONO, fontSize: 14, background: "#0a0a0a", padding: "2px 6px", borderRadius: 4, color: "#c9a84c" }} {...p}>{children}</code>
+      : <pre style={{ background: "#0a0a0a", border: "0.5px solid #1e1e1e", padding: 16, borderRadius: 8, overflowX: "auto", margin: "0 0 16px" }}><code style={{ fontFamily: FONT_MONO, fontSize: 13, color: "#c9a84c" }} {...p}>{children}</code></pre>,
+    blockquote: ({ node, ...p }) => <blockquote style={{ borderLeft: "2px solid #2a2a2a", paddingLeft: 14, margin: "0 0 16px", color: "#888", fontStyle: "italic", fontFamily: FONT_SERIF, fontSize: baseFontSize }} {...p} />,
   };
 }
 
@@ -555,20 +555,27 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                 {messages.map((m, i) => (
                   <div key={i} style={{ display: "flex", width: "100%", justifyContent: m.sender === "user" ? "flex-end" : "flex-start" }}>
                     {m.sender === "user" ? (
-                      <div style={{ maxWidth: 480, background: "#0d0d0d", border: "0.5px solid #1e1e1e", borderRadius: 12, padding: "12px 16px", color: "#cccccc", fontSize: sideCollapsed ? 15 : 14, lineHeight: 1.7, fontFamily: FONT_SANS, whiteSpace: "pre-wrap", overflowWrap: "anywhere", transition: "font-size 0.25s ease" }}>
-                        {m.fileName && <div style={{ fontSize: 10, color: "#444", marginBottom: 6, fontFamily: FONT_SANS }}>📎 {m.fileName}</div>}
+                      <div style={{ maxWidth: 520, background: "#0d0d0d", border: "0.5px solid #1e1e1e", borderRadius: 12, padding: "14px 18px", color: "#cccccc", fontSize: sideCollapsed ? 17 : 16, lineHeight: 1.75, fontFamily: FONT_SANS, whiteSpace: "pre-wrap", overflowWrap: "anywhere", transition: "font-size 0.25s ease" }}>
+                        {m.fileName && <div style={{ fontSize: 12, color: "#444", marginBottom: 6, fontFamily: FONT_SANS }}>📎 {m.fileName}</div>}
                         {m.text}
                       </div>
                     ) : (
-                      <div className="miron-msg" style={{ maxWidth: sideCollapsed ? 760 : 660, color: "#777", fontSize: sideCollapsed ? 16 : 14, lineHeight: 1.85, fontFamily: FONT_SERIF, borderLeft: "1px solid #1e1e1e", paddingLeft: 20, marginRight: 20, overflowWrap: "anywhere", transition: "font-size 0.25s ease, max-width 0.25s ease" }}>
+                      <div className="miron-msg" style={{ maxWidth: sideCollapsed ? 820 : 720, color: "#888", fontSize: sideCollapsed ? 19 : 17, lineHeight: 2.0, fontFamily: FONT_SERIF, borderLeft: "1px solid #1e1e1e", paddingLeft: 24, marginRight: 20, overflowWrap: "anywhere", transition: "font-size 0.25s ease, max-width 0.25s ease" }}>
                         <ReactMarkdown components={markdownComponents}>{stripEmojis(m.text)}</ReactMarkdown>
+                        <div style={{ marginTop: 12, paddingTop: 10, borderTop: "0.5px solid #111", display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontFamily: FONT_SANS, fontSize: 10, color: "#2a2a2a" }}>Miron AI</span>
+                          <span style={{ color: "#1a1a1a" }}>·</span>
+                          <span style={{ fontFamily: FONT_SANS, fontSize: 10, color: "#2a2a2a" }}>{new Date().toLocaleDateString("tr-TR")}</span>
+                          <span style={{ color: "#1a1a1a" }}>·</span>
+                          <span style={{ fontFamily: FONT_SANS, fontSize: 10, color: "#2a2a2a" }}>Türk hukuku referanslıdır. Doğruluğu teyit edin.</span>
+                        </div>
                       </div>
                     )}
                   </div>
                 ))}
                 {streaming && (
                   <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                    <div className="miron-msg" style={{ maxWidth: sideCollapsed ? 760 : 660, color: "#777", fontSize: sideCollapsed ? 16 : 14, lineHeight: 1.85, fontFamily: FONT_SERIF, borderLeft: "1px solid #1e1e1e", paddingLeft: 20, marginRight: 20, overflowWrap: "anywhere" }}>
+                    <div className="miron-msg" style={{ maxWidth: sideCollapsed ? 820 : 720, color: "#888", fontSize: sideCollapsed ? 19 : 17, lineHeight: 2.0, fontFamily: FONT_SERIF, borderLeft: "1px solid #1e1e1e", paddingLeft: 24, marginRight: 20, overflowWrap: "anywhere" }}>
                       {cleanedStream ? (
                         <><ReactMarkdown components={markdownComponents}>{cleanedStream}</ReactMarkdown><span className="miron-cursor" /></>
                       ) : (

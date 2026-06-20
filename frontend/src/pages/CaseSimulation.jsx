@@ -75,6 +75,7 @@ export default function CaseSimulation() {
       const resp = await authFetch("/api/risk/simulate", {
         method: "POST",
         body: payload,
+        timeoutMs: 180000,
       });
       if (!resp.ok) {
         let detail = "Simülasyon başarısız oldu.";
@@ -194,25 +195,23 @@ export default function CaseSimulation() {
               </div>
             </div>
 
-            <div
-              className="rounded-2xl border-2 border-amber-400/90 bg-amber-300/35 p-4 sm:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_32px_rgba(234,179,8,0.18)]"
-              role="presentation"
-            >
+            <div className="flex justify-end pt-2">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-black text-lg tracking-wide shadow-md border border-amber-600/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-8 py-3 rounded-xl text-black font-semibold text-base tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: loading ? "#9a7200" : "linear-gradient(90deg, #ebac00, #b88700)", minWidth: 160 }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Simülasyon Çalıştırılıyor...
+                    Çalıştırılıyor...
                   </span>
                 ) : (
-                  "Çalıştır"
+                  "Simülasyonu Çalıştır"
                 )}
               </button>
             </div>
