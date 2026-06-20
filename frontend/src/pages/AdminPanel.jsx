@@ -126,6 +126,7 @@ export default function AdminPanel() {
     bulk_threshold: 3,
     legal_list_price: 24000,
     legal_sale_price: 12000,
+    yearly_price: 85000,
   });
   
   // Forms
@@ -493,6 +494,7 @@ export default function AdminPanel() {
       bulk_threshold: Number(data?.bulk_threshold ?? 3),
       legal_list_price: Number(data?.legal_list_price ?? 24000),
       legal_sale_price: Number(data?.legal_sale_price ?? 12000),
+      yearly_price: Number(data?.yearly_price ?? 85000),
     });
   };
 
@@ -728,6 +730,7 @@ export default function AdminPanel() {
       bulk_threshold: Number(pricingDraft?.bulk_threshold),
       legal_list_price: Number(pricingDraft?.legal_list_price),
       legal_sale_price: Number(pricingDraft?.legal_sale_price),
+      yearly_price: Number(pricingDraft?.yearly_price),
     };
 
     if (
@@ -735,7 +738,8 @@ export default function AdminPanel() {
       !Number.isFinite(payload.discount_rate) ||
       !Number.isFinite(payload.bulk_threshold) ||
       !Number.isFinite(payload.legal_list_price) ||
-      !Number.isFinite(payload.legal_sale_price)
+      !Number.isFinite(payload.legal_sale_price) ||
+      !Number.isFinite(payload.yearly_price)
     ) {
       showMsg("Fiyat/indirim/limit sayısal olmalı", "error");
       return;
@@ -756,6 +760,7 @@ export default function AdminPanel() {
         bulk_threshold: Number(next?.bulk_threshold ?? payload.bulk_threshold),
         legal_list_price: Number(next?.legal_list_price ?? payload.legal_list_price),
         legal_sale_price: Number(next?.legal_sale_price ?? payload.legal_sale_price),
+        yearly_price: Number(next?.yearly_price ?? payload.yearly_price),
       });
     } else {
       showMsg(" Pricing ayarları güncellenemedi", "error");
@@ -1370,6 +1375,17 @@ export default function AdminPanel() {
                     value={pricingDraft?.legal_sale_price ?? 12000}
                     onChange={(e) => setPricingDraft((p) => ({ ...(p || {}), legal_sale_price: e.target.value }))}
                   />
+                </div>
+                <div>
+                  <div className="text-zinc-400 text-xs uppercase tracking-wider mb-2">Yıllık Plan (TL) — Stripe</div>
+                  <input
+                    type="number"
+                    step="1"
+                    className="w-full bg-black border border-amber-500/40 p-3 text-white rounded outline-none focus:border-amber-500"
+                    value={pricingDraft?.yearly_price ?? 85000}
+                    onChange={(e) => setPricingDraft((p) => ({ ...(p || {}), yearly_price: e.target.value }))}
+                  />
+                  <div className="text-zinc-500 text-xs mt-1">Stripe checkout'ta yıllık abonelik fiyatı</div>
                 </div>
               </div>
               <div className="mt-5 flex justify-end">

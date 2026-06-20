@@ -86,7 +86,10 @@ def ensure_schema() -> None:
         "CREATE INDEX IF NOT EXISTS idx_demo_requests_email ON demo_requests(email);",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan TEXT DEFAULT 'free';",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active';",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS demo_expires_at TIMESTAMPTZ;",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS used_discount_code TEXT;",
+        "ALTER TABLE pricing_settings ADD COLUMN IF NOT EXISTS yearly_price NUMERIC(12,2) DEFAULT 85000.00;",
         "CREATE INDEX IF NOT EXISTS idx_users_subscription_plan ON users(subscription_plan);",
         """
         CREATE TABLE IF NOT EXISTS notifications (

@@ -949,6 +949,52 @@ def assistant_chat_title(req: TitleRequest = Body(...), _user: dict = Depends(re
 
 
 # =============================
+# CHAT STORAGE ENDPOINTS
+# =============================
+
+class ChatUpsertReq(BaseModel):
+    chat_id: int
+    name: str = "Yeni sohbet"
+    messages: list = []
+
+class ChatRenameReq(BaseModel):
+    name: str
+
+try:
+    from stores.pg_chats_store import list_chats, get_chat, upsert_chat, rename_chat, delete_chat as delete_chat_db
+    _chats_store_ok = True
+except Exception:
+    _chats_store_ok = False
+
+@app.get("/api/chats")
+def api_list_chats(user: dict = Depends(get_current_user)):
+    if not _chats_store_ok:
+        return {"chats": []}
+    return {"chats": list_chats(str(user["id"]))}
+
+@app.post("/api/chats")
+def api_upsert_chat(req: ChatUpsertReq, user: dict = Depends(get_current_user)):
+    if not _chats_store_ok:
+        return {"status": "ok"}
+    upsert_chat(str(user["id"]), req.chat_id, req.name, req.messages)
+    return {"status": "ok"}
+
+@app.put("/api/chats/{chat_id}/rename")
+def api_rename_chat(chat_id: int, req: ChatRenameReq, user: dict = Depends(get_current_user)):
+    if not _chats_store_ok:
+        return {"status": "ok"}
+    rename_chat(str(user["id"]), chat_id, req.name.strip() or "Yeni sohbet")
+    return {"status": "ok"}
+
+@app.delete("/api/chats/{chat_id}")
+def api_delete_chat(chat_id: int, user: dict = Depends(get_current_user)):
+    if not _chats_store_ok:
+        return {"status": "ok"}
+    delete_chat_db(str(user["id"]), chat_id)
+    return {"status": "ok"}
+
+
+# =============================
 # ROUTER REGISTRATION
 # =============================
 _LEGAL_ACCEPTANCE_DEPS = [Depends(require_legal_acceptance)]
