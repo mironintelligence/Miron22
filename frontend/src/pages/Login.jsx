@@ -4,8 +4,6 @@ import { useAuth } from "../auth/AuthProvider";
 import { purgeLegacyTokenStorage } from "../utils/auth";
 
 const Login = () => {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);

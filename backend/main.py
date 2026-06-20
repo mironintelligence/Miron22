@@ -992,11 +992,11 @@ def assistant_chat_title(req: TitleRequest = Body(...), _user: dict = Depends(re
 
 class ChatUpsertReq(BaseModel):
     chat_id: int
-    name: str = "Yeni sohbet"
+    name: str = Field(default="Yeni sohbet", max_length=120)
     messages: list = []
 
 class ChatRenameReq(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=120)
 
 try:
     from stores.pg_chats_store import list_chats, get_chat, upsert_chat, rename_chat, delete_chat as delete_chat_db
