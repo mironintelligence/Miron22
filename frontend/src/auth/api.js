@@ -1,11 +1,12 @@
 import axios from "axios";
 
 function resolveApiBase() {
-  const raw = String(
-    import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "https://miron22.onrender.com"
-  ).trim();
-  if (!raw) return "https://miron22.onrender.com";
-  return raw.replace(/\/+$/, "");
+  const explicit = String(import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (explicit) return explicit.replace(/\/+$/, "");
+  if (import.meta.env.PROD) return "";
+  const dev = String(import.meta.env.VITE_API_URL || "").trim();
+  if (dev) return dev.replace(/\/+$/, "");
+  return "";
 }
 
 const API = resolveApiBase();
@@ -225,11 +226,12 @@ function shouldSkip401Retry(path) {
 }
 
 export async function login(email, password, nameHint = null) {
-  const body = { email, password };
-  if (nameHint && (nameHint.firstName || nameHint.lastName)) {
-    body.firstName = String(nameHint.firstName || "").trim();
-    body.lastName = String(nameHint.lastName || "").trim();
-  }
+  const body = {
+    email,
+    password,
+    firstName: String((nameHint && nameHint.firstName) || "").trim(),
+    lastName: String((nameHint && nameHint.lastName) || "").trim(),
+  };
   const r = await fetch(`${API}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

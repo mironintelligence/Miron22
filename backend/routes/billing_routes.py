@@ -8,7 +8,7 @@ from user_auth import get_current_user
 
 router = APIRouter(prefix="/api/billing", tags=["Billing"])
 
-BILLING_MODE = os.getenv("BILLING_MODE", "demo")  # demo | live
+BILLING_MODE = os.getenv("BILLING_MODE", "live")  # demo | live
 
 class UpgradeRequest(BaseModel):
     plan_id: str  # 'starter' | 'pro'

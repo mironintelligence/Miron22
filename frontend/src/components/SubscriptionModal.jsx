@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getApiBase } from "../lib/apiBase.js";
 
-const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+const API_BASE = getApiBase();
 
 function formatTRY(value) {
   const n = Number(value);

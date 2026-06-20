@@ -77,7 +77,10 @@ export function AuthProvider({ children }) {
       }
       const hasStoredRefresh = (() => {
         try {
-          return !!sessionStorage.getItem("miron_refresh_token");
+          return (
+            !!sessionStorage.getItem("miron_refresh_token") ||
+            !!localStorage.getItem("miron_refresh_token_persist")
+          );
         } catch {
           return false;
         }
@@ -185,9 +188,13 @@ export function AuthProvider({ children }) {
   }, [setAccessToken]);
 
   const login = useCallback(async (email, password, nameHint) => {
+    const rememberMe = nameHint?.rememberMe ?? false;
     const data = await apiLogin(email, password, nameHint);
     const tok = data?.access_token || "";
     if (tok) setAccessToken(tok);
+    if (rememberMe && data?.refresh_token) {
+      try { localStorage.setItem("miron_refresh_token_persist", data.refresh_token); } catch { /* ignore */ }
+    }
     const meta = data?.user || {};
     const normalized = normalizeUser({ ...meta, permissions: meta.permissions });
     setUser(normalized);
@@ -215,6 +222,7 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (payload) => apiRegister(payload), []);
 
   const logout = useCallback(async () => {
+    try { localStorage.removeItem("miron_refresh_token_persist"); } catch { /* ignore */ }
     try {
       await apiLogout();
     } catch (e) {

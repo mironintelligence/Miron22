@@ -77,7 +77,7 @@ export default function Upgrade() {
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold text-[var(--miron-gold)]">Hesabı Yükselt</h1>
         <p className="text-white/60 mt-2">
-          Deneme veya sınırlı aboneliğiniz varsa burada paketinizi yükseltebilirsiniz.
+          Aboneliğinizi buradan yükseltebilir veya farklı bir paket seçebilirsiniz.
         </p>
 
         <div className="card p-6 mt-6">

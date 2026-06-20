@@ -765,7 +765,7 @@ export default function Contracts({ forcedTab = null, pageMode = null }) {
                       <input
                         value={reportCompanyName}
                         onChange={(e) => setReportCompanyName(e.target.value)}
-                        placeholder="Örn. Miron Intelligence"
+                        placeholder="Örn. Miron GROUP LLC"
                         className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-sm"
                       />
                     </div>

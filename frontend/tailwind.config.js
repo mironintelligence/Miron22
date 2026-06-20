@@ -6,7 +6,7 @@ export default {
       colors: {
         bg: "#000000",
         fg: "#FFFFFF",
-        accent: "#FFD700",
+        accent: "#ebac00",
         // Dashboard design system (extends only; existing classes untouched)
         surface: "#0a0a0a",
         elevated: "#111111",
@@ -16,7 +16,7 @@ export default {
         faint: "#3a3a3a",
         "accent-dim": "#4a3a00",
         "accent-text": "#b8960a",
-        "hub-dava": "#FFD700",
+        "hub-dava": "#ebac00",
         "hub-arastirma": "#4c8cc9",
         "hub-belge": "#4cc98c",
         // Landing funnel tokens
@@ -27,9 +27,9 @@ export default {
         text: "#ffffff",
         "text-soft": "rgba(255,255,255,0.75)",
         "muted-2": "rgba(255,255,255,0.25)",
-        gold: "#FFD700",
-        "gold-dim": "rgba(255,215,0,0.10)",
-        "gold-glow": "rgba(255,215,0,0.05)",
+        gold: "#ebac00",
+        "gold-dim": "rgba(235,172,0,0.10)",
+        "gold-glow": "rgba(235,172,0,0.05)",
         danger: "#cc3333",
       },
       fontFamily: {

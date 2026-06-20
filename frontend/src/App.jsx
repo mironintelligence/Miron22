@@ -10,6 +10,7 @@ import GuestRoute from "./components/GuestRoute.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
 import LegalAcceptanceModal from "./components/LegalAcceptanceModal.jsx";
 import { SitePageFooter } from "./components/SiteLegalFooter.jsx";
+import CookieConsent from "./components/CookieConsent.jsx";
 import { useAuth } from "./auth/AuthProvider";
 
 // Route-level code splitting. Every page is its own async chunk so the initial
@@ -38,6 +39,7 @@ const CaseSimulation = lazy(() => import("./pages/CaseSimulation.jsx"));
 const Contracts = lazy(() => import("./pages/Contracts.jsx"));
 const Notifications = lazy(() => import("./pages/Notifications.jsx"));
 const About = lazy(() => import("./pages/About.jsx"));
+const Login = lazy(() => import("./pages/Login.jsx"));
 const Upgrade = lazy(() => import("./pages/Upgrade.jsx"));
 const Reminders = lazy(() => import("./pages/Reminders.jsx"));
 const Unauthorized = lazy(() => import("./pages/Unauthorized.jsx"));
@@ -68,11 +70,7 @@ export default function App() {
 
   useEffect(() => {
     if (location.pathname === "/login") {
-      if (status === "authed") {
-        navigate("/dashboard", { replace: true });
-        return;
-      }
-      setLoginOpen(true);
+      setLoginOpen(false);
       return;
     }
     setLoginOpen(false);
@@ -368,7 +366,7 @@ export default function App() {
               }
             />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/login" element={<IntroLanding />} />
+            <Route path="/login" element={<Login />} />
             <Route
               path="/admin"
               element={
@@ -416,6 +414,7 @@ export default function App() {
           Yapay zekâ çıktıları hatalı veya eksik olabilir. Önemli hukuki kararlardan önce bilgiyi mutlaka doğrulayın.
         </div>
       )}
+      {!showAuthedAiDisclaimerBar && <CookieConsent />}
     </div>
   );
 }

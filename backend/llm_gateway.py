@@ -32,6 +32,20 @@ def llm_fallback_model() -> str:
     return "llama-3.1-8b-instant" if _groq_active() else "gpt-4o"
 
 
+def _model_chain(explicit: Optional[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    first = (explicit or "").strip() or llm_primary_model()
+    # GPT model adı gelirse Groq aktifken eşdeğer modele dönüştür
+    if _groq_active():
+        first = _map_to_groq(first)
+    for m in (first, llm_fallback_model()):
+        if m and m not in seen:
+            seen.add(m)
+            out.append(m)
+    return out
+
+
 def _map_to_groq(model: str) -> str:
     """OpenAI model adını Groq eşdeğerine çevirir."""
     mapping = {
@@ -42,19 +56,6 @@ def _map_to_groq(model: str) -> str:
         "gpt-3.5-turbo": "llama-3.1-8b-instant",
     }
     return mapping.get(model, model)
-
-
-def _model_chain(explicit: Optional[str]) -> list[str]:
-    seen: set[str] = set()
-    out: list[str] = []
-    first = (explicit or "").strip() or llm_primary_model()
-    if _groq_active():
-        first = _map_to_groq(first)
-    for m in (first, llm_fallback_model()):
-        if m and m not in seen:
-            seen.add(m)
-            out.append(m)
-    return out
 
 
 def chat_completions_create(client: Any, **kwargs: Any):

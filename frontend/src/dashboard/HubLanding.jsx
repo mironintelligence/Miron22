@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 
 const ACCENT = {
-  dava: "#FFD700",
+  dava: "#ebac00",
   arastirma: "#4c8cc9",
   belge: "#4cc98c",
 };
@@ -28,7 +28,7 @@ function firstNameOf(user) {
 export default function HubLanding({ color = "dava", question = "Bugün ne yapmak istersiniz?", tools = [] }) {
   const { user } = useAuth();
   const fn = firstNameOf(user);
-  const hoverColor = ACCENT[color] || "#FFD700";
+  const hoverColor = ACCENT[color] || "#ebac00";
 
   return (
     <div className="dash-root min-h-screen bg-black" style={{ marginTop: -80 }}>
@@ -48,7 +48,7 @@ export default function HubLanding({ color = "dava", question = "Bugün ne yapma
           style={{ fontSize: 13, letterSpacing: "-0.01em", textDecoration: "none" }}
         >
           <span style={{ color: "#fff" }}>Miron</span>
-          <span style={{ color: "#FFD700" }}>AI</span>
+          <span style={{ color: "#ebac00" }}>AI</span>
         </Link>
       </div>
 
@@ -162,7 +162,7 @@ export default function HubLanding({ color = "dava", question = "Bugün ne yapma
               to="/dashboard/assistant"
               className="dash-font-sans no-underline"
               style={{ fontSize: 13, color: "#2a2a2a", textDecoration: "none" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#FFD700")}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#ebac00")}
               onMouseLeave={(e) => (e.currentTarget.style.color = "#2a2a2a")}
             >
               veya Miron Assistant&apos;a danışabilirsiniz →

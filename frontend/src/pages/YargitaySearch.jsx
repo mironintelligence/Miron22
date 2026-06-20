@@ -33,13 +33,13 @@ function DecisionCard({ item }) {
   const isOnama = (item.outcome || "").toUpperCase().includes("ONAMA");
   return (
     <div
-      className="premium-scope bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-yellow-500/40 transition-all cursor-pointer group flex flex-col gap-3"
+      className="premium-scope bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-[#ebac00]/40 transition-all cursor-pointer group flex flex-col gap-3"
       onClick={() => setExpanded((v) => !v)}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex flex-wrap gap-1.5 text-[11px] font-mono text-yellow-500/80">
-          <span className="bg-yellow-500/10 px-2 py-0.5 rounded">{item.court || "Yargıtay"}</span>
-          {item.chamber && <span className="bg-yellow-500/10 px-2 py-0.5 rounded">{item.chamber}</span>}
+        <div className="flex flex-wrap gap-1.5 text-[11px] font-mono text-[#ebac00]/80">
+          <span className="bg-[#ebac00]/10 px-2 py-0.5 rounded">{item.court || "Yargıtay"}</span>
+          {item.chamber && <span className="bg-[#ebac00]/10 px-2 py-0.5 rounded">{item.chamber}</span>}
           {item.decision_number && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.decision_number}</span>}
           {(item.date || item.year) && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.date || item.year}</span>}
         </div>
@@ -48,7 +48,7 @@ function DecisionCard({ item }) {
         )}
       </div>
 
-      <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-yellow-300 transition-colors line-clamp-3">
+      <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-[#ebac00] transition-colors line-clamp-3">
         {item.summary || "Özet bilgisi bulunmuyor."}
       </h3>
 
@@ -58,7 +58,7 @@ function DecisionCard({ item }) {
             {item.outcome}
           </span>
         )}
-        <span className="text-[10px] text-white/30 ml-auto group-hover:text-yellow-500/60 transition-colors">
+        <span className="text-[10px] text-white/30 ml-auto group-hover:text-[#ebac00]/60 transition-colors">
           {expanded ? "▲ Daralt" : "▼ Detay"}
         </span>
       </div>
@@ -129,7 +129,7 @@ export default function YargitaySearch() {
   return (
     <div className="max-w-[1400px] mx-auto px-4 pb-12">
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-600 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold bg-clip-text text-transparent" style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           Karar Arama Motoru
         </h1>
         <p className="text-white/55 mt-2 max-w-2xl mx-auto text-sm">
@@ -146,7 +146,7 @@ export default function YargitaySearch() {
               <textarea
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-yellow-500 outline-none resize-none h-28"
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-[#ebac00] outline-none resize-none h-28"
                 placeholder="kira tahliye ihtar süresi..."
               />
             </div>
@@ -156,7 +156,7 @@ export default function YargitaySearch() {
                 type="number"
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:ring-2 focus:ring-yellow-500 outline-none"
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:ring-2 focus:ring-[#ebac00] outline-none"
                 placeholder="2023"
               />
             </div>
@@ -165,7 +165,7 @@ export default function YargitaySearch() {
               <select
                 value={chamber}
                 onChange={(e) => setChamber(e.target.value)}
-                className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:ring-2 focus:ring-yellow-500 outline-none appearance-none"
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:ring-2 focus:ring-[#ebac00] outline-none appearance-none"
               >
                 <option value="">Tüm Daireler</option>
                 <optgroup label="Hukuk">
@@ -179,7 +179,7 @@ export default function YargitaySearch() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-sm shadow-lg transition disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-[#ebac00] hover:opacity-85 text-black font-bold text-sm shadow-lg transition disabled:opacity-50"
             >
               {loading ? "Aranıyor…" : "Karar Ara"}
             </button>
