@@ -206,9 +206,16 @@ const Login = () => {
               type="submit"
               disabled={loading}
               style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)' }}
-            className="w-full text-black font-bold text-[13px] tracking-[0.1em] uppercase py-3.5 mt-2 hover:opacity-85 transition-opacity disabled:opacity-50"
+              className="w-full text-black py-3.5 mt-2 hover:opacity-85 transition-opacity disabled:opacity-50 flex items-center justify-center"
             >
-              {loading ? "Doğrulanıyor..." : "Giriş Yap"}
+              {loading ? (
+                <span className="text-[13px] font-bold tracking-[0.1em] uppercase">Doğrulanıyor...</span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <span className="font-serif text-[18px] font-light tracking-tight text-black">Miron</span>
+                  <span className="font-black text-[18px] tracking-tight text-black">AI</span>
+                </span>
+              )}
             </button>
           </form>
 
