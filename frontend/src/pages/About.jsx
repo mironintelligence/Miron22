@@ -133,12 +133,12 @@ export default function About() {
             Miron Group LLC bünyesinde geliştirilen tüm ürünler KVKK ve GDPR uyumludur.
             Veriler ilgili ülke mevzuatına göre işlenir ve saklanır.
           </p>
-          <Link
-            to="/contact"
+          <a
+            href="mailto:mironintelligence@gmail.com"
             className="inline-block px-7 py-3 border border-white/15 text-white/50 text-sm hover:border-[var(--miron-gold)]/40 hover:text-[var(--miron-gold)] transition-colors"
           >
             İletişime Geçin
-          </Link>
+          </a>
         </div>
 
       </div>
