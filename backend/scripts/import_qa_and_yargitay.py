@@ -6,7 +6,8 @@ Usage:
     python import_qa_and_yargitay.py --source yargitay
     python import_qa_and_yargitay.py --source qa
 
-Requires DATABASE_URL env var. DATASET_DIR defaults to ../../../../Dataset-Mironlaw1.0.
+Requires DATABASE_URL env var (Supabase direct connection, NOT pooler).
+DATASET_DIR defaults to ../../../../Dataset-Mironlaw1.0.
 """
 
 from __future__ import annotations

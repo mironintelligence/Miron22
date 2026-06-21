@@ -47,7 +47,6 @@ def search_decisions(
         params.append(f"%{chamber}%")
 
     where_sql = " AND ".join(where_clauses)
-    # second %s for ts_rank, then LIMIT
     params += [q, limit]
 
     sql = f"""
