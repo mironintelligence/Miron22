@@ -1,12 +1,12 @@
 """
 Import QA datasets and Yargıtay 9.HD decisions into the decisions table.
 
-Usage (run from repo root or backend/):
-    python backend/scripts/import_qa_and_yargitay.py --source all
-    python backend/scripts/import_qa_and_yargitay.py --source yargitay
-    python backend/scripts/import_qa_and_yargitay.py --source qa
+Usage:
+    DATASET_DIR=/path/to/Dataset-Mironlaw1.0 DATABASE_URL=... python import_qa_and_yargitay.py --source all
+    python import_qa_and_yargitay.py --source yargitay
+    python import_qa_and_yargitay.py --source qa
 
-Requires DATABASE_URL env var (Supabase direct connection, NOT pooler).
+Requires DATABASE_URL env var. DATASET_DIR defaults to ../../../../Dataset-Mironlaw1.0.
 """
 
 from __future__ import annotations
@@ -20,9 +20,11 @@ from datetime import datetime
 from typing import Iterator, Optional
 
 # ---------------------------------------------------------------------------
-# Dataset paths — adjust if running from a different directory
+# Dataset paths — DATASET_DIR env var overrides the default relative path
 # ---------------------------------------------------------------------------
-DATASET_DIR = os.path.join(os.path.dirname(__file__), "../../../../Dataset-Mironlaw1.0")
+DATASET_DIR = os.environ.get("DATASET_DIR") or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "../../../../Dataset-Mironlaw1.0"
+)
 
 YARGITAY_FILE = os.path.join(DATASET_DIR, "yargitay_9daire_samet.jsonl")
 QA_FILES = [
