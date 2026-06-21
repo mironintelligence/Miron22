@@ -482,8 +482,8 @@ export default function Kaydol() {
       <StepBar phase={phase} />
 
       <AnimatePresence mode="wait">
-        {phase === “questions” && (
-          <motion.div key=”questions” className=”w-full max-w-lg” {...panelMotion}>
+        {phase === "questions" && (
+          <motion.div key="questions" className="w-full max-w-lg" {...panelMotion}>
             <div style={{
               position: 'relative',
               background: '#0a0a0a',
@@ -492,19 +492,19 @@ export default function Kaydol() {
               padding: '32px 36px 28px',
               overflow: 'hidden',
             }}>
-              <div className=”dash-hero-line” />
+              <div className="dash-hero-line" />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                 <span style={{
                   fontSize: 9,
                   textTransform: 'uppercase',
                   letterSpacing: '2px',
                   color: '#ebac00',
-                  fontFamily: '”IBM Plex Sans”, sans-serif',
+                  fontFamily: '"IBM Plex Sans", sans-serif',
                   fontWeight: 600,
                 }}>
                   Uygunluk testi
                 </span>
-                <span style={{ fontSize: 10, color: '#333', fontFamily: '”IBM Plex Sans”, sans-serif', letterSpacing: '0.5px' }}>
+                <span style={{ fontSize: 10, color: '#333', fontFamily: '"IBM Plex Sans", sans-serif', letterSpacing: '0.5px' }}>
                   {qIndex + 1} / {QUESTIONS.length}
                 </span>
               </div>
@@ -518,16 +518,16 @@ export default function Kaydol() {
                 />
               </div>
 
-              <h2 style={{ fontFamily: '”Abril Fatface”, serif', fontSize: 26, lineHeight: 1.1, color: '#fff', fontWeight: 400, marginBottom: 10, letterSpacing: '-0.3px' }}>
+              <h2 style={{ fontFamily: '"Abril Fatface", serif', fontSize: 26, lineHeight: 1.1, color: '#fff', fontWeight: 400, marginBottom: 10, letterSpacing: '-0.3px' }}>
                 {QUESTIONS[qIndex].title}
               </h2>
-              <p style={{ fontSize: 13, color: '#888', lineHeight: 1.75, marginBottom: 32, fontFamily: '”IBM Plex Sans”, sans-serif' }}>
+              <p style={{ fontSize: 13, color: '#888', lineHeight: 1.75, marginBottom: 32, fontFamily: '"IBM Plex Sans", sans-serif' }}>
                 {QUESTIONS[qIndex].text}
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <button
-                  type=”button”
+                  type="button"
                   onClick={() => answerQuestion(false)}
                   style={{
                     padding: '11px 18px',
@@ -537,7 +537,7 @@ export default function Kaydol() {
                     color: '#fff',
                     fontSize: 12,
                     fontWeight: 600,
-                    fontFamily: '”IBM Plex Sans”, sans-serif',
+                    fontFamily: '"IBM Plex Sans", sans-serif',
                     cursor: 'pointer',
                     transition: 'border-color 0.15s ease, background 0.15s ease',
                   }}
@@ -547,7 +547,7 @@ export default function Kaydol() {
                   Hayır
                 </button>
                 <button
-                  type=”button”
+                  type="button"
                   onClick={() => answerQuestion(true)}
                   style={{
                     padding: '11px 18px',
@@ -557,7 +557,7 @@ export default function Kaydol() {
                     color: '#000',
                     fontSize: 12,
                     fontWeight: 600,
-                    fontFamily: '”IBM Plex Sans”, sans-serif',
+                    fontFamily: '"IBM Plex Sans", sans-serif',
                     cursor: 'pointer',
                     transition: 'opacity 0.15s ease',
                   }}
@@ -568,8 +568,8 @@ export default function Kaydol() {
                 </button>
               </div>
 
-              <p style={{ fontSize: 10, color: '#2a2a2a', marginTop: 20, textAlign: 'center', fontFamily: '”IBM Plex Sans”, sans-serif', lineHeight: 1.6 }}>
-                “Hayır” derseniz Miron AI şu an için profilinize uygun görünmeyebilir.
+              <p style={{ fontSize: 10, color: '#2a2a2a', marginTop: 20, textAlign: 'center', fontFamily: '"IBM Plex Sans", sans-serif', lineHeight: 1.6 }}>
+                "Hayır" derseniz Miron AI şu an için profilinize uygun görünmeyebilir.
               </p>
             </div>
           </motion.div>
