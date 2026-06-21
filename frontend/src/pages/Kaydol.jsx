@@ -88,46 +88,62 @@ function loadPersisted() {
 }
 
 function StepBar({ phase }) {
-  const steps = [
-    { id: "q", label: "1. Uygunluk" },
-    { id: "r", label: "2. Kayıt olma" },
-    { id: "p", label: "3. Ödeme" },
-  ];
+  const steps = ["Uygunluk", "Kayıt olma", "Ödeme"];
   const active =
     phase === "questions" || phase === "unsuitable" || phase === "pricing" ? 0 : phase === "payment" ? 2 : 1;
   return (
     <div className="w-full max-w-2xl mx-auto mb-10">
-      <div className="flex items-center justify-between gap-1 sm:gap-3 mb-3">
-        {steps.map((s, i) => (
-          <div key={s.id} className="flex-1 flex flex-col items-center min-w-0">
-            <div
-              className={`flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-xs sm:text-sm font-black shrink-0 border-2 transition-colors ${
-                i < active
-                  ? "border-[var(--miron-gold)] bg-[var(--miron-gold)]/20 text-[var(--miron-gold)]"
-                  : i === active
-                    ? "border-[var(--miron-gold)] bg-[var(--miron-gold)] text-black shadow-[0_0_20px_rgba(255,215,0,0.25)]"
-                    : "border-white/15 text-white/35 bg-black/30"
-              }`}
-            >
-              {i < active ? "✓" : i + 1}
+      <div className="flex items-center gap-0">
+        {steps.map((label, i) => (
+          <React.Fragment key={label}>
+            <div className="flex flex-col items-center" style={{ minWidth: 0, flex: '0 0 auto' }}>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: '0.5px',
+                  border: i === active
+                    ? '1px solid #ebac00'
+                    : i < active
+                    ? '1px solid #2e2e2e'
+                    : '0.5px solid #1e1e1e',
+                  background: i === active ? '#ebac00' : '#0a0a0a',
+                  color: i === active ? '#000' : i < active ? '#ebac00' : '#333',
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0,
+                }}
+              >
+                {i < active ? '✓' : i + 1}
+              </div>
+              <span style={{
+                marginTop: 6,
+                fontSize: 9,
+                textTransform: 'uppercase',
+                letterSpacing: '1.5px',
+                color: i === active ? '#ebac00' : i < active ? '#555' : '#2a2a2a',
+                fontFamily: '"IBM Plex Sans", sans-serif',
+                whiteSpace: 'nowrap',
+              }}>
+                {label}
+              </span>
             </div>
-            <span
-              className={`mt-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-center leading-tight max-w-[5.5rem] sm:max-w-none ${
-                i === active ? "text-[var(--miron-gold)]" : "text-white/40"
-              }`}
-            >
-              {s.label.replace(/^\d\.\s*/, "")}
-            </span>
-          </div>
+            {i < steps.length - 1 && (
+              <div style={{
+                flex: 1,
+                height: '0.5px',
+                background: i < active ? '#2e2e2e' : '#1e1e1e',
+                marginBottom: 18,
+                transition: 'background 0.3s ease',
+              }} />
+            )}
+          </React.Fragment>
         ))}
-      </div>
-      <div className="h-1 rounded-full bg-white/10 overflow-hidden">
-        <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-amber-700 to-[var(--miron-gold)]"
-          initial={false}
-          animate={{ width: `${((active + 1) / 3) * 100}%` }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        />
       </div>
     </div>
   );
@@ -444,13 +460,21 @@ export default function Kaydol() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-2xl text-center mt-2 mb-2"
       >
-        <span className="inline-block rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--miron-gold)]">
+        <span style={{
+          display: 'inline-block',
+          fontSize: 9,
+          textTransform: 'uppercase',
+          letterSpacing: '2px',
+          color: '#333',
+          fontFamily: '"IBM Plex Sans", sans-serif',
+          marginBottom: 12,
+        }}>
           Miron AI kayıt
         </span>
-        <h1 className="mt-4 text-2xl sm:text-3xl font-black tracking-tight text-white">
+        <h1 style={{ fontFamily: '"Abril Fatface", serif', fontSize: 32, lineHeight: 1.1, color: '#fff', fontWeight: 400, letterSpacing: '-0.5px', margin: '8px 0 10px' }}>
           Uygunluk ve hesap
         </h1>
-        <p className="mt-2 text-sm text-white/50 max-w-md mx-auto leading-relaxed">
+        <p style={{ fontSize: 13, color: '#555', fontFamily: '"IBM Plex Sans", sans-serif', lineHeight: 1.7, maxWidth: 380, margin: '0 auto' }}>
           Birkaç soru, paket seçimi ve güvenli kayıt — deneme veya demo adımı yoktur.
         </p>
       </motion.div>
@@ -458,44 +482,93 @@ export default function Kaydol() {
       <StepBar phase={phase} />
 
       <AnimatePresence mode="wait">
-        {phase === "questions" && (
-          <motion.div key="questions" className="w-full max-w-lg" {...panelMotion}>
-            <div className="glass p-8 sm:p-10 rounded-2xl border border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
-              <div className="flex items-center justify-between gap-3 mb-6">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--miron-gold)]/90">
+        {phase === “questions” && (
+          <motion.div key=”questions” className=”w-full max-w-lg” {...panelMotion}>
+            <div style={{
+              position: 'relative',
+              background: '#0a0a0a',
+              border: '0.5px solid #1e1e1e',
+              borderRadius: 14,
+              padding: '32px 36px 28px',
+              overflow: 'hidden',
+            }}>
+              <div className=”dash-hero-line” />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <span style={{
+                  fontSize: 9,
+                  textTransform: 'uppercase',
+                  letterSpacing: '2px',
+                  color: '#ebac00',
+                  fontFamily: '”IBM Plex Sans”, sans-serif',
+                  fontWeight: 600,
+                }}>
                   Uygunluk testi
                 </span>
-                <span className="text-xs text-white/40 tabular-nums">
+                <span style={{ fontSize: 10, color: '#333', fontFamily: '”IBM Plex Sans”, sans-serif', letterSpacing: '0.5px' }}>
                   {qIndex + 1} / {QUESTIONS.length}
                 </span>
               </div>
-              <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-white/10">
+
+              <div style={{ height: '0.5px', background: '#1e1e1e', marginBottom: 28, overflow: 'hidden', position: 'relative' }}>
                 <motion.div
-                  className="h-full rounded-full bg-[var(--miron-gold)]"
+                  style={{ position: 'absolute', top: 0, left: 0, height: '100%', background: 'linear-gradient(90deg, #ebac00, #b88700)' }}
                   initial={false}
                   animate={{ width: `${((qIndex + 1) / QUESTIONS.length) * 100}%` }}
                   transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                 />
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">{QUESTIONS[qIndex].title}</h2>
-              <p className="text-white/75 text-sm sm:text-base mb-8 leading-relaxed">{QUESTIONS[qIndex].text}</p>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+
+              <h2 style={{ fontFamily: '”Abril Fatface”, serif', fontSize: 26, lineHeight: 1.1, color: '#fff', fontWeight: 400, marginBottom: 10, letterSpacing: '-0.3px' }}>
+                {QUESTIONS[qIndex].title}
+              </h2>
+              <p style={{ fontSize: 13, color: '#888', lineHeight: 1.75, marginBottom: 32, fontFamily: '”IBM Plex Sans”, sans-serif' }}>
+                {QUESTIONS[qIndex].text}
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <button
-                  type="button"
+                  type=”button”
                   onClick={() => answerQuestion(false)}
-                  className="py-4 rounded-xl border border-white/20 text-white hover:bg-white/[0.06] hover:border-white/30 transition font-semibold text-sm sm:text-base"
+                  style={{
+                    padding: '11px 18px',
+                    borderRadius: 8,
+                    background: 'transparent',
+                    border: '0.5px solid #1e1e1e',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: '”IBM Plex Sans”, sans-serif',
+                    cursor: 'pointer',
+                    transition: 'border-color 0.15s ease, background 0.15s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#2e2e2e'; e.currentTarget.style.background = '#111'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e1e1e'; e.currentTarget.style.background = 'transparent'; }}
                 >
                   Hayır
                 </button>
                 <button
-                  type="button"
+                  type=”button”
                   onClick={() => answerQuestion(true)}
-                  className="py-4 rounded-xl bg-[var(--miron-gold)] text-black font-black hover:brightness-110 transition text-sm sm:text-base shadow-[0_8px_32px_rgba(255,215,0,0.2)]"
+                  style={{
+                    padding: '11px 18px',
+                    borderRadius: 8,
+                    background: 'linear-gradient(90deg, #ebac00, #b88700)',
+                    border: 'none',
+                    color: '#000',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: '”IBM Plex Sans”, sans-serif',
+                    cursor: 'pointer',
+                    transition: 'opacity 0.15s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.opacity = '0.88'; }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
                 >
                   Evet
                 </button>
               </div>
-              <p className="text-[11px] text-subtle mt-6 text-center leading-relaxed">
+
+              <p style={{ fontSize: 10, color: '#2a2a2a', marginTop: 20, textAlign: 'center', fontFamily: '”IBM Plex Sans”, sans-serif', lineHeight: 1.6 }}>
                 “Hayır” derseniz Miron AI şu an için profilinize uygun görünmeyebilir.
               </p>
             </div>
@@ -504,21 +577,43 @@ export default function Kaydol() {
 
         {phase === "unsuitable" && (
           <motion.div key="unsuitable" className="w-full max-w-lg" {...panelMotion}>
-            <div className="glass p-8 rounded-2xl border border-red-500/20 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
-              <h2 className="text-2xl font-black text-white mb-3">Miron AI için uygun değilsiniz</h2>
-              <p className="text-sm text-subtle mb-8 leading-relaxed">
-                Yanıtlarınıza göre platform şu aşamada ihtiyaçlarınızla örtüşmüyor. İleride tekrar değerlendirmek isterseniz
-                sorulara yeniden başlayabilirsiniz.
+            <div style={{
+              background: '#0a0a0a',
+              border: '0.5px solid #3a1010',
+              borderRadius: 14,
+              padding: '36px',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '2px', color: '#5a1818', fontFamily: '"IBM Plex Sans", sans-serif', marginBottom: 16 }}>
+                Uygunluk sonucu
+              </div>
+              <h2 style={{ fontFamily: '"Abril Fatface", serif', fontSize: 24, color: '#fff', fontWeight: 400, marginBottom: 12, lineHeight: 1.1 }}>
+                Miron AI için uygun değilsiniz
+              </h2>
+              <p style={{ fontSize: 13, color: '#555', lineHeight: 1.75, marginBottom: 28, fontFamily: '"IBM Plex Sans", sans-serif' }}>
+                Yanıtlarınıza göre platform şu aşamada ihtiyaçlarınızla örtüşmüyor. İleride tekrar değerlendirmek isterseniz sorulara yeniden başlayabilirsiniz.
               </p>
               <button
                 type="button"
                 onClick={restartQuestions}
-                className="w-full py-3 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/[0.08] transition"
+                style={{
+                  width: '100%',
+                  padding: '11px 18px',
+                  borderRadius: 8,
+                  background: 'transparent',
+                  border: '0.5px solid #1e1e1e',
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: '"IBM Plex Sans", sans-serif',
+                  cursor: 'pointer',
+                  marginBottom: 12,
+                }}
               >
                 Sorulara dön
               </button>
-              <Link to="/" className="block mt-4 text-sm text-accent underline">
-                Ana sayfa
+              <Link to="/" style={{ fontSize: 11, color: '#333', fontFamily: '"IBM Plex Sans", sans-serif', textDecoration: 'none', display: 'block' }}>
+                Ana sayfa →
               </Link>
             </div>
           </motion.div>
