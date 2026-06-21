@@ -1,48 +1,108 @@
-## 2.1 Temel İlkeler
+## 1. Veri Sorumlusu
 
-Miron AI olarak kullanıcı gizliliğini temel prensip olarak benimsiyoruz. Platformumuz hukuki metin ve belgelerle çalışır; bu nedenle veri işleme süreçlerinde **minimizasyon**, **geçicilik** ve **şeffaflık** ön plandadır.
+**Miron GROUP LLC** ("Miron AI", "biz") olarak kişisel verilerinizin korunmasını temel prensip olarak benimsiyoruz. Platform hukuki belgelerle çalıştığından veri işleme süreçlerimizde **minimizasyon**, **geçicilik**, **şifreleme** ve **şeffaflık** ön plandadır.
 
-## 2.2 İşlem Sırasında İşlenen İçerik (Geçici)
+İletişim: **mironintelligence@gmail.com** | KVKK başvuruları: **kvkk@mironintelligence.com**
 
-Yüklediğiniz veya analiz / üretim için gönderdiğiniz **belge, dosya ve metin içeriği** (birlikte “işlem içeriği”):
+---
 
-1. **LLM eğitimi yok:** Bu içerik, büyük dil modellerinin **eğitimi veya fine-tuning’i için kullanılmaz**.
-2. **RAM ve kısa süre:** İşlem içeriği yalnızca ilgili isteğin işlendiği süre boyunca **geçici bellek (RAM)** üzerinde tutulur.
-3. **Anonimleştirme ve silme:** İşlem bittikten sonra **anonimleştirme** uygulanır ve içerik **kalıcı olarak silinir**.
-4. **Kopya ve depolama yok (işlem içeriği için):** İşlem içeriği bakımından veri, dosya veya çıktı **hiçbir şekilde kalıcı olarak kopyalanmaz veya depolanmaz**; kalıcı **arşiv dosyası** veya “iş yükü” kopyası oluşturulmaz.
+## 2. Şifreleme ve Teknik Güvenlik
 
-**Halüsinasyon:** Risk **çok düşük** tutulmaya çalışılır; **ihtimal dahilindedir**. Sürekli arka plan geliştirmesi nedeniyle **bazı durumlarda** risk **daha görünür olabilir**. Kullanıcı **tüm bilgileri** kendi sürecinde **kontrol etmelidir**.
+| Katman | Uygulanan Standart |
+|---|---|
+| İletim güvenliği | TLS 1.2+ — tüm bağlantılar HTTPS zorunlu |
+| Depolama şifreleme | AES-256 — Supabase PostgreSQL, AB / eu-central-1 (Frankfurt) |
+| Şifre koruması | Argon2id hash — düz metin asla saklanmaz |
+| Oturum yönetimi | İmzalı JWT 8 saat + refresh token 7 gün |
+| API güvenliği | CSRF double-submit cookie, minimum ayrıcalık prensibi |
 
-Hesap, fatura ve yasal zorunluluk kapsamındaki kayıtlar (aşağıda “Kalıcı hesap verileri”) bu “işlem içeriği” tanımının dışındadır.
+---
 
-## 2.3 Kalıcı Hesap Verileri
+## 3. İşlediğimiz Kişisel Veriler
 
-**Ad, soyad, e-posta adresi**, abonelik ve fatura bilgileri, hesap oluşturma ve son giriş bilgisi, sınırlı güvenlik ve denetim logları. **Baro numarası toplanmaz ve istenmez.**
+### 3.1 Hesap ve Kimlik Verileri (Kalıcı)
 
-## 2.4 Teknik Veriler
+Ad, soyad, e-posta adresi, abonelik planı, fatura bilgileri, hesap oluşturma ve son giriş tarihi. **Baro numarası istenmez ve işlenmez.**
 
-IP adresi, tarayıcı ve cihaz bilgisi, oturum ve bağlantı logları — güvenlik ve işletim için **sınırlı süre** ile.
+### 3.2 Teknik ve Güvenlik Logları (Sınırlı Süre)
 
-## 2.5 Yapay Zeka Altyapısı ve Üçüncü Taraflar
+Oturum bilgileri, giriş tarihi/saati, IP adresi, cihaz/tarayıcı bilgisi — güvenlik ve dolandırıcılık önleme amacıyla **90 gün** saklanır, ardından kalıcı olarak silinir.
 
-Hizmet sunumu için yapay zeka ve bulut altyapısı sağlayıcıları kullanılabilir. **Kullanıcı içeriği**, sağlayıcıya yalnızca **anlık çıkarım (inference)** amacıyla iletilir; Miron AI politikası gereği **içerik model eğitimine beslenmez**. Sağlayıcıların kendi sözleşme ve politikaları geçerli olabilir; güncel liste ve açıklamalar destek kanalından talep edilebilir.
+### 3.3 Yüklenen Belge ve İşlem İçeriği (Geçici)
 
-Miron AI, kullanıcı verilerini **reklam veya profilleme amacıyla satmaz** ve bu amaçla üçüncü kişilere **devretmez**. Yasal zorunluluk (mahkeme kararı vb.) ve ödeme altyapısı gibi **hizmetin ifası için zorunlu** paylaşımlar saklıdır.
+Kullanıcı'nın yüklediği dava dosyaları, belgeler, sözleşmeler ve metin içerikleri ("işlem içeriği"):
 
-## 2.6 Veri Saklama Süreleri
+1. **Yalnızca RAM'de:** İlgili API isteğinin süresiyle sınırlı olarak geçici bellekte işlenir
+2. **Anonimleştirme:** İşlem biter bitmez müvekkil isimleri, TC kimlik numaraları ve tüm kişisel tanımlayıcılar algoritmik olarak kaldırılır
+3. **Kalıcı silme:** Anonimleştirme sonrası içerik bellekten ve geçici depolamadan kalıcı olarak silinir
+4. **Model eğitimi yok:** İçerik; LLM eğitimi, ince ayar (fine-tuning) veya model geliştirmesi için kullanılmaz
+5. **Arşiv yok:** Kalıcı dosya, veritabanı kaydı veya yedek kopyası oluşturulmaz
 
-**Yüklenen veya işlenen belge/metin içeriği:** işlem sonrası kalıcı depoda tutulmaz (yukarıdaki geçici işleme politikası). **Hesap bilgileri:** hesap aktifken ve hesap kapanışından sonra yasal ve operasyonel gereklilikler çerçevesinde **sınırlı süre**. **Fatura kayıtları:** yasal yükümlülük süresi boyunca. **Sözleşme kabul kayıtları:** yasal ispat için ilgili mevzuatta öngörülen süre.
+### 3.4 Anonim AI İyileştirme Verisi (Yalnızca Açık Onayla)
 
-## 2.7 Güvenlik Önlemleri
+Kullanıcı, kayıt tamamlandıktan sonra sunulan **isteğe bağlı onay sorusuna** "Evet" yanıtı verirse, işlem içeriği **tam anonimleştirme** (tüm kişisel tanımlayıcıların kaldırılması) sonrasında AI modelini iyileştirmek amacıyla kullanılabilir.
 
-TLS/SSL, erişim kontrolü, ayrıcalık minimizasyonu, düzenli güvenlik incelemeleri.
+- Bu onay **zorunlu değildir**; verilmemesi hizmet kalitesini, fiyatı veya erişimi etkilemez
+- Ayarlar sayfasından dilediğiniz zaman **geri alınabilir**
+- Geri alım önceki anonim işlemleri geriye dönük olarak etkilemez
 
-## 2.8 Kullanıcı Hakları (KVKK ve GDPR)
+---
 
-Aydınlatma metnimizde (KVKK bölümü) listelenen haklarınız saklıdır. Başvurular: **kvkk@mironintelligence.com** — yanıt hedefi **30 gün** içindedir.
+## 4. Yapay Zeka Altyapısı ve Üçüncü Taraflar
 
-Genel destek: **destek@mironintelligence.com**.
+| Sağlayıcı | Amaç | Veri Durumu |
+|---|---|---|
+| Supabase | Veritabanı ve kimlik doğrulama | AB bölgesinde AES-256 ile şifreli |
+| Groq | AI dil modeli çıkarımı | Yalnızca anlık inference; kalıcı tutulmaz |
+| OpenAI | Embedding (arama vektörleri) | Yalnızca embedding; içerik kalıcı tutulmaz |
+| Stripe | Ödeme işleme | Kart verisi Miron AI sistemlerinde saklanmaz |
 
-## 2.9 Veri İhlali Bildirimi
+Kullanıcı içeriği hiçbir sağlayıcıya **model eğitimi amacıyla iletilmez.** Miron AI, kullanıcı verilerini **reklam veya profilleme amacıyla satmaz ve devretmez.**
 
-Güvenlik ihlali tespitinde, yasal süreler çerçevesinde ilgili kullanıcılar ve Kurul bilgilendirilir.
+---
+
+## 5. Haklarınız
+
+KVKK md. 11 ve GDPR md. 15-22 kapsamında:
+
+- **Erişim** — işlenen verilerinizi öğrenme
+- **Düzeltme** — yanlış verilerin düzeltilmesini talep etme
+- **Silme** — verilerinizin silinmesini talep etme
+- **Kısıtlama** — belirli işlemlerin durdurulmasını isteme
+- **Taşınabilirlik** — verilerinizi yapılandırılmış formatta alma
+- **İtiraz** — meşru menfaat kapsamındaki işlemlere itiraz etme
+- **Onay geri alma** — verdiğiniz onayı istediğiniz zaman geri alma
+
+Talepler 30 gün içinde yanıtlanır. Başvuru: **kvkk@mironintelligence.com**
+
+---
+
+## 6. Veri Saklama Süreleri
+
+| Veri Türü | Süre |
+|---|---|
+| Hesap ve kimlik verileri | Hesap aktif olduğu sürece + 3 yıl |
+| Fatura ve ödeme kayıtları | 10 yıl (TTK gereği) |
+| Güvenlik ve oturum logları | 90 gün |
+| Yüklenen belge / işlem içeriği | Yalnızca işlem süresi (saniyeler) |
+| Anonim AI iyileştirme verisi | Onay geri alınana kadar |
+
+---
+
+## 7. Uluslararası Veri Transferi
+
+Veriler Supabase altyapısında AB bölgesinde (Frankfurt) tutulmaktadır. Groq ve OpenAI API çağrılarında içerik geçici olarak ABD sunucularına iletilebilir; bu transferler GDPR Madde 46 kapsamında uygun güvencelerle gerçekleştirilir.
+
+---
+
+## 8. Çocuklara İlişkin Veri
+
+Platform 18 yaş altı kişilere yönelik değildir; bu kişilerden bilerek veri toplanmaz.
+
+---
+
+## 9. Değişiklikler
+
+Politika güncellemelerinde Kullanıcılar e-posta veya platform bildirimi ile önceden bilgilendirilir.
+
+*Son güncelleme: Haziran 2026 — Miron GROUP LLC*

@@ -836,3 +836,26 @@ def me(user: Dict[str, Any] = Depends(get_current_user)):
     su = _user_for_client(u)
     su["permissions"] = _permissions_for_user_row(u)
     return {"status": "ok", "user": su}
+
+
+class AIConsentRequest(BaseModel):
+    consent: bool
+
+
+@router.post("/ai-consent")
+def update_ai_consent(
+    body: AIConsentRequest,
+    user: Dict[str, Any] = Depends(get_current_user),
+):
+    user_id = str(user.get("id"))
+    with get_db_cursor(write=True) as cur:
+        cur.execute(
+            """
+            UPDATE users
+            SET ai_improvement_consent = %s,
+                ai_improvement_consent_at = NOW()
+            WHERE id = %s
+            """,
+            (body.consent, user_id),
+        )
+    return {"status": "ok", "consent": body.consent}

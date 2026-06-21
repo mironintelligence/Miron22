@@ -339,6 +339,8 @@ def ensure_schema() -> None:
         );
         """,
         "CREATE INDEX IF NOT EXISTS idx_assistant_chats_user_updated ON assistant_chats(user_id, updated_at DESC);",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_improvement_consent BOOLEAN DEFAULT FALSE;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_improvement_consent_at TIMESTAMPTZ;",
     ]
 
     with get_db_cursor() as cur:
