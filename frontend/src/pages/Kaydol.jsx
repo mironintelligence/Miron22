@@ -90,7 +90,13 @@ function loadPersisted() {
 function StepBar({ phase }) {
   const steps = ["Uygunluk", "Kayıt olma", "Ödeme"];
   const active =
-    phase === "questions" || phase === "unsuitable" || phase === "pricing" ? 0 : phase === "payment" ? 2 : 1;
+    phase === "questions" || phase === "unsuitable" || phase === "pricing"
+      ? 0
+      : phase === "payment"
+      ? 2
+      : phase === "consent"
+      ? 2
+      : 1;
   return (
     <div className="w-full max-w-2xl mx-auto mb-10">
       <div className="flex items-center gap-0">
@@ -167,6 +173,7 @@ export default function Kaydol() {
   const [city, setCity] = useState(persisted?.city || "");
   const [discountCode, setDiscountCode] = useState(persisted?.discountCode || "");
   const [acceptedTermsPrivacy, setAcceptedTermsPrivacy] = useState(false);
+  const [registeredToken, setRegisteredToken] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -293,7 +300,26 @@ export default function Kaydol() {
       city: city.trim(),
       registration_plan: selectedPlan === "enterprise" ? "enterprise" : "legal",
     };
-    await apiRegister(payload, { supabaseAccessToken: sbAccessToken || undefined });
+    const data = await apiRegister(payload, { supabaseAccessToken: sbAccessToken || undefined });
+    if (data?.access_token) setRegisteredToken(data.access_token);
+    return data;
+  };
+
+  const handleAIConsent = async (consent) => {
+    try {
+      const base = String(getApiBase()).replace(/\/+$/, "");
+      const headers = { "Content-Type": "application/json" };
+      if (registeredToken) headers.Authorization = `Bearer ${registeredToken}`;
+      await fetch(`${base}/api/auth/ai-consent`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+        body: JSON.stringify({ consent }),
+      });
+    } catch {
+      /* consent save failure is non-blocking */
+    }
+    setPhase("payment");
   };
 
   const handleCompleteRegistration = async () => {
@@ -333,7 +359,7 @@ export default function Kaydol() {
           } catch {
             /* ignore */
           }
-          setPhase("payment");
+          setPhase("consent");
           return;
         }
         setPhase("verify");
@@ -348,7 +374,7 @@ export default function Kaydol() {
       } catch {
         /* ignore */
       }
-      setPhase("payment");
+      setPhase("consent");
     } catch (e) {
       const msg = e?.message || "Kayıt başarısız.";
       setSubmitError(msg);
@@ -388,7 +414,7 @@ export default function Kaydol() {
       } catch {
         /* ignore */
       }
-      setPhase("payment");
+      setPhase("consent");
     } catch (e) {
       const msg = e?.message || "Doğrulama başarısız.";
       setSubmitError(msg);
@@ -920,6 +946,59 @@ export default function Kaydol() {
             Kodu tekrar gönder
           </button>
         </div>
+          </motion.div>
+        )}
+
+        {phase === "consent" && (
+          <motion.div key="consent" className="w-full max-w-lg" {...panelMotion}>
+            <div style={{ background: '#0a0a0a', border: '0.5px solid #1e1e1e', borderRadius: 14, padding: '40px 36px 32px', overflow: 'hidden' }}>
+              <div className="dash-hero-line" />
+              <div style={{ marginBottom: 8, fontFamily: '"IBM Plex Sans", sans-serif', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5a5a5a' }}>
+                Son adım
+              </div>
+              <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                style={{ fontFamily: '"Abril Fatface", serif', fontSize: 26, color: '#f5f5f5', marginBottom: 12, lineHeight: 1.2 }}
+              >
+                Yapay Zekayı İyileştirmeye Yardım Et
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08 }}
+                style={{ fontFamily: '"IBM Plex Sans", sans-serif', fontSize: 14, color: '#8a8a8a', lineHeight: 1.65, marginBottom: 28 }}
+              >
+                Yüklediğiniz belgeler, tüm <strong style={{ color: '#b0b0b0' }}>kişisel bilgiler ve müvekkil verileri kaldırıldıktan sonra</strong> anonim olarak kullanılsın mı? Bu veriler yalnızca Miron AI'ı daha iyi hale getirmek için kullanılır; hiçbir zaman satılmaz veya üçüncü taraflarla paylaşılmaz. Bu tercihi istediğiniz zaman Ayarlar sayfasından değiştirebilirsiniz.
+              </motion.p>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
+              >
+                <motion.button
+                  whileHover={{ scale: 1.015 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => handleAIConsent(true)}
+                  style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)', border: 'none', borderRadius: 8, padding: '14px 24px', fontFamily: '"IBM Plex Sans", sans-serif', fontSize: 14, fontWeight: 600, color: '#0a0a0a', cursor: 'pointer', letterSpacing: '0.01em' }}
+                >
+                  Evet, anonim verilerimi paylaşabilirim
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.015 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => handleAIConsent(false)}
+                  style={{ background: 'transparent', border: '0.5px solid #2a2a2a', borderRadius: 8, padding: '14px 24px', fontFamily: '"IBM Plex Sans", sans-serif', fontSize: 14, fontWeight: 500, color: '#6a6a6a', cursor: 'pointer' }}
+                >
+                  Hayır, verilerimi paylaşmak istemiyorum
+                </motion.button>
+              </motion.div>
+              <p style={{ marginTop: 20, fontFamily: '"IBM Plex Sans", sans-serif', fontSize: 11, color: '#3a3a3a', textAlign: 'center', lineHeight: 1.5 }}>
+                Her iki seçenek de ödemeye devam ettirir. Onay zorunlu degil.
+              </p>
+            </div>
           </motion.div>
         )}
 

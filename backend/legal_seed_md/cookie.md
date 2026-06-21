@@ -1,27 +1,65 @@
-## 4.1 Çerez Nedir?
+## 1. Çerezler Hakkında
 
-Çerezler, web sitelerinin tarayıcınıza yerleştirdiği küçük veri dosyalarıdır. Platform deneyimini iyileştirmek ve güvenli oturum yönetimi sağlamak amacıyla kullanılmaktadır.
+Çerezler (cookies), web sitelerinin tarayıcınıza yerleştirdiği küçük veri dosyalarıdır. Miron AI, platformun güvenli ve işlevsel çalışması için yalnızca gerekli çerezleri kullanır.
 
-## 4.2 Kullandığımız Çerez Türleri
+**Önemli:** Çerezler, yüklediğiniz hukuki belge ve dava içeriğinden tamamen bağımsızdır. Belge içeriği çerezlerde saklanmaz.
 
-Zorunlu Çerezler: Platformun çalışması için teknik olarak gereklidir. Devre dışı bırakılamaz. Kapsar: oturum yönetimi (session token), güvenlik doğrulama, CSRF koruması.
+---
 
-Tercih Çerezleri: Kullanıcı tercihlerini hatırlamak için kullanılır. Kapsar: dil tercihi, arayüz ayarları, son kullanılan filtreler.
+## 2. Kullandığımız Çerez Türleri
 
-Analitik Çerezler: Platform performansını ölçmek ve iyileştirmek için kullanılır; kişisel veri içermez.
+### 2.1 Zorunlu Çerezler (Devre Dışı Bırakılamaz)
 
-## 4.3 Kullanılmayan Çerezler
+Platformun teknik olarak çalışabilmesi için gereklidir; bu çerezler için ayrıca onay alınmaz.
 
-Miron AI şu çerez türlerini kullanmaz: reklam çerezleri (platform reklam içermez), davranış takibi için üçüncü taraf pazarlama çerezleri, sosyal medya takip çerezleri.
+| Çerez | Amaç | Süre |
+|---|---|---|
+| Oturum token (session) | Güvenli kullanıcı girişi ve kimlik doğrulama | Oturum |
+| CSRF token | Siteler arası istek sahteciliği (CSRF) koruması | Oturum |
+| Refresh token | Oturumu yenileme (7 günlük yetki) | 7 gün |
+| Kullanıcı tercihleri | Dil ve arayüz ayarları | 1 yıl |
 
-## 4.4 Çerez Kontrolü
+### 2.2 Analitik Çerezler (Tercihe Bağlı)
 
-Çerezleri tarayıcı ayarlarınızdan yönetebilirsiniz. Zorunlu çerezlerin devre dışı bırakılması platform işlevselliğini etkileyebilir.
+Platform performansını ölçmek ve iyileştirmek için kullanılır. Kişisel veri içermez; yalnızca toplu/anonim istatistikler toplanır.
 
-## 4.5 İletişim
+### 2.3 Kullanılmayan Çerez Türleri
 
-Çerez ve gizlilik soruları: **destek@mironintelligence.com** — KVKK başvuruları: **kvkk@mironintelligence.com**.
+Miron AI **kesinlikle kullanmaz:**
+- Reklam veya yeniden hedefleme çerezleri (platform reklam içermez)
+- Üçüncü taraf pazarlama veya davranış takip çerezleri
+- Sosyal medya takip çerezleri
 
-## 4.6 İşlem içeriği ve LLM
+---
 
-Çerezler, yüklediğiniz belge içeriğinden bağımsızdır. Belge/dosya işleme: **LLM eğitimi yok**, içerik **kısa süre RAM**’de, sonra **anonimleştirilip silinir**; işlem içeriği **kalıcı kopyalanmaz veya depolanmaz** — ayrıntı **Gizlilik Politikası**.
+## 3. Çerezleri Nasıl Kontrol Edebilirsiniz?
+
+Çerezleri tarayıcı ayarlarınızdan yönetebilirsiniz:
+
+- **Chrome:** Ayarlar → Gizlilik ve Güvenlik → Çerezler
+- **Firefox:** Seçenekler → Gizlilik ve Güvenlik → Çerezler
+- **Safari:** Tercihler → Gizlilik → Çerezler
+- **Edge:** Ayarlar → Gizlilik, Arama ve Hizmetler → Çerezler
+
+**Not:** Zorunlu çerezlerin devre dışı bırakılması giriş yapılamamasına ve platform işlevselliğinin azalmasına neden olabilir.
+
+---
+
+## 4. Platform Güvenliği ve Şifreleme
+
+Çerezler dahil tüm platform iletişimi **TLS 1.2+** (HTTPS) ile şifrelenmektedir. Oturum token'ları imzalı JWT yapısıyla korunur; kötüye kullanım tespitinde otomatik olarak iptal edilir.
+
+---
+
+## 5. Değişiklikler
+
+Bu politika güncellendiğinde platform üzerinden bildirim yapılır.
+
+---
+
+## 6. İletişim
+
+Çerez ve gizlilik konularındaki sorularınız için: **mironintelligence@gmail.com**
+KVKK başvuruları: **kvkk@mironintelligence.com**
+
+*Son güncelleme: Haziran 2026 — Miron GROUP LLC*
