@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from openai_client import get_openai_client
 from services.search import search_engine
@@ -89,3 +89,62 @@ def analyze_case_risk(case_description: str) -> Dict[str, Any]:
     out["onerilen_strateji"] = str(out["onerilen_strateji"])
 
     return out
+
+
+def get_rag_context(query: str, limit: int = 6, courts: Optional[List[str]] = None) -> str:
+    """
+    Turkish GIN full-text search over the decisions table.
+    Returns a formatted string to inject into the system prompt, or "" on any failure.
+    Works without embeddings — pure PostgreSQL full-text search.
+    """
+    try:
+        from db import get_db_cursor
+
+        clean_query = (query or "").strip()[:500]
+        if not clean_query:
+            return ""
+
+        if courts:
+            placeholders = "AND court IN ({})".format(",".join(["%s"] * len(courts)))
+            params: list = [clean_query] + courts + [clean_query, limit]
+        else:
+            placeholders = ""
+            params = [clean_query, clean_query, limit]
+
+        sql = f"""
+            SELECT court, chamber, file_no, decision_no, decision_date, summary, full_text
+            FROM decisions
+            WHERE to_tsvector('turkish', full_text) @@ plainto_tsquery('turkish', %s)
+            {placeholders}
+            ORDER BY ts_rank(to_tsvector('turkish', full_text),
+                             plainto_tsquery('turkish', %s)) DESC
+            LIMIT %s
+        """
+
+        with get_db_cursor(write=False) as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall() or []
+
+        if not rows:
+            return ""
+
+        parts = []
+        for r in rows:
+            if (r.get("court") or "") == "QA_Dataset":
+                parts.append((r.get("full_text") or "")[:700])
+            else:
+                ref_parts = [
+                    r.get("court") or "",
+                    r.get("chamber") or "",
+                    r.get("file_no") or "",
+                    r.get("decision_no") or "",
+                    str(r.get("decision_date") or ""),
+                ]
+                ref = " | ".join(p for p in ref_parts if p)
+                body = r.get("summary") or r.get("full_text") or ""
+                parts.append(f"[Emsal: {ref}]\n{body[:600]}")
+
+        return "\n\n---\n\n".join(parts)
+
+    except Exception:
+        return ""

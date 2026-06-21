@@ -1,11 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends, status, Header, Query, Request
-from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
-import os
-import logging
+from fastapi import APIRouter, Query
+from typing import Optional, List
 from db import get_db_cursor
 from openai_client import get_openai_client, get_embedding_client
 from llm_gateway import chat_completions_create
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/yargitay", tags=["Yargıtay Search & RAG"])
 
@@ -24,104 +22,97 @@ def get_embedding(text: str):
 def search_decisions(
     q: str = Query(..., description="Arama metni"),
     year: Optional[int] = Query(None),
-    chamber: Optional[str] = Query(None)
+    chamber: Optional[str] = Query(None),
+    limit: int = Query(15, le=50),
 ):
     """
-    REAL RAG SEARCH (Hybrid: Vector + Full Text)
+    Yargıtay ve Danıştay kararı tam metin araması (Turkish GIN full-text search).
     """
+    q = (q or "").strip()
     if not q:
         return []
-        
-    embedding = get_embedding(q)
-    results = []
-    
-    with get_db_cursor(write=False) as cur:
-        # 1. Vector Search (if embedding works)
-        if embedding:
-            # Note: This requires pgvector extension and a 'decisions' table with 'embedding' column
-            # We assume table 'decisions' exists with columns: id, content, summary, metadata, embedding
-            try:
-                # Hybrid Search Query:
-                # 1. Similarity Search (<->)
-                # 2. Filter by Year/Chamber if provided
-                
-                vector_sql = """
-                    SELECT id, content, summary, metadata, 
-                           1 - (embedding <=> %s::vector) as similarity
-                    FROM decisions
-                    WHERE 1 - (embedding <=> %s::vector) > 0.3
-                    ORDER BY similarity DESC
-                    LIMIT 10;
-                """
-                # cur.execute(vector_sql, (embedding, embedding)) # Uncomment when DB ready
-                # results = cur.fetchall()
-                pass
-            except Exception as e:
-                print(f"Vector search failed (Table might be missing): {e}")
 
-        # 2. Fallback: Full Text Search (ILIKE)
-        if not results:
-             try:
-                sql = """
-                    SELECT id, content, summary, metadata 
-                    FROM decisions 
-                    WHERE content ILIKE %s OR summary ILIKE %s
-                    LIMIT 10
-                """
-                term = f"%{q}%"
-                cur.execute(sql, (term, term))
-                results = cur.fetchall()
-             except Exception as e:
-                 print(f"Text search failed: {e}")
+    where_clauses = [
+        "court IN ('Yargıtay', 'Danıştay')",
+        "to_tsvector('turkish', full_text) @@ plainto_tsquery('turkish', %s)",
+    ]
+    params: list = [q]
 
-    # 3. Format Results
-    formatted_results = []
-    for r in results:
-        meta = r.get("metadata") or {}
-        formatted_results.append({
-            "id": r.get("id"),
-            "dairesi": meta.get("dairesi", "Yargıtay"),
-            "esas_no": meta.get("esas_no", ""),
-            "karar_no": meta.get("karar_no", ""),
-            "tarih": meta.get("tarih", ""),
-            "ozet": r.get("summary") or r.get("content")[:200] + "...",
-            "metin": r.get("content")
-        })
-        
-    return formatted_results
+    if year:
+        where_clauses.append("decision_date >= %s AND decision_date < %s")
+        params += [f"{year}-01-01", f"{year + 1}-01-01"]
+
+    if chamber:
+        where_clauses.append("chamber ILIKE %s")
+        params.append(f"%{chamber}%")
+
+    where_sql = " AND ".join(where_clauses)
+    # second %s for ts_rank, then LIMIT
+    params += [q, limit]
+
+    sql = f"""
+        SELECT id, court, chamber, file_no, decision_no, decision_date, summary, full_text
+        FROM decisions
+        WHERE {where_sql}
+        ORDER BY ts_rank(to_tsvector('turkish', full_text),
+                         plainto_tsquery('turkish', %s)) DESC
+        LIMIT %s
+    """
+
+    results: List[dict] = []
+    try:
+        with get_db_cursor(write=False) as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall() or []
+        for r in rows:
+            ozet = r.get("summary") or (r.get("full_text") or "")[:200]
+            results.append({
+                "id": str(r.get("id") or ""),
+                "dairesi": f"{r.get('court', 'Yargıtay')} {r.get('chamber') or ''}".strip(),
+                "esas_no": r.get("file_no") or "",
+                "karar_no": r.get("decision_no") or "",
+                "tarih": str(r.get("decision_date") or ""),
+                "ozet": ozet[:300],
+                "metin": (r.get("full_text") or "")[:3000],
+            })
+    except Exception as e:
+        print(f"[yargitay_search] search error: {e}")
+
+    return results
+
 
 class AiAnalysisRequest(BaseModel):
     decision_text: str
     question: Optional[str] = None
 
+
 @router.post("/analyze")
 def analyze_decision(payload: AiAnalysisRequest):
-    """
-    Seçilen kararın detaylı analizi (Reasoning Pattern)
-    """
+    """Seçilen kararın detaylı AI analizi."""
     client = get_openai_client()
     if not client:
-         return {"analysis": "AI servisi şu an kullanılamıyor."}
+        return {"analysis": "AI servisi şu an kullanılamıyor."}
 
     prompt = f"""
-    Aşağıdaki Yargıtay karar metnini analiz et:
-    
-    METİN:
-    {payload.decision_text[:5000]}
-    
-    SORU (Varsa): {payload.question}
-    
-    Lütfen şu başlıklar altında analiz yap (Markdown):
-    1. **Hukuki Sorun:** Dava konusu ne?
-    2. **Mahkemenin Mantığı:** Yargıtay hangi gerekçeyle bu sonuca varmış?
-    3. **Kritik İlkeler:** Hangi hukuk genel ilkeleri vurgulanmış?
-    4. **Avukat İçin İpucu:** Benzer bir davada nelere dikkat edilmeli?
-    """
-    
+Aşağıdaki Yargıtay karar metnini analiz et:
+
+METİN:
+{payload.decision_text[:5000]}
+
+SORU (Varsa): {payload.question or "—"}
+
+Şu başlıklar altında Markdown formatında analiz yap:
+1. **Hukuki Sorun:** Dava konusu ne?
+2. **Mahkemenin Mantığı:** Yargıtay hangi gerekçeyle bu sonuca varmış?
+3. **Kritik İlkeler:** Hangi hukuk ilkeleri vurgulanmış?
+4. **Avukat İçin İpucu:** Benzer bir davada nelere dikkat edilmeli?
+"""
+
     try:
-        completion = chat_completions_create(client,
+        completion = chat_completions_create(
+            client,
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
         )
         return {"analysis": completion.choices[0].message.content}
     except Exception as e:

@@ -828,9 +828,18 @@ def assistant_chat(req: ChatRequest = Body(...), _user: dict = Depends(require_l
     user_text = sanitize_text(req.message)
     context = sanitize_text(req.context or "")
 
+    _rag_ctx = ""
+    try:
+        from rag_engine import get_rag_context
+        _rag_ctx = get_rag_context(user_text[:500])
+    except Exception:
+        pass
+
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     if context:
         messages.append({"role": "system", "content": f"Dava/Dosya Bağlamı (özet):\n{context}"})
+    if _rag_ctx:
+        messages.append({"role": "system", "content": f"İlgili Hukuki Kaynaklar ve Bilgiler:\n{_rag_ctx}"})
     messages.append({"role": "user", "content": user_text})
 
     try:
@@ -870,9 +879,18 @@ def assistant_chat_stream(req: ChatRequest = Body(...), _user: dict = Depends(re
     user_text = sanitize_text(req.message)
     context = sanitize_text(req.context or "")
 
+    _rag_ctx = ""
+    try:
+        from rag_engine import get_rag_context
+        _rag_ctx = get_rag_context(user_text[:500])
+    except Exception:
+        pass
+
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     if context:
         messages.append({"role": "system", "content": f"Dava/Dosya Bağlamı (özet):\n{context}"})
+    if _rag_ctx:
+        messages.append({"role": "system", "content": f"İlgili Hukuki Kaynaklar ve Bilgiler:\n{_rag_ctx}"})
     messages.append({"role": "user", "content": user_text})
 
     def event_gen():
