@@ -1,102 +1,117 @@
-## 1. Tarafların Rolleri ve Sözleşmenin Amacı
+# Veri İşleme Sözleşmesi (DPA)
 
-Bu Veri İşleme Sözleşmesi ("DPA"), **Miron GROUP LLC** ("Miron AI", "Veri İşleyen") ile Miron AI platformunu kullanan avukat veya hukuk profesyoneli ("Kullanıcı", "Veri Sorumlusu") arasında, KVKK md. 12 ve GDPR Madde 28 kapsamında akdedilmektedir.
-
-**Kullanıcı**, müvekkil bilgileri ve hukuki belgeler içeren verilerin sahibi ve sorumlusudur. **Miron AI**, Kullanıcı adına ve yalnızca Kullanıcı'nın talimatları doğrultusunda veri işlemekte olup hiçbir koşulda veri sorumlusu konumuna geçmez.
+**Son güncelleme: Haziran 2026**
 
 ---
 
-## 2. İşlemenin Konusu ve Amacı
+## 1. Taraflar ve Amaç
 
-| Özellik | Detay |
+Bu Veri İşleme Sözleşmesi ("DPA"), KVKK md. 12 ve GDPR Madde 28 uyarınca:
+
+- **Veri İşleyen:** Miron GROUP LLC ("Miron AI") — Türk avukatlara ve hukuk profesyonellerine yönelik yapay zeka destekli hukuk otomasyon platformunun işleticisi
+- **Veri Sorumlusu:** Miron AI'ı kullanan avukat veya hukuk profesyoneli ("Kullanıcı")
+
+arasında akdedilmektedir.
+
+Kullanıcı; müvekkil adları, dava bilgileri ve gizli hukuki içerik gibi üçüncü kişilere ait kişisel veriler içerebilen içeriklerin sahibi ve sorumlusudur. Miron AI bu içerikleri yalnızca Kullanıcı'nın talimatları doğrultusunda ve bu DPA'da tanımlanan sınırlar dahilinde işler. Miron AI hiçbir koşulda söz konusu içerikler bakımından veri sorumlusu konumuna geçmez.
+
+---
+
+## 2. İşlemenin Kapsamı
+
+| Parametre | Değer |
 |---|---|
-| Amaç | AI destekli hukuki belge analizi, araştırma, dilekçe/sözleşme üretimi ve otomasyon araçlarının sunulması |
-| Veri türleri | Hukuki belgeler, dava dosyaları, sözleşmeler, dilekçeler, analizler |
-| Veri sahipleri | Kullanıcı'nın müvekkilleri ve ilgili üçüncü kişiler |
-| İşleme süresi | Hizmet sözleşmesinin devam ettiği süre |
-| Hukuki dayanak | KVKK md. 5/2-c (sözleşme ifası); GDPR md. 6/1-b |
+| İşleme konusu | Hukuki belge analizi, araştırma, dilekçe/sözleşme üretimi ve otomasyon araçları |
+| İşlenen veri türleri | Dava dosyaları, sözleşmeler, dilekçeler, yazışmalar ve hukuki analizler |
+| Kişisel veri sahipleri | Kullanıcı'nın müvekkilleri ve ilgili üçüncü kişiler |
+| İşleme süresi | Hizmet sözleşmesinin yürürlükte olduğu süre |
 
 ---
 
-## 3. İşlem İçeriğinin Güvenliği: Şifreleme, Geçicilik ve Silme
+## 3. Belge İçeriğinin İşlenme Modeli
 
-### 3.1 Teknik Standartlar
+### 3.1 Kullanıcı Onay Vermezse (Varsayılan)
+
+Platforma yüklenen veya işleme gönderilen tüm içerik:
+
+1. Yalnızca ilgili API isteğinin süresiyle sınırlı olarak sunucu belleğinde (RAM) tutulur
+2. İstek tamamlandığı anda içerik tamamen bellekten silinir
+3. Veritabanına, dosya sistemine, log kayıtlarına veya yedeğe hiçbir şekilde yazılmaz
+4. AI modellerinin eğitimi, ince ayarı veya iyileştirilmesi için kullanılmaz
+5. Üçüncü taraflara aktarılmaz
+
+Sonuç: İşlem içeriğine ait hiçbir kayıt kalmaz.
+
+### 3.2 Kullanıcı Onay Verirse
+
+1. İçerik işlenmeden önce TC kimlik numaraları, müvekkil/karşı taraf isimleri, adres bilgileri ve kişiyi ya da davayı tanımlamaya yarayabilecek tüm tanımlayıcılar algoritmik olarak tespit edilip kaldırılır (tam anonimleştirme)
+2. Anonimleştirme tamamlandıktan sonra içerik, AI sistemini geliştirmek amacıyla **anonim veri olarak** kaydedilir
+3. Kaydedilen veri artık kişisel veri niteliği taşımaz ve KVKK kapsamına girmez
+4. Kullanıcı, onayını Ayarlar sayfasından geri alabilir; geri alım sonrasında yeni içerik kaydedilmez
+
+Her iki senaryoda da içerik model eğitimi amacıyla üçüncü taraflara aktarılmaz.
+
+---
+
+## 4. Teknik Güvenlik Standartları
 
 | Katman | Standart |
 |---|---|
-| Depolama şifreleme | AES-256 — Supabase PostgreSQL, AB / eu-central-1 |
-| İletim güvenliği | TLS 1.2+ — tüm API bağlantıları HTTPS |
-| Şifre/kimlik bilgileri | Argon2id hash |
-| Erişim kontrolü | Rol tabanlı yetkilendirme, minimum ayrıcalık |
-
-### 3.2 İşlem İçeriğinin İşlenme Süreci
-
-Kullanıcı'nın yüklediği veya işleme gönderdiği belge ve metinler:
-
-1. Yalnızca ilgili API isteğinin süresiyle sınırlı olarak **geçici bellekte (RAM)** işlenir
-2. İşlem tamamlandığında TC kimlik numaraları, isimler ve tüm kişisel tanımlayıcılar **algoritmik olarak kaldırılarak anonimleştirilir**
-3. Anonimleştirme sonrası içerik bellekten ve geçici depolamadan **kalıcı olarak silinir**
-4. Büyük dil modellerinin **eğitimi, ince ayarı (fine-tuning) veya iyileştirilmesi için kullanılmaz**
-5. Kalıcı dosya, veritabanı kaydı, yedek veya arşiv kopyası **oluşturulmaz**
-
-### 3.3 Anonim AI İyileştirme (Yalnızca Kullanıcı Onayıyla)
-
-Kullanıcı, kayıt sonrası sunulan isteğe bağlı onay sorusuna "Evet" yanıtı verirse, işlem içeriği **tam anonimleştirme** sonrasında AI modelini geliştirmek amacıyla kullanılabilir. Bu onay dilediğiniz zaman Ayarlar sayfasından geri alınabilir.
+| Depolama şifreleme | AES-256 — Supabase PostgreSQL, AB / eu-central-1 (Frankfurt) |
+| İletim güvenliği | TLS 1.2+ — tüm API bağlantıları zorunlu HTTPS |
+| Kimlik bilgileri | Argon2id hash — düz metin şifre saklanmaz |
+| Oturum yönetimi | JWT (8 saat) + refresh token (7 gün) |
+| Erişim kontrolü | Rol tabanlı yetkilendirme; minimum ayrıcalık prensibi |
 
 ---
 
-## 4. Miron AI'nın Güvenlik Yükümlülükleri
+## 5. Miron AI'nın Yükümlülükleri
 
-Miron AI aşağıdaki teknik ve idari tedbirleri uygulamayı taahhüt eder:
+Miron AI:
 
-- AES-256 şifreleme (depolama) ve TLS 1.2+ (iletim) zorunlu tutulur
-- İçsel erişim minimum ayrıcalık prensibiyle kısıtlanır ve loglanır
-- Personelin kişisel verilere erişimi yetkilendirme ve gizlilik yükümlülüğüne tabidir
-- Güvenlik taramaları ve bağımlılık güncellemeleri düzenli aralıklarla yapılır
-- Olası veri ihlali durumunda Kullanıcı ve yetkili otoriteler 72 saat içinde bilgilendirilir
+- İçeriği yalnızca bu DPA'da belirtilen amaçlar için işler; başka amaçla kullanmaz
+- Güvenlik standartlarını (AES-256, TLS 1.2+, Argon2id) kesintisiz uygular
+- Verilere erişimi yetkilendirilmiş personelle sınırlar ve erişimleri loglar
+- Olası veri ihlalini 72 saat içinde Kullanıcı'ya ve yetkili otoritelere bildirir
+- Alt işleyen listesini güncel tutar ve değişikliklerden Kullanıcıları önceden haberdar eder
 
 ---
 
-## 5. Alt Veri İşleyenler
+## 6. Alt İşleyenler
 
-Miron AI hizmet sunumu için aşağıdaki alt işleyenleri kullanmaktadır:
-
-| Alt İşleyen | Amaç | Veri Konumu |
+| Alt İşleyen | Amaç | Konum |
 |---|---|---|
-| Supabase | Veritabanı, auth, yedekleme | AB / Frankfurt (eu-central-1) |
-| Groq | AI dil modeli çıkarımı | ABD (GDPR md. 46 güvenceleri) |
-| OpenAI | Embedding/vektör üretimi | ABD (GDPR md. 46 güvenceleri) |
+| Supabase | Veritabanı, auth, yedekleme | AB — Frankfurt (eu-central-1) |
+| Groq | AI dil modeli çıkarımı | ABD (GDPR md. 46 — SCCs) |
+| OpenAI | Embedding/vektör üretimi | ABD (GDPR md. 46 — SCCs) |
 | Stripe | Ödeme altyapısı | ABD/AB (PCI DSS sertifikalı) |
 
-Alt işleyenler değiştiğinde Kullanıcılar makul süre öncesinde bilgilendirilir.
-
----
-
-## 6. Uluslararası Veri Transferi
-
-Veriler öncelikli olarak AB/EEA bölgesinde (Supabase, Frankfurt) tutulmaktadır. AI çıkarımı için yapılan Groq ve OpenAI API çağrılarında işlem içeriği geçici olarak ABD sunucularına iletilebilir; bu transferler GDPR Madde 46 kapsamındaki **Standart Sözleşme Maddeleri (SCCs)** aracılığıyla gerçekleştirilir.
+Belge içeriği; Groq ve OpenAI'a yalnızca ilgili istek süresince geçici olarak iletilir, model eğitimi amacıyla kullanılmaz.
 
 ---
 
 ## 7. Kullanıcı'nın Yükümlülükleri
 
 Veri Sorumlusu sıfatıyla Kullanıcı:
-- Yüklediği içeriklerin KVKK ve ilgili mevzuata uygunluğundan sorumludur
-- Müvekkil verilerinin platforma aktarılması için gerekli hukuki dayanağa sahip olduğunu beyan eder
-- Bir ihlal veya güvenlik açığından haberdar olduğunda derhal **mironintelligence@gmail.com** adresini bilgilendirir
+
+- Yüklediği içerikleri platforma aktarmak için KVKK ve ilgili mevzuat kapsamında gerekli hukuki dayanağa sahip olduğunu beyan ve taahhüt eder
+- Müvekkil verilerinin platformda işlenmesine ilişkin KVKK md. 12 kapsamındaki yükümlülüklerini (gizlilik, güvenlik, bildirim) yerine getirmekten sorumludur
+- Güvenlik şüphesi veya ihlalini öğrenmesi halinde derhal **mironintelligence@gmail.com** adresine bildirim yapar
 
 ---
 
 ## 8. Verilerin İadesi ve Silinmesi
 
-Hizmet sözleşmesinin sona ermesiyle birlikte:
-- Kullanıcı'nın talep etmesi halinde işlenen veriler 30 gün içinde aktarılır veya silinir
-- Yasal saklama yükümlülükleri dışında kalan tüm kullanıcı verileri silinir
+Hizmet sözleşmesinin sona ermesinden itibaren:
+
+- Hesap verileri 30 gün içinde Kullanıcı'nın talebi üzerine dışa aktarılır veya silinir
+- İşlem içeriğine (onay verilmemiş) ait herhangi bir kalıcı kayıt bulunmamaktadır
+- Yasal saklama yükümlülükleri (fatura, vergi kaydı) dışındaki tüm veriler imha edilir
 
 ---
 
 ## 9. Uygulanacak Hukuk
 
-Bu DPA Türk hukukuna tabidir; GDPR uyumluluğu için Avrupa Birliği veri koruma mevzuatı esas alınır.
+Bu DPA Türk hukukuna tabidir; GDPR uyumluluğu için AB veri koruma mevzuatı esas alınır. Uyuşmazlıklarda İstanbul Mahkemeleri yetkilidir.
 
-*Son güncelleme: Haziran 2026 — Miron GROUP LLC*
+*Miron GROUP LLC — Haziran 2026*

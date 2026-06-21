@@ -1,85 +1,90 @@
-## 1. Yapay Zeka Teknolojisinin Doğası
+# Yapay Zeka Kullanım Şartları
 
-Miron AI platformu, **büyük dil modelleri (LLM)**, **Türkçe tam metin arama (GIN/BM25)** ve **retrieval-augmented generation (RAG)** tekniklerini kullanır. Bu teknolojilerin kullanımı aşağıdaki koşullara tabidir.
-
----
-
-## 2. İçerik İşleme: Model Eğitimi Yok, Geçici İşleme
-
-Kullanıcı'nın yüklediği veya işleme gönderdiği belge ve metin içeriği:
-
-1. **RAM'de geçici:** Yalnızca ilgili isteğin süresiyle sınırlı olarak geçici bellekte işlenir
-2. **Anonimleştirme:** İşlem sonunda tüm kişisel tanımlayıcılar (TC no, isimler vb.) algoritmik olarak kaldırılır
-3. **Kalıcı silme:** Anonimleştirme sonrası içerik bellekten ve geçici depolamadan kalıcı olarak silinir
-4. **Eğitim yasağı:** İçerik büyük dil modellerinin **eğitimi, ince ayarı (fine-tuning) veya iyileştirilmesi için kullanılmaz**
-5. **Arşiv yok:** Kalıcı dosya veya veritabanı kaydı oluşturulmaz
-
-**Şifreleme:** Tüm veriler depolamada AES-256, iletimde TLS 1.2+ ile korunur.
+**Son güncelleme: Haziran 2026**
 
 ---
 
-## 3. Opsiyonel: Anonim AI İyileştirme Onayı
+## 1. Kapsam
 
-Kayıt tamamlandıktan sonra sunulan **isteğe bağlı** onay sorusuna "Evet" yanıtı verirseniz:
-
-- Yüklediğiniz içerikler **tam anonimleştirme** (tüm müvekkil bilgilerinin ve kişisel tanımlayıcıların kaldırılması) sonrasında AI modelini iyileştirmek amacıyla kullanılabilir
-- Bu onay **zorunlu değildir**; verilmemesi hizmet kalitesini veya erişimi etkilemez
-- **Ayarlar** sayfasından dilediğiniz zaman geri alınabilir
+Bu Yapay Zeka Kullanım Şartları, **Miron GROUP LLC** ("Miron AI") tarafından işletilen platformdaki tüm AI özelliklerini kapsar: AI Asistanı, dava simülasyonu, belge analizi, dilekçe ve sözleşme üretimi, Yargıtay/Danıştay kararı arama, risk skoru ve içtihat özetleme.
 
 ---
 
-## 4. Yapay Zeka Sınırlılıkları
+## 2. Altyapı
 
-### 4.1 Halüsinasyon (Uydurma) Riski
-
-Yapay zeka sistemleri zaman zaman **gerçek olmayan, yanlış veya uydurma** bilgi üretebilir. Bu risk hukuk bağlamında **özellikle ciddidir.** Miron AI riski minimize etmek için çalışır; ancak hatasız çıktı **garanti edilmez.**
-
-**Kullanıcı yükümlülüğü:** Tüm yapay zeka çıktılarını — kanun maddeleri, Yargıtay kararı numaraları ve tarihler dahil — **resmi kaynaklardan (Resmi Gazete, Yargıtay Bilgi Bankası, Lexpera vb.) bağımsız olarak doğrulamak.**
-
-### 4.2 Güncellik Sınırı
-
-- Temel LLM modeli eğitim kesim tarihinden sonraki mevzuat değişikliklerini otomatik olarak bilmeyebilir
-- RAG sistemi Yargıtay/Danıştay kararlarını ve mevzuatı güncel tutar; ancak yayımlanma ile sistem güncellenmesi arasında gecikme olabilir
-- Platform özetleri ve atıfları **resmi kaynakların yerine geçmez**
-
-### 4.3 Bağlam Bağımlılığı
-
-Her davanın kendine özgü koşulları tam olarak modellenemeyebilir. Sağlanan bağlam ne kadar eksiksiz olursa çıktı kalitesi o kadar artar — bu yine de hatasız sonuç garantisi anlamına gelmez.
-
-### 4.4 Beta Özellikler
-
-"Beta" olarak işaretlenen özellikler geliştirme aşamasındadır; hata oranı daha yüksek olabilir. Bu çıktılar **mutlaka** bağımsız olarak doğrulanmalıdır.
-
----
-
-## 5. Kullanıcı'nın Temel Yükümlülükleri
-
-Kullanıcı, platform çıktılarını kullanmadan önce:
-
-- **Bağımsız hukuki araştırma** yapmak ve çıktıyı mesleki bilgisiyle değerlendirmek
-- Atıflı mevzuat ve kararları **resmi kaynaklardan teyit etmek**
-- Üretilen belgeleri **tam okuyup gerekli düzenlemeleri yapmak**
-- Müvekkile sunumda **mesleki bağımsız değerlendirme** yapmak
-- Müvekkil gizliliği yükümlülüklerine uymak
-
-ile yükümlüdür.
-
----
-
-## 6. Yapay Zeka Altyapısı
-
-| Bileşen | Sağlayıcı | Kullanım |
+| Bileşen | Teknoloji | Amaç |
 |---|---|---|
-| Dil modeli | Groq (Llama/Mixtral ailesi) | Metin üretimi, analiz, asistan |
-| Embedding | OpenAI | Semantik vektör arama |
-| Emsal arama | Supabase GIN (PostgreSQL) | Yargıtay, Danıştay, AYM kararları |
+| Dil modeli | Groq API (Llama / Mixtral ailesi) | Metin üretimi, analiz, soru yanıtlama |
+| Arama vektörü | OpenAI Embedding API | Semantik arama için vektör üretimi |
+| Emsal veritabanı | Supabase GIN (PostgreSQL, Türkçe tam metin) | Yargıtay, Danıştay, AYM karar araması |
 
-Hiçbir sağlayıcıya kullanıcı içeriği **model eğitimi amacıyla** iletilmez.
+Miron AI, büyük dil modellerine erişim için Groq altyapısını birincil olarak, OpenAI'ı ise embedding üretimi için kullanır. Her iki sağlayıcıya da kullanıcı içeriği model eğitimi amacıyla aktarılmaz.
 
 ---
 
-## 7. Değişmez Hüküm
+## 3. Belge İçeriğinin İşlenmesi
 
-Miron AI tarafından üretilen her türlü içerik — belge, analiz, simülasyon çıktısı, öneri veya başka herhangi bir çıktı — **profesyonel hukuki danışmanlık yerine geçmez, geçemez ve bu şekilde yorumlanamaz.**
+### 3.1 Onay Verilmezse (Varsayılan)
 
-*Son güncelleme: Haziran 2026 — Miron GROUP LLC*
+Platforma yüklediğiniz veya işleme gönderdiğiniz belgeler, dava dosyaları ve metinler:
+
+- Yalnızca ilgili isteğin süresiyle sınırlı olarak sunucu belleğinde (RAM) tutulur
+- İstek tamamlandığı anda içerik tamamen silinir
+- Hiçbir veritabanı kaydı, dosya veya yedek oluşturulmaz
+- AI modellerinin eğitimi veya iyileştirilmesi için kullanılmaz
+- Üçüncü taraflara aktarılmaz
+
+### 3.2 Kullanıcı Onay Verirse
+
+Kayıt tamamlandıktan sonra sunulan isteğe bağlı onay sorusuna "Evet" yanıtı verirseniz:
+
+- İçerik işlenmeden önce TC kimlik numaraları, isimler, adresler ve tüm kişisel tanımlayıcılar algoritmik olarak kaldırılır (tam anonimleştirme)
+- Anonimleştirilmiş içerik, Miron AI'ı geliştirmek amacıyla **anonim veri olarak kaydedilir ve kullanılır**
+- Bu onay istediğiniz zaman Ayarlar sayfasından geri alınabilir; geri alım sonrasında yeni içerik kaydedilmez
+- Onayın verilmemiş olması hizmet kalitesini, fiyatı veya herhangi bir özelliğe erişimi etkilemez
+
+---
+
+## 4. Yapay Zekanın Sınırları — Zorunlu Okuma
+
+### 4.1 Halüsinasyon Riski
+
+Büyük dil modelleri zaman zaman gerçek olmayan, yanlış veya uydurma bilgi üretir. Bu durum "halüsinasyon" olarak adlandırılır. Hukuk bağlamında halüsinasyon; var olmayan kanun maddeleri, yanlış Yargıtay kararı numaraları, hatalı tarihler veya fiilen uygulanmayan içtihat gibi biçimlerde ortaya çıkabilir. Miron AI bu riski minimize etmek için RAG (Retrieval-Augmented Generation) ve doğrulama katmanları kullanır; ancak sıfır hata **garanti edilemez.**
+
+**Kullanıcı yükümlülüğü:** Tüm AI çıktılarını — kanun maddeleri, karar numaraları ve tarihler dahil — mahkemeye veya müvekkile sunmadan önce resmi kaynaklardan bağımsız olarak doğrulamak.
+
+### 4.2 Güncellik Sorunu
+
+Temel dil modelinin eğitim kesim tarihi bulunur; bu tarihten sonraki mevzuat değişikliklerini otomatik olarak yansıtmaz. RAG sistemi Yargıtay, Danıştay ve AYM kararlarını düzenli olarak günceller; ancak kararın yayımlanması ile sisteme yansıması arasında gecikme olabilir. Platform çıktıları **güncel resmi mevzuatın ve içtihadın yerine geçmez.**
+
+### 4.3 Bağlam Kısıtı
+
+AI modeli davanın tüm koşullarını ve nüanslarını kavrayamaz. Sağladığınız bağlam ne kadar eksiksiz olursa sonuç kalitesi o kadar yükselir — bu, doğru sonuç garantisi anlamına gelmez.
+
+### 4.4 Dava Simülasyonu
+
+Dava simülasyonu özelliği olası senaryoları modellemek için tasarlanmıştır; dava sonucunu tahmin etmez ve hukuki bir değerlendirme niteliği taşımaz. Simülasyon çıktısına dayanarak müvekkile garanti verilemez.
+
+### 4.5 Beta Özellikler
+
+"Beta" olarak etiketlenmiş özellikler geliştirme aşamasındadır ve hata oranı daha yüksek olabilir. Bu çıktılar özellikle dikkatle ve mutlaka bağımsız doğrulamayla kullanılmalıdır.
+
+---
+
+## 5. Kullanıcı Yükümlülükleri
+
+Kullanıcı:
+
+- Platform çıktılarını mesleki bilgi ve yargısıyla değerlendirmek ve gerekli bağımsız araştırmayı yapmakla yükümlüdür
+- Üretilen dilekçe, sözleşme veya belgeleri mahkemeye veya karşı tarafa sunmadan önce eksiksiz okuyup gerekli düzeltmeleri yapmakla sorumludur
+- Yargıtay kararı numaraları ve mevzuat atıflarını resmi kaynaklardan (Yargıtay Bilgi Bankası, Resmî Gazete, Anayasa Mahkemesi kararlar bankası) teyit etmekle yükümlüdür
+- Baro ve meslek kurallarına uyumu tamamen kendi sorumluluğunda saymakla yükümlüdür
+- Müvekkil gizliliği ve avukatlık sırrı yükümlülüklerini yerine getirmekten münhasıran sorumludur
+
+---
+
+## 6. Değişmez Hüküm
+
+Miron AI tarafından üretilen içerik — belge taslakları, analizler, simülasyon sonuçları, özetler veya herhangi bir çıktı — **profesyonel hukuki danışmanlık yerine geçmez, geçemez ve bu şekilde yorumlanamaz.**
+
+*Miron GROUP LLC — Haziran 2026*

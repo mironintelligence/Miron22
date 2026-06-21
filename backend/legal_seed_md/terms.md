@@ -1,114 +1,136 @@
-## 1. Taraflar ve Sözleşmenin Konusu
+# Kullanım Şartları
 
-Bu Kullanım Şartları ("Sözleşme"), **Miron GROUP LLC** ("Miron AI", "Şirket", "biz") ile platforma erişen, kayıt olan veya herhangi bir özelliği kullanan gerçek ya da tüzel kişi ("Kullanıcı", "siz") arasında akdedilmektedir. Platforma erişmek, kayıt olmak veya kullanıma başlamak bu Sözleşme'yi okuduğunuzu, anladığınızı ve bağlayıcılığını kabul ettiğinizi ifade eder.
-
-Bu Sözleşme; Gizlilik Politikası, KVKK / GDPR Aydınlatma Metni, Veri İşleme Sözleşmesi (DPA), Çerez Politikası, Yapay Zeka Kullanım Şartları ve Sorumluluk Reddi ile birlikte bir bütün oluşturur.
+**Son güncelleme: Haziran 2026**
 
 ---
 
-## 2. Hizmetin Tanımı
+## 1. Taraflar
 
-Miron AI; Türk avukatlar ve hukuk profesyonelleri için tasarlanmış, yapay zeka teknolojisini kullanan bir hukuk otomasyon SaaS platformudur. Platform şu modülleri kapsar:
+Bu Kullanım Şartları ("Şartlar"), **Miron GROUP LLC** ("Şirket", "biz", "Miron AI") ile platforma kayıt olan veya herhangi bir özelliğini kullanan kişi ya da kuruluş ("Kullanıcı", "siz") arasında hukuki bağlayıcı bir sözleşme oluşturur. Platforma erişmek veya kullanmaya başlamak bu Şartlar'ı okuduğunuzu, anladığınızı ve tüm hükümlerine bağlı olmayı kabul ettiğinizi ifade eder.
 
-- **Dava Merkezi:** Dava dosyası yönetimi, risk ve strateji skoru, dava simülasyonu, takvim ve hatırlatmalar
-- **Araştırma:** Yargıtay, Danıştay ve Anayasa Mahkemesi karar araması (Türkçe tam metin), mevzuat analizi
-- **Belge Stüdyosu:** Evrak analizi (PDF/DOCX/TXT), sözleşme analizi, sözleşme oluşturucu, dilekçe oluşturucu
-- **Hesaplamalar:** Faiz, harç, KDV, vekalet ücreti, icra hesaplamaları
-- **AI Asistanı:** Hukuki soru ve analiz desteği
-
-**Değişmez hüküm:** Platform çıktıları hukuki danışmanlık niteliği taşımaz, avukat-müvekkil ilişkisi oluşturmaz.
+Bu Şartlar; Gizlilik Politikası, KVKK Aydınlatma Metni, Veri İşleme Sözleşmesi, Çerez Politikası, Yapay Zeka Kullanım Şartları ve Sorumluluk Reddi Beyanı ile birlikte tek bir bütün oluşturur.
 
 ---
 
-## 3. Veri Güvenliği ve Şifreleme
+## 2. Platformun Kapsamı
 
-### 3.1 Teknik Güvenlik Standartları
+Miron AI; Türk avukatlara ve hukuk profesyonellerine yönelik yapay zeka destekli bir hukuk otomasyon platformudur. Şu modülleri kapsar:
 
-| Katman | Standart |
-|---|---|
-| İletim güvenliği | TLS 1.2+ (HTTPS zorunlu) |
-| Depolama şifreleme | AES-256 (Supabase, AB/eu-central-1 bölgesi) |
-| Şifre hash algoritması | Argon2id — düz metin asla saklanmaz |
-| Oturum yönetimi | JWT 8 saat + 7 günlük refresh token |
-| CSRF koruması | Double-submit cookie |
+- **Dava Merkezi:** Dava dosyası yönetimi, risk skoru, strateji tavsiyesi, dava simülasyonu, takvim ve hatırlatma sistemi
+- **Hukuki Araştırma:** Yargıtay, Danıştay ve Anayasa Mahkemesi kararlarında Türkçe tam metin arama, mevzuat analizi, içtihat takibi
+- **Belge Stüdyosu:** PDF/DOCX/TXT evrak analizi, sözleşme inceleme ve üretimi, dilekçe oluşturucu
+- **Hesaplamalar:** İş hukuku tazminat hesaplamaları, faiz, harç, KDV, icra ve vekalet ücreti hesaplamaları
+- **AI Asistanı:** Hukuki soru yanıtlama, içtihat özeti, analiz desteği
 
-### 3.2 Yüklenen Belge ve Dosyaların İşlenmesi
-
-Kullanıcı'nın yüklediği veya işleme gönderdiği belge, dosya ve metin içeriği:
-
-1. Yalnızca ilgili isteğin süresiyle sınırlı olarak **geçici bellekte (RAM)** işlenir
-2. İşlem tamamlandığında **kişisel tanımlayıcılar kaldırılarak anonimleştirilir** ve **kalıcı olarak silinir**
-3. Büyük dil modellerinin **eğitimi veya ince ayarı (fine-tuning)** için kullanılmaz
-4. Kalıcı dosya, veritabanı arşivi veya yedek kopyası olarak tutulmaz
-
-### 3.3 Anonim AI İyileştirme Onayı (Tamamen İsteğe Bağlı)
-
-Kayıt sürecinin tamamlanmasının ardından, ayrı bir onay sorusuyla, yüklediğiniz içeriklerin **müvekkil bilgileri ve tüm kişisel tanımlayıcılar kaldırılmış anonim formda** AI modelini iyileştirmek amacıyla kullanılmasına izin verebilirsiniz. Bu onay:
-
-- Tamamen **isteğe bağlıdır**; verilmemesi hizmet kalitesini, fiyatı veya erişimi etkilemez
-- Dilediğiniz zaman **Ayarlar** sayfasından geri alınabilir
-- Geri alım önceki anonim işlemleri geriye dönük olarak etkilemez
+**Değişmez kural:** Platform çıktıları hukuki danışmanlık niteliği taşımaz ve avukat-müvekkil ilişkisi oluşturmaz. Ayrıntı için Sorumluluk Reddi Beyanı'na bakınız.
 
 ---
 
-## 4. Kullanıcı Yükümlülükleri
+## 3. Hesap ve Kayıt
 
-- Platform çıktılarını **bağımsız olarak doğrulamak** ve mesleki değerlendirmeden geçirmek
-- Çıktıları mesleki bilgi ve yargıdan bağımsız olarak müvekkile veya mahkemeye sunmamak
-- Hesabı yalnızca kendisi kullanmak; üçüncü kişilerle paylaşmamak
-- Şüpheli erişim durumunda **mironintelligence@gmail.com** adresine derhal bildirmek
-- İlgili baro meslek kurallarına uymak
-- **Baro numarası istenmez ve toplanmaz**
+Platforma kayıt olabilmek için Kullanıcı'nın ad, soyad, e-posta adresi ve şifre bilgilerini doğru ve eksiksiz girmesi zorunludur. Baro numarası kayıt sürecinde istenmez ve toplanmaz.
+
+Hesabınız kişiseldir; başkasıyla paylaşılamaz, devredilemez. Hesabınızın güvenliğinden ve hesabınız altında gerçekleşen tüm işlemlerden siz sorumlusunuz. Yetkisiz erişim şüphesinde derhal **mironintelligence@gmail.com** adresine bildirim yapılmalıdır.
 
 ---
 
-## 5. Yasaklı Kullanımlar
+## 4. Veri İşleme: Belge İçeriği
 
-Şunlar kesinlikle yasaktır; ihlalde hesap derhal kapatılır ve yasal işlem başlatılabilir:
+### 4.1 Varsayılan Durum — Onay Verilmezse
 
-- Sahte dava, sözleşme veya dilekçe oluşturmak
-- Yanıltıcı veya hukuka aykırı içerik üretmek
-- Sistem güvenliğini ihlale yönelik her türlü girişim (penetrasyon testi dahil)
-- Botlar veya otomatik araçlarla kullanım
-- Tersine mühendislik veya kaynak koda erişim girişimi
-- Platformu yeniden satmak, alt lisanslamak veya rakiplere açmak
-- Hesabı birden fazla kişiyle paylaşmak
+Kullanıcı'nın platforma yüklediği veya işleme gönderdiği tüm belgeler, dava dosyaları ve hukuki metinler:
 
----
+- Yalnızca ilgili isteğin süresince **geçici bellekte (RAM)** tutulur
+- İşlem tamamlandığı anda içerik tamamen **silinir** — hiçbir şekilde kaydedilmez, arşivlenmez veya yedeklenmez
+- Büyük dil modelleri dahil hiçbir amaçla **depolanmaz**
 
-## 6. Abonelik ve Ödeme
+### 4.2 Kullanıcı Onay Verirse
 
-Ödeme işlemleri **Stripe** altyapısı üzerinden şifreli iletimle gerçekleştirilir; kart bilgisi Miron AI sistemlerinde saklanmaz.
+Kayıt tamamlandıktan sonra sunulan isteğe bağlı onay sorusuna "Evet" yanıtı veren Kullanıcı'nın içerikleri:
 
-**30 Gün Tam İade Güvencesi:** İlk ödeme tarihinden itibaren 30 takvim günü içinde yazılı başvuruyla (mironintelligence@gmail.com) ilk dönem ücreti %100 iade edilir. Bu hak hesap başına bir kez ve yalnızca ilk ödeme için geçerlidir.
+- TC kimlik numaraları, isimler, adres bilgileri ve tüm kişisel tanımlayıcılar **algoritmik olarak kaldırılarak** tam anonimleştirme uygulanır
+- Anonimleştirme sonrasında AI modelini geliştirmek amacıyla **anonim veri olarak kaydedilir ve kullanılır**
+- Bu onay istediğiniz zaman Ayarlar sayfasından **geri alınabilir**; geri alım sonrasında anonim veri kullanımı durdurulur
+- Onayın verilmemiş olması hizmet kalitesini, fiyatı veya herhangi bir özelliğe erişimi etkilemez
 
-**Sonraki dönemler:** 30 günden sonra iade yapılmaz; abonelik iptal edilebilir, cari dönem sonunda sona erer.
+### 4.3 Her Koşulda Geçerli Güvenceler
 
----
-
-## 7. Yapay Zeka Çıktılarına İlişkin Özel Sorumluluk
-
-Yapay zeka sistemleri zaman zaman yanlış, eksik veya uydurma bilgi üretebilir. Miron AI bu riski minimize etmek için çalışır; ancak hatasız çıktı garanti edilmez. Kullanıcı; tüm çıktıları, atıfları ve içtihat referanslarını resmi kaynaklardan (Resmi Gazete, Yargıtay Bilgi Bankası vb.) bağımsız olarak doğrulamakla yükümlüdür.
+- İşlem içeriği; LLM eğitimi, ince ayar (fine-tuning) veya üçüncü taraflara satış amacıyla kullanılmaz (onay verilse dahi)
+- Tüm iletim TLS 1.2+ ile şifrelenir; depolanan veriler AES-256 ile korunur
+- Şifreler Argon2id algoritmasıyla hash'lenir; düz metin asla saklanmaz
 
 ---
 
-## 8. Sorumluluk Sınırı
+## 5. Abonelik ve Ödeme
 
-Miron AI'nın herhangi bir olay nedeniyle üstlenebileceği azami sorumluluk, Kullanıcı'nın son bir aylık ödediği abonelik ücretiyle sınırlıdır. Bu sınır; sözleşme ihlali, haksız fiil, ihmal ve diğer tüm hukuki teorilere uygulanır.
+Ödeme işlemleri PCI DSS sertifikalı **Stripe** altyapısı üzerinden gerçekleştirilir. Kart bilgileri Miron AI sistemlerinde saklanmaz.
 
----
+**30 Gün Tam İade Güvencesi:** İlk ödeme tarihinden itibaren 30 takvim günü içinde **mironintelligence@gmail.com** adresine yazılı başvuru yapılması halinde, ilk dönem abonelik ücreti tam olarak iade edilir. Bu hak; hesap başına yalnızca bir kez ve yalnızca ilk ödeme için geçerlidir.
 
-## 9. Uygulanacak Hukuk
-
-Bu Sözleşme Türk hukukuna tabidir. Uyuşmazlıklarda **İstanbul** Mahkemeleri ve İcra Daireleri münhasıran yetkilidir.
+Sonraki dönemlerde iade yapılmaz. Abonelik iptal edilebilir; cari dönem sonunda sona erer.
 
 ---
 
-## 10. İletişim
+## 6. Kullanıcı Yükümlülükleri
+
+Kullanıcı şunları kabul eder:
+
+- Platform çıktılarını mahkemeye veya müvekkile sunmadan önce **bağımsız mesleki değerlendirmeden** geçirmek
+- Hesabını yalnızca kendisi kullanmak ve yetkisiz erişime karşı korumak
+- Yüklediği içeriklerin KVKK dahil tüm ilgili mevzuata uygunluğundan sorumlu olduğunu kabul etmek
+- Müvekkil verilerini platforma aktarmak için gerekli hukuki dayanağa sahip olduğunu beyan etmek
+- Baro ve meslek kurallarına uyumu tamamen kendi sorumluluğunda saymak
+
+---
+
+## 7. Yasaklı Kullanımlar
+
+Aşağıdakiler açıkça yasaktır; ihlal halinde hesap derhal kapatılır ve yasal yollara başvurulabilir:
+
+- Sahte belge, dilekçe veya hukuki içerik üretmek ya da bu amaçla kullanmak
+- Yanıltıcı, hukuka aykırı veya başkasına zarar verecek içerik üretmek
+- Otomatik araçlar (bot, scraper vb.) veya toplu API çağrılarıyla sistem kapasitesini aşırmak
+- Platformu tersine mühendislik, kaynak kod analizi veya kopyalama amacıyla kullanmak
+- Hesabı başkasına devretmek veya birden fazla kişiyle paylaşmak
+- Platformu veya içeriğini ticari amaçla yeniden dağıtmak ya da alt lisanslamak
+
+---
+
+## 8. Fikri Mülkiyet
+
+Platform yazılımı, tasarımı, veritabanı yapısı ve tüm özgün içerik Miron GROUP LLC'ye aittir. Kullanıcı; yüklediği belgelerin, davalarının ve hukuki içeriklerinin tek sahibi ve sorumlusudur — Miron AI bu içerikler üzerinde hiçbir mülkiyet hakkı iddia etmez.
+
+---
+
+## 9. Sorumluluk Sınırı
+
+Miron AI'nın herhangi bir olay nedeniyle üstlenebileceği azami sorumluluk, Kullanıcı'nın son bir (1) aylık ödediği abonelik ücretiyle sınırlıdır. Dolaylı, arızi, özel veya cezai zararlar için sorumluluk kabul edilmez.
+
+---
+
+## 10. Fesih
+
+Şirket; bu Şartlar'ın ihlali, dolandırıcılık şüphesi veya platformun kötüye kullanımı halinde önceden bildirim yapmaksızın hesabı askıya alabilir veya kapatabilir. Kullanıcı dilediği zaman hesabını silme talebinde bulunabilir; talepler **mironintelligence@gmail.com** adresine iletilir.
+
+---
+
+## 11. Değişiklikler
+
+Şartlar değiştirildiğinde Kullanıcılar e-posta veya platform bildirimi ile en az 15 gün öncesinden bilgilendirilir. Değişiklik tarihinden sonra platformu kullanmaya devam etmek güncel Şartlar'ı kabul anlamına gelir.
+
+---
+
+## 12. Uygulanacak Hukuk
+
+Bu Şartlar Türk hukukuna tabidir. Uyuşmazlıklarda **İstanbul** Mahkemeleri ve İcra Daireleri münhasıran yetkilidir.
+
+---
+
+## 13. İletişim
 
 | Konu | Adres |
 |---|---|
-| Genel destek ve iade | mironintelligence@gmail.com |
-| KVKK / Kişisel veri başvuruları | kvkk@mironintelligence.com |
+| Genel destek ve iade talepleri | mironintelligence@gmail.com |
+| KVKK / kişisel veri başvuruları | kvkk@mironintelligence.com |
 
-*Son güncelleme: Haziran 2026 — Miron GROUP LLC*
+*Miron GROUP LLC — Haziran 2026*
