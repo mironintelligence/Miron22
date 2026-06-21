@@ -484,93 +484,147 @@ export default function Kaydol() {
       <AnimatePresence mode="wait">
         {phase === "questions" && (
           <motion.div key="questions" className="w-full max-w-lg" {...panelMotion}>
+            {/* Subtle background glow that shifts with each question */}
+            <motion.div
+              animate={{ opacity: [0.04, 0.07, 0.04] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              style={{
+                position: 'absolute',
+                top: -80,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 400,
+                height: 400,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, #ebac00 0%, transparent 70%)',
+                pointerEvents: 'none',
+                zIndex: 0,
+              }}
+            />
             <div style={{
               position: 'relative',
               background: '#0a0a0a',
               border: '0.5px solid #1e1e1e',
               borderRadius: 14,
-              padding: '32px 36px 28px',
+              padding: '36px 36px 28px',
               overflow: 'hidden',
+              zIndex: 1,
             }}>
               <div className="dash-hero-line" />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <span style={{
-                  fontSize: 9,
-                  textTransform: 'uppercase',
-                  letterSpacing: '2px',
-                  color: '#ebac00',
-                  fontFamily: '"IBM Plex Sans", sans-serif',
-                  fontWeight: 600,
-                }}>
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
+                <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '2px', color: '#ebac00', fontFamily: '"IBM Plex Sans", sans-serif', fontWeight: 600 }}>
                   Uygunluk testi
                 </span>
-                <span style={{ fontSize: 10, color: '#333', fontFamily: '"IBM Plex Sans", sans-serif', letterSpacing: '0.5px' }}>
+                <motion.span
+                  key={qIndex}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ fontSize: 10, color: '#333', fontFamily: '"IBM Plex Sans", sans-serif', letterSpacing: '1px', fontVariantNumeric: 'tabular-nums' }}
+                >
                   {qIndex + 1} / {QUESTIONS.length}
-                </span>
+                </motion.span>
               </div>
 
-              <div style={{ height: '0.5px', background: '#1e1e1e', marginBottom: 28, overflow: 'hidden', position: 'relative' }}>
+              {/* Progress dots */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 32 }}>
+                {QUESTIONS.map((_, i) => (
+                  <motion.div
+                    key={i}
+                    animate={{
+                      width: i === qIndex ? 22 : 5,
+                      background: i < qIndex ? '#2a2a2a' : i === qIndex ? '#ebac00' : '#181818',
+                    }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ height: 3, borderRadius: 99, flexShrink: 0 }}
+                  />
+                ))}
+              </div>
+
+              {/* Question content — animates per qIndex */}
+              <AnimatePresence mode="wait" initial={false}>
                 <motion.div
-                  style={{ position: 'absolute', top: 0, left: 0, height: '100%', background: 'linear-gradient(90deg, #ebac00, #b88700)' }}
-                  initial={false}
-                  animate={{ width: `${((qIndex + 1) / QUESTIONS.length) * 100}%` }}
-                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                />
-              </div>
-
-              <h2 style={{ fontFamily: '"Abril Fatface", serif', fontSize: 26, lineHeight: 1.1, color: '#fff', fontWeight: 400, marginBottom: 10, letterSpacing: '-0.3px' }}>
-                {QUESTIONS[qIndex].title}
-              </h2>
-              <p style={{ fontSize: 13, color: '#888', lineHeight: 1.75, marginBottom: 32, fontFamily: '"IBM Plex Sans", sans-serif' }}>
-                {QUESTIONS[qIndex].text}
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => answerQuestion(false)}
-                  style={{
-                    padding: '11px 18px',
-                    borderRadius: 8,
-                    background: 'transparent',
-                    border: '0.5px solid #1e1e1e',
-                    color: '#fff',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    fontFamily: '"IBM Plex Sans", sans-serif',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s ease, background 0.15s ease',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#2e2e2e'; e.currentTarget.style.background = '#111'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e1e1e'; e.currentTarget.style.background = 'transparent'; }}
+                  key={qIndex}
+                  initial={{ opacity: 0, x: 24 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -24 }}
+                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  Hayır
-                </button>
-                <button
-                  type="button"
-                  onClick={() => answerQuestion(true)}
-                  style={{
-                    padding: '11px 18px',
-                    borderRadius: 8,
-                    background: 'linear-gradient(90deg, #ebac00, #b88700)',
-                    border: 'none',
-                    color: '#000',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    fontFamily: '"IBM Plex Sans", sans-serif',
-                    cursor: 'pointer',
-                    transition: 'opacity 0.15s ease',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.opacity = '0.88'; }}
-                  onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
-                >
-                  Evet
-                </button>
-              </div>
+                  <motion.h2
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ fontFamily: '"Abril Fatface", serif', fontSize: 28, lineHeight: 1.1, color: '#fff', fontWeight: 400, marginBottom: 12, letterSpacing: '-0.3px' }}
+                  >
+                    {QUESTIONS[qIndex].title}
+                  </motion.h2>
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ fontSize: 14, color: '#777', lineHeight: 1.75, marginBottom: 36, fontFamily: '"IBM Plex Sans", sans-serif' }}
+                  >
+                    {QUESTIONS[qIndex].text}
+                  </motion.p>
 
-              <p style={{ fontSize: 10, color: '#2a2a2a', marginTop: 20, textAlign: 'center', fontFamily: '"IBM Plex Sans", sans-serif', lineHeight: 1.6 }}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}
+                  >
+                    <motion.button
+                      type="button"
+                      onClick={() => answerQuestion(false)}
+                      whileHover={{ scale: 1.025, borderColor: '#2e2e2e', background: '#111' }}
+                      whileTap={{ scale: 0.96 }}
+                      style={{
+                        padding: '13px 18px',
+                        borderRadius: 8,
+                        background: 'transparent',
+                        border: '0.5px solid #1e1e1e',
+                        color: '#fff',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        fontFamily: '"IBM Plex Sans", sans-serif',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Hayır
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      onClick={() => answerQuestion(true)}
+                      whileHover={{ scale: 1.025, opacity: 0.9 }}
+                      whileTap={{ scale: 0.96 }}
+                      style={{
+                        padding: '13px 18px',
+                        borderRadius: 8,
+                        background: 'linear-gradient(90deg, #ebac00, #b88700)',
+                        border: 'none',
+                        color: '#000',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        fontFamily: '"IBM Plex Sans", sans-serif',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Evet
+                    </motion.button>
+                  </motion.div>
+                </motion.div>
+              </AnimatePresence>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.25, duration: 0.4 }}
+                style={{ fontSize: 10, color: '#222', marginTop: 22, textAlign: 'center', fontFamily: '"IBM Plex Sans", sans-serif', lineHeight: 1.6 }}
+              >
                 "Hayır" derseniz Miron AI şu an için profilinize uygun görünmeyebilir.
-              </p>
+              </motion.p>
             </div>
           </motion.div>
         )}
