@@ -15,7 +15,7 @@ from stores.pg_users_store import (
     create_user, find_user_by_email, find_user_by_id, list_users,
     delete_user, update_user_role, update_user_password, update_user_active,
     lock_user, unlock_user, get_audit_logs,
-    log_audit, update_user_profile, get_user_mfa, set_user_mfa, disable_user_mfa
+    log_audit, update_user_profile, update_user_fields_by_id, get_user_mfa, set_user_mfa, disable_user_mfa
 )
 from stores.demo_users_store import read_demo_users, write_demo_users, purge_expired_demo_users # Keep for demo requests mostly
 from stores.demo_requests_store import list_demo_requests as store_list_demo_requests, approve_demo_request as store_approve_demo_request, reject_demo_request as store_reject_demo_request
@@ -673,7 +673,8 @@ def admin_create_user(body: CreateUserIn, admin: Dict[str, Any] = Depends(requir
     }
     if duration_key in _SUBSCRIPTION_DURATIONS:
         user_data["subscription_expires_at"] = sub_expires_at
-        user_data["subscription_granted_by"] = str(admin.get("admin_id") or admin.get("id") or "")
+        _admin_uuid = str(admin.get("admin_id") or admin.get("id") or "").strip()
+        user_data["subscription_granted_by"] = _admin_uuid or None  # boş string UUID kabul etmez
         user_data["subscription_granted_by_name"] = admin_name
         if duration_key == "unlimited":
             user_data["subscription_plan"] = "unlimited"
@@ -745,10 +746,9 @@ def admin_grant_subscription(email: str, body: GrantSubscriptionIn, admin: Dict[
         str(admin_row.get("last_name") or admin_row.get("lastName") or ""),
     ])).strip() or str(admin_row.get("email") or "Admin")
 
-    from stores.pg_users_store import update_user_profile
-    update_user_profile(str(user["id"]), {
+    update_user_fields_by_id(str(user["id"]), {
         "subscription_expires_at": sub_expires_at,
-        "subscription_granted_by": str(admin.get("admin_id") or admin.get("id") or ""),
+        "subscription_granted_by": str(admin.get("admin_id") or admin.get("id") or "") or None,
         "subscription_granted_by_name": admin_name,
         "subscription_plan": "unlimited" if duration_key == "unlimited" else "gifted",
         "subscription_status": "active",
