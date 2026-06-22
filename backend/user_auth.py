@@ -11,6 +11,7 @@ from stores.pg_users_store import (
     find_user_by_id,
     get_user_token_version,
     is_account_locked,
+    is_subscription_expired,
     purge_if_demo_expired,
 )
 from supabase_jwt import decode_supabase_access_token
@@ -66,6 +67,8 @@ def authenticate_bearer(authorization: Optional[str]) -> Dict[str, Any]:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="DEMO_EXPIRED")
         if u.get("is_active") is False:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hesap askıya alındı.")
+        if is_subscription_expired(u):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="SUBSCRIPTION_EXPIRED")
         current_tv = get_user_token_version(str(uid))
         if int(tv) != int(current_tv):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Oturum geçersiz.")
@@ -90,6 +93,8 @@ def authenticate_bearer(authorization: Optional[str]) -> Dict[str, Any]:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token e-posta eşleşmiyor.")
     if u.get("is_active") is False:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hesap askıya alındı.")
+    if is_subscription_expired(u):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="SUBSCRIPTION_EXPIRED")
     if row_email and is_account_locked(row_email):
         raise HTTPException(status_code=423, detail="Hesap geçici olarak kilitli.")
     resolved_id = str(u.get("id") or uid)

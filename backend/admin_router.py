@@ -82,6 +82,17 @@ class AdminLoginIn(BaseModel):
     password: str = Field(min_length=4, max_length=128)
     otp: Optional[str] = Field(default=None, max_length=12)
 
+_SUBSCRIPTION_DURATIONS = {
+    "15d":        timedelta(days=15),
+    "1m":         timedelta(days=30),
+    "2m":         timedelta(days=60),
+    "3m":         timedelta(days=90),
+    "6m":         timedelta(days=180),
+    "1y":         timedelta(days=365),
+    "2y":         timedelta(days=730),
+    "unlimited":  None,
+}
+
 class CreateUserIn(BaseModel):
     firstName: str = Field(default="", max_length=64)
     lastName: str = Field(default="", max_length=64)
@@ -90,6 +101,10 @@ class CreateUserIn(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     role: str = Field(default="user", pattern="^(user|admin|demo)$")
     is_active: bool = True
+    subscription_duration: Optional[str] = Field(
+        default=None,
+        description="15d | 1m | 2m | 3m | 6m | 1y | 2y | unlimited"
+    )
 
 class UpdateRoleIn(BaseModel):
     role: str = Field(..., pattern="^(user|admin|demo)$")
@@ -599,19 +614,45 @@ def admin_create_user(body: CreateUserIn, admin: Dict[str, Any] = Depends(requir
     if role not in {"user", "admin", "demo"}:
         role = "user"
 
+    # Abonelik süresi hesapla
+    sub_expires_at = None
+    duration_key = (body.subscription_duration or "").strip().lower()
+    if duration_key and duration_key in _SUBSCRIPTION_DURATIONS:
+        delta = _SUBSCRIPTION_DURATIONS[duration_key]
+        sub_expires_at = (_now() + delta) if delta is not None else None  # None = sınırsız
+
+    admin_row = find_user_by_id(str(admin.get("admin_id") or "")) or {}
+    admin_name = " ".join(filter(None, [
+        str(admin_row.get("first_name") or admin_row.get("firstName") or ""),
+        str(admin_row.get("last_name") or admin_row.get("lastName") or ""),
+    ])).strip() or str(admin_row.get("email") or "Admin")
+
+    user_data: Dict[str, Any] = {
+        "email": body.email,
+        "firstName": fn or None,
+        "lastName": ln or None,
+        "hashed_password": hash_password(body.password),
+        "role": role,
+        "is_active": bool(body.is_active),
+    }
+    if duration_key in _SUBSCRIPTION_DURATIONS:
+        user_data["subscription_expires_at"] = sub_expires_at
+        user_data["subscription_granted_by"] = str(admin.get("admin_id") or admin.get("id") or "")
+        user_data["subscription_granted_by_name"] = admin_name
+        if duration_key == "unlimited":
+            user_data["subscription_plan"] = "unlimited"
+        else:
+            user_data["subscription_plan"] = "gifted"
+        user_data["subscription_status"] = "active"
+
     try:
-        uid = create_user({
-            "email": body.email,
-            "firstName": fn or None,
-            "lastName": ln or None,
-            "hashed_password": hash_password(body.password),
-            "role": role,
-            "is_active": bool(body.is_active),
-        })
+        uid = create_user(user_data)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Kullanıcı oluşturulamadı: {e}") from e
 
-    log_audit(str(admin.get("admin_id")), "USER_CREATE", str(body.email), {"new_user_id": uid, "role": role})
+    log_audit(str(admin.get("admin_id")), "USER_CREATE", str(body.email), {
+        "new_user_id": uid, "role": role, "subscription_duration": duration_key or None
+    })
     return {"ok": True, "id": uid}
 
 @router.delete("/users/{email}")
@@ -645,6 +686,48 @@ def admin_toggle_suspend(email: str, active: bool = Body(..., embed=True), admin
 
     log_audit(str(admin.get("admin_id")), "USER_SUSPEND_TOGGLE", email, {"is_active": active})
     return {"ok": True, "is_active": active}
+
+class GrantSubscriptionIn(BaseModel):
+    subscription_duration: str = Field(..., description="15d | 1m | 2m | 3m | 6m | 1y | 2y | unlimited")
+
+@router.post("/users/{email}/grant-subscription")
+def admin_grant_subscription(email: str, body: GrantSubscriptionIn, admin: Dict[str, Any] = Depends(require_admin)):
+    user = find_user_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User bulunamadı.")
+
+    duration_key = body.subscription_duration.strip().lower()
+    if duration_key not in _SUBSCRIPTION_DURATIONS:
+        raise HTTPException(status_code=400, detail=f"Geçersiz süre: {duration_key}")
+
+    delta = _SUBSCRIPTION_DURATIONS[duration_key]
+    sub_expires_at = (_now() + delta) if delta is not None else None
+
+    admin_row = find_user_by_id(str(admin.get("admin_id") or "")) or {}
+    admin_name = " ".join(filter(None, [
+        str(admin_row.get("first_name") or admin_row.get("firstName") or ""),
+        str(admin_row.get("last_name") or admin_row.get("lastName") or ""),
+    ])).strip() or str(admin_row.get("email") or "Admin")
+
+    from stores.pg_users_store import update_user_profile
+    update_user_profile(str(user["id"]), {
+        "subscription_expires_at": sub_expires_at,
+        "subscription_granted_by": str(admin.get("admin_id") or admin.get("id") or ""),
+        "subscription_granted_by_name": admin_name,
+        "subscription_plan": "unlimited" if duration_key == "unlimited" else "gifted",
+        "subscription_status": "active",
+    })
+
+    log_audit(str(admin.get("admin_id")), "SUBSCRIPTION_GRANT", email, {
+        "duration": duration_key,
+        "expires_at": sub_expires_at.isoformat() if sub_expires_at else "unlimited",
+    })
+    return {
+        "ok": True,
+        "subscription_expires_at": sub_expires_at.isoformat() if sub_expires_at else None,
+        "subscription_granted_by_name": admin_name,
+        "duration": duration_key,
+    }
 
 @router.post("/users/{user_id}/lock")
 def admin_lock_user(user_id: str, admin: Dict[str, Any] = Depends(require_admin)):

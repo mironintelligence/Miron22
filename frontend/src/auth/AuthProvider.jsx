@@ -23,6 +23,8 @@ function normalizeUser(meta) {
     role: m.role || "user",
     subscriptionPlan: m.subscription_plan || m.subscriptionPlan || null,
     subscriptionStatus: m.subscription_status || m.subscriptionStatus || null,
+    subscriptionExpiresAt: m.subscription_expires_at || m.subscriptionExpiresAt || null,
+    subscriptionGrantedByName: m.subscription_granted_by_name || m.subscriptionGrantedByName || null,
     demoExpiresAt: m.demo_expires_at || m.demoExpiresAt || null,
     paymentCardOnFile: !!m.payment_card_on_file,
     trialEndsAt: m.trial_ends_at || m.trialEndsAt || null,
@@ -129,12 +131,18 @@ export function AuthProvider({ children }) {
   // token_version bumped, refresh revoked). Without this, pages in authed
   // state keep hitting the API and silently failing.
   useEffect(() => {
-    const onExpired = () => {
+    const onExpired = (e) => {
       setAccessToken(null);
       setUser(null);
       setStatus((s) => (s === "authed" ? "guest" : s));
       setLastLoginMeta(null);
-      emitToast("Oturumunuzun süresi dolmuş. Lütfen tekrar giriş yapın.", "error");
+      const reason = e?.detail?.reason;
+      emitToast(
+        reason === "subscription_expired"
+          ? "Abonelik süreniz dolmuş. Lütfen yönetici ile iletişime geçin."
+          : "Oturumunuzun süresi dolmuş. Lütfen tekrar giriş yapın.",
+        "error"
+      );
     };
     window.addEventListener("miron:session-expired", onExpired);
     return () => window.removeEventListener("miron:session-expired", onExpired);

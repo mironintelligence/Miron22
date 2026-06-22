@@ -95,7 +95,7 @@ export default function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [userFilters, setUserFilters] = useState({ search: "", role: "", active: "" });
   const [selectedEmails, setSelectedEmails] = useState({});
-  const [newUser, setNewUser] = useState({ username: "", email: "", password: "", role: "user", is_active: true });
+  const [newUser, setNewUser] = useState({ username: "", email: "", password: "", role: "user", is_active: true, subscription_duration: "" });
   const [bulk, setBulk] = useState({ action: "set_role", role: "user", password: "" });
   const [importText, setImportText] = useState("");
   const [auditLogs, setAuditLogs] = useState([]);
@@ -904,6 +904,34 @@ export default function AdminPanel() {
     }
   };
 
+  const [grantSubModal, setGrantSubModal] = useState(null); // { email }
+  const [grantSubDuration, setGrantSubDuration] = useState("");
+
+  const openGrantSub = (email) => {
+    setGrantSubModal({ email });
+    setGrantSubDuration("");
+  };
+
+  const doGrantSub = async () => {
+    if (!grantSubDuration) return showMsg("Süre seçin", "error");
+    const { email } = grantSubModal;
+    const res = await fetchWithAuth(`/api/admin/users/${encodeURIComponent(email)}/grant-subscription`, {
+      method: "POST",
+      body: JSON.stringify({ subscription_duration: grantSubDuration }),
+    });
+    if (isAdminRequestFailed(res)) {
+      showMsg(adminErrorMessage(res), "error");
+      return;
+    }
+    if (res?.ok) {
+      showMsg(`Abonelik verildi: ${email}`, "success");
+      setGrantSubModal(null);
+      fetchUsers();
+    } else {
+      showMsg("Abonelik verilemedi", "error");
+    }
+  };
+
   const createUser = async () => {
     if (!newUser.email || !newUser.password) return showMsg("E-posta ve şifre gerekli", "error");
     if (String(newUser.password).length < 8) {
@@ -916,7 +944,7 @@ export default function AdminPanel() {
     }
     if (res?.ok) {
       showMsg(" Kullanıcı oluşturuldu", "success");
-      setNewUser({ username: "", email: "", password: "", role: "user", is_active: true });
+      setNewUser({ username: "", email: "", password: "", role: "user", is_active: true, subscription_duration: "" });
       fetchUsers();
     } else {
       showMsg(" Kullanıcı oluşturulamadı", "error");
@@ -1452,6 +1480,21 @@ export default function AdminPanel() {
                       <option value="false">Pasif</option>
                     </select>
                   </div>
+                  <select
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+                    value={newUser.subscription_duration}
+                    onChange={(e) => setNewUser({ ...newUser, subscription_duration: e.target.value })}
+                  >
+                    <option value="">Abonelik Süresi (opsiyonel)</option>
+                    <option value="15d">15 Gün</option>
+                    <option value="1m">1 Ay</option>
+                    <option value="2m">2 Ay</option>
+                    <option value="3m">3 Ay</option>
+                    <option value="6m">6 Ay</option>
+                    <option value="1y">1 Yıl</option>
+                    <option value="2y">2 Yıl</option>
+                    <option value="unlimited">Sınırsız</option>
+                  </select>
                   <button onClick={createUser} className="w-full bg-amber-600 text-black font-bold py-3 rounded hover:bg-amber-500 transition">
                     Oluştur
                   </button>
@@ -1632,6 +1675,12 @@ export default function AdminPanel() {
                             }`}
                           >
                             {isLockedUntil(u.locked_until) ? "Kilidi Aç" : "Kilitle"}
+                          </button>
+                          <button
+                            onClick={() => openGrantSub(u.email)}
+                            className="text-xs border border-amber-900/40 px-2 py-1 rounded hover:bg-amber-900/20 text-amber-400"
+                          >
+                            Abonelik
                           </button>
                           <button
                             onClick={() => deleteUserByEmail(u.email)}
@@ -2137,6 +2186,38 @@ export default function AdminPanel() {
         )}
 
       </div>
+
+      {grantSubModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-80 space-y-4">
+            <div className="text-amber-400 font-bold">Abonelik Ver</div>
+            <div className="text-sm text-zinc-400 break-all">{grantSubModal.email}</div>
+            <select
+              className="w-full bg-black border border-zinc-700 p-3 text-white rounded outline-none focus:border-amber-500"
+              value={grantSubDuration}
+              onChange={(e) => setGrantSubDuration(e.target.value)}
+            >
+              <option value="">Süre seçin</option>
+              <option value="15d">15 Gün</option>
+              <option value="1m">1 Ay</option>
+              <option value="2m">2 Ay</option>
+              <option value="3m">3 Ay</option>
+              <option value="6m">6 Ay</option>
+              <option value="1y">1 Yıl</option>
+              <option value="2y">2 Yıl</option>
+              <option value="unlimited">Sınırsız</option>
+            </select>
+            <div className="flex gap-3">
+              <button onClick={doGrantSub} className="flex-1 bg-amber-600 text-black font-bold py-2 rounded hover:bg-amber-500">
+                Ver
+              </button>
+              <button onClick={() => setGrantSubModal(null)} className="flex-1 border border-zinc-700 text-white py-2 rounded hover:bg-zinc-800">
+                İptal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmSheet
         open={confirmUi.open}

@@ -60,6 +60,28 @@ export default function Settings() {
         <div className="mt-2 text-sm text-muted">{connection}</div>
       </div>
 
+      {(user?.subscriptionExpiresAt || user?.subscriptionGrantedByName || user?.subscriptionPlan === "unlimited" || user?.subscriptionPlan === "gifted") && (
+        <div className="glass p-6 rounded-2xl mb-6 border border-amber-500/20">
+          <h3 className="font-semibold mb-3 text-amber-400">Abonelik</h3>
+          {user?.subscriptionPlan === "unlimited" ? (
+            <div className="text-sm text-white font-semibold mb-2">Sınırsız Erişim</div>
+          ) : user?.subscriptionExpiresAt ? (
+            <div className="text-sm mb-2">
+              <span className="text-subtle">Bitiş tarihi: </span>
+              <span className="text-white font-semibold">
+                {new Intl.DateTimeFormat("tr-TR", { year: "numeric", month: "long", day: "2-digit" }).format(new Date(user.subscriptionExpiresAt))}
+              </span>
+            </div>
+          ) : null}
+          {user?.subscriptionGrantedByName && (
+            <div className="text-sm">
+              <span className="text-subtle">Veren: </span>
+              <span className="text-white">{user.subscriptionGrantedByName}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="glass p-6 rounded-2xl border border-white/10">
         <h3 className="font-semibold mb-2">Oturumu kapat</h3>
         <p className="text-xs text-subtle mb-4">

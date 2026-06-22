@@ -133,6 +133,9 @@ def create_user(user: Dict[str, Any]) -> str:
         "phone": "phone",
         "city": "city",
         "law_firm": "law_firm",
+        "subscription_expires_at": "subscription_expires_at",
+        "subscription_granted_by": "subscription_granted_by",
+        "subscription_granted_by_name": "subscription_granted_by_name",
     }
 
     with get_db_cursor() as cur:
@@ -215,6 +218,23 @@ def purge_if_demo_expired(user: Optional[Dict[str, Any]]) -> bool:
     if not email:
         return False
     return delete_user(email)
+
+
+def is_subscription_expired(user: Optional[Dict[str, Any]]) -> bool:
+    """Returns True when a gifted/admin subscription has passed its expiry date.
+    Admin and demo roles are never blocked here; unlimited (None expiry) is never expired."""
+    if not user:
+        return False
+    role = str(user.get("role") or "")
+    if role in ("admin", "demo"):
+        return False
+    plan = str(user.get("subscription_plan") or "")
+    if plan not in ("gifted", "unlimited"):
+        return False
+    expires_at = _as_dt(user.get("subscription_expires_at"))
+    if expires_at is None:
+        return False  # unlimited / no expiry set
+    return expires_at <= _now_utc()
 
 
 def update_user_password(email: str, hashed_password: str) -> bool:
@@ -552,6 +572,9 @@ _ALLOWED_USER_UPDATE_COLUMNS = {
     "used_discount_code",
     "subscription_plan",
     "subscription_status",
+    "subscription_expires_at",
+    "subscription_granted_by",
+    "subscription_granted_by_name",
     "last_login_at",
     "last_login_ip",
     "refresh_token_hash",

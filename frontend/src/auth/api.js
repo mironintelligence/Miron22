@@ -413,6 +413,9 @@ export async function authFetch(path, options = {}) {
               })
             );
           }
+          if ((t?.detail === "SUBSCRIPTION_EXPIRED" || t?.code === "SUBSCRIPTION_EXPIRED")) {
+            window.dispatchEvent(new CustomEvent("miron:session-expired", { detail: { reason: "subscription_expired" } }));
+          }
         }
       } catch {
         /* ignore */
