@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { emitToast } from "../utils/toastBus";
 import { passwordMeetsPolicy } from "../utils/passwordPolicy";
+import { getApiBase } from "../lib/apiBase.js";
 
 /**
  * Register.jsx — Kullanım Şartları + Gizlilik tek onay; sunucu `accepted_terms_and_privacy` doğrular.
@@ -50,7 +51,7 @@ export default function Register() {
     async function fetchPrice() {
       try {
         const count = mode === "single" ? 1 : personCount;
-        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+        const base = getApiBase();
         const code = (discountCode || "").trim();
         const payload = code ? { count, discount_code: code } : { count };
         const res = await fetch(`${base}/api/pricing/calculate`, {
@@ -469,7 +470,7 @@ export default function Register() {
               </label>
 
               {mode === "multi" && duplicatePw && (
-                <div className="p-3 rounded-xl border border-yellow-400/30 bg-yellow-500/5 text-sm text-yellow-600">
+                <div className="p-3 rounded-xl border border-[#ebac00]/30 bg-[#ebac00]/5 text-sm text-[#ebac00]">
                    Uyarı: Kayıt edilen kişiler arasında aynı şifre tespit edildi. Her kullanıcı için benzersiz bir şifre
                   belirleyin.
                 </div>
@@ -500,7 +501,7 @@ export default function Register() {
       </div>
 
       <footer className="mt-8 mb-6 text-center text-xs text-subtle">
-        © 2026 Miron Intelligence Ltd — All rights reserved
+        © 2026 Miron GROUP LLC — All rights reserved
       </footer>
     </div>
   );

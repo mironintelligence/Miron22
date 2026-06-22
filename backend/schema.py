@@ -86,7 +86,10 @@ def ensure_schema() -> None:
         "CREATE INDEX IF NOT EXISTS idx_demo_requests_email ON demo_requests(email);",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan TEXT DEFAULT 'free';",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active';",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS demo_expires_at TIMESTAMPTZ;",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS used_discount_code TEXT;",
+        "ALTER TABLE pricing_settings ADD COLUMN IF NOT EXISTS yearly_price NUMERIC(12,2) DEFAULT 85000.00;",
         "CREATE INDEX IF NOT EXISTS idx_users_subscription_plan ON users(subscription_plan);",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMPTZ;",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_granted_by UUID;",
@@ -290,6 +293,52 @@ def ensure_schema() -> None:
         """,
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS payment_card_on_file BOOLEAN DEFAULT FALSE;",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;",
+        # ------------------------------------------------------------------
+        # Yargıtay/Danıştay kararları ve QA dataset (RAG kaynak tablosu)
+        # ------------------------------------------------------------------
+        """
+        CREATE TABLE IF NOT EXISTS decisions (
+            id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            source        TEXT NOT NULL DEFAULT '',
+            court         TEXT NOT NULL DEFAULT '',
+            chamber       TEXT,
+            decision_date DATE,
+            file_no       TEXT,
+            decision_no   TEXT,
+            summary       TEXT,
+            full_text     TEXT NOT NULL,
+            referenced_laws TEXT[] DEFAULT '{}',
+            citation_count  INTEGER DEFAULT 0,
+            hash          TEXT UNIQUE NOT NULL,
+            metadata      JSONB DEFAULT '{}',
+            created_at    TIMESTAMPTZ DEFAULT NOW(),
+            updated_at    TIMESTAMPTZ DEFAULT NOW()
+        );
+        """,
+        "ALTER TABLE decisions ADD COLUMN IF NOT EXISTS chamber TEXT;",
+        "ALTER TABLE decisions ADD COLUMN IF NOT EXISTS file_no TEXT;",
+        "ALTER TABLE decisions ADD COLUMN IF NOT EXISTS decision_no TEXT;",
+        "ALTER TABLE decisions ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';",
+        "ALTER TABLE decisions ADD COLUMN IF NOT EXISTS referenced_laws TEXT[] DEFAULT '{}';",
+        "ALTER TABLE decisions ADD COLUMN IF NOT EXISTS citation_count INTEGER DEFAULT 0;",
+        "CREATE INDEX IF NOT EXISTS idx_decisions_fts ON decisions USING GIN(to_tsvector('turkish', full_text));",
+        "CREATE INDEX IF NOT EXISTS idx_decisions_court ON decisions(court);",
+        "CREATE INDEX IF NOT EXISTS idx_decisions_hash ON decisions(hash);",
+        "CREATE INDEX IF NOT EXISTS idx_decisions_date ON decisions(decision_date);",
+        # ------------------------------------------------------------------
+        # Asistan sohbet geçmişi (Supabase kalıcı depolama)
+        # ------------------------------------------------------------------
+        """
+        CREATE TABLE IF NOT EXISTS assistant_chats (
+            id          BIGINT PRIMARY KEY,
+            user_id     UUID NOT NULL,
+            name        TEXT NOT NULL DEFAULT 'Yeni sohbet',
+            messages    JSONB NOT NULL DEFAULT '[]',
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_assistant_chats_user_updated ON assistant_chats(user_id, updated_at DESC);",
     ]
 
     with get_db_cursor() as cur:

@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body, Request, Header, Ba
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from admin_auth import require_admin, issue_admin_token
+from admin_auth import require_admin, issue_admin_token, ADMIN_TOKEN_COOKIE
 from security import hash_password, verify_password, sanitize_user_for_response
 from stores.pg_users_store import (
     create_user, find_user_by_email, find_user_by_id, list_users,
@@ -305,6 +305,17 @@ def admin_panel_bootstrap(body: AdminPanelBootstrapIn, request: Request, user: D
         max_age=8 * 3600,
         path="/",
     )
+    admin_token = payload.get("token") or payload.get("access_token") or ""
+    if admin_token:
+        resp.set_cookie(
+            key=ADMIN_TOKEN_COOKIE,
+            value=admin_token,
+            httponly=True,
+            secure=secure,
+            samesite="none" if secure else "lax",
+            max_age=12 * 3600,
+            path="/",
+        )
     return resp
 
 
@@ -447,12 +458,37 @@ def admin_mfa_confirm(body: AdminMfaConfirmIn, request: Request):
 
     token = issue_admin_token(admin_id=str(user["id"]), ip=ip, ua=ua)
     log_audit(str(user["id"]), "ADMIN_MFA_ENABLED", "auth", None, ip, ua)
-    return {"ok": True, "token": token, "admin": sanitize_user_for_response(user)}
+    resp = JSONResponse({"ok": True, "token": token, "admin": sanitize_user_for_response(user)})
+    secure = request.url.scheme == "https"
+    resp.set_cookie(
+        key=ADMIN_TOKEN_COOKIE,
+        value=token,
+        httponly=True,
+        secure=secure,
+        samesite="none" if secure else "lax",
+        max_age=12 * 3600,
+        path="/",
+    )
+    return resp
 
 
 @router.post("/exchange")
 def admin_exchange(body: AdminExchangeIn, request: Request, user: Dict[str, Any] = Depends(require_admin_panel_gate)):
-    return _admin_exchange_payload(request, user, body.otp)
+    payload = _admin_exchange_payload(request, user, body.otp)
+    resp = JSONResponse(payload)
+    admin_token = payload.get("token") or payload.get("access_token") or ""
+    if admin_token:
+        secure = request.url.scheme == "https"
+        resp.set_cookie(
+            key=ADMIN_TOKEN_COOKIE,
+            value=admin_token,
+            httponly=True,
+            secure=secure,
+            samesite="none" if secure else "lax",
+            max_age=12 * 3600,
+            path="/",
+        )
+    return resp
 
 
 @router.post("/2fa/setup")
@@ -1023,12 +1059,15 @@ def admin_revoke_session(jti: str, admin: Dict[str, Any] = Depends(require_admin
 
 
 @router.post("/logout")
-def admin_logout(admin: Dict[str, Any] = Depends(require_admin)):
+def admin_logout(request: Request, admin: Dict[str, Any] = Depends(require_admin)):
     jti = str(admin.get("jti") or "").strip()
     if jti:
         revoke_admin_session(jti)
     log_audit(str(admin.get("admin_id")), "ADMIN_LOGOUT", "auth", {"jti": jti})
-    return {"ok": True}
+    resp = JSONResponse({"ok": True})
+    secure = request.url.scheme == "https"
+    resp.delete_cookie(key=ADMIN_TOKEN_COOKIE, path="/", samesite="none" if secure else "lax", secure=secure)
+    return resp
 
 @router.get("/audit-logs", dependencies=[Depends(require_admin)])
 def get_audit_logs_endpoint(user_id: Optional[str] = None, limit: int = 100):

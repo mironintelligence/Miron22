@@ -30,7 +30,7 @@ function BrandMark() {
   return (
     <span className="dash-font-display inline-flex items-baseline gap-1" style={{ fontSize: 20, lineHeight: 1, letterSpacing: "-0.01em" }}>
       <span style={{ color: "#ffffff" }}>Miron</span>
-      <span style={{ color: "#FFD700" }}>AI</span>
+      <span style={{ color: "#ebac00" }}>AI</span>
     </span>
   );
 }
@@ -257,7 +257,7 @@ export default function Navbar() {
                 className="dash-font-sans no-underline transition-colors"
                 style={{
                   fontSize: 14,
-                  color: active ? "#FFD700" : "#555",
+                  color: active ? "#ebac00" : "#555",
                   textDecoration: "none",
                   letterSpacing: "0.1px",
                 }}
@@ -288,7 +288,7 @@ export default function Navbar() {
               style={{
                 width: 20,
                 height: 20,
-                color: unreadCount > 0 ? "#FFD700" : "#555",
+                color: unreadCount > 0 ? "#ebac00" : "#555",
               }}
               strokeWidth={1.5}
             />
@@ -302,7 +302,7 @@ export default function Navbar() {
                   height: 16,
                   padding: "0 4px",
                   borderRadius: 999,
-                  background: "#FFD700",
+                  background: "#ebac00",
                   color: "#000",
                   fontSize: 9,
                   fontWeight: 700,
@@ -349,7 +349,7 @@ export default function Navbar() {
                   width: 36,
                   height: 36,
                   borderRadius: 999,
-                  background: "#FFD700",
+                  background: "#ebac00",
                   color: "#000",
                   display: "inline-flex",
                   alignItems: "center",
@@ -374,7 +374,7 @@ export default function Navbar() {
               }}
             >
               <Link
-                to="/upgrade"
+                to="/settings?tab=abonelik"
                 className="dash-font-sans block no-underline transition-colors"
                 style={{
                   padding: "8px 14px",
@@ -461,7 +461,7 @@ export default function Navbar() {
                   className="dash-font-sans no-underline"
                   style={{
                     fontSize: 14,
-                    color: active ? "#FFD700" : "#888",
+                    color: active ? "#ebac00" : "#888",
                     textDecoration: "none",
                   }}
                 >
@@ -480,7 +480,7 @@ export default function Navbar() {
               Bildirimler
             </Link>
             <Link
-              to="/upgrade"
+              to="/settings?tab=abonelik"
               onClick={() => setMenuOpen(false)}
               className="dash-font-sans no-underline"
               style={{ fontSize: 14, color: "#888", textDecoration: "none" }}

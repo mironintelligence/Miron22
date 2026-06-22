@@ -123,7 +123,7 @@ app = FastAPI(
     version="1.4.0",
     description=_OPENAPI_DESCRIPTION,
     openapi_tags=_OPENAPI_TAGS,
-    contact={"name": "Miron Intelligence", "url": "https://mironintelligence.vercel.app"},
+    contact={"name": "Miron GROUP LLC", "url": "https://mironintelligence.vercel.app"},
     license_info={"name": "Proprietary"},
     swagger_ui_parameters={"defaultModelsExpandDepth": -1, "persistAuthorization": True},
 )
@@ -292,6 +292,8 @@ from starlette.requests import Request
 # keep a narrow default allowlist.
 _origins_env = os.getenv("FRONTEND_ORIGINS")
 _allowed_origins = [
+    "https://www.mironintelligence.com",
+    "https://mironintelligence.com",
     "https://miron22.vercel.app",
     "https://mironintelligence.vercel.app",
     "https://www.mironintelligence.vercel.app",
@@ -826,9 +828,18 @@ def assistant_chat(req: ChatRequest = Body(...), _user: dict = Depends(require_l
     user_text = sanitize_text(req.message)
     context = sanitize_text(req.context or "")
 
+    _rag_ctx = ""
+    try:
+        from rag_engine import get_rag_context
+        _rag_ctx = get_rag_context(user_text[:500])
+    except Exception:
+        pass
+
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     if context:
         messages.append({"role": "system", "content": f"Dava/Dosya Bağlamı (özet):\n{context}"})
+    if _rag_ctx:
+        messages.append({"role": "system", "content": f"İlgili Hukuki Kaynaklar ve Bilgiler:\n{_rag_ctx}"})
     messages.append({"role": "user", "content": user_text})
 
     try:
@@ -868,9 +879,18 @@ def assistant_chat_stream(req: ChatRequest = Body(...), _user: dict = Depends(re
     user_text = sanitize_text(req.message)
     context = sanitize_text(req.context or "")
 
+    _rag_ctx = ""
+    try:
+        from rag_engine import get_rag_context
+        _rag_ctx = get_rag_context(user_text[:500])
+    except Exception:
+        pass
+
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     if context:
         messages.append({"role": "system", "content": f"Dava/Dosya Bağlamı (özet):\n{context}"})
+    if _rag_ctx:
+        messages.append({"role": "system", "content": f"İlgili Hukuki Kaynaklar ve Bilgiler:\n{_rag_ctx}"})
     messages.append({"role": "user", "content": user_text})
 
     def event_gen():
@@ -949,6 +969,52 @@ def assistant_chat_title(req: TitleRequest = Body(...), _user: dict = Depends(re
 
 
 # =============================
+# CHAT STORAGE ENDPOINTS
+# =============================
+
+class ChatUpsertReq(BaseModel):
+    chat_id: int
+    name: str = "Yeni sohbet"
+    messages: list = []
+
+class ChatRenameReq(BaseModel):
+    name: str
+
+try:
+    from stores.pg_chats_store import list_chats, get_chat, upsert_chat, rename_chat, delete_chat as delete_chat_db
+    _chats_store_ok = True
+except Exception:
+    _chats_store_ok = False
+
+@app.get("/api/chats")
+def api_list_chats(user: dict = Depends(get_current_user)):
+    if not _chats_store_ok:
+        return {"chats": []}
+    return {"chats": list_chats(str(user["id"]))}
+
+@app.post("/api/chats")
+def api_upsert_chat(req: ChatUpsertReq, user: dict = Depends(get_current_user)):
+    if not _chats_store_ok:
+        return {"status": "ok"}
+    upsert_chat(str(user["id"]), req.chat_id, req.name, req.messages)
+    return {"status": "ok"}
+
+@app.put("/api/chats/{chat_id}/rename")
+def api_rename_chat(chat_id: int, req: ChatRenameReq, user: dict = Depends(get_current_user)):
+    if not _chats_store_ok:
+        return {"status": "ok"}
+    rename_chat(str(user["id"]), chat_id, req.name.strip() or "Yeni sohbet")
+    return {"status": "ok"}
+
+@app.delete("/api/chats/{chat_id}")
+def api_delete_chat(chat_id: int, user: dict = Depends(get_current_user)):
+    if not _chats_store_ok:
+        return {"status": "ok"}
+    delete_chat_db(str(user["id"]), chat_id)
+    return {"status": "ok"}
+
+
+# =============================
 # ROUTER REGISTRATION
 # =============================
 _LEGAL_ACCEPTANCE_DEPS = [Depends(require_legal_acceptance)]
@@ -1016,6 +1082,11 @@ except ImportError:
     from pricing_router import router as pricing_router
 
 app.include_router(pricing_router, prefix="/api/pricing", tags=["Pricing"])
+
+# Stripe Router
+stripe_router = _safe_import("routes.stripe_router", "router")
+if stripe_router:
+    app.include_router(stripe_router)
 
 
 # Admin Router (ensure it is included)

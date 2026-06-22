@@ -8,7 +8,7 @@ export default function Intro() {
       <div className="max-w-4xl w-full glass p-10">
         <div className="flex flex-col md:flex-row gap-8 items-center">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-3 text-yellow-400">
+            <h1 className="text-3xl font-bold mb-3 text-[#ebac00]">
               Miron AI — Kişisel avukatlar için stratejik zekâ
             </h1>
             <p className="text-sm text-white/80 mb-6">
@@ -27,7 +27,8 @@ export default function Intro() {
             <div className="flex flex-wrap gap-3">
               <Link
                 to="/kaydol"
-                className="px-4 py-2 rounded bg-yellow-400 text-black hover:bg-yellow-500 transition font-semibold"
+                style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)' }}
+                className="px-4 py-2 rounded text-black hover:opacity-85 transition font-semibold"
               >
                 Hesap oluştur
               </Link>
@@ -42,12 +43,11 @@ export default function Intro() {
               <h3 className="text-lg font-semibold mb-2 text-white">Nasıl devam ederim?</h3>
               <p className="text-sm text-white/60 mb-4">
                 Birkaç soruyla uygunluk kontrolü yapılır; uygun görülen başvurularda paket ve ödeme adımları açılır.
-                Kabul edilmeyen başvurularda süreç boyunca alınan ücret iade edilir; kabul sonrası iade kuralları
-                yalnızca sözleşmede yazılı hallerde geçerlidir.
               </p>
               <Link
                 to="/kaydol"
-                className="inline-block px-5 py-2.5 rounded-lg bg-yellow-400 text-black font-semibold hover:bg-yellow-500 transition"
+                style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)' }}
+                className="inline-block px-5 py-2.5 rounded-lg text-black font-semibold hover:opacity-85 transition"
               >
                 Kayıt akışına git
               </Link>

@@ -1,14 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { getApiBase } from "../lib/apiBase.js";
+
+const API_BASE = getApiBase();
 
 export default function Feedback() {
-  const API_BASE = useMemo(() => {
-    return (
-      (import.meta?.env?.VITE_API_URL && String(import.meta.env.VITE_API_URL)) ||
-      "https://miron22.onrender.com"
-    );
-  }, []);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

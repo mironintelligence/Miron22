@@ -1,11 +1,13 @@
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
-from fastapi import Header, HTTPException, status
+from fastapi import Header, HTTPException, Request, status
 import jwt
 import json
 import uuid
 from pathlib import Path
+
+ADMIN_TOKEN_COOKIE = "miron_admin_token"
 
 # Use same SECRET_KEY as security.py (consolidated) or distinct if needed.
 # Per security requirements: "Admin endpointleri sadece admin erişebilecek."
@@ -139,12 +141,15 @@ def _extract_bearer(authorization: Optional[str]) -> Optional[str]:
         return None
     return token
 
-def require_admin(authorization: Optional[str] = Header(default=None)) -> Dict[str, Any]:
-    incoming = (_extract_bearer(authorization) or "").strip()
+def require_admin(request: Request, authorization: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+    # httpOnly cookie takes priority (XSS-safe); Authorization header is fallback
+    cookie_token = (request.cookies or {}).get(ADMIN_TOKEN_COOKIE, "").strip()
+    bearer_token = (_extract_bearer(authorization) or "").strip()
+    incoming = cookie_token or bearer_token
     if not incoming:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Admin token gerekli. Authorization: Bearer <token>",
+            detail="Admin token gerekli.",
         )
     
     try:

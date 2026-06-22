@@ -382,7 +382,7 @@ export default function Pleadings() {
         </div>
 
         <footer className="text-center text-xs text-subtle mt-12 py-6 glass border border-white/10 rounded-2xl">
-          © 2026 Miron Intelligence Ltd — Tüm hakları saklıdır.
+          © 2026 Miron GROUP LLC — Tüm hakları saklıdır.
         </footer>
       </div>
     </div>

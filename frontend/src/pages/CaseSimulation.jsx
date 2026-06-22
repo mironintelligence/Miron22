@@ -75,6 +75,7 @@ export default function CaseSimulation() {
       const resp = await authFetch("/api/risk/simulate", {
         method: "POST",
         body: payload,
+        timeoutMs: 180000,
       });
       if (!resp.ok) {
         let detail = "Simülasyon başarısız oldu.";
@@ -102,7 +103,7 @@ export default function CaseSimulation() {
       <div className="max-w-5xl mx-auto space-y-12">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent" style={{ background: 'linear-gradient(90deg, #ebac00, #b88700)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Gelişmiş Dava Simülasyonu
           </h1>
           <p className="text-lg text-white/60 max-w-2xl mx-auto">
@@ -123,7 +124,7 @@ export default function CaseSimulation() {
                   name="user_role"
                   value={formData.user_role}
                   onChange={handleChange}
-                  className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none transition"
+                  className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#ebac00] outline-none transition"
                 >
                   <option value="Davacı">Davacı (Talep Eden)</option>
                   <option value="Davalı">Davalı (Savunan)</option>
@@ -140,7 +141,7 @@ export default function CaseSimulation() {
                   name="jurisdiction"
                   value={formData.jurisdiction}
                   onChange={handleChange}
-                  className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none transition"
+                  className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#ebac00] outline-none transition"
                   placeholder="Örn: İstanbul Asliye Ticaret Mahkemesi"
                 />
               </div>
@@ -155,7 +156,7 @@ export default function CaseSimulation() {
                 value={formData.case_description}
                 onChange={handleChange}
                 rows={8}
-                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none transition resize-none"
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#ebac00] outline-none transition resize-none"
                 placeholder="Olayın detaylarını, eldeki delilleri, karşı tarafın olası iddialarını ve hukuki süreci detaylıca anlatın..."
               />
               <p className="text-xs text-white/40 mt-2 text-right">
@@ -176,11 +177,11 @@ export default function CaseSimulation() {
                   type="file"
                   accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                   onChange={onPickFile}
-                  className="text-sm text-white/80 file:mr-3 file:rounded-lg file:border-0 file:bg-yellow-500/20 file:px-3 file:py-2 file:text-yellow-200 file:font-medium"
+                  className="text-sm text-white/80 file:mr-3 file:rounded-lg file:border-0 file:bg-[#ebac00]/20 file:px-3 file:py-2 file:text-[#ebac00] file:font-medium"
                 />
                 {attachment ? (
                   <span className="text-sm text-white/70 flex items-center gap-2">
-                    <span className="text-yellow-400/90">{attachment.name}</span>
+                    <span className="text-[#ebac00]/90">{attachment.name}</span>
                     <span className="text-white/40">({(attachment.size / 1024).toFixed(0)} KB)</span>
                     <button
                       type="button"
@@ -194,25 +195,23 @@ export default function CaseSimulation() {
               </div>
             </div>
 
-            <div
-              className="rounded-2xl border-2 border-amber-400/90 bg-amber-300/35 p-4 sm:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_32px_rgba(234,179,8,0.18)]"
-              role="presentation"
-            >
+            <div className="flex justify-end pt-2">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-black text-lg tracking-wide shadow-md border border-amber-600/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-8 py-3 rounded-xl text-black font-semibold text-base tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: loading ? "#9a7200" : "linear-gradient(90deg, #ebac00, #b88700)", minWidth: 160 }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Simülasyon Çalıştırılıyor...
+                    Çalıştırılıyor...
                   </span>
                 ) : (
-                  "Çalıştır"
+                  "Simülasyonu Çalıştır"
                 )}
               </button>
             </div>
@@ -270,8 +269,8 @@ export default function CaseSimulation() {
             </div>
 
             {/* Strategic Recommendation */}
-            <div className="bg-gradient-to-br from-yellow-900/20 to-black border border-yellow-500/30 rounded-2xl p-8">
-              <h3 className="text-xl font-bold text-yellow-400 mb-4 flex items-center gap-2">
+            <div className="bg-gradient-to-br from-[#ebac00]/10 to-black border border-[#ebac00]/30 rounded-2xl p-8">
+              <h3 className="text-xl font-bold text-[#ebac00] mb-4 flex items-center gap-2">
                 <span></span> Stratejik Tavsiye
               </h3>
               <p className="text-white/90 leading-relaxed text-lg">
@@ -317,7 +316,7 @@ export default function CaseSimulation() {
                       {(result.missing_claims || []).length ? (
                         result.missing_claims.map((claim, i) => (
                           <li key={i} className="flex gap-2">
-                            <span className="text-yellow-400">•</span>
+                            <span className="text-[#ebac00]">•</span>
                             <span>{claim}</span>
                           </li>
                         ))
@@ -410,7 +409,7 @@ export default function CaseSimulation() {
                       <p className="text-sm text-white/80">{result.scenarios?.best_case}</p>
                     </div>
                     <div className="p-3 bg-white/5 border border-white/10 rounded-lg">
-                      <div className="text-xs font-bold text-yellow-400 uppercase mb-1">En Olası Sonuç</div>
+                      <div className="text-xs font-bold text-[#ebac00] uppercase mb-1">En Olası Sonuç</div>
                       <p className="text-sm text-white/80">{result.scenarios?.most_probable}</p>
                     </div>
                     <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-lg">

@@ -1,5 +1,30 @@
 import React, { useEffect, useMemo, useState } from "react";
 
+const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+
+async function startCheckout(plan) {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    window.location.href = "/kaydol";
+    return;
+  }
+  const res = await fetch(`${API_BASE}/api/stripe/create-checkout-session`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ plan }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    alert(err.detail || "Ödeme başlatılamadı. Lütfen tekrar deneyin.");
+    return;
+  }
+  const { url } = await res.json();
+  if (url) window.location.href = url;
+}
+
 function tl(n) {
   return n.toLocaleString("tr-TR") + " TL";
 }
@@ -7,12 +32,14 @@ function tl(n) {
 export default function Pricing() {
   const [people, setPeople] = useState(3);
   const [pricingData, setPricingData] = useState(null);
+  const [checkoutLoading, setCheckoutLoading] = useState("");
   const [settings, setSettings] = useState({
     base_price: 6999,
     bulk_discount_rate: 12.5,
     bulk_threshold: 3,
     legal_list_price: 24000,
     legal_sale_price: 12000,
+    yearly_price: 85000,
   });
   const [loadingPrice, setLoadingPrice] = useState(false);
 
@@ -20,7 +47,7 @@ export default function Pricing() {
     async function fetchPrice() {
       setLoadingPrice(true);
       try {
-        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+        const base = API_BASE;
         const payload = { count: people };
         const res = await fetch(`${base}/api/pricing/calculate`, {
           method: "POST",
@@ -43,7 +70,7 @@ export default function Pricing() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const base = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+        const base = API_BASE;
         const res = await fetch(`${base}/api/pricing/public-settings`);
         if (res.ok) {
           const data = await res.json();
@@ -53,6 +80,7 @@ export default function Pricing() {
             bulk_threshold: Number(data.bulk_threshold || 3),
             legal_list_price: Number(data.legal_list_price || 24000),
             legal_sale_price: Number(data.legal_sale_price || 12000),
+            yearly_price: Number(data.yearly_price || 85000),
           });
         }
       } catch {
@@ -84,24 +112,32 @@ export default function Pricing() {
             <li> Tüm çekirdek modüller</li>
             <li> E-posta destek</li>
           </ul>
-          <a href="/kaydol" className="btn-primary text-center block">
-            Kayıt ol
-          </a>
+          <button
+            disabled={checkoutLoading === "monthly"}
+            onClick={async () => { setCheckoutLoading("monthly"); await startCheckout("monthly"); setCheckoutLoading(""); }}
+            className="btn-primary text-center block w-full disabled:opacity-60"
+          >
+            {checkoutLoading === "monthly" ? "Yönlendiriliyor..." : "Satın Al"}
+          </button>
         </div>
         <div className="glass p-6 rounded-2xl border-2 border-amber-500/50 relative flex flex-col scale-[1.02] shadow-xl shadow-amber-900/20">
           <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-amber-500 text-black px-3 py-1 rounded-full">
             EN AVANTAJLI
           </span>
           <div className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2">Yıllık</div>
-          <div className="text-3xl font-black text-amber-300 mb-1">85.000 TL + KDV</div>
+          <div className="text-3xl font-black text-amber-300 mb-1">{tl(Number(settings.yearly_price))} + KDV</div>
           <div className="text-sm text-subtle mb-4">/ yıl • tek kullanıcı</div>
           <ul className="text-sm text-white/80 space-y-2 flex-1 mb-6">
             <li> Aylık plana göre önemli tasarruf</li>
             <li> Öncelikli erişim</li>
           </ul>
-          <a href="/kaydol" className="btn-primary text-center block">
-            Kayıt ol
-          </a>
+          <button
+            disabled={checkoutLoading === "yearly"}
+            onClick={async () => { setCheckoutLoading("yearly"); await startCheckout("yearly"); setCheckoutLoading(""); }}
+            className="btn-primary text-center block w-full disabled:opacity-60"
+          >
+            {checkoutLoading === "yearly" ? "Yönlendiriliyor..." : "Satın Al"}
+          </button>
         </div>
       </section>
 
@@ -230,7 +266,7 @@ export default function Pricing() {
       </div>
 
       <footer className="mt-8 mb-6 text-center text-xs text-subtle">
-        © 2026 Miron Intelligence Ltd — All rights reserved
+        © 2026 Miron GROUP LLC — All rights reserved
       </footer>
     </div>
   );

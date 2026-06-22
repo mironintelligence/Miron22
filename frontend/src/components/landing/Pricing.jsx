@@ -41,7 +41,7 @@ export function Pricing() {
           <div className="max-w-[580px] mx-auto bg-surface border border-border p-12 relative mt-4">
             <div
               className="absolute top-0 left-0 right-0 h-[1px]"
-              style={{ background: 'linear-gradient(90deg, transparent, #FFD700, transparent)' }}
+              style={{ background: 'linear-gradient(90deg, transparent, #ebac00, transparent)' }}
             />
 
             <div className="inline-block px-3 py-1 bg-gold/10 border border-gold/30 text-gold font-ui text-[10px] tracking-[0.2em] uppercase mb-6">
@@ -54,7 +54,7 @@ export function Pricing() {
               <span className="font-ui text-[18px] text-muted">₺</span>
               <span className="font-ui text-[14px] text-muted">/ ay</span>
             </div>
-            <p className="font-ui text-[11px] text-muted mb-6">KDV dahil. Tek paket, taahhütsüz.</p>
+            <p className="font-ui text-[11px] text-muted mb-6">KDV dahil değildir, alıcı ülke mevzuatına göre vergi yükümlülüğü alıcıya aittir. Tek paket, taahhütsüz.</p>
 
             <div className="p-4 border border-gold/30 bg-gold/5 mb-8">
               <p className="font-ui text-[12px] text-white leading-relaxed">

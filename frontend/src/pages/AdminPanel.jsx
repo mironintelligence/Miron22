@@ -73,7 +73,7 @@ function adminErrorMessage(x) {
 
 export default function AdminPanel() {
   const { status, user } = useAuth();
-  const [token, setToken] = useState(readAdminToken());
+  const [token, setToken] = useState("");
   const [otp, setOtp] = useState("");
   const [mfaSetup, setMfaSetup] = useState(null);
   const [authed, setAuthed] = useState(false);
@@ -126,6 +126,7 @@ export default function AdminPanel() {
     bulk_threshold: 3,
     legal_list_price: 24000,
     legal_sale_price: 12000,
+    yearly_price: 85000,
   });
   
   // Forms
@@ -148,17 +149,7 @@ export default function AdminPanel() {
     if (status !== "authed" || !isAdminUserRole(user?.role)) return;
     let cancelled = false;
     (async () => {
-      const stored = readAdminToken();
-      if (stored) {
-        const ok = await checkAuthWithToken(stored);
-        if (cancelled) return;
-        if (ok) {
-          setPanelGate({ phase: "ready", configured: true });
-          return;
-        }
-        clearAdminToken();
-        setToken("");
-      }
+      clearAdminToken();
       try {
         const res = await authFetch("/api/admin/panel-unlock/status", { method: "GET" });
         const data = await res.json().catch(() => ({}));
@@ -232,7 +223,6 @@ export default function AdminPanel() {
         setPanelPassword("");
         setOtp("");
         setToken(adminJwt);
-        persistAdminToken(adminJwt);
         markAdminPanelSession(true);
         setMfaSetup(null);
         setAuthed(true);
@@ -256,11 +246,9 @@ export default function AdminPanel() {
   };
 
   const bootstrap = async () => {
-    const t = token || readAdminToken();
-    if (t) {
-      const ok = await checkAuthWithToken(t);
+    if (token) {
+      const ok = await checkAuthWithToken(token);
       if (ok) return;
-      clearAdminToken();
       setToken("");
     }
     await exchangeAdminToken("");
@@ -276,7 +264,6 @@ export default function AdminPanel() {
       if (res.ok) {
         setAuthed(true);
         setToken(t);
-        persistAdminToken(t);
         markAdminPanelSession(true);
         refreshAll();
         return true;
@@ -339,20 +326,13 @@ export default function AdminPanel() {
               .find((c) => c.startsWith("csrf_token="))
           : null;
       const csrfToken = csrf ? decodeURIComponent(csrf.split("=", 2)[1] || "") : "";
-      const activeToken = (token && String(token).trim()) || readAdminToken();
-      if (!activeToken) {
-        return {
-          _adminRequestFailed: true,
-          _httpStatus: 0,
-          detail: "Admin oturumu yok; panel şifresini giriniz.",
-        };
-      }
+      const activeToken = (token && String(token).trim()) || "";
       const res = await fetch(`${API_BASE}${url}`, {
         ...options,
         credentials: "include",
         headers: {
           ...options.headers,
-          Authorization: `Bearer ${activeToken}`,
+          ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
           "Content-Type": "application/json",
           ...(unsafe && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
         },
@@ -514,6 +494,7 @@ export default function AdminPanel() {
       bulk_threshold: Number(data?.bulk_threshold ?? 3),
       legal_list_price: Number(data?.legal_list_price ?? 24000),
       legal_sale_price: Number(data?.legal_sale_price ?? 12000),
+      yearly_price: Number(data?.yearly_price ?? 85000),
     });
   };
 
@@ -658,7 +639,6 @@ export default function AdminPanel() {
             : "";
       if (res.ok && exJwt.length > 20) {
         setToken(exJwt);
-        persistAdminToken(exJwt);
         markAdminPanelSession(true);
         setAuthed(true);
         setMfaSetup(null);
@@ -750,6 +730,7 @@ export default function AdminPanel() {
       bulk_threshold: Number(pricingDraft?.bulk_threshold),
       legal_list_price: Number(pricingDraft?.legal_list_price),
       legal_sale_price: Number(pricingDraft?.legal_sale_price),
+      yearly_price: Number(pricingDraft?.yearly_price),
     };
 
     if (
@@ -757,7 +738,8 @@ export default function AdminPanel() {
       !Number.isFinite(payload.discount_rate) ||
       !Number.isFinite(payload.bulk_threshold) ||
       !Number.isFinite(payload.legal_list_price) ||
-      !Number.isFinite(payload.legal_sale_price)
+      !Number.isFinite(payload.legal_sale_price) ||
+      !Number.isFinite(payload.yearly_price)
     ) {
       showMsg("Fiyat/indirim/limit sayısal olmalı", "error");
       return;
@@ -778,6 +760,7 @@ export default function AdminPanel() {
         bulk_threshold: Number(next?.bulk_threshold ?? payload.bulk_threshold),
         legal_list_price: Number(next?.legal_list_price ?? payload.legal_list_price),
         legal_sale_price: Number(next?.legal_sale_price ?? payload.legal_sale_price),
+        yearly_price: Number(next?.yearly_price ?? payload.yearly_price),
       });
     } else {
       showMsg(" Pricing ayarları güncellenemedi", "error");
@@ -902,6 +885,7 @@ export default function AdminPanel() {
       setToken("");
       clearAdminToken();
     }
+
   };
 
   const [grantSubModal, setGrantSubModal] = useState(null); // { email }
@@ -1050,7 +1034,7 @@ export default function AdminPanel() {
       qs.set("format", format);
       const res = await fetch(`${API_BASE}/api/admin/users/export?${qs.toString()}`, {
         credentials: "include",
-        headers: { Authorization: `Bearer ${(token && String(token).trim()) || readAdminToken()}` },
+        headers: token ? { Authorization: `Bearer ${String(token).trim()}` } : {},
       });
       if (!res.ok) throw new Error("Export başarısız");
       const blob = await res.blob();
@@ -1419,6 +1403,17 @@ export default function AdminPanel() {
                     value={pricingDraft?.legal_sale_price ?? 12000}
                     onChange={(e) => setPricingDraft((p) => ({ ...(p || {}), legal_sale_price: e.target.value }))}
                   />
+                </div>
+                <div>
+                  <div className="text-zinc-400 text-xs uppercase tracking-wider mb-2">Yıllık Plan (TL) — Stripe</div>
+                  <input
+                    type="number"
+                    step="1"
+                    className="w-full bg-black border border-amber-500/40 p-3 text-white rounded outline-none focus:border-amber-500"
+                    value={pricingDraft?.yearly_price ?? 85000}
+                    onChange={(e) => setPricingDraft((p) => ({ ...(p || {}), yearly_price: e.target.value }))}
+                  />
+                  <div className="text-zinc-500 text-xs mt-1">Stripe checkout'ta yıllık abonelik fiyatı</div>
                 </div>
               </div>
               <div className="mt-5 flex justify-end">

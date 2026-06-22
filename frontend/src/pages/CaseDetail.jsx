@@ -1,8 +1,9 @@
 // src/pages/CaseDetail.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { getApiBase } from "../lib/apiBase.js";
 
-const API_BASE = import.meta.env.VITE_API_URL || "https://miron22.onrender.com";
+const API_BASE = getApiBase();
 
 const EVENT_TYPES = [
   { value: "tebligat", label: "Tebligat" },

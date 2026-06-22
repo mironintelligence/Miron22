@@ -61,6 +61,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         "/api/feedback",
         "/api/demo-request",
         "/api/pricing/calculate",
+        "/api/stripe/webhook",
     )
 
     def __init__(self, app):
