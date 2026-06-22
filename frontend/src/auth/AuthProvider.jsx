@@ -134,18 +134,12 @@ export function AuthProvider({ children }) {
   // token_version bumped, refresh revoked). Without this, pages in authed
   // state keep hitting the API and silently failing.
   useEffect(() => {
-    const onExpired = (e) => {
+    const onExpired = () => {
       setAccessToken(null);
       setUser(null);
       setStatus((s) => (s === "authed" ? "guest" : s));
       setLastLoginMeta(null);
-      const reason = e?.detail?.reason;
-      emitToast(
-        reason === "subscription_expired"
-          ? "Abonelik süreniz dolmuş. Lütfen yönetici ile iletişime geçin."
-          : "Oturumunuzun süresi dolmuş. Lütfen tekrar giriş yapın.",
-        "error"
-      );
+      emitToast("Oturumunuzun süresi dolmuş. Lütfen tekrar giriş yapın.", "error");
     };
     window.addEventListener("miron:session-expired", onExpired);
     return () => window.removeEventListener("miron:session-expired", onExpired);
