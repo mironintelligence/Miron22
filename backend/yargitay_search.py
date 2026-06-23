@@ -33,7 +33,7 @@ def search_decisions(
         return []
 
     where_clauses = [
-        "court IN ('Yargıtay', 'Danıştay')",
+        "court IN ('Yargıtay', 'Yargitay', 'Danıştay')",
         "to_tsvector('turkish', full_text) @@ plainto_tsquery('turkish', %s)",
     ]
     params: list = [q]
@@ -89,7 +89,7 @@ class AiAnalysisRequest(BaseModel):
 @router.post("/analyze")
 def analyze_decision(payload: AiAnalysisRequest):
     """Seçilen kararın detaylı AI analizi."""
-    client = get_openai_client()
+    client = get_openai_client()  # Groq via OpenAI SDK (llm_gateway fallback handles routing)
     if not client:
         return {"analysis": "AI servisi şu an kullanılamıyor."}
 
@@ -111,7 +111,7 @@ SORU (Varsa): {payload.question or "—"}
     try:
         completion = chat_completions_create(
             client,
-            model="gpt-4o-mini",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
         )
         return {"analysis": completion.choices[0].message.content}
