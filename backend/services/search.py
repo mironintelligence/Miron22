@@ -3,26 +3,12 @@ from typing import List, Dict, Any, Optional
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-try:
-    from openai_client import get_openai_client
-except ImportError:
-    from openai_client import get_openai_client
 
 def _sanitize_query(text: str) -> str:
     value = (text or "").replace("\x00", " ").strip()
     value = " ".join(value.split())
     return value[:500]
 
-def _vector_literal(vec: List[float]) -> str:
-    return "[" + ",".join(f"{v:.8f}" for v in vec) + "]"
-
-def get_embedding(text: str) -> List[float]:
-    client = get_openai_client()
-    if not client:
-        raise RuntimeError("OpenAI client not configured")
-    payload = text.replace("\n", " ")
-    resp = client.embeddings.create(input=[payload], model="text-embedding-3-large")
-    return resp.data[0].embedding
 
 class YargitaySearchEngine:
     def __init__(self, db_url: Optional[str] = None):
@@ -49,65 +35,60 @@ class YargitaySearchEngine:
             return "", params
         return " AND " + " AND ".join(filters), params
 
-    def _semantic_search(self, cur, vector: str, filter_sql: str, params: List[Any], limit: int):
-        sql = f"""
-            SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
-                1 - (embedding <=> %s::vector) AS semantic_score
-            FROM decisions
-            WHERE 1=1 {filter_sql}
-            ORDER BY embedding <=> %s::vector
-            LIMIT %s
-        """
-        cur.execute(sql, [vector] + params + [vector, limit])
-        return {row["id"]: dict(row) for row in cur.fetchall()}
-
     def _keyword_search(self, cur, query: str, filter_sql: str, params: List[Any], limit: int):
-        # Prevent SQL injection by using parameterized queries for ts_query
         sql = f"""
-            SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
-                ts_rank_cd(to_tsvector('turkish', clean_text), plainto_tsquery('turkish', %s)) AS keyword_rank
+            SELECT id,
+                   full_text AS clean_text,
+                   summary,
+                   file_no AS case_number,
+                   decision_no AS decision_number,
+                   CASE WHEN full_text ILIKE '%%ONAMA%%' THEN 'ONAMA'
+                        WHEN full_text ILIKE '%%BOZMA%%' THEN 'BOZMA' ELSE '' END AS outcome,
+                   court, chamber, decision_date,
+                   ts_rank_cd(to_tsvector('turkish', full_text),
+                              plainto_tsquery('turkish', %s)) AS keyword_rank
             FROM decisions
-            WHERE to_tsvector('turkish', clean_text) @@ plainto_tsquery('turkish', %s)
+            WHERE to_tsvector('turkish', full_text) @@ plainto_tsquery('turkish', %s)
             {filter_sql}
             ORDER BY keyword_rank DESC
             LIMIT %s
         """
         cur.execute(sql, [query, query] + params + [limit])
-        return {row["id"]: dict(row) for row in cur.fetchall()}
+        return {str(row["id"]): dict(row) for row in cur.fetchall()}
 
     def _ilike_search(self, cur, query: str, filter_sql: str, params: List[Any], limit: int):
         q = f"%{query}%"
         sql = f"""
-            SELECT id, clean_text, summary, outcome, decision_number, case_number, court, chamber, decision_date,
-                0.0 AS keyword_rank
+            SELECT id,
+                   full_text AS clean_text,
+                   summary,
+                   file_no AS case_number,
+                   decision_no AS decision_number,
+                   CASE WHEN full_text ILIKE '%%ONAMA%%' THEN 'ONAMA'
+                        WHEN full_text ILIKE '%%BOZMA%%' THEN 'BOZMA' ELSE '' END AS outcome,
+                   court, chamber, decision_date,
+                   0.0 AS keyword_rank
             FROM decisions
             WHERE (
-                clean_text ILIKE %s
+                full_text ILIKE %s
                 OR COALESCE(summary, '') ILIKE %s
-                OR COALESCE(decision_number::text, '') ILIKE %s
-                OR COALESCE(case_number::text, '') ILIKE %s
+                OR COALESCE(decision_no, '') ILIKE %s
+                OR COALESCE(file_no, '') ILIKE %s
             )
             {filter_sql}
             ORDER BY decision_date DESC NULLS LAST
             LIMIT %s
         """
         cur.execute(sql, [q, q, q, q] + params + [limit])
-        return {row["id"]: dict(row) for row in cur.fetchall()}
+        return {str(row["id"]): dict(row) for row in cur.fetchall()}
 
     def search(self, query: str, year: Optional[int] = None, court: Optional[str] = None, chamber: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
         q = _sanitize_query(query)
         if not q:
             return {"query": "", "results": [], "message": "empty_query"}
-        
-        embedding = None
-        vector = None
-        try:
-            embedding = get_embedding(q)
-            vector = _vector_literal(embedding)
-        except Exception as e:
-            print(f"[UYARI] Embedding üretimi başarısız, sadece anahtar kelime araması yapılacak: {e}")
+
         filter_sql, params = self._build_filters(year, court, chamber)
-        
+
         try:
             conn = self._connect()
         except Exception as e:
@@ -116,66 +97,42 @@ class YargitaySearchEngine:
 
         cur = conn.cursor(cursor_factory=RealDictCursor)
         try:
-            # Check pgvector extension first (optional but safer)
-            cur.execute("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
-            if not cur.fetchone():
-                # raise RuntimeError("pgvector extension missing")
-                print("[WARN] pgvector extension missing or not visible")
-
-            semantic = {}
-            if vector:
-                semantic = self._semantic_search(cur, vector, filter_sql, params, limit)
+            # Decisions table uses full_text + GIN FTS; no embedding column exists.
             keyword = self._keyword_search(cur, q, filter_sql, params, limit)
             if not keyword:
                 keyword = self._ilike_search(cur, q, filter_sql, params, limit)
-            merged: Dict[str, Dict[str, Any]] = {}
-            all_ids = set(semantic.keys()) | set(keyword.keys())
+
+            if not keyword:
+                return {"query": q, "results": [], "message": "no_results"}
+
             max_kw = 0.0
             for row in keyword.values():
                 try:
                     max_kw = max(max_kw, float(row.get("keyword_rank") or 0.0))
                 except Exception:
                     pass
-            for row_id in all_ids:
-                base = {}
-                sem_score = 0.0
-                kw_score = 0.0
-                if row_id in semantic:
-                    base.update(semantic[row_id])
-                    sem_score = float(semantic[row_id].get("semantic_score") or 0.0)
-                if row_id in keyword:
-                    base.update(keyword[row_id])
-                    kw_score = float(keyword[row_id].get("keyword_rank") or 0.0)
+
+            results = []
+            for row in keyword.values():
+                kw_score = float(row.get("keyword_rank") or 0.0)
                 kw_norm = 0.0 if max_kw <= 0 else kw_score / max_kw
-                if vector:
-                    final_score = (sem_score * 0.65) + (kw_norm * 0.35)
-                else:
-                    final_score = kw_norm
-                base["semantic_score"] = sem_score
-                base["keyword_rank"] = kw_norm
-                base["final_score"] = final_score
-                merged[row_id] = base
-            sorted_results = sorted(merged.values(), key=lambda x: x.get("final_score", 0.0), reverse=True)
-            if not sorted_results:
-                if vector:
-                    semantic_only = self._semantic_search(cur, vector, filter_sql, params, 10)
-                    semantic_sorted = sorted(
-                        semantic_only.values(),
-                        key=lambda x: x.get("semantic_score", 0.0),
-                        reverse=True,
-                    )
-                    for item in semantic_sorted:
-                        item["keyword_rank"] = 0.0
-                        item["final_score"] = float(item.get("semantic_score") or 0.0)
-                    return {"query": q, "results": semantic_sorted[:10], "message": "semantic_fallback" if semantic_sorted else "no_results"}
-                return {"query": q, "results": [], "message": "no_results"}
+                row["semantic_score"] = 0.0
+                row["keyword_rank"] = kw_norm
+                row["final_score"] = kw_norm
+                results.append(row)
+
+            sorted_results = sorted(results, key=lambda x: x.get("final_score", 0.0), reverse=True)
             return {"query": q, "results": sorted_results[:10]}
+
         except Exception as e:
             print(f"[ERROR] Search query failed: {e}")
             return {"query": q, "results": [], "message": "search_execution_failed"}
         finally:
-            if cur: cur.close()
-            if conn: conn.close()
+            if cur:
+                cur.close()
+            if conn:
+                conn.close()
+
 
 class HybridSearchEngine:
     def __init__(self, db_url: Optional[str] = None):
@@ -215,48 +172,8 @@ class HybridSearchEngine:
             )
         return out
 
-    def search_vector(
-        self,
-        query: str,
-        top_k: int = 5,
-        year: Optional[int] = None,
-        court: Optional[str] = None,
-        chamber: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
-        q = _sanitize_query(query)
-        if not q:
-            return []
-        embedding = get_embedding(q)
-        vector = _vector_literal(embedding)
-        filter_sql, params = self._engine._build_filters(year, court, chamber)
-        conn = self._engine._connect()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        try:
-            rows = self._engine._semantic_search(cur, vector, filter_sql, params, top_k)
-            sorted_rows = sorted(rows.values(), key=lambda x: float(x.get("semantic_score") or 0.0), reverse=True)
-            out: List[Dict[str, Any]] = []
-            for row in sorted_rows[:top_k]:
-                content = row.get("clean_text") or row.get("summary") or ""
-                out.append(
-                    {
-                        "score": float(row.get("semantic_score") or 0.0),
-                        "doc": {
-                            "id": row.get("id"),
-                            "content": content,
-                            "meta": {
-                                "court": row.get("court"),
-                                "chamber": row.get("chamber"),
-                                "decision_number": row.get("decision_number"),
-                                "case_number": row.get("case_number"),
-                                "outcome": row.get("outcome"),
-                                "decision_date": row.get("decision_date"),
-                            },
-                        },
-                    }
-                )
-            return out
-        finally:
-            cur.close()
-            conn.close()
+    def search(self, query: str, year: Optional[int] = None, court: Optional[str] = None, chamber: Optional[str] = None, limit: int = 10) -> Dict[str, Any]:
+        return self._engine.search(query=query, year=year, court=court, chamber=chamber, limit=limit)
+
 
 search_engine = YargitaySearchEngine()

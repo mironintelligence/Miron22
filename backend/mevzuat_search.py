@@ -63,6 +63,24 @@ def mevzuat_search(payload: MevzuatSearchRequest) -> Dict[str, Any]:
             }
         )
 
+    if not precedents:
+        try:
+            from web_search import web_search_legal, save_web_results_to_db
+            web_hits = web_search_legal(q, limit=3)
+            if web_hits:
+                save_web_results_to_db(web_hits)
+                for r in web_hits:
+                    precedents.append({
+                        "id": None,
+                        "decision_number": None,
+                        "case_number": None,
+                        "court": "Web",
+                        "chamber": r.get("url", ""),
+                        "summary": r.get("content", "")[:400],
+                    })
+        except Exception:
+            pass
+
     client = get_openai_client()
     if not client:
         return {
@@ -111,7 +129,7 @@ Sadece aşağıdaki JSON formatında döndür:
     
     try:
         completion = chat_completions_create(client,
-            model="gpt-4o-mini",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "system", "content": "Çıktın SADECE geçerli bir JSON objesi olmalı. Markdown kullanma."}, {"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )

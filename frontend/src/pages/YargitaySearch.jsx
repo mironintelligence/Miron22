@@ -3,8 +3,6 @@ import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { authFetch } from "../auth/api";
 
-const RECENT_SEARCH_KEY = "miron_recent_yargitay_queries";
-
 const hukukDaireleri = [
   "3. Hukuk Dairesi",
   "4. Hukuk Dairesi",
@@ -28,49 +26,83 @@ const sampleSnippets = [
   { court: "Yargıtay 13. HD", chamber: "13. Hukuk Dairesi", decision_number: "2022/7741", outcome: "ONAMA", year: "2022", summary: "Tüketici uyuşmazlığında ispat yükü somut olgulara göre değişir." },
 ];
 
-function DecisionCard({ item }) {
-  const [expanded, setExpanded] = useState(false);
-  const isOnama = (item.outcome || "").toUpperCase().includes("ONAMA");
+function AnalysisBlock({ text }) {
+  if (!text) return null;
   return (
     <div
-      className="premium-scope bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-[#ebac00]/40 transition-all cursor-pointer group flex flex-col gap-3"
-      onClick={() => setExpanded((v) => !v)}
+      className="mt-3 pt-3 border-t border-[#ebac00]/20 text-sm text-white/80 leading-relaxed whitespace-pre-wrap font-mono bg-black/30 p-3 rounded-xl"
+      style={{ fontSize: "12px" }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex flex-wrap gap-1.5 text-[11px] font-mono text-[#ebac00]/80">
-          <span className="bg-[#ebac00]/10 px-2 py-0.5 rounded">{item.court || "Yargıtay"}</span>
-          {item.chamber && <span className="bg-[#ebac00]/10 px-2 py-0.5 rounded">{item.chamber}</span>}
-          {item.decision_number && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.decision_number}</span>}
-          {(item.date || item.year) && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.date || item.year}</span>}
+      <div className="text-[10px] text-[#ebac00]/60 uppercase tracking-wider mb-1.5">Yapay Zeka Analizi</div>
+      {text}
+    </div>
+  );
+}
+
+function DecisionCard({ item, onAnalyze, analyzing, analysisText }) {
+  const [expanded, setExpanded] = useState(false);
+  const isOnama = (item.outcome || "").toUpperCase().includes("ONAMA");
+  const fullText = item.full_text || item.clean_text || "";
+
+  return (
+    <div className="premium-scope bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-[#ebac00]/40 transition-all group flex flex-col gap-3">
+      <div
+        className="cursor-pointer"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="flex flex-wrap gap-1.5 text-[11px] font-mono text-[#ebac00]/80">
+            <span className="bg-[#ebac00]/10 px-2 py-0.5 rounded">{item.court || "Yargıtay"}</span>
+            {item.chamber && <span className="bg-[#ebac00]/10 px-2 py-0.5 rounded">{item.chamber}</span>}
+            {item.decision_number && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.decision_number}</span>}
+            {(item.date || item.year) && <span className="bg-white/8 px-2 py-0.5 rounded text-white/50">{item.date || item.year}</span>}
+          </div>
+          {item.final_score != null && (
+            <span className="text-[10px] text-white/30">Skor: {item.final_score.toFixed(2)}</span>
+          )}
         </div>
-        {item.final_score != null && (
-          <span className="text-[10px] text-white/30">Skor: {item.final_score.toFixed(2)}</span>
-        )}
-      </div>
 
-      <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-[#ebac00] transition-colors line-clamp-3">
-        {item.summary || "Özet bilgisi bulunmuyor."}
-      </h3>
+        <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-[#ebac00] transition-colors line-clamp-3 mt-2">
+          {item.summary || "Özet bilgisi bulunmuyor."}
+        </h3>
 
-      <div className="flex items-center justify-between mt-auto">
-        {item.outcome && (
-          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${isOnama ? "bg-green-900/40 text-green-300" : "bg-red-900/40 text-red-300"}`}>
-            {item.outcome}
+        <div className="flex items-center justify-between mt-2">
+          {item.outcome && (
+            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${isOnama ? "bg-green-900/40 text-green-300" : "bg-red-900/40 text-red-300"}`}>
+              {item.outcome}
+            </span>
+          )}
+          <span className="text-[10px] text-white/30 ml-auto group-hover:text-[#ebac00]/60 transition-colors">
+            {expanded ? "▲ Daralt" : "▼ Detay"}
           </span>
-        )}
-        <span className="text-[10px] text-white/30 ml-auto group-hover:text-[#ebac00]/60 transition-colors">
-          {expanded ? "▲ Daralt" : "▼ Detay"}
-        </span>
+        </div>
       </div>
 
       {expanded && (
         <div className="mt-2 pt-3 border-t border-white/10">
           <div className="text-[11px] text-white/40 uppercase tracking-wider mb-2">Tam Metin</div>
           <div className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap font-serif bg-black/20 p-3 rounded-xl">
-            {item.clean_text || item.summary || "Tam metin bulunamadı."}
+            {fullText || item.summary || "Tam metin bulunamadı."}
           </div>
         </div>
       )}
+
+      {fullText && (
+        <button
+          onClick={() => onAnalyze(item)}
+          disabled={analyzing}
+          className="mt-1 w-full py-2 rounded-xl text-xs font-semibold transition disabled:opacity-40"
+          style={{
+            background: analyzing ? "rgba(235,172,0,0.08)" : "rgba(235,172,0,0.12)",
+            border: "0.5px solid rgba(235,172,0,0.3)",
+            color: "#ebac00",
+          }}
+        >
+          {analyzing ? "Analiz yapılıyor…" : "Yapay Zeka Analizi"}
+        </button>
+      )}
+
+      <AnalysisBlock text={analysisText} />
     </div>
   );
 }
@@ -84,6 +116,8 @@ export default function YargitaySearch() {
   const [results, setResults] = useState([]);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState("");
+  const [analyzingId, setAnalyzingId] = useState(null);
+  const [analysisMap, setAnalysisMap] = useState({});
 
   useEffect(() => {
     const st = location.state?.q;
@@ -97,6 +131,7 @@ export default function YargitaySearch() {
     setError("");
     setResults([]);
     setSearched(false);
+    setAnalysisMap({});
     if (!query.trim()) { setError("Lütfen aranacak kelime veya cümle girin."); return; }
     setLoading(true);
     try {
@@ -110,21 +145,34 @@ export default function YargitaySearch() {
       const data = await res.json();
       setResults(data.results || []);
       setSearched(true);
-      try {
-        const qv = query.trim();
-        const prev = JSON.parse(localStorage.getItem(RECENT_SEARCH_KEY) || "[]");
-        const next = [qv, ...(Array.isArray(prev) ? prev : []).filter((x) => x !== qv)].slice(0, 8);
-        localStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-
     } catch (err) {
       setError(err.message || "Bilinmeyen bir hata oluştu.");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleAnalyze = async (item) => {
+    const key = item.id || item.decision_number || Math.random().toString();
+    setAnalyzingId(key);
+    try {
+      const fullText = item.full_text || item.clean_text || item.summary || "";
+      const res = await authFetch("/api/yargitay/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision_text: fullText }),
+      });
+      if (!res.ok) throw new Error("Analiz başarısız");
+      const data = await res.json();
+      setAnalysisMap((prev) => ({ ...prev, [key]: data.analysis || "" }));
+    } catch {
+      setAnalysisMap((prev) => ({ ...prev, [key]: "Analiz sırasında hata oluştu." }));
+    } finally {
+      setAnalyzingId(null);
+    }
+  };
+
+  const getItemKey = (item) => item.id || item.decision_number || "";
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 pb-12">
@@ -192,7 +240,7 @@ export default function YargitaySearch() {
             <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 text-sm mb-4">{error}</div>
           )}
 
-          {/* SEARCH RESULTS — Grid layout */}
+          {/* SEARCH RESULTS */}
           {(searched || loading) && (
             <>
               {loading && (
@@ -208,22 +256,37 @@ export default function YargitaySearch() {
                 <>
                   <div className="text-xs text-white/40 mb-4">{results.length} karar bulundu</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {results.map((item) => (
-                      <DecisionCard key={item.id} item={item} />
-                    ))}
+                    {results.map((item) => {
+                      const key = getItemKey(item);
+                      return (
+                        <DecisionCard
+                          key={key || Math.random()}
+                          item={item}
+                          onAnalyze={handleAnalyze}
+                          analyzing={analyzingId === key}
+                          analysisText={analysisMap[key]}
+                        />
+                      );
+                    })}
                   </div>
                 </>
               )}
             </>
           )}
 
-          {/* INITIAL STATE — Sample decisions grid */}
+          {/* INITIAL STATE */}
           {!searched && !loading && !error && (
             <>
               <div className="text-xs font-semibold text-white/35 uppercase tracking-widest mb-4">Örnek Kararlar</div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {sampleSnippets.map((item, i) => (
-                  <DecisionCard key={i} item={item} />
+                  <DecisionCard
+                    key={i}
+                    item={item}
+                    onAnalyze={() => {}}
+                    analyzing={false}
+                    analysisText={null}
+                  />
                 ))}
               </div>
               <p className="text-center text-white/25 text-xs mt-8">

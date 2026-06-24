@@ -59,7 +59,7 @@ def analyze_case_risk(case_description: str) -> Dict[str, Any]:
 
     completion = chat_completions_create(
         client,
-        model="gpt-4o-mini",
+        model="llama-3.3-70b-versatile",
         temperature=0.2,
         messages=messages,
         response_format={"type": "json_object"},
@@ -126,6 +126,25 @@ def get_rag_context(query: str, limit: int = 6, courts: Optional[List[str]] = No
             rows = cur.fetchall() or []
 
         if not rows:
+            try:
+                from web_search import web_search_legal, save_web_results_to_db
+                web_results = web_search_legal(clean_query, limit=3)
+                if web_results:
+                    save_web_results_to_db(web_results)
+                    parts = []
+                    for r in web_results:
+                        parts.append(
+                            f"[Web Kaynağı — {r['title']}]\n"
+                            f"Kaynak: {r['url']}\n"
+                            f"{r['content']}"
+                        )
+                    return (
+                        "⚠️ Veritabanında bulunamadı — aşağıdaki bilgiler resmi web "
+                        "kaynaklarından alınmıştır:\n\n"
+                        + "\n\n---\n\n".join(parts)
+                    )
+            except Exception:
+                pass
             return ""
 
         parts = []
