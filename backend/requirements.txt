@@ -55,3 +55,4 @@ bandit==1.7.9
 pip-audit==2.7.3
 radon==6.0.1
 stripe>=10.0.0
+tavily-python>=0.3.0
