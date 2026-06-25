@@ -273,6 +273,13 @@ async def startup_event():
         print(traceback.format_exc())
         raise RuntimeError(f"DB şeması hazırlanamadı: {e}")
 
+    # Hatırlatıcı zamanlayıcısını başlat
+    try:
+        from services.reminder_scheduler import start_scheduler
+        start_scheduler()
+    except Exception as _sched_exc:
+        print(f"⚠️ reminder_scheduler başlatılamadı: {_sched_exc}")
+
 @app.on_event("shutdown")
 async def shutdown_event():
     close_pool()
