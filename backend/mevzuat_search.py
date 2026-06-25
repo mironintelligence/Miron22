@@ -129,7 +129,7 @@ Sadece aşağıdaki JSON formatında döndür:
     
     try:
         completion = chat_completions_create(client,
-            model="deepseek-r1-distill-llama-70b",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "system", "content": "Çıktın SADECE geçerli bir JSON objesi olmalı. Markdown kullanma."}, {"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )
