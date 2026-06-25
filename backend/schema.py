@@ -335,6 +335,9 @@ def ensure_schema() -> None:
         );
         """,
         "CREATE INDEX IF NOT EXISTS idx_assistant_chats_user_updated ON assistant_chats(user_id, updated_at DESC);",
+        "ALTER TABLE assistant_chats ADD COLUMN IF NOT EXISTS messages_enc TEXT;",
+        "ALTER TABLE assistant_chats ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '90 days');",
+        "CREATE INDEX IF NOT EXISTS idx_assistant_chats_expires ON assistant_chats(expires_at);",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_improvement_consent BOOLEAN DEFAULT FALSE;",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_improvement_consent_at TIMESTAMPTZ;",
     ]
