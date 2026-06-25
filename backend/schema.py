@@ -344,6 +344,12 @@ def ensure_schema() -> None:
         "CREATE INDEX IF NOT EXISTS idx_assistant_chats_expires ON assistant_chats(expires_at);",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_improvement_consent BOOLEAN DEFAULT FALSE;",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_improvement_consent_at TIMESTAMPTZ;",
+        # Şifre sıfırlama kolonları — forgot-password + OTP akışı için gerekli
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token TEXT;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMPTZ;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_otp_hash TEXT;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_otp_expires TIMESTAMPTZ;",
+        "CREATE INDEX IF NOT EXISTS idx_users_reset_token ON users(reset_password_token) WHERE reset_password_token IS NOT NULL;",
     ]
 
     with get_db_cursor() as cur:
