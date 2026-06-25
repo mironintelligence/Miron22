@@ -139,11 +139,11 @@ export default function YargitaySearch() {
       params.append("q", query.trim());
       if (chamber) params.append("chamber", chamber);
       if (year) params.append("year", year);
-      const res = await authFetch(`/api/search/decisions?${params.toString()}`, { method: "GET" });
+      const res = await authFetch(`/api/yargitay/search?${params.toString()}`, { method: "GET" });
       if (res.status === 204) { setResults([]); setSearched(true); return; }
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || "Arama sırasında hata oluştu."); }
       const data = await res.json();
-      setResults(data.results || []);
+      setResults(Array.isArray(data) ? data : (data.results || []));
       setSearched(true);
     } catch (err) {
       setError(err.message || "Bilinmeyen bir hata oluştu.");
