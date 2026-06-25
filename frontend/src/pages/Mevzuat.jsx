@@ -39,6 +39,7 @@ export default function Mevzuat() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        timeoutMs: 90000,
       });
 
       if (!res.ok) {

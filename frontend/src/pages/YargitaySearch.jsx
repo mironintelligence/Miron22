@@ -161,6 +161,7 @@ export default function YargitaySearch() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decision_text: fullText }),
+        timeoutMs: 90000,
       });
       if (!res.ok) throw new Error("Analiz başarısız");
       const data = await res.json();
