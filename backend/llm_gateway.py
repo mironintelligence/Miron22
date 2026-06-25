@@ -5,6 +5,7 @@ GROQ_API_KEY varsa Groq modelleri, yoksa OpenAI modelleri kullanılır.
 from __future__ import annotations
 
 import os
+import re
 from typing import Any, Optional
 
 try:
@@ -58,6 +59,14 @@ def _map_to_groq(model: str) -> str:
     return mapping.get(model, model)
 
 
+_THINK_RE = re.compile(r"<think>[\s\S]*?</think>", re.IGNORECASE)
+
+
+def _strip_think(text: str) -> str:
+    """DeepSeek R1 <think>...</think> bloklarını temizler."""
+    return _THINK_RE.sub("", text or "").strip()
+
+
 def chat_completions_create(client: Any, **kwargs: Any):
     """
     OpenAI/Groq senkron client.chat.completions.create.
@@ -68,7 +77,12 @@ def chat_completions_create(client: Any, **kwargs: Any):
     last_err: Optional[BaseException] = None
     for m in _model_chain(model):
         try:
-            return client.chat.completions.create(model=m, **kwargs)
+            resp = client.chat.completions.create(model=m, **kwargs)
+            if resp.choices and resp.choices[0].message.content:
+                resp.choices[0].message.content = _strip_think(
+                    resp.choices[0].message.content
+                )
+            return resp
         except (RateLimitError, APIConnectionError, APITimeoutError) as e:
             last_err = e
             continue
@@ -84,7 +98,12 @@ async def chat_completions_create_async(client: Any, **kwargs: Any):
     last_err: Optional[BaseException] = None
     for m in _model_chain(model):
         try:
-            return await client.chat.completions.create(model=m, **kwargs)
+            resp = await client.chat.completions.create(model=m, **kwargs)
+            if resp.choices and resp.choices[0].message.content:
+                resp.choices[0].message.content = _strip_think(
+                    resp.choices[0].message.content
+                )
+            return resp
         except (RateLimitError, APIConnectionError, APITimeoutError) as e:
             last_err = e
             continue

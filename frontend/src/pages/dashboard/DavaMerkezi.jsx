@@ -2,7 +2,6 @@ import React from "react";
 import HubLanding from "../../dashboard/HubLanding";
 
 const TOOLS = [
-  { title: "Dava Dosyası", description: "Yeni dava aç veya mevcut davana devam et", href: "/case-simulation" },
   { title: "Risk & Strateji Skoru", description: "AI tabanlı kazanma ihtimali ve strateji önerisi", href: "/risk" },
   { title: "Dava Simülasyonu", description: "Senaryoya göre olası mahkeme süreçlerini simüle et", href: "/case-simulation" },
   { title: "Hatırlatıcı & Takvim", description: "Duruşma tarihlerini kaydet, bildirim al", href: "/reminders" },

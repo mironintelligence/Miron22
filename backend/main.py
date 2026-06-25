@@ -761,6 +761,7 @@ class ChatRequest(BaseModel):
     chat_id: Optional[str] = Field(default=None, max_length=80)
     message: str = Field(..., min_length=1, max_length=8000)
     context: Optional[str] = Field(default=None, max_length=12000)
+    history: Optional[list] = Field(default=None)
 
 SYSTEM_PROMPT = """
 Senin adın Miron AI Legal Assistant.
@@ -840,6 +841,11 @@ def assistant_chat(req: ChatRequest = Body(...), _user: dict = Depends(require_l
         messages.append({"role": "system", "content": f"Dava/Dosya Bağlamı (özet):\n{context}"})
     if _rag_ctx:
         messages.append({"role": "system", "content": f"İlgili Hukuki Kaynaklar ve Bilgiler:\n{_rag_ctx}"})
+    for h in (req.history or [])[-10:]:
+        role = h.get("role", "user") if isinstance(h, dict) else "user"
+        content = sanitize_text(str(h.get("content", "") if isinstance(h, dict) else ""))
+        if role in ("user", "assistant") and content:
+            messages.append({"role": role, "content": content[:2000]})
     messages.append({"role": "user", "content": user_text})
 
     try:
@@ -891,6 +897,11 @@ def assistant_chat_stream(req: ChatRequest = Body(...), _user: dict = Depends(re
         messages.append({"role": "system", "content": f"Dava/Dosya Bağlamı (özet):\n{context}"})
     if _rag_ctx:
         messages.append({"role": "system", "content": f"İlgili Hukuki Kaynaklar ve Bilgiler:\n{_rag_ctx}"})
+    for h in (req.history or [])[-10:]:
+        role = h.get("role", "user") if isinstance(h, dict) else "user"
+        content = sanitize_text(str(h.get("content", "") if isinstance(h, dict) else ""))
+        if role in ("user", "assistant") and content:
+            messages.append({"role": role, "content": content[:2000]})
     messages.append({"role": "user", "content": user_text})
 
     def event_gen():
@@ -1012,6 +1023,26 @@ def api_delete_chat(chat_id: int, user: dict = Depends(get_current_user)):
         return {"status": "ok"}
     delete_chat_db(str(user["id"]), chat_id)
     return {"status": "ok"}
+
+
+@app.post("/api/parse-file")
+async def parse_file(file: UploadFile = File(...), _user: dict = Depends(require_legal_acceptance)):
+    """PDF, DOCX veya metin dosyasından içerik çıkarır."""
+    raw = await file.read()
+    name = file.filename or ""
+    text = ""
+    try:
+        if name.lower().endswith(".pdf"):
+            with pdfplumber.open(io.BytesIO(raw)) as pdf:
+                text = "\n".join(page.extract_text() or "" for page in pdf.pages[:30])
+        elif name.lower().endswith((".docx", ".doc")):
+            doc = Document(io.BytesIO(raw))
+            text = "\n".join(p.text for p in doc.paragraphs)
+        else:
+            text = raw.decode("utf-8", errors="replace")
+    except Exception:
+        text = ""
+    return {"text": text[:12000], "filename": name}
 
 
 # =============================
