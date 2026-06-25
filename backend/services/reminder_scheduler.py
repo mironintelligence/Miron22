@@ -127,16 +127,31 @@ def _send_email_notification(row, build_fn, send_fn) -> None:
 
 
 def _create_in_app_notification(cur, row) -> None:
-    import uuid as _uuid
-    nid = str(_uuid.uuid4())
     due_at = row.get("due_at")
     due_fmt = _fmt_due(due_at) if due_at else ""
-    message = f"{row.get('title','Hatırlatıcı')} — {due_fmt}"
+    title = row.get("title") or "Hatırlatıcı"
+    parts = [f"Tarih: {due_fmt}"]
+    if row.get("court"):    parts.append(f"Mahkeme: {row['court']}")
+    if row.get("case_number"): parts.append(f"Dosya No: {row['case_number']}")
+    message = "\n".join(parts)
+    # Aynı reminder için mükerrer in_app oluşmasını engelle
     cur.execute("""
-        INSERT INTO notifications (id, user_id, type, title, message, created_at, read_at)
-        VALUES (%s, (SELECT user_id FROM case_reminder_triggers WHERE id = %s), 'reminder', %s, %s, NOW(), NULL)
-        ON CONFLICT DO NOTHING
-    """, (nid, row["trigger_id"], "Hatırlatıcı", message))
+        SELECT 1 FROM notifications
+        WHERE user_id = (SELECT user_id FROM case_reminder_triggers WHERE id = %s)
+          AND type = 'case_reminder'
+          AND title = %s
+          AND created_at > NOW() - INTERVAL '10 minutes'
+        LIMIT 1
+    """, (row["trigger_id"], title))
+    if cur.fetchone():
+        return
+    cur.execute("""
+        INSERT INTO notifications (user_id, type, title, message, is_read)
+        VALUES (
+            (SELECT user_id FROM case_reminder_triggers WHERE id = %s),
+            'case_reminder', %s, %s, FALSE
+        )
+    """, (row["trigger_id"], title, message))
 
 
 def start_scheduler() -> None:
