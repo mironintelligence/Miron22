@@ -229,7 +229,17 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
       ? `${t ? t + "\n\n" : ""}[Dosya: ${attachment.name}]\n${attachment.content ? attachment.content.slice(0, 6000) : ""}`
       : t;
 
-    const payload = { message: msgContent.slice(0, 8000), context: mergedContext.slice(0, 10000), chat_id: String(uid) };
+    const historyForApi = (current.messages || []).slice(-10).map((m) => ({
+      role: m.sender === "user" ? "user" : "assistant",
+      content: String(m.text || "").slice(0, 2000),
+    }));
+
+    const payload = {
+      message: msgContent.slice(0, 8000),
+      context: mergedContext.slice(0, 10000),
+      chat_id: String(uid),
+      history: historyForApi,
+    };
 
     let finalText = "";
     const abortCtrl = new AbortController();
@@ -322,15 +332,28 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
   };
 
   // ── File handling ────────────────────────────────────────────────────────────
-  const readFile = (file) => {
+  const readFile = async (file) => {
     if (!file) return;
-    const reader = new FileReader();
-    if (file.type.startsWith("text/") || file.name.endsWith(".txt") || file.name.endsWith(".md")) {
-      reader.onload = (e) => setAttachment({ name: file.name, content: e.target.result, type: "text" });
+    const name = file.name || "";
+    const isText = file.type.startsWith("text/") || name.endsWith(".txt") || name.endsWith(".md") || name.endsWith(".csv") || name.endsWith(".json");
+    const isParseable = name.toLowerCase().endsWith(".pdf") || name.toLowerCase().endsWith(".docx") || name.toLowerCase().endsWith(".doc");
+
+    if (isText) {
+      const reader = new FileReader();
+      reader.onload = (e) => setAttachment({ name, content: e.target.result, type: "text" });
       reader.readAsText(file, "utf-8");
+    } else if (isParseable) {
+      try {
+        const form = new FormData();
+        form.append("file", file);
+        const res = await authFetch("/api/parse-file", { method: "POST", body: form });
+        const data = await res.json();
+        setAttachment({ name, content: data.text || "", type: "document" });
+      } catch {
+        setAttachment({ name, content: "", type: "document" });
+      }
     } else {
-      reader.onload = (e) => setAttachment({ name: file.name, content: `[Binary: ${file.name}]`, type: file.type });
-      reader.readAsArrayBuffer(file);
+      setAttachment({ name, content: "", type: file.type });
     }
   };
 

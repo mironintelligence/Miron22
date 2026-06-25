@@ -5,7 +5,6 @@ import HubCard from "../dashboard/HubCard";
 import BottomTiles from "../dashboard/BottomTiles";
 
 const DAVA_TOOLS = [
-  { label: "Dava Dosyası" },
   { label: "Risk & Strateji Skoru" },
   { label: "Dava Simülasyonu" },
   { label: "Hatırlatıcı & Takvim" },
