@@ -67,7 +67,7 @@ def create_reminder(payload: ReminderCreate, user: Dict[str, Any] = Depends(get_
     offsets = sorted(list({x for x in offsets if x >= 0}))
     channels = payload.channels or ["in_app"]
     channels = [str(c).strip().lower() for c in channels if c]
-    channels = sorted(list({c for c in channels if c in {"in_app", "email", "sms", "push"}})) or ["in_app"]
+    channels = sorted(list({c for c in channels if c in {"in_app", "email"}})) or ["in_app"]
     with get_db_cursor() as cur:
         cur.execute(
             """
