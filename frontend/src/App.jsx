@@ -49,7 +49,18 @@ const DavaMerkezi = lazy(() => import("./pages/dashboard/DavaMerkezi.jsx"));
 const Arastirma = lazy(() => import("./pages/dashboard/Arastirma.jsx"));
 const BelgeStudyosu = lazy(() => import("./pages/dashboard/BelgeStudyosu.jsx"));
 
+// Render free tier cold-start önleyici — her 8 dakikada backend'i uyanık tutar
+function useBackendKeepalive() {
+  useEffect(() => {
+    const ping = () => fetch("/api/health", { method: "GET", credentials: "omit" }).catch(() => {});
+    ping();
+    const id = setInterval(ping, 8 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+}
+
 export default function App() {
+  useBackendKeepalive();
   const { status, refreshUser } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();

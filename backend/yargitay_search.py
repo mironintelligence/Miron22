@@ -51,11 +51,15 @@ def search_decisions(
     params += [q, limit]
 
     sql = f"""
-        SELECT id, court, chamber, file_no, decision_no, decision_date, summary, full_text
+        SELECT id, court, chamber, file_no, decision_no, decision_date, summary, full_text,
+               CASE WHEN full_text ILIKE '%%ONAMA%%' THEN 'ONAMA'
+                    WHEN full_text ILIKE '%%BOZMA%%' THEN 'BOZMA'
+                    ELSE '' END AS outcome,
+               ts_rank(to_tsvector('turkish', full_text),
+                       plainto_tsquery('turkish', %s)) AS score
         FROM decisions
         WHERE {where_sql}
-        ORDER BY ts_rank(to_tsvector('turkish', full_text),
-                         plainto_tsquery('turkish', %s)) DESC
+        ORDER BY score DESC
         LIMIT %s
     """
 
@@ -64,21 +68,52 @@ def search_decisions(
         with get_db_cursor(write=False) as cur:
             cur.execute(sql, params)
             rows = cur.fetchall() or []
+
+        if not rows:
+            # FTS sonuç vermediyse ILIKE fallback
+            ilike = f"%{q}%"
+            fallback_params = [ilike, ilike, ilike]
+            fallback_where = ["court IN ('Yargıtay', 'Yargitay', 'Danıştay')"]
+            if year:
+                fallback_where.append("decision_date >= %s AND decision_date < %s")
+                fallback_params += [f"{year}-01-01", f"{year + 1}-01-01"]
+            if chamber:
+                fallback_where.append("chamber ILIKE %s")
+                fallback_params.append(f"%{chamber}%")
+            fallback_params.append(limit)
+            fallback_sql = f"""
+                SELECT id, court, chamber, file_no, decision_no, decision_date, summary, full_text,
+                       CASE WHEN full_text ILIKE '%%ONAMA%%' THEN 'ONAMA'
+                            WHEN full_text ILIKE '%%BOZMA%%' THEN 'BOZMA'
+                            ELSE '' END AS outcome,
+                       0.0 AS score
+                FROM decisions
+                WHERE {' AND '.join(fallback_where)}
+                  AND (summary ILIKE %s OR full_text ILIKE %s OR decision_no ILIKE %s)
+                LIMIT %s
+            """
+            with get_db_cursor(write=False) as cur:
+                cur.execute(fallback_sql, fallback_params)
+                rows = cur.fetchall() or []
+
         for r in rows:
-            ozet = r.get("summary") or (r.get("full_text") or "")[:200]
+            summary = r.get("summary") or (r.get("full_text") or "")[:200]
             results.append({
                 "id": str(r.get("id") or ""),
-                "dairesi": f"{r.get('court', 'Yargıtay')} {r.get('chamber') or ''}".strip(),
-                "esas_no": r.get("file_no") or "",
-                "karar_no": r.get("decision_no") or "",
-                "tarih": str(r.get("decision_date") or ""),
-                "ozet": ozet[:300],
-                "metin": (r.get("full_text") or "")[:3000],
+                "court": r.get("court") or "Yargıtay",
+                "chamber": r.get("chamber") or "",
+                "decision_number": r.get("decision_no") or "",
+                "case_number": r.get("file_no") or "",
+                "date": str(r.get("decision_date") or ""),
+                "summary": summary[:300],
+                "full_text": (r.get("full_text") or "")[:3000],
+                "outcome": r.get("outcome") or "",
+                "final_score": float(r.get("score") or 0),
             })
     except Exception as e:
         print(f"[yargitay_search] search error: {e}")
 
-    return results
+    return {"results": results, "total": len(results)}
 
 
 class AiAnalysisRequest(BaseModel):
