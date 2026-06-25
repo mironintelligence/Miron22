@@ -10,115 +10,12 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
 
+from services.email_template import (
+    wrap, gold_button, detail_row, info_card, separator,
+    _BRAND, _TXT_G, _TXT_D, _FONT,
+)
 
-# ---------------------------------------------------------------------------
-# HTML E-Posta Şablonu — Miron marka kimliği
-# ---------------------------------------------------------------------------
-
-_TEMPLATE = """\
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{subject}</title>
-</head>
-<body style="margin:0;padding:0;background:#0a0a0a;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:32px 16px;">
-  <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#111111;border-radius:16px;overflow:hidden;border:1px solid #1e1e1e;">
-
-      <!-- HEADER -->
-      <tr>
-        <td style="background:linear-gradient(135deg,#1a1400 0%,#0a0a00 100%);padding:28px 32px 20px;border-bottom:2px solid #ebac00;">
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td>
-                <!-- Logo mark -->
-                <table cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="background:#ebac00;border-radius:10px;width:38px;height:38px;text-align:center;vertical-align:middle;">
-                      <span style="font-size:20px;font-weight:900;color:#000;line-height:38px;display:block;letter-spacing:-1px;">M</span>
-                    </td>
-                    <td style="padding-left:12px;vertical-align:middle;">
-                      <div style="font-size:18px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;line-height:1.1;">Miron</div>
-                      <div style="font-size:10px;font-weight:500;color:#ebac00;letter-spacing:2px;text-transform:uppercase;">GROUP LLC</div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-              <td align="right" style="vertical-align:middle;">
-                <div style="font-size:11px;color:#555;letter-spacing:0.5px;">Hukuk AI Asistanı</div>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-
-      <!-- GREETING -->
-      <tr>
-        <td style="padding:28px 32px 0;">
-          <div style="font-size:14px;color:#888;line-height:1.6;">Sayın</div>
-          <div style="font-size:22px;font-weight:700;color:#ffffff;margin-top:2px;line-height:1.2;">{lawyer_name}</div>
-          <div style="height:1px;background:linear-gradient(90deg,#ebac00 0%,transparent 80%);margin-top:16px;"></div>
-        </td>
-      </tr>
-
-      <!-- BODY -->
-      <tr>
-        <td style="padding:24px 32px;">
-          <div style="font-size:14px;color:#888;margin-bottom:20px;line-height:1.7;">{intro_text}</div>
-
-          <!-- Reminder card -->
-          <div style="background:#0d0d0d;border:1px solid #2a2a2a;border-left:3px solid #ebac00;border-radius:12px;padding:20px 22px;">
-            <div style="font-size:18px;font-weight:700;color:#ffffff;margin-bottom:14px;line-height:1.3;">{title}</div>
-
-            {detail_rows}
-
-            {details_block}
-          </div>
-
-          {action_note}
-        </td>
-      </tr>
-
-      <!-- FOOTER -->
-      <tr>
-        <td style="padding:20px 32px 28px;border-top:1px solid #1a1a1a;">
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td>
-                <div style="font-size:11px;color:#333;line-height:1.8;">
-                  Bu e-posta <strong style="color:#555;">Miron AI</strong> tarafından otomatik olarak oluşturulmuştur.<br>
-                  Hatırlatıcınızı yönetmek için <a href="https://www.mironintelligence.com/reminders" style="color:#ebac00;text-decoration:none;">uygulamayı açın</a>.
-                </div>
-              </td>
-              <td align="right" style="vertical-align:bottom;">
-                <div style="font-size:10px;color:#2a2a2a;letter-spacing:0.5px;">© 2026 Miron GROUP LLC</div>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-
-    </table>
-  </td></tr>
-</table>
-
-</body>
-</html>
-"""
-
-
-def _detail_row(label: str, value: str) -> str:
-    return f"""
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
-      <tr>
-        <td width="110" style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.8px;vertical-align:top;padding-top:2px;">{label}</td>
-        <td style="font-size:13px;color:#cccccc;font-weight:500;">{value}</td>
-      </tr>
-    </table>"""
+_REMINDERS_URL = "https://www.mironintelligence.com/reminders"
 
 
 def build_reminder_email(
@@ -134,36 +31,28 @@ def build_reminder_email(
 
     subject = f"⚖ Hatırlatıcı: {title}"
 
-    rows = _detail_row("Tarih / Saat", due_at_fmt)
+    rows_html = detail_row("Tarih / Saat", due_at_fmt)
     if court:
-        rows += _detail_row("Mahkeme", court)
+        rows_html += detail_row("Mahkeme", court)
     if case_number:
-        rows += _detail_row("Dosya No", case_number)
+        rows_html += detail_row("Dosya No", case_number)
 
-    details_block = ""
-    if details:
-        details_block = f"""
-        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #1e1e1e;font-size:12px;color:#666;line-height:1.8;white-space:pre-wrap;">{details}</div>"""
+    body = f"""
+<div style="font-size:13px;color:{_TXT_D};margin-bottom:4px;font-family:{_FONT};">Sayın</div>
+<div style="font-size:23px;font-weight:800;color:#ffffff;line-height:1.2;
+            font-family:{_FONT};">{lawyer_name}</div>
+{separator()}
+<div style="font-size:14px;color:{_TXT_G};line-height:1.8;margin-bottom:20px;font-family:{_FONT};">
+  Aşağıdaki hatırlatıcınız
+  <strong style="color:{_BRAND};">{offset_label}</strong> kaldı.
+</div>
 
-    intro_text = f"Aşağıdaki hatırlatıcınız <strong style='color:#ebac00;'>{offset_label}</strong> kaldı."
+{info_card(title, rows_html, details or "")}
 
-    action_note = """
-    <div style="margin-top:20px;text-align:center;">
-      <a href="https://www.mironintelligence.com/reminders"
-         style="display:inline-block;background:#ebac00;color:#000;font-weight:700;font-size:13px;text-decoration:none;border-radius:8px;padding:11px 28px;letter-spacing:0.3px;">
-        Takvimi Aç
-      </a>
-    </div>"""
-
-    html = _TEMPLATE.format(
-        subject=subject,
-        lawyer_name=lawyer_name,
-        intro_text=intro_text,
-        title=title,
-        detail_rows=rows,
-        details_block=details_block,
-        action_note=action_note,
-    )
+{gold_button("Takvimi Aç", _REMINDERS_URL)}
+"""
+    html = wrap(subject, "Hatırlatıcı", body,
+                footer_href=_REMINDERS_URL, footer_link_text="hatırlatıcıları yönet")
     return subject, html
 
 
