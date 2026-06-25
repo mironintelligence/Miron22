@@ -89,7 +89,11 @@ class CompleteRegistrationRequest(BaseModel):
 
 import secrets
 from db import get_db_cursor
-from services.mail_service import send_reset_password_email, send_password_reset_otp_email
+from services.mail_service import (
+    send_reset_password_email,
+    send_password_reset_otp_email,
+    send_welcome_email,
+)
 
 
 def _register_requires_supabase_jwt() -> bool:
@@ -310,7 +314,8 @@ def forgot_password(body: ForgotPasswordBody):
         )
 
     try:
-        send_password_reset_otp_email(email_norm, code)
+        fn_otp = str(user.get("first_name") or user.get("firstName") or "").strip() or None
+        send_password_reset_otp_email(email_norm, code, first_name=fn_otp)
     except Exception:
         pass
     return generic
@@ -577,6 +582,10 @@ def register_account(payload: RegisterRequest, request: Request):
         pass
     try:
         log_audit(None, "USER_REGISTER", email_norm, {"email": email_norm}, ip, ua)
+    except Exception:
+        pass
+    try:
+        send_welcome_email(email_norm, fn or None, ln or None)
     except Exception:
         pass
     return {"status": "ok", "message": "Kayıt oluşturuldu."}
