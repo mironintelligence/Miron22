@@ -7,34 +7,50 @@ from pydantic import BaseModel
 from db import get_db_cursor
 from admin_auth import require_admin
 from user_auth import get_current_user
-from services.notification_delivery import send_email
+from services.notification_delivery import send_email, build_reminder_email
 
 router = APIRouter(prefix="/api/notifications", tags=["Bildirimler"])
 logger = logging.getLogger("miron_notifications")
 
 
-def _send_email_safely(email: str, title: str, message: str) -> None:
-    """Fire-and-forget SMTP call used from BackgroundTasks so a slow/broken
-    mail server never blocks the HTTP response — this endpoint is polled
-    every minute by every authed user."""
+def _fmt_due(dt) -> str:
     try:
-        send_email(email, title, message)
+        return dt.astimezone().strftime("%d %B %Y, %H:%M")
     except Exception:
-        # Delivery failures are best-effort; the in-app notification row is
-        # already committed and is the source of truth.
+        return str(dt)
+
+
+def _offset_label(minutes: int) -> str:
+    if minutes >= 7 * 24 * 60: return "7 gün"
+    if minutes >= 24 * 60:     return f"{minutes // (24 * 60)} gün"
+    if minutes >= 60:          return f"{minutes // 60} saat"
+    return f"{minutes} dakika"
+
+
+def _lawyer_display(first: Optional[str], last: Optional[str]) -> str:
+    name = " ".join(p for p in [first, last] if p and p.strip()).strip()
+    return f"Av. {name}" if name else "Değerli Avukat"
+
+
+def _send_email_safely(email: str, subject: str, html: str) -> None:
+    try:
+        send_email(email, subject, html)
+    except Exception:
         pass
 
 
 def _fanout_due_reminders(user_id: str, pending_emails: list[tuple[str, str, str]]) -> None:
-    """Create in-app rows for due reminders; append email jobs to pending_emails."""
+    """Create in-app rows for due reminders; append (email, subject, html) jobs to pending_emails."""
     with get_db_cursor() as cur:
         try:
             cur.execute(
                 """
                 SELECT t.id AS trigger_id, t.channel, r.id AS reminder_id,
-                       r.title, r.details, r.due_at, r.case_number, r.court, t.trigger_at
+                       r.title, r.details, r.due_at, r.case_number, r.court, t.trigger_at,
+                       u.email AS user_email, u.first_name, u.last_name
                 FROM case_reminder_triggers t
                 JOIN case_reminders r ON r.id = t.reminder_id
+                JOIN users u ON u.id = t.user_id
                 WHERE t.user_id = %s
                   AND t.sent_at IS NULL
                   AND r.archived_at IS NULL
@@ -45,36 +61,39 @@ def _fanout_due_reminders(user_id: str, pending_emails: list[tuple[str, str, str
                 (user_id,),
             )
             due = cur.fetchall() or []
-            email_addr: Optional[str] = None
-            needs_email = any(
-                str(r.get("channel") or "in_app").strip().lower() == "email" for r in due
-            )
-            if needs_email:
-                cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
-                u = cur.fetchone() or {}
-                email_addr = str(u.get("email") or "").strip() or None
             for r in due:
                 title = str(r.get("title") or "Dava Hatırlatıcı")
-                details = str(r.get("details") or "").strip()
                 due_at = r.get("due_at")
-                court = str(r.get("court") or "").strip()
-                case_no = str(r.get("case_number") or "").strip()
                 channel = str(r.get("channel") or "in_app").strip().lower()
-                parts = []
-                if details:
-                    parts.append(details)
-                if court:
-                    parts.append(f"Mahkeme: {court}")
-                if case_no:
-                    parts.append(f"Dosya No: {case_no}")
-                parts.append(f"Tarih/Saat: {due_at}")
-                msg = "\n".join(parts).strip()
+                due_fmt = _fmt_due(due_at) if due_at else ""
+
+                # in_app bildirimi (her kanalda oluştur)
+                parts = [f"Tarih: {due_fmt}"]
+                if r.get("court"):       parts.append(f"Mahkeme: {r['court']}")
+                if r.get("case_number"): parts.append(f"Dosya No: {r['case_number']}")
                 cur.execute(
-                    "INSERT INTO notifications (user_id, type, title, message) VALUES (%s, %s, %s, %s)",
-                    (user_id, "case_reminder", title, msg),
+                    "INSERT INTO notifications (user_id, type, title, message, is_read) VALUES (%s, %s, %s, %s, FALSE)",
+                    (user_id, "case_reminder", title, "\n".join(parts)),
                 )
-                if channel == "email" and email_addr:
-                    pending_emails.append((email_addr, title, msg))
+
+                # email kanalı → branded HTML şablon
+                if channel == "email":
+                    email_addr = str(r.get("user_email") or "").strip()
+                    if email_addr:
+                        trigger_at = r.get("trigger_at")
+                        diff_min = int((due_at - trigger_at).total_seconds() / 60) if (trigger_at and due_at) else 0
+                        lawyer = _lawyer_display(r.get("first_name"), r.get("last_name"))
+                        subj, html = build_reminder_email(
+                            lawyer_name  = lawyer,
+                            title        = title,
+                            due_at_fmt   = due_fmt,
+                            court        = r.get("court"),
+                            case_number  = r.get("case_number"),
+                            details      = r.get("details"),
+                            offset_label = _offset_label(diff_min),
+                        )
+                        pending_emails.append((email_addr, subj, html))
+
                 cur.execute(
                     "UPDATE case_reminder_triggers SET sent_at = NOW() WHERE id = %s",
                     (r.get("trigger_id"),),
@@ -95,11 +114,10 @@ def _fanout_due_reminders(user_id: str, pending_emails: list[tuple[str, str, str
             due = cur.fetchall() or []
             for r in due:
                 title = str(r.get("title") or "Dava Hatırlatıcı")
-                details = str(r.get("details") or "").strip()
                 due_at = r.get("due_at")
-                msg = f"{details}\n\nTarih/Saat: {due_at}" if details else f"Tarih/Saat: {due_at}"
+                msg = f"Tarih: {_fmt_due(due_at)}" if due_at else title
                 cur.execute(
-                    "INSERT INTO notifications (user_id, type, title, message) VALUES (%s, %s, %s, %s)",
+                    "INSERT INTO notifications (user_id, type, title, message, is_read) VALUES (%s, %s, %s, %s, FALSE)",
                     (user_id, "case_reminder", title, msg),
                 )
                 cur.execute(
@@ -142,10 +160,8 @@ def get_my_notifications(
             user_id,
         )
 
-    # SMTP after the DB cursor is released and after the response is queued —
-    # the client never waits for the mail server.
-    for email_addr, title, msg in pending_emails:
-        background_tasks.add_task(_send_email_safely, email_addr, title, msg)
+    for email_addr, subject, html in pending_emails:
+        background_tasks.add_task(_send_email_safely, email_addr, subject, html)
 
     sql = """
         SELECT * FROM notifications
