@@ -1,3 +1,4 @@
+import json
 import os
 import time
 import logging
@@ -35,13 +36,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Config
         self.window_seconds = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
         self.max_requests = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "120"))
-        # Only honour X-Forwarded-For when the direct client is a configured
-        # trusted proxy. Without this, an attacker can spoof their client IP
-        # on every request and bypass rate limits entirely. Value is a comma
-        # separated list of proxy IPs/CIDRs, e.g. "127.0.0.1,10.0.0.0/8".
-        self.trusted_proxies = [
-            p.strip() for p in (os.getenv("TRUSTED_PROXIES") or "").split(",") if p.strip()
-        ]
+        # RFC 1918 private ranges are always safe to treat as trusted proxies
+        # because packets with these source IPs cannot arrive from the internet.
+        # This handles Render / any cloud provider where the sidecar proxy IP
+        # is a private address.  TRUSTED_PROXIES env var can add extra ranges.
+        _default_private = ["127.0.0.1", "::1", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fd00::/8"]
+        _extra = [p.strip() for p in (os.getenv("TRUSTED_PROXIES") or "").split(",") if p.strip()]
+        self.trusted_proxies = _default_private + _extra
 
     async def dispatch(self, request: Request, call_next):
         is_test = os.getenv("ENVIRONMENT") == "test"
@@ -141,7 +142,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 
                 if count > limit: # Strict greater than
                     logger.warning(f"Rate limit exceeded for IP: {ip} on policy {policy_name}")
-                    return Response(status_code=429, content=f"Rate limit exceeded. Try again later.")
+                    return Response(status_code=429, content=json.dumps({"code": "RATE_LIMIT_EXCEEDED", "detail": "Çok fazla deneme. Lütfen 1 saat sonra tekrar deneyin."}), media_type="application/json")
                     
             except redis.RedisError as e:
                 logger.error(f"Redis error during rate limit check: {e}")
@@ -189,7 +190,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             dq.popleft()
             
         if len(dq) >= limit:
-             return Response(status_code=429, content=f"Rate limit exceeded. Try again later.")
+            return Response(status_code=429, content=json.dumps({"code": "RATE_LIMIT_EXCEEDED", "detail": "Çok fazla deneme. Lütfen 1 saat sonra tekrar deneyin."}), media_type="application/json")
             
         dq.append(now)
         

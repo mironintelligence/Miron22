@@ -60,6 +60,10 @@ export default function ForgotPassword() {
           lastName: lastName.trim(),
         }),
       });
+      if (res.status === 429) {
+        setError("Çok fazla deneme. Lütfen 1 saat sonra tekrar deneyin.");
+        return;
+      }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.detail || "İstek başarısız.");
