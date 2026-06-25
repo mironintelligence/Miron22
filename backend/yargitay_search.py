@@ -111,7 +111,7 @@ SORU (Varsa): {payload.question or "—"}
     try:
         completion = chat_completions_create(
             client,
-            model="llama-3.3-70b-versatile",
+            model="deepseek-r1-distill-llama-70b",
             messages=[{"role": "user", "content": prompt}],
         )
         return {"analysis": completion.choices[0].message.content}

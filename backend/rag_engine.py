@@ -59,7 +59,7 @@ def analyze_case_risk(case_description: str) -> Dict[str, Any]:
 
     completion = chat_completions_create(
         client,
-        model="llama-3.3-70b-versatile",
+        model="deepseek-r1-distill-llama-70b",
         temperature=0.2,
         messages=messages,
         response_format={"type": "json_object"},
