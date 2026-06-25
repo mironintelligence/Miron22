@@ -1,0 +1,21 @@
+name: Backend Keepalive
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # her 10 dakikada bir
+  workflow_dispatch:          # manuel tetikleyici
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping Render health
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 55 https://miron22.onrender.com/api/health)
+          echo "HTTP $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "Backend uyanik"
+          else
+            echo "Backend yanit vermedi (cold start — normal)"
+          fi
