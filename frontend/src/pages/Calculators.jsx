@@ -30,12 +30,24 @@ const fmt = (v) => {
   return String(v);
 };
 
+const NON_MONETARY_KEYS = new Set([
+  "days", "notice_weeks", "total_years", "days_left", "rate",
+  "max_legal_rate", "applied_rate", "compensation_months",
+  "expiry_date", "start_date", "is_expired", "capped",
+]);
+
 const normalize = (data, primaryKey, labelMap) => ({
   primary: data[primaryKey],
+  primaryKey,
   primaryLabel: labelMap[primaryKey] || primaryKey,
   rows: Object.entries(data)
-    .filter(([k, v]) => v !== null && v !== undefined && k !== primaryKey)
-    .map(([k, v]) => ({ label: labelMap[k] || k.replace(/_/g, " "), value: v })),
+    .filter(([k, v]) => {
+      if (k === primaryKey) return false;
+      if (v === null || v === undefined) return false;
+      if (typeof v === "object") return false;
+      return true;
+    })
+    .map(([k, v]) => ({ key: k, label: labelMap[k] || k.replace(/_/g, " "), value: v })),
 });
 
 // ── design atoms ─────────────────────────────────────────────────────────────
@@ -293,9 +305,7 @@ function IscilikForm({ onCalc, loading }) {
         Saatlik = Aylık/225 · Mesai = Saatlik × Saat × Katsayı
       </div>
       <button style={calcBtnStyle} disabled={loading} onClick={() => onCalc(
-        "/calc/iscilik",
-        { monthly_salary: salary, overtime_hours: hours, overtime_multiplier: mult, years, months, days, years_worked: yearsW },
-        "total", ISCILIK_LABELS
+        { monthly_salary: salary, overtime_hours: hours, overtime_multiplier: mult, years, months, days, years_worked: yearsW }
       )}>{loading ? "Hesaplanıyor..." : "İşçilik Alacakları Hesapla"}</button>
     </div>
   );
@@ -522,9 +532,9 @@ function ResultPanel({ result, loading, error }) {
 
   return (
     <div style={{ ...cardStyle, minHeight: 260, display: "flex", flexDirection: "column" }}>
+      <style>{`@keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:.7} }`}</style>
       {loading && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "8px 0" }}>
-          <style>{`@keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:.7} }`}</style>
           {[70, 55, 45, 40].map((w, i) => (
             <div key={i} style={{
               height: i === 0 ? 36 : 14, width: `${w}%`,
@@ -576,7 +586,7 @@ function ResultPanel({ result, loading, error }) {
                 background: "linear-gradient(90deg, #ebac00, #b88700)",
                 WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
               }}>
-                {typeof result.primary === "number"
+                {typeof result.primary === "number" && !NON_MONETARY_KEYS.has(result.primaryKey)
                   ? `${fmt(result.primary)} ₺`
                   : fmt(result.primary)}
               </div>
@@ -591,7 +601,9 @@ function ResultPanel({ result, loading, error }) {
                 }}>
                   <span style={{ fontSize: 12, color: "#444", fontFamily: FONT_SANS }}>{row.label}</span>
                   <span style={{ fontSize: 13, color: "#ccc", fontFamily: FONT_SANS, fontWeight: 500 }}>
-                    {typeof row.value === "number" ? `${fmt(row.value)} ₺` : fmt(row.value)}
+                    {typeof row.value === "number" && !NON_MONETARY_KEYS.has(row.key)
+                      ? `${fmt(row.value)} ₺`
+                      : fmt(row.value)}
                   </span>
                 </div>
               ))}
@@ -653,6 +665,37 @@ export default function Calculators() {
     setResult(normalize(rawObj, primaryKey, labelMap));
   }, []);
 
+  const callIscilik = useCallback(async (payload) => {
+    setLoading(true);
+    setError("");
+    setResult(null);
+    try {
+      const res = await authFetch("/calc/iscilik", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.detail || "Hesaplama başarısız.");
+      }
+      const data = await res.json();
+      const flat = {
+        total:           data.total,
+        overtime_pay:    data.overtime?.overtime_pay,
+        hourly_rate:     data.overtime?.hourly_rate,
+        gross_severance: data.severance?.gross_severance,
+        notice_pay:      data.notice?.notice_pay,
+        notice_weeks:    data.notice?.notice_weeks,
+      };
+      setResult(normalize(flat, "total", ISCILIK_LABELS));
+    } catch (e) {
+      setError(e.message || "Hata oluştu.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const switchTab = (key) => {
     setActiveTab(key);
     setResult(null);
@@ -662,7 +705,7 @@ export default function Calculators() {
   const activeTab_ = TABS.find((t) => t.key === activeTab);
 
   return (
-    <div className="premium-scope" style={{ minHeight: "100vh", padding: "80px 24px 60px", fontFamily: FONT_SANS }}>
+    <div className="premium-scope" style={{ minHeight: "100vh", padding: "80px 24px 60px", fontFamily: FONT_SANS, background: "#000" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
 
         {/* Hero */}
@@ -701,7 +744,7 @@ export default function Calculators() {
         {/* Two-column */}
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 1, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18 }}
           style={{
@@ -724,7 +767,7 @@ export default function Calculators() {
 
             {activeTab === "faiz"       && <FaizForm onCalc={callCalc} loading={loading} />}
             {activeTab === "kidem"      && <KidemForm onCalc={callCalc} loading={loading} />}
-            {activeTab === "iscilik"    && <IscilikForm onCalc={callCalc} loading={loading} />}
+            {activeTab === "iscilik"    && <IscilikForm onCalc={callIscilik} loading={loading} />}
             {activeTab === "kira"       && <KiraForm onCompute={computeLocal} />}
             {activeTab === "netmaas"    && <NetMaasForm onCompute={computeLocal} />}
             {activeTab === "iseiade"    && <IseIadeForm onCompute={computeLocal} />}
