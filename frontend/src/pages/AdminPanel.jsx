@@ -137,6 +137,10 @@ export default function AdminPanel() {
   const [notifMode, setNotifMode] = useState("broadcast");
   const [notifUserId, setNotifUserId] = useState("");
 
+  // Abonelik tanımlama
+  const [grantSub, setGrantSub] = useState({ user_id: "", plan: "pro", months: 1 });
+  const [grantSubLoading, setGrantSubLoading] = useState(false);
+
   const [legalTypes, setLegalTypes] = useState([]);
   const [legalSelType, setLegalSelType] = useState("terms");
   const [legalTitle, setLegalTitle] = useState("");
@@ -874,6 +878,26 @@ export default function AdminPanel() {
     }
   };
 
+  const grantSubscription = async () => {
+    if (!grantSub.user_id) return showMsg("Kullanıcı seçiniz", "error");
+    setGrantSubLoading(true);
+    try {
+      const res = await fetchWithAuth("/api/admin/grant-subscription", {
+        method: "POST",
+        body: JSON.stringify(grantSub),
+      });
+      if (isAdminRequestFailed(res)) return showMsg(adminErrorMessage(res), "error");
+      if (res?.ok) {
+        showMsg(`Abonelik tanımlandı: ${res.plan} — ${res.months} ay`, "success");
+        setGrantSub({ user_id: "", plan: "pro", months: 1 });
+      } else {
+        showMsg("Abonelik tanımlanamadı", "error");
+      }
+    } finally {
+      setGrantSubLoading(false);
+    }
+  };
+
   const logoutAdmin = async () => {
     try {
       await fetchWithAuth("/api/admin/logout", { method: "POST", body: JSON.stringify({}) });
@@ -1291,8 +1315,62 @@ export default function AdminPanel() {
               </div>
             </div>
             
-            <div className="bg-zinc-900/10 p-6 rounded-xl border border-zinc-800 flex items-center justify-center text-zinc-600 text-sm">
-              Burada geçmiş bildirimlerin logları listelenebilir.
+            {/* Abonelik Tanımlama */}
+            <div className="bg-zinc-900/30 p-6 rounded-xl border border-zinc-800">
+              <h3 className="text-amber-500 font-bold mb-6">ABONELİK TANIMLA</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">KULLANICI</label>
+                  <select
+                    value={grantSub.user_id}
+                    onChange={(e) => setGrantSub({ ...grantSub, user_id: e.target.value })}
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded focus:border-amber-500 outline-none"
+                  >
+                    <option value="">Seçiniz</option>
+                    {users.map((u) => (
+                      <option key={u.id || u.email} value={u.id}>
+                        {u.email} {u.first_name ? `(${u.first_name})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">PLAN</label>
+                  <select
+                    value={grantSub.plan}
+                    onChange={(e) => setGrantSub({ ...grantSub, plan: e.target.value })}
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded focus:border-amber-500 outline-none"
+                  >
+                    <option value="pro">Pro</option>
+                    <option value="enterprise">Enterprise</option>
+                    <option value="legal">Legal</option>
+                    <option value="free">Ücretsiz</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">SÜRE (AY)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={grantSub.months}
+                    onChange={(e) => setGrantSub({ ...grantSub, months: parseInt(e.target.value) || 1 })}
+                    className="w-full bg-black border border-zinc-700 p-3 text-white rounded focus:border-amber-500 outline-none"
+                  />
+                  {grantSub.months >= 1 && grantSub.user_id && (
+                    <p className="text-xs text-zinc-500 mt-1">
+                      Bitiş: {new Date(Date.now() + grantSub.months * 30 * 24 * 60 * 60 * 1000).toLocaleDateString("tr-TR")}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={grantSubscription}
+                  disabled={grantSubLoading || !grantSub.user_id}
+                  className="w-full bg-amber-600 text-black font-bold py-3 rounded hover:bg-amber-500 transition disabled:opacity-40"
+                >
+                  {grantSubLoading ? "İşleniyor..." : "ABONELİK TANIMLA"}
+                </button>
+              </div>
             </div>
           </div>
         )}

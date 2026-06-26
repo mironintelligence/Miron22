@@ -350,6 +350,9 @@ def ensure_schema() -> None:
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_otp_hash TEXT;",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_otp_expires TIMESTAMPTZ;",
         "CREATE INDEX IF NOT EXISTS idx_users_reset_token ON users(reset_password_token) WHERE reset_password_token IS NOT NULL;",
+        # Admin tarafından manuel abonelik tanımlama sütunları
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMPTZ;",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_granted_by_name TEXT;",
     ]
 
     with get_db_cursor() as cur:

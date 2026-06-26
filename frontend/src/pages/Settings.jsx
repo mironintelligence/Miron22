@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
+import { authFetch } from "../auth/api";
 import { emitToast } from "../utils/toastBus";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
@@ -43,17 +44,16 @@ function SubscriptionTab() {
   const [loading, setLoading] = useState(true);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const { refreshUser, user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
-  const isAdminGifted = user?.subscriptionPlan === "gifted" || user?.subscriptionPlan === "unlimited";
-  const adminExpiresAt = user?.subscriptionExpiresAt;
-  const adminGrantedBy = user?.subscriptionGrantedByName;
+  // Manuel (admin tarafından) tanımlanmış abonelik: expires_at seti veya gifted/unlimited plan tipi
+  const manualPlan = user?.subscriptionPlan && user.subscriptionPlan !== "free" ? user.subscriptionPlan : null;
+  const manualExpires = user?.subscriptionExpiresAt || null;
+  const isManual = !!manualPlan && (!!manualExpires || user?.subscriptionPlan === "gifted" || user?.subscriptionPlan === "unlimited");
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     setLoading(true);
-    fetch(`${API_BASE}/api/stripe/subscription`, { headers })
+    authFetch("/api/stripe/subscription")
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { setSub(d); setLoading(false); })
       .catch(() => setLoading(false));
@@ -61,15 +61,8 @@ function SubscriptionTab() {
 
   const doCancel = async () => {
     setCancelling(true);
-    const token = localStorage.getItem("access_token");
     try {
-      const r = await fetch(`${API_BASE}/api/stripe/cancel`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
+      const r = await authFetch("/api/stripe/cancel", { method: "POST" });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.detail || "İşlem başarısız.");
       emitToast(data.message || "Abonelik iptal edildi.", "success");
@@ -87,39 +80,46 @@ function SubscriptionTab() {
     return <div className="text-center py-16 text-white/40 text-sm">Yükleniyor...</div>;
   }
 
+  const PLAN_LABELS = { pro: "Pro", enterprise: "Enterprise", legal: "Legal", free: "Ücretsiz" };
   const statusInfo = STATUS_LABELS[sub?.status] || STATUS_LABELS.unknown;
   const isActive = sub?.status === "active";
-  const hasSub = !!sub?.subscription_id;
 
   return (
     <div className="space-y-4">
-      {/* Admin tarafından verilen ücretsiz abonelik */}
-      {isAdminGifted && (
-        <div className="glass p-6 rounded-2xl border border-amber-500/30">
+      {/* Manuel abonelik kartı (admin tarafından tanımlandıysa) */}
+      {isManual && (
+        <div className="p-6 rounded-2xl border border-amber-500/30 bg-amber-500/5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-amber-400 text-base">Ücretsiz Erişim</h3>
-            <span className="text-xs font-bold px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400">
-              {user?.subscriptionPlan === "unlimited" ? "Sınırsız" : "Hediyeli"}
+            <h3 className="font-bold text-white text-base">Abonelik Durumu</h3>
+            <span className="text-xs font-bold px-2 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400">
+              {user?.subscriptionPlan === "unlimited" ? "Sınırsız" : "Aktif"}
             </span>
           </div>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <div className="text-white/40 text-xs mb-1">Bitiş Tarihi</div>
-              <div className="font-semibold text-white">
-                {adminExpiresAt ? formatDateTR(adminExpiresAt) : "Sınırsız"}
+              <div className="text-white/40 text-xs mb-1">Plan</div>
+              <div className="font-semibold text-amber-400 capitalize">
+                {PLAN_LABELS[manualPlan] || manualPlan}
               </div>
             </div>
-            {adminGrantedBy && (
-              <div>
-                <div className="text-white/40 text-xs mb-1">Veren</div>
-                <div className="font-semibold text-white">{adminGrantedBy}</div>
+            <div>
+              <div className="text-white/40 text-xs mb-1">Bitiş Tarihi</div>
+              <div className="font-semibold text-white">
+                {manualExpires ? formatDateTR(manualExpires) : "Sınırsız"}
+              </div>
+            </div>
+            {user?.subscriptionGrantedByName && (
+              <div className="col-span-2">
+                <div className="text-white/40 text-xs mb-1">Tanımlayan</div>
+                <div className="font-semibold text-white/70 text-xs">{user.subscriptionGrantedByName}</div>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Abonelik Kartı */}
+      {/* Stripe abonelik kartı */}
+      {!isManual && (
       <div className="glass p-6 rounded-2xl border border-white/10">
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-bold text-white text-base">Abonelik Durumu</h3>
@@ -159,6 +159,7 @@ function SubscriptionTab() {
           </div>
         )}
       </div>
+      )}
 
       {/* İptal */}
       {isActive && (

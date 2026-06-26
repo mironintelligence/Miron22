@@ -1256,5 +1256,56 @@ def admin_legal_audit(
     return {"rows": rows, "total": total, "limit": limit, "offset": offset}
 
 
+# ── Abonelik Tanımlama ──────────────────────────────────────────────────────
+
+class GrantSubscriptionBody(BaseModel):
+    user_id: str
+    plan: str = Field(..., pattern=r"^(pro|enterprise|legal|free)$")
+    months: int = Field(..., ge=1, le=120)
+    note: Optional[str] = None
+
+
+@router.post("/grant-subscription", dependencies=[Depends(require_admin)])
+def grant_subscription(body: GrantSubscriptionBody, admin=Depends(require_admin)):
+    from db import get_db_cursor
+    user = find_user_by_id(body.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
+
+    expires_at = datetime.now(timezone.utc) + timedelta(days=body.months * 30)
+    admin_name = str(admin.get("email") or admin.get("admin_id") or "admin")
+
+    with get_db_cursor(write=True) as cur:
+        cur.execute(
+            """
+            UPDATE users SET
+                subscription_plan            = %s,
+                subscription_status          = 'active',
+                subscription_expires_at      = %s,
+                subscription_granted_by_name = %s,
+                updated_at                   = NOW()
+            WHERE id = %s
+            """,
+            (body.plan, expires_at, admin_name, body.user_id),
+        )
+
+    try:
+        log_audit(
+            str(admin.get("admin_id")), "GRANT_SUBSCRIPTION", "users",
+            {"user_id": body.user_id, "plan": body.plan, "months": body.months,
+             "expires_at": expires_at.isoformat(), "note": body.note},
+        )
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "user_id": body.user_id,
+        "plan": body.plan,
+        "expires_at": expires_at.isoformat(),
+        "months": body.months,
+    }
+
+
 # Backward-compat
 api_router = router

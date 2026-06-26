@@ -163,16 +163,20 @@ def get_my_notifications(
     for email_addr, subject, html in pending_emails:
         background_tasks.add_task(_send_email_safely, email_addr, subject, html)
 
-    sql = """
-        SELECT * FROM notifications
-        WHERE user_id = %s
-        ORDER BY created_at DESC
-        LIMIT 50
-    """
     try:
-        with get_db_cursor() as cur:
-            cur.execute(sql, (user_id,))
-            return cur.fetchall()
+        with get_db_cursor(write=False) as cur:
+            cur.execute(
+                """
+                SELECT id, user_id::text, type, title, message, is_read,
+                       to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
+                FROM notifications
+                WHERE user_id = %s
+                ORDER BY created_at DESC
+                LIMIT 50
+                """,
+                (user_id,),
+            )
+            return [dict(r) for r in (cur.fetchall() or [])]
     except Exception:
         logger.exception("notification list fetch failed user_id=%s", user_id)
         return []
@@ -227,8 +231,14 @@ def send_notification(payload: NotificationCreate):
     # Burada sadece hata dönelim veya 'all' flag'i bekleyelim.
     return {"status": "error", "message": "user_id gerekli (Broadcast özelliği eklenecek)."}
 
+class BroadcastPayload(BaseModel):
+    title: str
+    message: str
+    type: str = "admin"
+
+
 @router.post("/broadcast", dependencies=[Depends(require_admin)])
-def broadcast_notification(title: str = Body(...), message: str = Body(...)):
+def broadcast_notification(payload: BroadcastPayload):
     """Admin: Tüm kullanıcılara duyuru gönder"""
     # Bu işlem ağır olabilir, background task olarak yapılmalı.
     # Şimdilik basit döngü ile (Limitli)
@@ -243,7 +253,7 @@ def broadcast_notification(title: str = Body(...), message: str = Body(...)):
         if not users:
             return {"status": "ok", "count": 0}
             
-        args_list = [(u['id'], 'admin', title, message) for u in users]
+        args_list = [(u['id'], payload.type, payload.title, payload.message) for u in users]
         sql_insert = "INSERT INTO notifications (user_id, type, title, message) VALUES (%s, %s, %s, %s)"
         
         cur.executemany(sql_insert, args_list)

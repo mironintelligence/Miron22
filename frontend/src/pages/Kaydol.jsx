@@ -49,31 +49,64 @@ const LEGAL_FEATURES = [
 
 const QUESTIONS = [
   {
-    key: "invest",
-    title: "Yatırım isteği",
-    text: "İşinizi büyütmek için teknolojiye yatırım yapmaya hazır mısınız?",
+    badge: "TBK m.344",
+    title: "Konut Kira Artışı",
+    body: "Konut kira sözleşmelerinde taraflarca kararlaştırılan kira artış oranı en fazla hangi sınıra kadar geçerlidir?",
+    opts: [
+      "TÜFE'nin on iki aylık ortalama değişim oranı",
+      "ÜFE'nin yıllık değişim oranı",
+      "Merkez Bankası politika faiz oranı",
+      "Taraflarca serbestçe kararlaştırılan her oran",
+    ],
   },
   {
-    key: "compete",
-    title: "Rekabet",
-    text: "Rakiplerinizden daha hızlı ve kaliteli hizmet sunmak istiyor musunuz?",
+    badge: "İİK m.89",
+    title: "Haciz İhbarnamesi",
+    body: "Birinci haciz ihbarnamesini tebliğ alan üçüncü kişi, borcunun bulunmadığını bildirmek için kaç günlük süreye sahiptir?",
+    opts: [
+      "3 gün",
+      "5 gün",
+      "7 gün",
+      "15 gün",
+    ],
   },
   {
-    key: "time",
-    title: "Zaman problemi",
-    text: "Rutin evrak işleri için haftada 10 saatten fazla zaman harcıyor musunuz?",
+    badge: "TBK m.72",
+    title: "Haksız Fiil Zamanaşımı",
+    body: "TBK m.72 gereğince haksız fiilden doğan tazminat istemlerinde zararı ve sorumluyu öğrenmeden itibaren işleyen kısa zamanaşımı süresi kaç yıldır?",
+    opts: [
+      "1 yıl",
+      "3 yıl",
+      "2 yıl",
+      "5 yıl",
+    ],
   },
   {
-    key: "regional",
-    title: "Bölgesel hedef",
-    text: "Olduğunuz bölgedeki en iyi avukatlardan biri misiniz veya olmak istiyor musunuz?",
+    badge: "TCK m.35",
+    title: "Suça Teşebbüs",
+    body: "TCK m.35 kapsamında suça teşebbüs hükümleri hangi suç türüne uygulanabilir?",
+    opts: [
+      "Taksirle işlenen suçlar",
+      "Olası kastla işlenen suçlar",
+      "Her türlü suça uygulanabilir",
+      "Kasten işlenen suçlar",
+    ],
   },
   {
-    key: "national",
-    title: "Ulusal hedef",
-    text: "Türkiye'nin en iyi avukatlarından biri olmak istiyor musunuz veya öyle misiniz?",
+    badge: "CMK m.91",
+    title: "Gözaltı Süresi",
+    body: "Toplu olarak işlenen suçlarda Cumhuriyet savcısının uzatma emriyle ulaşılabilecek azami gözaltı süresi kaç gündür?",
+    opts: [
+      "2 gün",
+      "3 gün",
+      "4 gün",
+      "7 gün",
+    ],
   },
 ];
+
+// Doğru şık indeksleri — gizli tutuluyor (0=A, 1=B, 2=C, 3=D)
+const _qv = (([a,b,c,d,e]) => [a,b,c,d,e])([0,2,2,3,2]);
 
 const STORAGE_KEY = "miron_register_flow_v1";
 
@@ -159,7 +192,6 @@ export default function Kaydol() {
 
   const persisted = useMemo(() => loadPersisted(), []);
   const [phase, setPhase] = useState(persisted?.phase || "questions");
-  const [answers, setAnswers] = useState(persisted?.answers || {});
   const [qIndex, setQIndex] = useState(persisted?.qIndex || 0);
   const [selectedPlan, setSelectedPlan] = useState(persisted?.selectedPlan || null);
   const [publicPrices, setPublicPrices] = useState(null);
@@ -185,7 +217,6 @@ export default function Kaydol() {
         STORAGE_KEY,
         JSON.stringify({
           phase,
-          answers,
           qIndex,
           selectedPlan,
           firstName,
@@ -200,7 +231,7 @@ export default function Kaydol() {
     } catch {
       /* ignore */
     }
-  }, [phase, answers, qIndex, selectedPlan, firstName, lastName, email, phone, lawFirm, city, discountCode]);
+  }, [phase, qIndex, selectedPlan, firstName, lastName, email, phone, lawFirm, city, discountCode]);
 
   useEffect(() => {
     persist();
@@ -247,11 +278,9 @@ export default function Kaydol() {
     return false;
   }, [firstName, lastName, email, password, phone, lawFirm, city, selectedPlan]);
 
-  const answerQuestion = (yes) => {
-    const q = QUESTIONS[qIndex];
-    const next = { ...answers, [q.key]: yes };
-    setAnswers(next);
-    if (!yes) {
+  const answerQuestion = (optIdx) => {
+    const correct = _qv[qIndex];
+    if (optIdx !== correct) {
       setPhase("unsuitable");
       return;
     }
@@ -264,7 +293,6 @@ export default function Kaydol() {
   };
 
   const restartQuestions = () => {
-    setAnswers({});
     setQIndex(0);
     setPhase("questions");
     setSelectedPlan(null);
@@ -510,39 +538,50 @@ export default function Kaydol() {
       <AnimatePresence mode="wait">
         {phase === "questions" && (
           <motion.div key="questions" className="w-full max-w-lg" {...panelMotion}>
-            {/* Subtle background glow that shifts with each question */}
+            {/* Subtle gold glow */}
             <motion.div
-              animate={{ opacity: [0.04, 0.07, 0.04] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              animate={{ opacity: [0.04, 0.08, 0.04] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
               style={{
-                position: 'absolute',
-                top: -80,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 400,
-                height: 400,
-                borderRadius: '50%',
+                position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)',
+                width: 480, height: 480, borderRadius: '50%',
                 background: 'radial-gradient(circle, #ebac00 0%, transparent 70%)',
-                pointerEvents: 'none',
-                zIndex: 0,
+                pointerEvents: 'none', zIndex: 0,
               }}
             />
             <div style={{
               position: 'relative',
               background: '#0a0a0a',
               border: '0.5px solid #1e1e1e',
-              borderRadius: 14,
-              padding: '36px 36px 28px',
+              borderRadius: 16,
+              padding: '32px 32px 26px',
               overflow: 'hidden',
               zIndex: 1,
             }}>
-              <div className="dash-hero-line" />
+              {/* Gold top accent line */}
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+                background: 'linear-gradient(90deg, transparent, #ebac00, transparent)',
+                opacity: 0.4,
+              }} />
 
               {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
-                <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '2px', color: '#ebac00', fontFamily: '"IBM Plex Sans", sans-serif', fontWeight: 600 }}>
-                  Uygunluk testi
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    fontSize: 9, textTransform: 'uppercase', letterSpacing: '2px',
+                    color: '#ebac00', fontFamily: '"IBM Plex Sans", sans-serif', fontWeight: 700,
+                  }}>
+                    Uygunluk testi
+                  </span>
+                  <span style={{
+                    fontSize: 9, background: 'rgba(235,172,0,0.1)', border: '0.5px solid rgba(235,172,0,0.25)',
+                    color: '#ebac00', borderRadius: 4, padding: '2px 6px',
+                    fontFamily: '"IBM Plex Sans", sans-serif', fontWeight: 600, letterSpacing: '0.5px',
+                  }}>
+                    {QUESTIONS[qIndex].badge}
+                  </span>
+                </div>
                 <motion.span
                   key={qIndex}
                   initial={{ opacity: 0, y: -4 }}
@@ -554,103 +593,116 @@ export default function Kaydol() {
                 </motion.span>
               </div>
 
-              {/* Progress dots */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 32 }}>
+              {/* Progress bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 28 }}>
                 {QUESTIONS.map((_, i) => (
                   <motion.div
                     key={i}
                     animate={{
-                      width: i === qIndex ? 22 : 5,
+                      width: i === qIndex ? 28 : 6,
                       background: i < qIndex ? '#2a2a2a' : i === qIndex ? '#ebac00' : '#181818',
                     }}
-                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
                     style={{ height: 3, borderRadius: 99, flexShrink: 0 }}
                   />
                 ))}
               </div>
 
-              {/* Question content — animates per qIndex */}
+              {/* Question + Options — animates per qIndex */}
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={qIndex}
-                  initial={{ opacity: 0, x: 24 }}
+                  initial={{ opacity: 0, x: 28 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -24 }}
-                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                  exit={{ opacity: 0, x: -28 }}
+                  transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <motion.h2
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.05, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                    style={{ fontFamily: '"Abril Fatface", serif', fontSize: 28, lineHeight: 1.1, color: '#fff', fontWeight: 400, marginBottom: 12, letterSpacing: '-0.3px' }}
+                    transition={{ delay: 0.05, duration: 0.28 }}
+                    style={{
+                      fontFamily: '"Abril Fatface", serif',
+                      fontSize: 24, lineHeight: 1.15,
+                      color: '#fff', fontWeight: 400,
+                      marginBottom: 10, letterSpacing: '-0.2px',
+                    }}
                   >
                     {QUESTIONS[qIndex].title}
                   </motion.h2>
                   <motion.p
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                    style={{ fontSize: 14, color: '#777', lineHeight: 1.75, marginBottom: 36, fontFamily: '"IBM Plex Sans", sans-serif' }}
+                    transition={{ delay: 0.08, duration: 0.28 }}
+                    style={{
+                      fontSize: 13, color: '#666', lineHeight: 1.8,
+                      marginBottom: 24,
+                      fontFamily: '"IBM Plex Sans", sans-serif',
+                    }}
                   >
-                    {QUESTIONS[qIndex].text}
+                    {QUESTIONS[qIndex].body}
                   </motion.p>
 
+                  {/* 4 option buttons */}
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                    style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}
+                    transition={{ delay: 0.12, duration: 0.28 }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
                   >
-                    <motion.button
-                      type="button"
-                      onClick={() => answerQuestion(false)}
-                      whileHover={{ scale: 1.025, borderColor: '#2e2e2e', background: '#111' }}
-                      whileTap={{ scale: 0.96 }}
-                      style={{
-                        padding: '13px 18px',
-                        borderRadius: 8,
-                        background: 'transparent',
-                        border: '0.5px solid #1e1e1e',
-                        color: '#fff',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        fontFamily: '"IBM Plex Sans", sans-serif',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Hayır
-                    </motion.button>
-                    <motion.button
-                      type="button"
-                      onClick={() => answerQuestion(true)}
-                      whileHover={{ scale: 1.025, opacity: 0.9 }}
-                      whileTap={{ scale: 0.96 }}
-                      style={{
-                        padding: '13px 18px',
-                        borderRadius: 8,
-                        background: 'linear-gradient(90deg, #ebac00, #b88700)',
-                        border: 'none',
-                        color: '#000',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        fontFamily: '"IBM Plex Sans", sans-serif',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Evet
-                    </motion.button>
+                    {QUESTIONS[qIndex].opts.map((opt, i) => {
+                      const labels = ['A', 'B', 'C', 'D'];
+                      return (
+                        <motion.button
+                          key={i}
+                          type="button"
+                          onClick={() => answerQuestion(i)}
+                          whileHover={{ borderColor: '#ebac00', background: 'rgba(235,172,0,0.04)' }}
+                          whileTap={{ scale: 0.985 }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            padding: '12px 14px',
+                            borderRadius: 9,
+                            background: 'transparent',
+                            border: '0.5px solid #1e1e1e',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'border-color 0.15s, background 0.15s',
+                          }}
+                        >
+                          <span style={{
+                            flexShrink: 0,
+                            width: 22, height: 22,
+                            borderRadius: 5,
+                            background: 'rgba(235,172,0,0.08)',
+                            border: '0.5px solid rgba(235,172,0,0.2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 9, fontWeight: 800,
+                            color: '#ebac00',
+                            fontFamily: '"IBM Plex Sans", sans-serif',
+                            letterSpacing: '0.5px',
+                          }}>
+                            {labels[i]}
+                          </span>
+                          <span style={{
+                            fontSize: 12.5, color: '#ccc', lineHeight: 1.5,
+                            fontFamily: '"IBM Plex Sans", sans-serif', fontWeight: 400,
+                          }}>
+                            {opt}
+                          </span>
+                        </motion.button>
+                      );
+                    })}
                   </motion.div>
                 </motion.div>
               </AnimatePresence>
 
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.25, duration: 0.4 }}
-                style={{ fontSize: 10, color: '#222', marginTop: 22, textAlign: 'center', fontFamily: '"IBM Plex Sans", sans-serif', lineHeight: 1.6 }}
-              >
-                "Hayır" derseniz Miron AI şu an için profilinize uygun görünmeyebilir.
-              </motion.p>
+              <p style={{
+                fontSize: 10, color: '#1e1e1e', marginTop: 20,
+                textAlign: 'center', fontFamily: '"IBM Plex Sans", sans-serif', lineHeight: 1.5,
+              }}>
+                Her soru tek bir doğru yanıt içerir — yanlış yanıt adaylığı sonlandırır.
+              </p>
             </div>
           </motion.div>
         )}
@@ -659,41 +711,87 @@ export default function Kaydol() {
           <motion.div key="unsuitable" className="w-full max-w-lg" {...panelMotion}>
             <div style={{
               background: '#0a0a0a',
-              border: '0.5px solid #3a1010',
-              borderRadius: 14,
-              padding: '36px',
+              border: '0.5px solid #2a1818',
+              borderRadius: 16,
+              padding: '40px 36px 32px',
               textAlign: 'center',
+              position: 'relative',
+              overflow: 'hidden',
             }}>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '2px', color: '#5a1818', fontFamily: '"IBM Plex Sans", sans-serif', marginBottom: 16 }}>
+              {/* Subtle red ambient */}
+              <div style={{
+                position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)',
+                width: 280, height: 280, borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(180,40,40,0.12) 0%, transparent 70%)',
+                pointerEvents: 'none',
+              }} />
+
+              {/* Icon */}
+              <div style={{
+                width: 48, height: 48, borderRadius: 12,
+                background: 'rgba(180,40,40,0.08)', border: '0.5px solid rgba(180,40,40,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 20px',
+                fontSize: 20,
+              }}>
+                ⚖
+              </div>
+
+              <div style={{
+                fontSize: 9, textTransform: 'uppercase', letterSpacing: '2.5px',
+                color: '#5a2020', fontFamily: '"IBM Plex Sans", sans-serif',
+                fontWeight: 700, marginBottom: 14,
+              }}>
                 Uygunluk sonucu
               </div>
-              <h2 style={{ fontFamily: '"Abril Fatface", serif', fontSize: 24, color: '#fff', fontWeight: 400, marginBottom: 12, lineHeight: 1.1 }}>
-                Miron AI için uygun değilsiniz
+
+              <h2 style={{
+                fontFamily: '"Abril Fatface", serif',
+                fontSize: 22, color: '#fff', fontWeight: 400,
+                marginBottom: 10, lineHeight: 1.2,
+              }}>
+                Sizi aramızda görmek isterdik
               </h2>
-              <p style={{ fontSize: 13, color: '#555', lineHeight: 1.75, marginBottom: 28, fontFamily: '"IBM Plex Sans", sans-serif' }}>
-                Yanıtlarınıza göre platform şu aşamada ihtiyaçlarınızla örtüşmüyor. İleride tekrar değerlendirmek isterseniz sorulara yeniden başlayabilirsiniz.
+              <p style={{
+                fontSize: 13, color: '#4a4a4a', lineHeight: 1.8,
+                marginBottom: 8, fontFamily: '"IBM Plex Sans", sans-serif',
+              }}>
+                Maalesef bu yanıt Miron AI'a üyelik için gerekli profille örtüşmüyor.
               </p>
+              <p style={{
+                fontSize: 12, color: '#333', lineHeight: 1.7,
+                marginBottom: 28, fontFamily: '"IBM Plex Sans", sans-serif',
+              }}>
+                Platform; aktif hukuk pratiği yürüten, Türk hukukunu derinlemesine bilen avukatlara özel tasarlanmıştır.
+              </p>
+
+              {/* Divider */}
+              <div style={{ height: '0.5px', background: 'linear-gradient(90deg, transparent, #1e1e1e, transparent)', marginBottom: 24 }} />
+
               <button
                 type="button"
                 onClick={restartQuestions}
                 style={{
-                  width: '100%',
-                  padding: '11px 18px',
-                  borderRadius: 8,
-                  background: 'transparent',
-                  border: '0.5px solid #1e1e1e',
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: 600,
+                  width: '100%', padding: '12px 18px',
+                  borderRadius: 9, background: 'transparent',
+                  border: '0.5px solid #1e1e1e', color: '#666',
+                  fontSize: 11, fontWeight: 600,
                   fontFamily: '"IBM Plex Sans", sans-serif',
-                  cursor: 'pointer',
-                  marginBottom: 12,
+                  cursor: 'pointer', marginBottom: 14,
+                  letterSpacing: '0.5px',
                 }}
               >
-                Sorulara dön
+                Soruları yeniden dene
               </button>
-              <Link to="/" style={{ fontSize: 11, color: '#333', fontFamily: '"IBM Plex Sans", sans-serif', textDecoration: 'none', display: 'block' }}>
-                Ana sayfa →
+              <Link
+                to="/"
+                style={{
+                  fontSize: 11, color: '#252525',
+                  fontFamily: '"IBM Plex Sans", sans-serif',
+                  textDecoration: 'none', display: 'block',
+                }}
+              >
+                Ana sayfaya dön →
               </Link>
             </div>
           </motion.div>
