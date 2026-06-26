@@ -83,6 +83,7 @@ function SubscriptionTab() {
   const PLAN_LABELS = { pro: "Pro", enterprise: "Enterprise", legal: "Legal", free: "Ücretsiz" };
   const statusInfo = STATUS_LABELS[sub?.status] || STATUS_LABELS.unknown;
   const isActive = sub?.status === "active";
+  const hasSub = !!sub?.subscription_id;
 
   return (
     <div className="space-y-4">
