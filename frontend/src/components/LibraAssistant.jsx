@@ -100,6 +100,12 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [streamText, setStreamText] = useState("");
+  const [displayedText, setDisplayedText] = useState("");
+  const typewriterBufRef = useRef("");
+  const typewriterTimerRef = useRef(null);
+  const displayedLenRef = useRef(0);
+  const autoScrollRef = useRef(true);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);       // mobile overlay
   const [sideCollapsed, setSideCollapsed] = useState(false); // desktop collapse
   const [query, setQuery] = useState("");
@@ -145,10 +151,41 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
   }, [chats, query]);
   const grouped = useMemo(() => groupChatsForSidebar(filteredChats), [filteredChats]);
 
+  const handleScroll = () => {
+    const el = scRef.current;
+    if (!el) return;
+    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    autoScrollRef.current = isAtBottom;
+    setShowScrollBtn(!isAtBottom && streaming);
+  };
+
   useEffect(() => {
     const el = scRef.current;
-    if (el) { const t = setTimeout(() => el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }), 50); return () => clearTimeout(t); }
-  }, [messages.length, streamText, streaming]);
+    if (el && autoScrollRef.current) { const t = setTimeout(() => el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }), 50); return () => clearTimeout(t); }
+  }, [messages.length, displayedText, streaming]);
+
+  useEffect(() => {
+    if (!streaming) {
+      if (typewriterTimerRef.current) clearInterval(typewriterTimerRef.current);
+      typewriterTimerRef.current = null;
+      setDisplayedText("");
+      typewriterBufRef.current = "";
+      displayedLenRef.current = 0;
+      return;
+    }
+    displayedLenRef.current = 0;
+    typewriterTimerRef.current = setInterval(() => {
+      const full = typewriterBufRef.current;
+      const shown = displayedLenRef.current;
+      if (shown >= full.length) return;
+      const behind = full.length - shown;
+      const step = behind > 100 ? 15 : behind > 30 ? 8 : behind > 10 ? 4 : 2;
+      const newLen = Math.min(shown + step, full.length);
+      displayedLenRef.current = newLen;
+      setDisplayedText(full.slice(0, newLen));
+    }, 30);
+    return () => { if (typewriterTimerRef.current) clearInterval(typewriterTimerRef.current); };
+  }, [streaming]);
 
   const markdownComponents = useMemo(() => makeMarkdownComponents(sideCollapsed), [sideCollapsed]);
 
@@ -221,6 +258,10 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
     if (taRef.current) taRef.current.style.height = "52px";
     setStreaming(true);
     setStreamText("");
+    typewriterBufRef.current = "";
+    displayedLenRef.current = 0;
+    autoScrollRef.current = true;
+    setShowScrollBtn(false);
     setSideOpen(false);
 
     if (isFirst) generateTitle(uid, t || attachment?.name || "");
@@ -277,7 +318,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                 const obj = JSON.parse(raw2);
                 if (obj.error) errorMessage = obj.error;
                 if (obj.done && errorMessage) break;
-                if (obj.content) { accumulated += obj.content; setStreamText(stripEmojis(accumulated)); }
+                if (obj.content) { accumulated += obj.content; typewriterBufRef.current = stripEmojis(accumulated); }
               } catch { /* ignore */ }
             }
           }
@@ -287,7 +328,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
         } else { finalText = stripEmojis(accumulated) || "Yanıt alınamadı."; }
       }
     } catch (e) {
-      if (abortCtrl.signal.aborted && !streamText) {
+      if (abortCtrl.signal.aborted && !typewriterBufRef.current) {
         try { finalText = await sendFallback(uid, t, payload); } catch { finalText = `Yanıt alınamadı: ${e?.message || "Bağlantı hatası"}`; }
       } else { finalText = `Yanıt alınamadı: ${e?.message || "Bağlantı hatası"}`; }
     } finally { clearTimeout(abortTimer); }
@@ -300,6 +341,8 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
     });
     setStreamText("");
     setStreaming(false);
+    autoScrollRef.current = true;
+    setShowScrollBtn(false);
   };
 
   // ── Rename / Delete ──────────────────────────────────────────────────────────
@@ -554,7 +597,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
           </div>
 
           {/* Messages */}
-          <div ref={scRef} style={{ flex: 1, overflowY: "auto", minHeight: 0, WebkitOverflowScrolling: "touch" }}>
+          <div ref={scRef} onScroll={handleScroll} style={{ flex: 1, overflowY: "auto", minHeight: 0, WebkitOverflowScrolling: "touch" }}>
             {empty ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", padding: "24px 24px 80px" }}>
                 <h1 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: sideCollapsed ? 60 : 48, color: "#fff", letterSpacing: "-0.5px", transition: "font-size 0.25s ease" }}>Miron</h1>
@@ -599,14 +642,25 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                 {streaming && (
                   <div style={{ display: "flex", justifyContent: "flex-start" }}>
                     <div className="miron-msg" style={{ maxWidth: sideCollapsed ? 820 : 720, color: "#888", fontSize: sideCollapsed ? 19 : 17, lineHeight: 2.0, fontFamily: FONT_SERIF, borderLeft: "1px solid #1e1e1e", paddingLeft: 24, marginRight: 20, overflowWrap: "anywhere" }}>
-                      {cleanedStream ? (
-                        <><ReactMarkdown components={markdownComponents}>{cleanedStream}</ReactMarkdown><span className="miron-cursor" /></>
+                      {displayedText ? (
+                        <><ReactMarkdown components={markdownComponents}>{displayedText}</ReactMarkdown><span className="miron-cursor" /></>
                       ) : (
                         <span className="miron-typing-dots" aria-label="Yazıyor"><span /><span /><span /></span>
                       )}
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+            {showScrollBtn && (
+              <div style={{ position: "sticky", bottom: 16, display: "flex", justifyContent: "center", pointerEvents: "none", zIndex: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => { autoScrollRef.current = true; setShowScrollBtn(false); scRef.current?.scrollTo({ top: scRef.current.scrollHeight, behavior: "smooth" }); }}
+                  style={{ pointerEvents: "auto", background: "#0a0a0a", border: "0.5px solid #2e2e2e", borderRadius: 20, padding: "6px 14px", color: "#666", fontSize: 12, fontFamily: FONT_SANS, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                >
+                  ↓ Aşağı in
+                </button>
               </div>
             )}
           </div>
