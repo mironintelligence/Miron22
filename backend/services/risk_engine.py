@@ -57,7 +57,7 @@ class RiskEngine:
         try:
             response = chat_completions_create(
                 client,
-                model="gpt-4o-mini",
+                model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": "Sen kıdemli bir Türk Hukuku stratejistisin. Görevin davayı analiz edip riskleri, stratejileri ve kazanma ihtimalini belirlemektir. Asla halüsinasyon görme. Sadece metindeki verilere dayan."},
                     {"role": "user", "content": prompt}
@@ -71,7 +71,13 @@ class RiskEngine:
                 raise ValueError("Boş yanıt döndü.")
 
             data = json.loads(content)
-            
+
+            # LLM bazen winning_probability'yi 0-1 ondalık olarak döndürür (0.4 = %40).
+            # Pydantic le=100.0 ile geçer ama %0.4 olarak görünür. Normalize et:
+            wp = data.get("winning_probability", 0)
+            if isinstance(wp, (int, float)) and 0 < wp <= 1.0:
+                data["winning_probability"] = round(wp * 100, 1)
+
             # Validate with Pydantic
             validated = RiskAnalysisResult(**data)
             return validated.model_dump()
@@ -105,7 +111,7 @@ class RiskEngine:
         {{
             "risk_score": int,
             "risk_category": "Low" | "Medium" | "High" | "Critical",
-            "winning_probability": float,
+            "winning_probability": float,  // 0-100 arasında YÜZDE — örnek: 60.0 (0.6 DEĞİL)
             "confidence_score": float,
             "key_issues": [str],
             "positive_signals": [str],

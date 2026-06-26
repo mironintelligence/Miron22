@@ -45,6 +45,7 @@ export default function Navbar() {
   const baseNavLinks = [
     { name: "Ana Sayfa", path: "/dashboard" },
     { name: "Dava Merkezi", path: "/dashboard/dava-merkezi" },
+    { name: "Dava Özeti Çıkar", path: "/analyze" },
     { name: "Araştırma", path: "/dashboard/arastirma" },
     { name: "Belge Stüdyosu", path: "/dashboard/belge-studyosu" },
     { name: "Hesaplamalar", path: "/calculators" },
