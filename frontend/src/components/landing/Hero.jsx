@@ -9,12 +9,12 @@ const wordContainer = {
 }
 
 const wordVariant = {
-  hidden: { opacity: 0, y: 22 },
+  hidden: { opacity: 1, y: 22 },
   show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
 }
 
 const fadeIn = (delay) => ({
-  initial: { opacity: 0, y: 16 },
+  initial: { opacity: 1, y: 16 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay },
 })

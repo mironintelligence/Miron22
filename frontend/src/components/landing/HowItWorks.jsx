@@ -44,7 +44,7 @@ export function HowItWorks() {
             <motion.div
               key={title}
               variants={{
-                hidden: { opacity: 0, y: 20 },
+                hidden: { opacity: 1, y: 20 },
                 show: { opacity: 1, y: 0, transition: { duration: 0.6 } },
               }}
               className="bg-surface px-8 py-11 relative overflow-hidden group hover:bg-surface-3 transition-colors duration-200

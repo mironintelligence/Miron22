@@ -68,7 +68,7 @@ export function StrategyEngine() {
               {MESSAGES.map((msg, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 1, y: 10 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: msg.delay, duration: 0.5 }}

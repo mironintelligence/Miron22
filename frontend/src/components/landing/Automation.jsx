@@ -50,7 +50,7 @@ export function Automation() {
             <motion.div
               key={title}
               variants={{
-                hidden: { opacity: 0, y: 16 },
+                hidden: { opacity: 1, y: 16 },
                 show: { opacity: 1, y: 0, transition: { duration: 0.6 } },
               }}
               className="bg-surface p-11 relative overflow-hidden group hover:bg-surface-3 transition-colors duration-200

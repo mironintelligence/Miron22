@@ -39,7 +39,7 @@ export function SystemDepth() {
             <motion.div
               key={name}
               variants={{
-                hidden: { opacity: 0, y: 16 },
+                hidden: { opacity: 1, y: 16 },
                 show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
               }}
               className="bg-surface px-9 py-7 flex items-center hover:bg-surface-3 transition-colors duration-200 group"

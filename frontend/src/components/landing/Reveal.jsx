@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion'
 
 const VARIANTS = {
-  y: { hidden: { opacity: 0, y: 44 }, show: { opacity: 1, y: 0 } },
-  l: { hidden: { opacity: 0, x: -44 }, show: { opacity: 1, x: 0 } },
-  r: { hidden: { opacity: 0, x: 44 }, show: { opacity: 1, x: 0 } },
-  scale: { hidden: { opacity: 0, scale: 0.96 }, show: { opacity: 1, scale: 1 } },
+  y: { hidden: { opacity: 1, y: 32 }, show: { opacity: 1, y: 0 } },
+  l: { hidden: { opacity: 1, x: -32 }, show: { opacity: 1, x: 0 } },
+  r: { hidden: { opacity: 1, x: 32 }, show: { opacity: 1, x: 0 } },
+  scale: { hidden: { opacity: 1, scale: 0.97 }, show: { opacity: 1, scale: 1 } },
 }
 
 export function Reveal({ children, variant = 'y', delay = 0, className }) {
