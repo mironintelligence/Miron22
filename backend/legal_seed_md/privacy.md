@@ -14,7 +14,7 @@ Platform, niteliği itibarıyla müvekkil bilgileri ve gizli hukuki belgeler iç
 **EIN (ABD Vergi No):** 38-4399031
 **Tescil:** Wyoming Secretary of State, No: 2026-001979488
 **İletişim:** mironintelligence@gmail.com
-**KVKK başvuruları:** kvkk@mironintelligence.com
+**KVKK başvuruları:** mironintelligence@gmail.com
 
 ---
 
@@ -104,7 +104,7 @@ Hesap ve güvenlik verileri öncelikli olarak AB/AEA bölgesinde (Supabase, Fran
 - Verdiğiniz onayı istediğiniz zaman **geri alma**
 - Otomatik karar alma ve profillemeye **itiraz etme**
 
-Talepler **kvkk@mironintelligence.com** adresine iletilir; 30 gün içinde yanıtlanır. KVK Kurulu'na şikâyet hakkınız saklıdır (kvkk.gov.tr).
+Talepler **mironintelligence@gmail.com** adresine iletilir; 30 gün içinde yanıtlanır. KVK Kurulu'na şikâyet hakkınız saklıdır (kvkk.gov.tr).
 
 ---
 

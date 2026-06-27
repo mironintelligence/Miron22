@@ -44,7 +44,30 @@ function SubscriptionTab() {
   const [loading, setLoading] = useState(true);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [togglingConsent, setTogglingConsent] = useState(false);
   const { user, refreshUser } = useAuth();
+  const [aiConsent, setAiConsent] = useState(!!user?.ai_improvement_consent);
+
+  const toggleConsent = async () => {
+    if (togglingConsent) return;
+    setTogglingConsent(true);
+    const next = !aiConsent;
+    try {
+      const r = await authFetch("/api/auth/ai-consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ consent: next }),
+      });
+      if (!r.ok) throw new Error("İşlem başarısız.");
+      setAiConsent(next);
+      if (typeof refreshUser === "function") await refreshUser();
+      emitToast(next ? "Yapay zeka eğitim katkısı açıldı." : "Yapay zeka eğitim katkısı kapatıldı.", "success");
+    } catch {
+      emitToast("Güncelleme başarısız.", "error");
+    } finally {
+      setTogglingConsent(false);
+    }
+  };
 
   // Manuel (admin tarafından) tanımlanmış abonelik: expires_at seti veya gifted/unlimited plan tipi
   const manualPlan = user?.subscriptionPlan && user.subscriptionPlan !== "free" ? user.subscriptionPlan : null;
@@ -204,6 +227,35 @@ function SubscriptionTab() {
           </a>
         </div>
       )}
+
+      {/* Yapay Zeka Eğitim Katkısı */}
+      <div className="glass p-5 rounded-2xl border border-white/10">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h3 className="font-semibold text-white text-sm mb-1">Yapay Zeka İyileştirmesine Katkı</h3>
+            <p className="text-xs text-white/40 leading-relaxed">
+              Açık olduğunda, işlediğiniz belgelerden kişisel bilgiler (TC no, isim, adres) algoritmik
+              olarak kaldırılır ve anonim veri olarak AI modelimizin geliştirilmesinde kullanılır.
+              Kapalı olduğunda hiçbir belge içeriği saklanmaz.
+            </p>
+          </div>
+          <button
+            onClick={toggleConsent}
+            disabled={togglingConsent}
+            aria-checked={aiConsent}
+            role="switch"
+            className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+              aiConsent ? "bg-amber-500" : "bg-white/20"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                aiConsent ? "translate-x-6" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
 
       {/* Onay Modalı */}
       <AnimatePresence>

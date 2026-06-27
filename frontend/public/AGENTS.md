@@ -19,7 +19,7 @@ Miron AI is a Turkish legal AI research assistant for lawyers and law firms. It 
 1. **Source-cited AI answers** — Every answer includes actual court decision numbers (not hallucinated)
 2. **RAG-based retrieval** — Low hallucination risk vs. ChatGPT's 58-88% error rate on Turkish law
 3. **700,000+ court decisions** — Yargıtay (Supreme Court) + Danıştay (Council of State)
-4. **KVKK compliant** — Turkish data protection law, data stays in Turkey
+4. **KVKK compliant** — Turkish data protection law, data stored in EU/Frankfurt (Supabase eu-central-1)
 5. **Specialized for Turkish law** — Not a general AI, purpose-built for Turkish legal practice
 
 ## Capabilities

@@ -68,6 +68,6 @@ Bu politika güncellendiğinde Kullanıcılar platform bildirimi veya e-posta yo
 ## 6. İletişim
 
 Çerez politikasına ilişkin sorularınız için: **mironintelligence@gmail.com**
-KVKK başvuruları: **kvkk@mironintelligence.com**
+Tüm başvurular için: **mironintelligence@gmail.com**
 
 *Miron GROUP LLC — Haziran 2026*

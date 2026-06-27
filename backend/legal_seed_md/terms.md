@@ -67,9 +67,7 @@ Kayıt tamamlandıktan sonra sunulan isteğe bağlı onay sorusuna "Evet" yanıt
 
 Ödeme işlemleri PCI DSS sertifikalı **Stripe** altyapısı üzerinden gerçekleştirilir. Kart bilgileri Miron AI sistemlerinde saklanmaz.
 
-**30 Gün Tam İade Güvencesi:** İlk ödeme tarihinden itibaren 30 takvim günü içinde **mironintelligence@gmail.com** adresine yazılı başvuru yapılması halinde, ilk dönem abonelik ücreti tam olarak iade edilir. Bu hak; hesap başına yalnızca bir kez ve yalnızca ilk ödeme için geçerlidir.
-
-Sonraki dönemlerde iade yapılmaz. Abonelik iptal edilebilir; cari dönem sonunda sona erer.
+Abonelik iptal edilebilir; cari dönem sonunda sona erer. İade taleplerinizi **mironintelligence@gmail.com** adresine iletebilirsiniz; ekibimiz durumu inceleyerek size yanıt verir.
 
 ---
 
@@ -132,7 +130,6 @@ Bu Şartlar Türk hukukuna tabidir. Uyuşmazlıklarda **İstanbul** Mahkemeleri 
 
 | Konu | Adres |
 |---|---|
-| Genel destek ve iade talepleri | mironintelligence@gmail.com |
-| KVKK / kişisel veri başvuruları | kvkk@mironintelligence.com |
+| Genel destek, iade ve kişisel veri başvuruları | mironintelligence@gmail.com |
 
 *Miron GROUP LLC — Haziran 2026*

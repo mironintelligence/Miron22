@@ -141,7 +141,7 @@ export default function HukukBurosuYapayZeka() {
               Türk avukatlar için <strong className="text-white">müvekkil verisi güvenliği kritiktir.</strong> ChatGPT veya Gemini ile müvekkil bilgisi paylaşmak Türkiye Barolar Birliği etik kuralları ve KVKK kapsamında ciddi riskler taşır.
             </p>
             <ul className="space-y-2 text-sm text-white/60">
-              <li className="flex gap-3"><span className="text-green-400">✓</span><strong className="text-white">Miron AI:</strong> Veriler Türkiye'dedir. Model eğitiminde kullanılmaz. KVKK tam uyumlu.</li>
+              <li className="flex gap-3"><span className="text-green-400">✓</span><strong className="text-white">Miron AI:</strong> Veriler AB/Frankfurt (eu-central-1) sunucularında saklanır. Model eğitiminde kullanılmaz. KVKK tam uyumlu.</li>
               <li className="flex gap-3"><span className="text-red-400">✗</span><strong className="text-white/60">ChatGPT:</strong> Veriler OpenAI ABD sunucularına gönderilir. KVKK uyumu belirsiz.</li>
               <li className="flex gap-3"><span className="text-red-400">✗</span><strong className="text-white/60">Gemini:</strong> Google sunucuları. Veri işleme politikası avukatlık sırrı için uygun değil.</li>
             </ul>

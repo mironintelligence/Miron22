@@ -415,7 +415,7 @@ Piyasada fiyat aralığı geniştir. Değerlendirirken sadece fiyatı değil, ş
 | Kaynak gösterme | Her yanıtta gerçek karar linki |
 | Veritabanı | 700.000+ Yargıtay/Danıştay kararı |
 | Mimari | RAG (Retrieval-Augmented Generation) |
-| Veri güvenliği | KVKK uyumlu, Türkiye sunucuları |
+| Veri güvenliği | KVKK uyumlu, AB/Frankfurt sunucuları |
 | Güncellenme | Düzenli |
 | Hallüsinasyon riski | Minimize edilmiş |
 

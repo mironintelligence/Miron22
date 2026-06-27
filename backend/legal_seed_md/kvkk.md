@@ -14,7 +14,7 @@
 **Adres:** 30 N Gould St Ste R, Sheridan, WY 82801, USA
 **EIN (ABD Vergi No):** 38-4399031
 **Genel iletişim:** mironintelligence@gmail.com
-**KVKK başvuruları:** kvkk@mironintelligence.com
+**KVKK başvuruları:** mironintelligence@gmail.com
 
 ---
 
@@ -115,7 +115,7 @@ KVKK'nın 11. maddesi uyarınca aşağıdaki haklara sahipsiniz:
 - Otomatik sistemler aracılığıyla aleyhinize sonuç doğurmasına **itiraz etme**
 - Kanuna aykırı işleme sebebiyle oluşan **zararın giderilmesini talep etme**
 
-**Başvuru yöntemi:** kvkk@mironintelligence.com adresine ad, soyad ve talebinizi açıklayan bir e-posta. Başvurular 30 gün içinde yanıtlanır.
+**Başvuru yöntemi:** mironintelligence@gmail.com adresine ad, soyad ve talebinizi açıklayan bir e-posta. Başvurular 30 gün içinde yanıtlanır.
 
 KVK Kurulu'na şikâyet için: **kvkk.gov.tr**
 

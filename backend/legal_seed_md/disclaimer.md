@@ -82,6 +82,6 @@ Miron AI'nın herhangi bir olay nedeniyle üstlenebileceği azami sorumluluk, Ku
 ## 8. İletişim
 
 Genel sorular: **mironintelligence@gmail.com**
-KVKK başvuruları: **kvkk@mironintelligence.com**
+Tüm başvurular için: **mironintelligence@gmail.com**
 
 *Miron GROUP LLC — Haziran 2026*
