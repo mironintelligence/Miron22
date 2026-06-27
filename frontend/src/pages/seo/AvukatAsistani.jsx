@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import SEOHead from "../../components/SEOHead.jsx";
+import { SeoRelated } from "../../components/SeoRelated.jsx";
 
 const faqSchema = {
   "@context": "https://schema.org",
@@ -120,6 +121,7 @@ export default function AvukatAsistani() {
               Ücretsiz başla
             </Link>
           </div>
+          <SeoRelated current="/avukat-yapay-zeka-asistani" />
         </div>
       </div>
     </>

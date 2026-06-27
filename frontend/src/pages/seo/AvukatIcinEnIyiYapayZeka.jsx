@@ -1,5 +1,6 @@
 import SEOHead from "../../components/SEOHead.jsx";
 import { Link } from "react-router-dom";
+import { SeoRelated } from "../../components/SeoRelated.jsx";
 
 const schema = {
   "@context": "https://schema.org",
@@ -228,6 +229,7 @@ export default function AvukatIcinEnIyiYapayZeka() {
               Ücretsiz Başla
             </Link>
           </div>
+          <SeoRelated current="/avukat-icin-en-iyi-yapay-zeka" source="Dahl et al., Journal of Legal Analysis (2024)" />
 
         </div>
       </div>

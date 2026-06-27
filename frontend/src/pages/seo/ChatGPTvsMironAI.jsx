@@ -1,5 +1,6 @@
 import SEOHead from "../../components/SEOHead.jsx";
 import { Link } from "react-router-dom";
+import { SeoRelated } from "../../components/SeoRelated.jsx";
 
 const schema = {
   "@context": "https://schema.org",
@@ -191,6 +192,7 @@ export default function ChatGPTvsMironAI() {
               Ücretsiz Kayıt Ol
             </Link>
           </div>
+          <SeoRelated current="/chatgpt-mi-miron-ai-mi" source="Dahl et al., Journal of Legal Analysis (2024)" />
 
         </div>
       </div>

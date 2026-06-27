@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import SEOHead from "../../components/SEOHead.jsx";
+import { SeoRelated } from "../../components/SeoRelated.jsx";
 
 const faqSchema = {
   "@context": "https://schema.org",
@@ -69,7 +70,7 @@ export default function HukukYapayZeka() {
           <section className="mb-16">
             <h2 className="text-2xl font-bold mb-6">Hukuk yapay zekası neden farklıdır?</h2>
             <p className="text-white/60 leading-relaxed mb-5">
-              Genel yapay zeka modelleri (ChatGPT, Gemini) hukuki araştırmada ciddi riskler taşır. Bu modeller gerçek Yargıtay kararlarına erişemez; bunun yerine eğitim verilerinden "böyle bir karar nasıl görünürdü" tahminini üretir. Araştırmalar bu hallüsinasyon oranının %58-88 arasında olduğunu gösteriyor.
+              Genel yapay zeka modelleri (ChatGPT, Gemini) hukuki araştırmada ciddi riskler taşır. Bu modeller gerçek Yargıtay kararlarına erişemez; bunun yerine eğitim verilerinden "böyle bir karar nasıl görünürdü" tahminini üretir. Araştırmalar bu hallüsinasyon oranının %58-88 arasında olduğunu gösteriyor{' '}<span className="text-white/30 text-xs">(Dahl ve ark., Journal of Legal Analysis, 2024)</span>.
             </p>
             <p className="text-white/60 leading-relaxed mb-5">
               Hukuka özel yapay zeka platformları RAG (Retrieval-Augmented Generation) mimarisini kullanır: önce gerçek veritabanından belge bulur, ardından bu gerçek belgeler üzerinden yanıt üretir. Her yanıtta kaynak linki gösterilir ve doğrulanabilir.
@@ -155,6 +156,7 @@ export default function HukukYapayZeka() {
               Fiyatlar
             </Link>
           </div>
+          <SeoRelated current="/hukuk-yapay-zeka" source="Dahl et al., Journal of Legal Analysis (2024)" />
         </div>
       </div>
     </>

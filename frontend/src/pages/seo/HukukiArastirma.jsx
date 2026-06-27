@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import SEOHead from "../../components/SEOHead.jsx";
+import { SeoRelated } from "../../components/SeoRelated.jsx";
 
 const faqSchema = {
   "@context": "https://schema.org",
@@ -119,6 +120,7 @@ export default function HukukiArastirma() {
               </Link>
             </div>
           </div>
+          <SeoRelated current="/hukuki-arastirma" />
         </div>
       </div>
     </>

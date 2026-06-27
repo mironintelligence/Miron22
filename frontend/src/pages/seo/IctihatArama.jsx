@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import SEOHead from "../../components/SEOHead.jsx";
+import { SeoRelated } from "../../components/SeoRelated.jsx";
 
 const faqSchema = {
   "@context": "https://schema.org",
@@ -113,6 +114,7 @@ export default function IctihatArama() {
               Ücretsiz başla
             </Link>
           </div>
+          <SeoRelated current="/ictihat-arama" />
         </div>
       </div>
     </>
