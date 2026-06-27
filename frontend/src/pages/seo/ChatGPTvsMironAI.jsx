@@ -56,7 +56,7 @@ const COMPARISON = [
   { kriter: "Avukatlık sırrı", miron: "Veriler modele gönderilmez, silinir", chatgpt: "OpenAI politikası — belirsiz" },
   { kriter: "Dilekçe üretimi", miron: "Davaya özel, içtihat destekli", chatgpt: "Genel şablon, kaynaksız" },
   { kriter: "Hukuki hesaplama", miron: "11 modül (kıdem, ihbar, faiz vb.)", chatgpt: "Hata yapma riski yüksek" },
-  { kriter: "Fiyat", miron: "6.999 TL/ay + KDV", chatgpt: "~600 TL/ay (ChatGPT Plus)" },
+  { kriter: "Fiyat", miron: "12.000 TL/ay + KDV", chatgpt: "~600 TL/ay (ChatGPT Plus)" },
 ];
 
 const SCENARIOS = [

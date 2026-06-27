@@ -46,7 +46,7 @@ const schema = {
           "name": "Kaç avukatlı büro yapay zekâ kullanabilir?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Miron AI tek avukatlık bürolarından 200+ kişilik hukuk bürolarına kadar ölçeklenir. 3 ve üzeri kullanıcı için %12,5 toplu indirim uygulanır."
+            "text": "Miron AI tek avukatlık bürolarından büyük hukuk bürolarına kadar kullanılabilir. Fiyat 12.000 TL + KDV/ay (tek kullanıcı). Büro için toplu kullanım taleplerinde iletişime geçiniz."
           }
         }
       ]
@@ -171,20 +171,18 @@ export default function HukukBurosuYapayZeka() {
 
           <h2 className="text-2xl font-bold mb-6">Fiyatlandırma ve Ölçekleme</h2>
           <div className="glass rounded-xl p-6 mb-14 border border-white/10">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-              {[
-                { plan: "Bireysel Avukat", fiyat: "6.999 TL/ay", detay: "1 kullanıcı, tüm özellikler" },
-                { plan: "Küçük Büro (3-10)", fiyat: "%12,5 indirim", detay: "Toplu kullanıcı fiyatı" },
-                { plan: "Büyük Büro (10+)", fiyat: "Özel fiyat", detay: "SSO ve kurumsal destek" },
-              ].map((p) => (
-                <div key={p.plan} className="border border-white/10 rounded-lg p-4">
-                  <p className="text-xs text-white/40 mb-2 uppercase tracking-wider">{p.plan}</p>
-                  <p className="text-yellow-400 font-bold text-lg mb-1">{p.fiyat}</p>
-                  <p className="text-white/40 text-xs">{p.detay}</p>
-                </div>
-              ))}
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+              <div className="text-center sm:text-left">
+                <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Bireysel Lisans</p>
+                <p className="text-yellow-400 font-bold text-3xl">12.000 TL<span className="text-base font-normal text-white/50">/ay + KDV</span></p>
+                <p className="text-white/40 text-xs mt-1">Tek kullanıcı — tüm özellikler dahil</p>
+              </div>
+              <div className="text-center sm:text-right">
+                <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Büro / Toplu Kullanım</p>
+                <p className="text-white/70 font-semibold text-lg">İletişime Geçin</p>
+                <p className="text-white/40 text-xs mt-1">mironintelligence@gmail.com</p>
+              </div>
             </div>
-            <p className="text-center mt-4 text-xs text-white/30">Tüm planlar + KDV. Yıllık ödeme seçeneği mevcut.</p>
           </div>
 
           <h2 className="text-2xl font-bold mb-6">Sık Sorulan Sorular</h2>
@@ -204,7 +202,7 @@ export default function HukukBurosuYapayZeka() {
               },
               {
                 q: "Kaç avukatlı büro kullanabilir?",
-                a: "Miron AI tek avukatlık bürolarından 200+ kişilik bürolara kadar ölçeklenir. 3 ve üzeri kullanıcı için %12,5 toplu indirim uygulanır."
+                a: "Miron AI tek kişilik bürolardan büyük hukuk bürolarına kadar kullanılabilir. Bireysel lisans 12.000 TL + KDV/ay'dır. Büro içi toplu kullanım için mironintelligence@gmail.com adresinden iletişime geçiniz."
               },
             ].map(({ q, a }) => (
               <div key={q} className="border border-white/10 rounded-xl p-5">

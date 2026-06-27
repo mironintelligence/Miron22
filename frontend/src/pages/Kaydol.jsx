@@ -807,12 +807,11 @@ export default function Kaydol() {
 
           <div className="grid md:grid-cols-2 gap-6">
             <div className="glass p-6 sm:p-8 rounded-2xl border border-[var(--miron-gold)]/45 flex flex-col shadow-[0_20px_60px_rgba(255,215,0,0.08)]">
-              <div className="text-xs font-bold text-[var(--miron-gold)] uppercase tracking-widest mb-2">Miron AI Legal</div>
+              <div className="text-xs font-bold text-[var(--miron-gold)] uppercase tracking-widest mb-2">Bireysel Lisans</div>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-lg text-white/40 line-through">{Number(listPrice).toLocaleString("tr-TR")} TL</span>
-                <span className="text-3xl font-black text-white">{Number(salePrice).toLocaleString("tr-TR")} TL</span>
+                <span className="text-3xl font-black text-white">12.000 TL</span>
               </div>
-              <p className="text-xs text-subtle mb-4">Tek kullanıcı — fiyat ve indirim oranı yönetici panelinden güncellenir.</p>
+              <p className="text-xs text-subtle mb-4">/ ay + KDV · tek kullanıcı</p>
               <ul className="text-sm text-white/80 space-y-2 mb-6 flex-1">
                 {LEGAL_FEATURES.map((f) => (
                   <li key={f} className="flex gap-2">
@@ -1116,30 +1115,12 @@ export default function Kaydol() {
               type="button"
               disabled={submitting}
               onClick={() => goToCheckout("monthly")}
-              className="w-full py-4 rounded-xl border border-white/20 text-white font-bold hover:bg-white/5 transition disabled:opacity-50"
-            >
-              {submitting ? "Yönlendiriliyor..." : (
-                <>
-                  <div className="text-sm font-bold">Aylık Plan</div>
-                  <div className="text-xs text-white/50 font-normal mt-0.5">
-                    {publicPrices ? `${Number(publicPrices.base_price).toLocaleString("tr-TR")} TL/ay` : "—"}
-                  </div>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => goToCheckout("yearly")}
               className="w-full py-4 rounded-xl bg-[var(--miron-gold)] text-black font-black hover:brightness-110 transition disabled:opacity-50"
             >
               {submitting ? "Yönlendiriliyor..." : (
                 <>
-                  <div className="text-sm font-bold">Yıllık Plan — En Avantajlı</div>
-                  <div className="text-xs text-black/60 font-normal mt-0.5">
-                    {publicPrices ? `${Number(publicPrices.yearly_price).toLocaleString("tr-TR")} TL/yıl` : "—"}
-                  </div>
+                  <div className="text-sm font-bold">Aboneliği Başlat</div>
+                  <div className="text-xs text-black/60 font-normal mt-0.5">12.000 TL/ay + KDV · tek kullanıcı</div>
                 </>
               )}
             </button>

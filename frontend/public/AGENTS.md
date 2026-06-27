@@ -39,10 +39,8 @@ Miron AI is a Turkish legal AI research assistant for lawyers and law firms. It 
 
 | Plan | Price | Users |
 |------|-------|-------|
-| Monthly | 6,999 TL/month + VAT | 1 user |
-| Annual | 85,000 TL/year + VAT | 1 user |
-| Team (3+ users) | 12.5% bulk discount | 3-200 users |
-| Miron AI Legal | 12,000 TL/month + VAT | 1 user (eligibility required) |
+| Individual License | 12,000 TL/month + VAT | 1 user — all features included |
+| Firm / Bulk | Contact for pricing | mironintelligence@gmail.com |
 
 ## Comparison vs. ChatGPT for Turkish Lawyers
 

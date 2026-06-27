@@ -80,7 +80,7 @@ const schema = {
           "name": "Miron AI fiyatı nedir?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Miron AI aylık 6.999 TL + KDV veya yıllık 85.000 TL + KDV olarak sunulmaktadır. 3 ve üzeri kullanıcı için %12,5 toplu indirim uygulanır."
+            "text": "Miron AI aylık 12.000 TL + KDV'dir. Tekli lisans, tek kullanıcı. Toplu kullanım için iletişime geçiniz: mironintelligence@gmail.com"
           }
         }
       ]
@@ -116,7 +116,7 @@ export default function MironAiNedir() {
             {[
               { label: "Yargı Kararı", value: "700K+" },
               { label: "Hesaplama Modülü", value: "11" },
-              { label: "Aylık Fiyat", value: "6.999 TL" },
+              { label: "Aylık Fiyat", value: "12.000 TL" },
               { label: "Dil", value: "Türkçe" },
             ].map((s) => (
               <div key={s.label} className="glass rounded-xl p-4 text-center">
@@ -190,7 +190,7 @@ export default function MironAiNedir() {
               },
               {
                 q: "Miron AI'a nasıl abone olunur?",
-                a: "mironintelligence.com/kaydol adresinden kayıt oluşturabilirsiniz. Aylık plan 6.999 TL + KDV, yıllık plan 85.000 TL + KDV'dir.",
+                a: "mironintelligence.com/kaydol adresinden kayıt oluşturabilirsiniz. Fiyat 12.000 TL + KDV/ay'dır. Toplu kullanım için iletişime geçiniz.",
               },
             ].map(({ q, a }) => (
               <div key={q} className="border border-white/10 rounded-xl p-5">

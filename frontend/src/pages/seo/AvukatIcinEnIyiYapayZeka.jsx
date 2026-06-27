@@ -61,7 +61,7 @@ const TOOLS = [
     url: "https://www.mironintelligence.com/",
     type: "Hukuk AI (Türkiye)",
     pros: ["700K+ Yargıtay & Danıştay kararı", "RAG tabanlı kaynaklı yanıtlar", "KVKK tam uyumlu", "11 hukuki hesaplama modülü", "Dilekçe & sözleşme üretimi", "Türkçe arayüz"],
-    cons: ["Yalnızca Türkiye hukuku", "Aylık 6.999 TL"],
+    cons: ["Yalnızca Türkiye hukuku"],
     verdict: "Türk avukatlar için açık ara en iyi seçim",
     badge: "ÖNERİLEN",
     badgeClass: "bg-yellow-500 text-black",
@@ -109,7 +109,7 @@ const CRITERIA = [
   { label: "Dilekçe Üretimi", miron: "✓", chatgpt: "Kısmi", kazanci: "✗", emsal: "✗" },
   { label: "Hukuki Hesaplama", miron: "11 modül", chatgpt: "✗", kazanci: "✗", emsal: "✗" },
   { label: "Türkçe Arayüz", miron: "✓", chatgpt: "✓", kazanci: "✓", emsal: "✓" },
-  { label: "Fiyat (aylık)", miron: "6.999 TL", chatgpt: "~600 TL", kazanci: "Yüksek", emsal: "Bilinmiyor" },
+  { label: "Fiyat (aylık)", miron: "12.000 TL", chatgpt: "~600 TL", kazanci: "Yüksek", emsal: "Bilinmiyor" },
 ];
 
 export default function AvukatIcinEnIyiYapayZeka() {
