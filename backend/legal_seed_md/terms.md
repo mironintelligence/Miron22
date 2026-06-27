@@ -8,6 +8,8 @@
 
 Bu Kullanım Şartları ("Şartlar"), **Miron GROUP LLC** ("Şirket", "biz", "Miron AI") ile platforma kayıt olan veya herhangi bir özelliğini kullanan kişi ya da kuruluş ("Kullanıcı", "siz") arasında hukuki bağlayıcı bir sözleşme oluşturur. Platforma erişmek veya kullanmaya başlamak bu Şartlar'ı okuduğunuzu, anladığınızı ve tüm hükümlerine bağlı olmayı kabul ettiğinizi ifade eder.
 
+**Şirket Bilgileri:** Miron GROUP LLC · 30 N Gould St Ste R, Sheridan, WY 82801, USA · EIN: 38-4399031 · Wyoming Tescil No: 2026-001979488 · mironintelligence@gmail.com
+
 Bu Şartlar; Gizlilik Politikası, KVKK Aydınlatma Metni, Veri İşleme Sözleşmesi, Çerez Politikası, Yapay Zeka Kullanım Şartları ve Sorumluluk Reddi Beyanı ile birlikte tek bir bütün oluşturur.
 
 ---

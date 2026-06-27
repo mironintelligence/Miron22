@@ -194,8 +194,6 @@ export default function Kaydol() {
   const [phase, setPhase] = useState(persisted?.phase || "questions");
   const [qIndex, setQIndex] = useState(persisted?.qIndex || 0);
   const [selectedPlan, setSelectedPlan] = useState(persisted?.selectedPlan || null);
-  const [publicPrices, setPublicPrices] = useState(null);
-
   const [firstName, setFirstName] = useState(persisted?.firstName || "");
   const [lastName, setLastName] = useState(persisted?.lastName || "");
   const [email, setEmail] = useState(persisted?.email || "");
@@ -236,17 +234,6 @@ export default function Kaydol() {
   useEffect(() => {
     persist();
   }, [persist]);
-
-  useEffect(() => {
-    const base = getApiBase();
-    fetch(`${String(base).replace(/\/+$/, "")}/api/pricing/public-settings`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setPublicPrices)
-      .catch(() => setPublicPrices(null));
-  }, []);
-
-  const listPrice = publicPrices?.legal_list_price ?? 24000;
-  const salePrice = publicPrices?.legal_sale_price ?? 12000;
 
   const isValidEmail = (value) => {
     const v = String(value || "").trim();
