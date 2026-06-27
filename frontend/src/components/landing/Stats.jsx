@@ -60,15 +60,6 @@ export function Stats() {
           </h2>
         </Reveal>
 
-        <Reveal>
-          <div className="max-w-[600px] mx-auto border border-border p-4 text-center mb-12">
-            <p className="font-ui text-[12px] text-muted tracking-[0.1em]">
-              Şu anda{' '}
-              <span className="text-gold font-medium">47 avukat</span>
-              {' '}bu sistemi aktif kullanıyor.
-            </p>
-          </div>
-        </Reveal>
       </Container>
 
       <div className="max-w-[1200px] mx-auto px-6 lg:px-[52px]">
