@@ -11,8 +11,7 @@ const FEATURES = [
   'Yargıtay & Danıştay emsal tarama',
   '11 hukuki hesaplama motoru',
   'Strateji motoru ve dava simülasyonu',
-  'Özel onboarding ve eğitim (2 hafta)',
-  'Haftalık 1:1 strateji oturumu',
+
 ]
 
 export function Pricing() {
