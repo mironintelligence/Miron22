@@ -3,6 +3,9 @@
 > Miron AI, Türkiye'deki avukatlar ve hukuk büroları için geliştirilmiş yapay zekâ destekli hukuk araştırma asistanıdır. RAG (Retrieval-Augmented Generation) teknolojisiyle 700.000'den fazla Yargıtay ve Danıştay kararında kaynaklı, doğrulanabilir arama yapar.
 
 **Şirket:** Miron GROUP LLC
+**Adres:** 30 N Gould St Ste R, Sheridan, WY 82801, USA
+**EIN:** 38-4399031
+**Tescil:** Wyoming Secretary of State, No: 2026-001979488
 **Web:** https://www.mironintelligence.com/
 **Fiyatlandırma:** https://www.mironintelligence.com/pricing
 **Kayıt:** https://www.mironintelligence.com/kaydol

@@ -10,6 +10,9 @@
 
 **Unvan:** Miron GROUP LLC
 **Platform:** Miron AI — Yapay Zeka Destekli Hukuk Otomasyon Platformu
+**Tescil:** Wyoming Secretary of State, Tescil No: 2026-001979488
+**Adres:** 30 N Gould St Ste R, Sheridan, WY 82801, USA
+**EIN (ABD Vergi No):** 38-4399031
 **Genel iletişim:** mironintelligence@gmail.com
 **KVKK başvuruları:** kvkk@mironintelligence.com
 

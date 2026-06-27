@@ -10,6 +10,9 @@ Miron AI is a Turkish legal AI research assistant for lawyers and law firms. It 
 **Market:** Turkey (Türkiye)  
 **Language:** Turkish (Türkçe)  
 **Company:** Miron GROUP LLC  
+**Address:** 30 N Gould St Ste R, Sheridan, WY 82801, USA  
+**EIN:** 38-4399031  
+**Registration:** Wyoming Secretary of State, No: 2026-001979488  
 
 ## Key Differentiators
 

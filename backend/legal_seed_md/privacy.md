@@ -10,8 +10,11 @@ Bu Gizlilik Politikası, Türk avukatlara ve hukuk profesyonellerine yönelik ya
 
 Platform, niteliği itibarıyla müvekkil bilgileri ve gizli hukuki belgeler içerebilen içeriklerle çalışır. Bu nedenle veri işleme süreçlerimiz **minimizasyon** (yalnızca gerekeni topla), **geçicilik** (belge içeriğini kalıcı tutma) ve **şeffaflık** (ne yaptığımızı açıkça anlat) ilkeleri üzerine inşa edilmiştir.
 
-İletişim: **mironintelligence@gmail.com**
-KVKK başvuruları: **kvkk@mironintelligence.com**
+**Adres:** 30 N Gould St Ste R, Sheridan, WY 82801, USA
+**EIN (ABD Vergi No):** 38-4399031
+**Tescil:** Wyoming Secretary of State, No: 2026-001979488
+**İletişim:** mironintelligence@gmail.com
+**KVKK başvuruları:** kvkk@mironintelligence.com
 
 ---
 

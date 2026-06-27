@@ -24,11 +24,16 @@ export function SiteLegalFooterLinks({ className = "", linkClassName }) {
 export function SiteLegalCompanyLine({ className = "" }) {
   const y = new Date().getFullYear();
   return (
-    <p className={`text-[11px] text-white/45 text-center ${className}`}>
-      <span className="text-white/80 font-medium">Miron GROUP LLC</span>
-      <span className="mx-1.5 text-white/25">·</span>
-      <span>© {y}</span>
-    </p>
+    <div className={`text-[11px] text-white/45 text-center space-y-1 ${className}`}>
+      <p>
+        <span className="text-white/80 font-medium">Miron GROUP LLC</span>
+        <span className="mx-1.5 text-white/25">·</span>
+        <span>© {y}</span>
+        <span className="mx-1.5 text-white/25">·</span>
+        <span>EIN 38-4399031</span>
+      </p>
+      <p className="text-white/30">30 N Gould St Ste R, Sheridan, WY 82801, USA</p>
+    </div>
   );
 }
 
