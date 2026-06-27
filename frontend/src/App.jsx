@@ -48,6 +48,14 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const DavaMerkezi = lazy(() => import("./pages/dashboard/DavaMerkezi.jsx"));
 const Arastirma = lazy(() => import("./pages/dashboard/Arastirma.jsx"));
 const BelgeStudyosu = lazy(() => import("./pages/dashboard/BelgeStudyosu.jsx"));
+const Blog = lazy(() => import("./pages/Blog.jsx"));
+const BlogPost = lazy(() => import("./pages/BlogPost.jsx"));
+const NotFound = lazy(() => import("./pages/NotFound.jsx"));
+const HukukYapayZeka = lazy(() => import("./pages/seo/HukukYapayZeka.jsx"));
+const IctihatArama = lazy(() => import("./pages/seo/IctihatArama.jsx"));
+const YargitayKararArama = lazy(() => import("./pages/seo/YargitayKararArama.jsx"));
+const AvukatAsistani = lazy(() => import("./pages/seo/AvukatAsistani.jsx"));
+const HukukiArastirma = lazy(() => import("./pages/seo/HukukiArastirma.jsx"));
 
 // Render free tier cold-start önleyici — her 8 dakikada backend'i uyanık tutar
 function useBackendKeepalive() {
@@ -401,13 +409,20 @@ export default function App() {
             <Route path="/privacy" element={<Navigate to="/legal/privacy" replace />} />
             <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
             <Route path="/user-agreement" element={<Navigate to="/legal/terms" replace />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/hukuk-yapay-zeka" element={<HukukYapayZeka />} />
+            <Route path="/ictihat-arama" element={<IctihatArama />} />
+            <Route path="/yargitay-karar-arama" element={<YargitayKararArama />} />
+            <Route path="/avukat-yapay-zeka-asistani" element={<AvukatAsistani />} />
+            <Route path="/hukuki-arastirma" element={<HukukiArastirma />} />
             <Route
               path="*"
               element={
                 status === "authed" ? (
                   <Navigate to="/dashboard" replace />
                 ) : (
-                  <Navigate to="/" replace />
+                  <NotFound />
                 )
               }
             />

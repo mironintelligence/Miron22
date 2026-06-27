@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import SEOHead from "../components/SEOHead.jsx";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
@@ -99,6 +100,12 @@ export default function Pricing() {
   }, [settings]);
 
   return (
+    <>
+    <SEOHead
+      title="Fiyatlandırma — Avukatlar İçin Hukuk AI Abonelik Planları"
+      description="Miron AI fiyatlandırma: aylık ve yıllık plan seçenekleri. Hukuk yapay zeka asistanına, içtihat aramasına ve risk analizine uygun fiyatla erişin."
+      canonical="/pricing"
+    />
     <div className="premium-scope min-h-screen px-6 sm:px-10 md:px-16 pb-12 bg-black text-white">
       <section className="max-w-6xl mx-auto mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="glass p-6 rounded-2xl border border-white/10 flex flex-col">
@@ -269,5 +276,6 @@ export default function Pricing() {
         © 2026 Miron GROUP LLC — All rights reserved
       </footer>
     </div>
+    </>
   );
 }

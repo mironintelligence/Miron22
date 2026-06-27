@@ -1,9 +1,16 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
+import SEOHead from "../components/SEOHead.jsx";
 
 export default function About() {
   return (
+    <>
+    <SEOHead
+      title="Hakkımızda — Miron Group LLC"
+      description="Miron Group LLC; hukuk, turizm ve emlak sektörleri için yapay zeka sistemleri geliştiren bir teknoloji şirketidir. Miron AI, Luna AI ve Miron RE hakkında."
+      canonical="/about"
+    />
     <div className="premium-scope min-h-screen bg-black text-white pt-24 px-6 pb-24">
       <div className="max-w-3xl mx-auto">
 
@@ -143,5 +150,6 @@ export default function About() {
 
       </div>
     </div>
+    </>
   );
 }

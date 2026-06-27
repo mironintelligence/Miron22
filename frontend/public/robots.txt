@@ -1,0 +1,47 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /settings/
+Disallow: /analyze/
+Disallow: /contracts/
+Disallow: /cases/
+Disallow: /reports/
+Disallow: /reminders/
+Disallow: /yargitay/
+Disallow: /pleadings/
+Disallow: /risk/
+Disallow: /calculators/
+Disallow: /notifications/
+
+# AI search bots — citation allowed
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# Training-only crawlers — blocked
+User-agent: CCBot
+Disallow: /
+
+Sitemap: https://www.mironintelligence.com/sitemap.xml

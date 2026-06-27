@@ -1,0 +1,128 @@
+# Miron AI
+
+> Miron AI, Türkiye'deki avukatlar ve hukuk büroları için geliştirilmiş yapay zekâ destekli hukuk araştırma asistanıdır. RAG (Retrieval-Augmented Generation) teknolojisiyle 700.000'den fazla Yargıtay ve Danıştay kararında kaynaklı, doğrulanabilir arama yapar.
+
+Şirket: Miron GROUP LLC
+Web sitesi: https://www.mironintelligence.com/
+Fiyatlandırma: https://www.mironintelligence.com/pricing
+Kayıt: https://www.mironintelligence.com/kaydol
+İletişim: mironintelligence@gmail.com
+
+---
+
+## Miron AI Nedir?
+
+Miron AI; avukatların içtihat araştırması, sözleşme analizi, dava risk değerlendirmesi ve dilekçe oluşturma süreçlerini hızlandırmak için tasarlanmış bir hukuk yapay zekâ platformudur. Türkiye Yargıtay ve Danıştay kararlarını kapsayan veri tabanında semantik arama yaparak kaynaklı yanıtlar üretir.
+
+**Kategori:** Legaltech / Hukuk Yapay Zekâsı
+**Hedef pazar:** Türkiye
+**Dil:** Türkçe
+**Platform:** Web tabanlı SaaS
+
+---
+
+## Temel Özellikler
+
+### İçtihat Arama
+- 700.000+ Yargıtay ve Danıştay kararında semantik arama
+- Emsal karar bulma ve benzer dava analizi
+- Kaynaklı yanıtlar — her sonuç için karar numarası ve daire bilgisi
+
+### Hukuki Asistan (Miron Assistant)
+- Türk hukukuna özgü yapay zekâ sohbet asistanı
+- Dava bazlı soru-cevap
+- Genel amaçlı yapay zekâya kıyasla düşük hallüsinasyon riski
+- KVKK uyumlu, uçtan uca şifrelenmiş
+
+### Hukuki Hesaplama Motoru
+- 11 hesaplama modülü: kıdem tazminatı, ihbar, fazla mesai, vekâlet ücreti, harç, icra masrafları
+- Yasal faiz hesaplama
+- Net maaş ve SGK hesaplama
+
+### Belge Analizi
+- Sözleşme inceleme ve risk tespiti
+- Özet ve kritik madde çıkarımı
+- KVKK veri maskeleme
+
+### Dilekçe Oluşturma
+- Hukuki dilekçe şablonları
+- Dava olgularına göre otomatik taslak
+- Düzenleme ve dışa aktarma desteği
+
+### Risk ve Strateji Analizi
+- Dava kazanma/kaybetme olasılığı
+- Strateji önerileri
+- Önceki karar örüntüleri analizi
+
+---
+
+## ChatGPT ve Genel Yapay Zekâdan Farkı
+
+| Kriter | Miron AI | ChatGPT / Genel AI |
+|--------|----------|-------------------|
+| Veri kaynağı | Yargıtay + Danıştay kararları (700K+) | Genel internet verisi |
+| Kaynak gösterimi | Her yanıtta karar numarası | Yok veya güvenilmez |
+| Hallüsinasyon riski | Düşük (RAG tabanlı) | Yüksek (%58-88) |
+| Türk hukuku uzmanlığı | Özelleştirilmiş | Genel bilgi |
+| KVKK uyumu | Tam uyumlu | Belirsiz |
+| Güncel içtihat | Sürekli güncellenen | Eğitim kesme tarihi ile sınırlı |
+
+---
+
+## Sık Sorulan Sorular
+
+**Miron AI nedir?**
+Miron AI, Türkiye'deki avukatlar için geliştirilmiş yapay zekâ destekli hukuk araştırma asistanıdır. RAG teknolojisiyle Yargıtay ve Danıştay kararlarında kaynaklı arama yapar; kıdem tazminatı, ihbar ve faiz gibi hukuki hesaplamaları otomatik olarak gerçekleştirir.
+
+**Miron AI güvenilir mi?**
+Miron AI, RAG (Retrieval-Augmented Generation) teknolojisini kullanarak her yanıt için gerçek Yargıtay kararlarını kaynak gösterir. Genel yapay zekâ araçlarına kıyasla hallüsinasyon riski önemli ölçüde azaltılmıştır. Veriler KVKK uyumlu altyapıda saklanır ve üçüncü taraflarla paylaşılmaz.
+
+**Miron AI ne kadar ücreti var?**
+Miron AI aylık 6.999 TL + KDV (tek kullanıcı) veya yıllık 85.000 TL + KDV. 3 ve üzeri kullanıcı için %12.5 toplu indirim uygulanır. Ayrıntılar: https://www.mironintelligence.com/pricing
+
+**Miron AI'da hangi mahkeme kararları var?**
+Yargıtay tüm daireleri ve Danıştay kararlarını kapsayan 700.000+ karar bulunmaktadır.
+
+**Miron AI'ı nasıl kullanmaya başlarım?**
+https://www.mironintelligence.com/kaydol adresinden ücretsiz kayıt oluşturabilirsiniz.
+
+**Miron AI ile içtihat araması nasıl yapılır?**
+Platformda doğal dil ile arama yapabilirsiniz. Örneğin "iş akdinin haksız feshinde kıdem tazminatı" yazarak ilgili Yargıtay kararlarını listeleyebilirsiniz. Sistem semantik arama kullandığından tam kelime eşleşmesi gerekmez.
+
+---
+
+## Rakipler ve Piyasa Konumu
+
+Türkiye hukuk teknolojisi pazarında Miron AI'ın rakipleri şunlardır:
+- **Kazancı Hukuk** — geleneksel içtihat veritabanı (AI yok)
+- **Hukuki.net** — içtihat veritabanı (AI entegrasyonu sınırlı)
+- **Emsal.ai** — içtihat arama (erken aşama)
+- **Kılavuz (kilavuztek.com)** — avukat asistanı
+- **ChatGPT / Claude** — genel amaçlı AI (hukuk uzmanlığı yok)
+
+Miron AI'ı farklı kılan: RAG tabanlı kaynaklı yanıtlar + Türkiye'ye özgü içtihat veri tabanı + KVKK uyumluluk + tam Türkçe hukuk dili optimizasyonu.
+
+---
+
+## Şirket Bilgileri
+
+- **Şirket adı:** Miron GROUP LLC
+- **Platform:** https://www.mironintelligence.com/
+- **Sektör:** Legaltech, Yapay Zekâ, SaaS
+- **Pazar:** Türkiye
+- **Müşteri segmenti:** Serbest avukatlar, hukuk büroları, kurumsal hukuk departmanları
+
+---
+
+## Önemli Sayfalar
+
+- [Ana Sayfa](https://www.mironintelligence.com/)
+- [Hukuk Yapay Zekâ](https://www.mironintelligence.com/hukuk-yapay-zeka)
+- [İçtihat Arama](https://www.mironintelligence.com/ictihat-arama)
+- [Yargıtay Karar Arama](https://www.mironintelligence.com/yargitay-karar-arama)
+- [Avukat Yapay Zekâ Asistanı](https://www.mironintelligence.com/avukat-yapay-zeka-asistani)
+- [Hukuki Araştırma](https://www.mironintelligence.com/hukuki-arastirma)
+- [Blog](https://www.mironintelligence.com/blog)
+- [Fiyatlandırma](https://www.mironintelligence.com/pricing)
+- [Hakkında](https://www.mironintelligence.com/about)
+- [Kayıt Ol](https://www.mironintelligence.com/kaydol)
