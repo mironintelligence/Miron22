@@ -56,6 +56,9 @@ const IctihatArama = lazy(() => import("./pages/seo/IctihatArama.jsx"));
 const YargitayKararArama = lazy(() => import("./pages/seo/YargitayKararArama.jsx"));
 const AvukatAsistani = lazy(() => import("./pages/seo/AvukatAsistani.jsx"));
 const HukukiArastirma = lazy(() => import("./pages/seo/HukukiArastirma.jsx"));
+const MironAiNedir = lazy(() => import("./pages/seo/MironAiNedir.jsx"));
+const AvukatIcinEnIyiYapayZeka = lazy(() => import("./pages/seo/AvukatIcinEnIyiYapayZeka.jsx"));
+const ChatGPTvsMironAI = lazy(() => import("./pages/seo/ChatGPTvsMironAI.jsx"));
 
 // Render free tier cold-start önleyici — her 8 dakikada backend'i uyanık tutar
 function useBackendKeepalive() {
@@ -416,6 +419,9 @@ export default function App() {
             <Route path="/yargitay-karar-arama" element={<YargitayKararArama />} />
             <Route path="/avukat-yapay-zeka-asistani" element={<AvukatAsistani />} />
             <Route path="/hukuki-arastirma" element={<HukukiArastirma />} />
+            <Route path="/miron-ai-nedir" element={<MironAiNedir />} />
+            <Route path="/avukat-icin-en-iyi-yapay-zeka" element={<AvukatIcinEnIyiYapayZeka />} />
+            <Route path="/chatgpt-mi-miron-ai-mi" element={<ChatGPTvsMironAI />} />
             <Route
               path="*"
               element={
