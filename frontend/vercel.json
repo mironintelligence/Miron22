@@ -23,6 +23,7 @@
     { "source": "/assistant-chat/title", "destination": "https://miron22.onrender.com/assistant-chat/title" },
     { "source": "/assistant-chat", "destination": "https://miron22.onrender.com/assistant-chat" },
     { "source": "/assistant/:path*", "destination": "https://miron22.onrender.com/assistant/:path*" },
+    { "source": "/calc/:path*", "destination": "https://miron22.onrender.com/calc/:path*" },
     { "source": "/analyze", "destination": "https://miron22.onrender.com/analyze" },
     { "source": "/billing/:path*", "destination": "https://miron22.onrender.com/billing/:path*" },
     { "source": "/health", "destination": "https://miron22.onrender.com/health" },

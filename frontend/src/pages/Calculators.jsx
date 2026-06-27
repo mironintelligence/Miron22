@@ -159,7 +159,8 @@ const KIDEM_LABELS = {
 };
 const ISCILIK_LABELS = {
   total: "Toplam İşçilik Alacağı", overtime_pay: "Fazla Mesai Ücreti",
-  severance: "Kıdem Tazminatı", notice_pay: "İhbar Tazminatı", hourly_rate: "Saatlik Ücret",
+  gross_severance: "Kıdem Tazminatı", notice_pay: "İhbar Tazminatı",
+  hourly_rate: "Saatlik Ücret", notice_weeks: "İhbar Süresi (Hafta)",
 };
 const KIRA_LABELS = {
   new_rent: "Yeni Kira Tutarı", increase_amount: "Artış Miktarı",
