@@ -14,19 +14,19 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://api.mironintelligence.com/api/:path*" },
-    { "source": "/admin/:path*", "destination": "https://api.mironintelligence.com/admin/:path*" },
-    { "source": "/cases/:path*", "destination": "https://api.mironintelligence.com/cases/:path*" },
-    { "source": "/reports/:path*", "destination": "https://api.mironintelligence.com/reports/:path*" },
-    { "source": "/writer/:path*", "destination": "https://api.mironintelligence.com/writer/:path*" },
-    { "source": "/assistant-chat/stream", "destination": "https://api.mironintelligence.com/assistant-chat/stream" },
-    { "source": "/assistant-chat/title", "destination": "https://api.mironintelligence.com/assistant-chat/title" },
-    { "source": "/assistant-chat", "destination": "https://api.mironintelligence.com/assistant-chat" },
-    { "source": "/assistant/:path*", "destination": "https://api.mironintelligence.com/assistant/:path*" },
-    { "source": "/calc/:path*", "destination": "https://api.mironintelligence.com/calc/:path*" },
-    { "source": "/analyze", "destination": "https://api.mironintelligence.com/analyze" },
-    { "source": "/billing/:path*", "destination": "https://api.mironintelligence.com/billing/:path*" },
-    { "source": "/health", "destination": "https://api.mironintelligence.com/health" },
+    { "source": "/api/:path*", "destination": "https://miron22.onrender.com/api/:path*" },
+    { "source": "/admin/:path*", "destination": "https://miron22.onrender.com/admin/:path*" },
+    { "source": "/cases/:path*", "destination": "https://miron22.onrender.com/cases/:path*" },
+    { "source": "/reports/:path*", "destination": "https://miron22.onrender.com/reports/:path*" },
+    { "source": "/writer/:path*", "destination": "https://miron22.onrender.com/writer/:path*" },
+    { "source": "/assistant-chat/stream", "destination": "https://miron22.onrender.com/assistant-chat/stream" },
+    { "source": "/assistant-chat/title", "destination": "https://miron22.onrender.com/assistant-chat/title" },
+    { "source": "/assistant-chat", "destination": "https://miron22.onrender.com/assistant-chat" },
+    { "source": "/assistant/:path*", "destination": "https://miron22.onrender.com/assistant/:path*" },
+    { "source": "/calc/:path*", "destination": "https://miron22.onrender.com/calc/:path*" },
+    { "source": "/analyze", "destination": "https://miron22.onrender.com/analyze" },
+    { "source": "/billing/:path*", "destination": "https://miron22.onrender.com/billing/:path*" },
+    { "source": "/health", "destination": "https://miron22.onrender.com/health" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
