@@ -24,7 +24,7 @@ export function EliteClub() {
               <span className="absolute top-5 right-7 font-display text-[88px] font-light text-border group-hover:text-gold/10 transition-colors leading-none pointer-events-none">
                 I
               </span>
-              <h3 className="font-sub font-bold text-[22px] mb-5 leading-snug text-white relative">
+              <h3 className="font-sub font-normal text-[22px] mb-5 leading-snug text-white relative">
                 Kendi pratiğinde sözü geçen avukatlar
               </h3>
               <p className="font-ui font-light text-[13px] text-muted leading-loose relative">
@@ -39,7 +39,7 @@ export function EliteClub() {
               <span className="absolute top-5 right-7 font-display text-[88px] font-light text-border group-hover:text-gold/10 transition-colors leading-none pointer-events-none">
                 II
               </span>
-              <h3 className="font-sub font-bold text-[22px] mb-5 leading-snug text-white relative">
+              <h3 className="font-sub font-normal text-[22px] mb-5 leading-snug text-white relative">
                 Ülke çapında görünürlük hedefleyenler
               </h3>
               <p className="font-ui font-light text-[13px] text-muted leading-loose relative">

@@ -54,7 +54,7 @@ export function Security() {
               }}
               className="bg-surface px-10 py-[52px] group hover:bg-surface-3 transition-colors duration-200"
             >
-              <h3 className="font-sub font-bold text-[14px] mb-4 text-white">{title}</h3>
+              <h3 className="font-sub font-normal text-[14px] mb-4 text-white">{title}</h3>
               <p className="font-ui text-[13px] text-muted leading-relaxed mb-5">{desc}</p>
               <div className="flex flex-wrap gap-2">
                 {badges.map((b) => (
