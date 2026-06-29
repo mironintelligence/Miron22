@@ -41,7 +41,7 @@ export function Hero() {
 
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full pointer-events-none z-0 animate-pulse-slow"
-        style={{ background: 'radial-gradient(circle, rgba(255,215,0,0.055), transparent 65%)' }}
+        style={{ background: 'radial-gradient(circle, rgba(255,215,0,0.055), transparent 65%)', willChange: 'transform' }}
       />
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">

@@ -35,6 +35,8 @@ export function useVisiblePolling(tick, options, deps = []) {
       inFlight = true;
       try {
         await tick(signal);
+      } catch {
+        /* polling hataları (cold-start HTML yanıtı vb.) sessizce yutulur */
       } finally {
         inFlight = false;
       }

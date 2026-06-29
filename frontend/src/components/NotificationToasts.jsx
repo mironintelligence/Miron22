@@ -24,7 +24,7 @@ export default function NotificationToasts() {
     async (signal) => {
       const res = await authFetch("/api/notifications/");
       if (!res.ok) return;
-      const list = await res.json();
+      const list = await res.json().catch(() => null);
       if (signal.cancelled || !Array.isArray(list)) return;
 
       const now = Date.now();

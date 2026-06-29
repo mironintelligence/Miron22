@@ -26,7 +26,7 @@ export function EliteClub() {
 
           <Reveal variant="l">
             <div className="bg-surface border border-border p-[52px_44px] relative overflow-hidden group hover:border-gold/40 transition-all duration-[350ms] h-full">
-              <h3 className="font-sub font-bold text-[22px] mb-5 leading-snug text-text">
+              <h3 className="font-sub font-normal text-[22px] mb-5 leading-snug text-text">
                 Kendi ofisinde sözü geçen avukatlar
               </h3>
               <p className="font-ui font-light text-[13px] text-muted leading-loose">
@@ -38,7 +38,7 @@ export function EliteClub() {
 
           <Reveal variant="r">
             <div className="bg-surface border border-border p-[52px_44px] relative overflow-hidden group hover:border-gold/40 transition-all duration-[350ms] h-full">
-              <h3 className="font-sub font-bold text-[22px] mb-5 leading-snug text-text">
+              <h3 className="font-sub font-normal text-[22px] mb-5 leading-snug text-text">
                 Ülke çapında görünürlük hedefleyenler
               </h3>
               <p className="font-ui font-light text-[13px] text-muted leading-loose">

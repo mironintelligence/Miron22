@@ -71,7 +71,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
   useEffect(() => {
     if (!user?.id) return;
     authFetch("/api/chats")
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json().catch(() => null) : null))
       .then((data) => {
         const loaded = Array.isArray(data?.chats) ? data.chats : [];
         setChats(loaded);

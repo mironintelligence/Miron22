@@ -60,7 +60,7 @@ export function Automation() {
                 group-hover:after:h-full after:transition-all after:duration-[450ms]"
             >
               <Icon size={20} className="text-muted opacity-50 mb-5" />
-              <h3 className="font-sub font-bold text-[15px] mb-2 text-text">{title}</h3>
+              <h3 className="font-sub font-normal text-[15px] mb-2 text-text">{title}</h3>
               <p className="font-ui text-[13px] text-muted leading-loose">{desc}</p>
             </motion.div>
           ))}

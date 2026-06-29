@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
-import { Abril_Fatface, Libre_Baskerville, IBM_Plex_Sans } from 'next/font/google'
+import { Cormorant_Garamond, Libre_Baskerville, IBM_Plex_Sans } from 'next/font/google'
 import './globals.css'
 
-const abril = Abril_Fatface({
-  weight: '400',
+const cormorant = Cormorant_Garamond({
+  weight: ['300', '400', '500', '600'],
+  style: ['normal', 'italic'],
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
@@ -57,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="tr"
-      className={`${abril.variable} ${baskerville.variable} ${plex.variable}`}
+      className={`${cormorant.variable} ${baskerville.variable} ${plex.variable}`}
     >
       <body className="bg-bg text-text font-ui antialiased">{children}</body>
     </html>

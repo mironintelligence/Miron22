@@ -5,15 +5,15 @@ import { type ReactNode } from 'react'
 
 const VARIANTS: Record<string, Variants> = {
   y: {
-    hidden: { opacity: 0, y: 44 },
+    hidden: { opacity: 0, y: 28 },
     show: { opacity: 1, y: 0 },
   },
   l: {
-    hidden: { opacity: 0, x: -44 },
+    hidden: { opacity: 0, x: -28 },
     show: { opacity: 1, x: 0 },
   },
   r: {
-    hidden: { opacity: 0, x: 44 },
+    hidden: { opacity: 0, x: 28 },
     show: { opacity: 1, x: 0 },
   },
   scale: {

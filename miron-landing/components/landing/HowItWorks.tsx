@@ -53,7 +53,7 @@ export function HowItWorks() {
                 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[2px] after:bg-gold
                 after:transition-all after:duration-500 group-hover:after:w-full"
             >
-              <h3 className="font-sub font-bold text-[22px] mb-4 leading-tight">{title}</h3>
+              <h3 className="font-sub font-normal text-[22px] mb-4 leading-tight">{title}</h3>
               <p className="font-ui text-[13px] text-muted leading-loose">{desc}</p>
             </motion.div>
           ))}

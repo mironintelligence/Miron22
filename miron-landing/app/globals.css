@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html { scroll-behavior: smooth; }
-body { background: #000; color: #fff; overflow-x: hidden; }
+body { background: #000; color: #fff; overflow-x: clip; }
 
 ::selection { background: #FFD700; color: #000; }
 ::-webkit-scrollbar { width: 8px; }
