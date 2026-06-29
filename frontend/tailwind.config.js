@@ -33,11 +33,11 @@ export default {
         danger: "#cc3333",
       },
       fontFamily: {
-        heading: ["Cormorant Garamond", "serif"],
+        heading: ["Libre Baskerville", "serif"],
         subheading: ["Libre Baskerville", "serif"],
         body: ["Akzidenz-Grotesk", "Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
         // Dashboard stack
-        display: ['"Cormorant Garamond"', "serif"],
+        display: ['"Libre Baskerville"', "serif"],
         serif: ['"Libre Baskerville"', "serif"],
         sans: ['"IBM Plex Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
         sub: ['"Libre Baskerville"', "serif"],
