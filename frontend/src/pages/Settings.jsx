@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { authFetch } from "../auth/api";
 import { emitToast } from "../utils/toastBus";
+import { getApiBase } from "../lib/apiBase";
 
-const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const API_BASE = getApiBase();
 
 function formatDateTR(ts) {
   if (!ts) return "—";

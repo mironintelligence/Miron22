@@ -6,10 +6,17 @@ import reactRefresh from "eslint-plugin-react-refresh";
 export default [
   { ignores: ["dist"] },
   {
-    files: ["eslint.config.js", "vite.config.js", "tailwind.config.js", "postcss.config.js"],
+    files: [
+      "eslint.config.js",
+      "vite.config.js",
+      "tailwind.config.js",
+      "postcss.config.js",
+      "playwright.config.js",
+      "e2e/**/*.js",
+    ],
     languageOptions: {
       ecmaVersion: "latest",
-      sourceType: "script",
+      sourceType: "module",
       globals: globals.node,
     },
     rules: {
@@ -34,6 +41,16 @@ export default [
       "react-refresh/only-export-components": "off",
       "no-unused-vars": "off",
       "react-hooks/exhaustive-deps": "off",
+    },
+  },
+  {
+    files: ["**/*.test.{js,jsx}"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.vitest,
+        global: "readonly",
+      },
     },
   },
 ];

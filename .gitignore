@@ -16,5 +16,6 @@ venv/
 node_modules
 frontend/dist/
 *.log
+ops/failover-gateway/wrangler.toml
 supabase/.temp/
 frontend/.next/

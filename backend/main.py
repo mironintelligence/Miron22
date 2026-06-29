@@ -11,6 +11,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Body, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
@@ -35,6 +36,7 @@ load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
 # OpenAI client (tek kaynak)
 # ---------------------------
 from openai_client import get_openai_client, get_openai_api_key
+from openai_client import get_groq_api_key, get_ollama_base_url
 from llm_gateway import chat_completions_create
 try:
     from middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, BotProtectionMiddleware
@@ -171,7 +173,6 @@ async def startup_event():
     required_vars = [
         "SUPABASE_URL",
         "SUPABASE_KEY",
-        "OPENAI_API_KEY",
         "SECRET_KEY",
         "DATABASE_URL",
         "JWT_SECRET",
@@ -208,6 +209,17 @@ async def startup_event():
                     print(f"✅ {var} is set")
             else:
                 print(f"✅ {var} is set ({val})")
+
+    if not (get_ollama_base_url() or get_groq_api_key() or get_openai_api_key()):
+        missing.append("OLLAMA_BASE_URL or GROQ_API_KEY or OPENAI_API_KEY")
+        print("❌ LLM provider is MISSING (set OLLAMA_BASE_URL, GROQ_API_KEY, or OPENAI_API_KEY)")
+    else:
+        if get_ollama_base_url():
+            print(f"✅ LLM provider: Ollama ({get_ollama_base_url()})")
+        elif get_groq_api_key():
+            print("✅ LLM provider: Groq")
+        else:
+            print("✅ LLM provider: OpenAI")
     
     if missing:
         raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
@@ -381,6 +393,21 @@ async def app_error_handler(request: Request, exc: AppError):
 
 @app.exception_handler(HTTPException)
 async def http_exception_with_cors(request: Request, exc: HTTPException):
+    request_id = _request_id(request)
+    body = build_envelope(
+        code=code_for_status(exc.status_code),
+        detail=str(exc.detail) if exc.detail is not None else "",
+        request_id=request_id,
+    )
+    return JSONResponse(
+        status_code=int(exc.status_code),
+        content=body,
+        headers={**(exc.headers or {}), **_cors_hdr(request)},
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def starlette_http_exception_with_cors(request: Request, exc: StarletteHTTPException):
     request_id = _request_id(request)
     body = build_envelope(
         code=code_for_status(exc.status_code),

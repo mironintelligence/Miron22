@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: /opt/miron-backend
+      dockerfile: Dockerfile
+    image: miron-backend:local
+    container_name: miron-backend
+    restart: unless-stopped
+    working_dir: /app
+    command: >
+      uvicorn backend.main:app --host 0.0.0.0 --port 8000 --proxy-headers
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - /opt/miron-backend/.env
+    volumes:
+      - /opt/miron-backend/app:/app:rw
+      - /srv/miron-law-data:/srv/miron-law-data:ro
+    environment:
+      ENVIRONMENT: production
+      LLM_PROVIDER: ollama
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:1.5b-instruct
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -9,24 +9,24 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=()" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; font-src 'self' data:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self' https://*.supabase.co;" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self' https://*.supabase.co;" }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://miron22.onrender.com/api/:path*" },
-    { "source": "/admin/:path*", "destination": "https://miron22.onrender.com/admin/:path*" },
-    { "source": "/cases/:path*", "destination": "https://miron22.onrender.com/cases/:path*" },
-    { "source": "/reports/:path*", "destination": "https://miron22.onrender.com/reports/:path*" },
-    { "source": "/writer/:path*", "destination": "https://miron22.onrender.com/writer/:path*" },
-    { "source": "/assistant-chat/stream", "destination": "https://miron22.onrender.com/assistant-chat/stream" },
-    { "source": "/assistant-chat/title", "destination": "https://miron22.onrender.com/assistant-chat/title" },
-    { "source": "/assistant-chat", "destination": "https://miron22.onrender.com/assistant-chat" },
-    { "source": "/assistant/:path*", "destination": "https://miron22.onrender.com/assistant/:path*" },
-    { "source": "/calc/:path*", "destination": "https://miron22.onrender.com/calc/:path*" },
-    { "source": "/analyze", "destination": "https://miron22.onrender.com/analyze" },
-    { "source": "/billing/:path*", "destination": "https://miron22.onrender.com/billing/:path*" },
-    { "source": "/health", "destination": "https://miron22.onrender.com/health" },
+    { "source": "/api/:path*", "destination": "https://api.mironintelligence.com/api/:path*" },
+    { "source": "/admin/:path*", "destination": "https://api.mironintelligence.com/admin/:path*" },
+    { "source": "/cases/:path*", "destination": "https://api.mironintelligence.com/cases/:path*" },
+    { "source": "/reports/:path*", "destination": "https://api.mironintelligence.com/reports/:path*" },
+    { "source": "/writer/:path*", "destination": "https://api.mironintelligence.com/writer/:path*" },
+    { "source": "/assistant-chat/stream", "destination": "https://api.mironintelligence.com/assistant-chat/stream" },
+    { "source": "/assistant-chat/title", "destination": "https://api.mironintelligence.com/assistant-chat/title" },
+    { "source": "/assistant-chat", "destination": "https://api.mironintelligence.com/assistant-chat" },
+    { "source": "/assistant/:path*", "destination": "https://api.mironintelligence.com/assistant/:path*" },
+    { "source": "/calc/:path*", "destination": "https://api.mironintelligence.com/calc/:path*" },
+    { "source": "/analyze", "destination": "https://api.mironintelligence.com/analyze" },
+    { "source": "/billing/:path*", "destination": "https://api.mironintelligence.com/billing/:path*" },
+    { "source": "/health", "destination": "https://api.mironintelligence.com/health" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

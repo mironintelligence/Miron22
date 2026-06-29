@@ -19,10 +19,17 @@ def _groq_active() -> bool:
     return is_groq_active()
 
 
+def _ollama_active() -> bool:
+    from openai_client import is_ollama_active
+    return is_ollama_active()
+
+
 def llm_primary_model() -> str:
     explicit = (os.getenv("LLM_MODEL_PRIMARY") or "").strip()
     if explicit:
         return explicit
+    if _ollama_active():
+        return (os.getenv("OLLAMA_MODEL") or "qwen2.5:1.5b-instruct").strip()
     return "llama-3.3-70b-versatile" if _groq_active() else "gpt-4o-mini"
 
 
@@ -30,6 +37,8 @@ def llm_fallback_model() -> str:
     explicit = (os.getenv("LLM_MODEL_FALLBACK") or "").strip()
     if explicit:
         return explicit
+    if _ollama_active():
+        return llm_primary_model()
     return "llama-3.1-8b-instant" if _groq_active() else "gpt-4o"
 
 

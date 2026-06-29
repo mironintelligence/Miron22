@@ -35,24 +35,48 @@ def get_openai_api_key() -> str:
     return _clean_key(os.getenv("OPENAI_API_KEY", ""))
 
 
+def get_ollama_base_url() -> str:
+    _load_env()
+    base = _clean_key(os.getenv("OLLAMA_BASE_URL", ""))
+    if not base:
+        return ""
+    return base.rstrip("/")
+
+
+def is_ollama_active() -> bool:
+    _load_env()
+    provider = _clean_key(os.getenv("LLM_PROVIDER", "")).lower()
+    return provider == "ollama" or bool(get_ollama_base_url())
+
+
 def is_groq_active() -> bool:
     """Groq key varsa True — chat completions için Groq kullanılır."""
-    return bool(get_groq_api_key())
+    return (not is_ollama_active()) and bool(get_groq_api_key())
 
 
 def get_openai_client() -> OpenAI:
     """
     Chat completions için client döndürür.
+    LLM_PROVIDER=ollama veya OLLAMA_BASE_URL varsa Ollama'ya,
     GROQ_API_KEY varsa Groq'a, yoksa OpenAI'a bağlanır.
     """
+    ollama_base = get_ollama_base_url()
+    if is_ollama_active():
+        if not ollama_base:
+            raise RuntimeError("LLM_PROVIDER=ollama ama OLLAMA_BASE_URL tanımlı değil.")
+        return OpenAI(
+            api_key=_clean_key(os.getenv("OLLAMA_API_KEY", "")) or "ollama",
+            base_url=f"{ollama_base}/v1",
+        )
+
     groq_key = get_groq_api_key()
     if groq_key:
         return OpenAI(api_key=groq_key, base_url=_GROQ_BASE_URL)
     openai_key = get_openai_api_key()
     if not openai_key:
         raise RuntimeError(
-            "Ne GROQ_API_KEY ne de OPENAI_API_KEY bulundu. "
-            "Render env vars içine GROQ_API_KEY veya OPENAI_API_KEY ekle."
+            "Ne OLLAMA_BASE_URL ne GROQ_API_KEY ne de OPENAI_API_KEY bulundu. "
+            "Render/Lenovo env vars içine OLLAMA_BASE_URL, GROQ_API_KEY veya OPENAI_API_KEY ekle."
         )
     return OpenAI(api_key=openai_key)
 
@@ -70,6 +94,8 @@ def get_embedding_client() -> Optional[OpenAI]:
 
 def key_tail() -> str:
     try:
+        if is_ollama_active():
+            return f"ollama:{get_ollama_base_url() or 'missing'}"
         if is_groq_active():
             k = get_groq_api_key()
             return f"groq:{k[-6:]}"
@@ -81,6 +107,8 @@ def key_tail() -> str:
 
 def key_debug() -> str:
     try:
+        if is_ollama_active():
+            return f"OLLAMA_BASE_URL: {get_ollama_base_url() or 'MISSING'}"
         if is_groq_active():
             k = get_groq_api_key()
             return f"GROQ_API_KEY: present len={len(k)} tail={k[-6:]}"

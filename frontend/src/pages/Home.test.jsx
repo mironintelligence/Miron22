@@ -19,7 +19,6 @@ describe("Ana menü", () => {
     expect(screen.getByText("Evrak Analizi")).toBeInTheDocument();
     expect(screen.getByText("Sözleşme Analizi")).toBeInTheDocument();
     expect(screen.getByText("Sözleşme Oluşturucu")).toBeInTheDocument();
-    expect(screen.getByText("Dava Hatırlatıcı")).toBeInTheDocument();
+    expect(screen.getByText("Hatırlatıcı & Takvim")).toBeInTheDocument();
   });
 });
-

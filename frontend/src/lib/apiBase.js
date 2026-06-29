@@ -2,9 +2,10 @@
  * API origin for fetch/axios.
  *
  * Production: same origin ("") so requests hit the Vercel host and `vercel.json`
- * rewrites forward to Render — no browser CORS. Vercel projects often still set
- * `VITE_API_URL` to the Render URL for historical reasons; using it in PROD
- * breaks credentialed cookies, so we ignore `VITE_API_URL` when `import.meta.env.PROD`.
+ * rewrites forward to the Cloudflare API gateway. The gateway uses Lenovo as
+ * primary and Render as fallback. Vercel projects often still set `VITE_API_URL`
+ * to the Render URL for historical reasons; using it in PROD breaks credentialed
+ * cookies, so we ignore `VITE_API_URL` when `import.meta.env.PROD`.
  *
  * Override production explicitly with `VITE_API_BASE_URL` (e.g. staging API).
  *

@@ -1,0 +1,22 @@
+name = "miron-api-gateway"
+main = "worker.js"
+compatibility_date = "2026-06-01"
+
+[vars]
+# Cloudflare Tunnel ile Lenovo backend'e verdigin public HTTPS adresi.
+PRIMARY_ORIGIN = "https://lenovo-api.mironintelligence.com"
+
+# Mevcut Render backend.
+FALLBACK_ORIGIN = "https://miron22.onrender.com"
+
+# Lenovo 1-3 kullanici icin ana servis; gecikirse Render'a dus.
+PRIMARY_TIMEOUT_MS = "2500"
+FALLBACK_TIMEOUT_MS = "45000"
+
+# false daha guvenli: POST/PUT/PATCH primary 500 donerse otomatik tekrar
+# gondermez, cunku ayni DB'ye cift yazim riski olabilir.
+FALLBACK_ON_MUTATING_5XX = "false"
+
+# routes = [
+#   { pattern = "api.mironintelligence.com/*", custom_domain = true }
+# ]
