@@ -104,6 +104,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
   const typewriterBufRef = useRef("");
   const typewriterTimerRef = useRef(null);
   const displayedLenRef = useRef(0);
+  const streamingRef = useRef(false);
   const autoScrollRef = useRef(true);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);       // mobile overlay
@@ -164,38 +165,62 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
     if (el && autoScrollRef.current) { const t = setTimeout(() => el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }), 50); return () => clearTimeout(t); }
   }, [messages.length, displayedText, streaming]);
 
+  // Unmount cleanup only — the streaming effect intentionally doesn't return cleanup
+  useEffect(() => () => { if (typewriterTimerRef.current) clearInterval(typewriterTimerRef.current); }, []);
+
   useEffect(() => {
+    streamingRef.current = streaming;
+
     if (!streaming) {
-      if (typewriterTimerRef.current) clearInterval(typewriterTimerRef.current);
-      typewriterTimerRef.current = null;
-      setDisplayedText("");
-      typewriterBufRef.current = "";
-      displayedLenRef.current = 0;
+      // Stream ended — don't kill the interval; let it drain the buffer at catch-up speed,
+      // then self-terminate. If the buffer is already empty (fallback path), stop immediately.
+      if (!typewriterBufRef.current) {
+        if (typewriterTimerRef.current) clearInterval(typewriterTimerRef.current);
+        typewriterTimerRef.current = null;
+        setDisplayedText("");
+        displayedLenRef.current = 0;
+      }
       return;
     }
+
+    // New stream starting — kill any leftover interval and reset
+    if (typewriterTimerRef.current) clearInterval(typewriterTimerRef.current);
     displayedLenRef.current = 0;
+
     typewriterTimerRef.current = setInterval(() => {
       const full = typewriterBufRef.current;
       const shown = displayedLenRef.current;
-      if (shown >= full.length) return;
 
-      // Catch-up speed: more words per tick when far behind
+      if (shown >= full.length) {
+        if (!streamingRef.current) {
+          // Buffer fully shown AND backend done → clean up
+          clearInterval(typewriterTimerRef.current);
+          typewriterTimerRef.current = null;
+          setDisplayedText("");
+          typewriterBufRef.current = "";
+          displayedLenRef.current = 0;
+        }
+        return;
+      }
+
+      // After stream ends: fast catch-up (15 words/tick); during stream: adaptive
       const pending = full.slice(shown).trim();
       const wordCount = pending ? pending.split(/\s+/).length : 0;
-      const wordsPerTick = wordCount > 30 ? 6 : wordCount > 15 ? 3 : wordCount > 6 ? 2 : 1;
+      const wordsPerTick = !streamingRef.current
+        ? 15
+        : wordCount > 30 ? 6 : wordCount > 15 ? 3 : wordCount > 6 ? 2 : 1;
 
-      // Advance word-by-word
       let pos = shown;
       let advanced = 0;
       while (pos < full.length && advanced < wordsPerTick) {
         while (pos < full.length && /\s/.test(full[pos])) pos++;  // skip whitespace
-        while (pos < full.length && !/\s/.test(full[pos])) pos++; // skip word chars
+        while (pos < full.length && !/\s/.test(full[pos])) pos++; // skip word
         advanced++;
       }
       displayedLenRef.current = pos;
       setDisplayedText(full.slice(0, pos));
     }, 55);
-    return () => { if (typewriterTimerRef.current) clearInterval(typewriterTimerRef.current); };
+    // No cleanup return here — interval must survive streaming → false transition
   }, [streaming]);
 
   const markdownComponents = useMemo(() => makeMarkdownComponents(sideCollapsed), [sideCollapsed]);
@@ -650,7 +675,7 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                     )}
                   </div>
                 ))}
-                {streaming && (
+                {(streaming || displayedText) && (
                   <div style={{ display: "flex", justifyContent: "flex-start" }}>
                     <div className="miron-msg" style={{ maxWidth: sideCollapsed ? 820 : 720, color: "#888", fontSize: sideCollapsed ? 19 : 17, lineHeight: 2.0, fontFamily: FONT_SERIF, borderLeft: "1px solid #1e1e1e", paddingLeft: 24, marginRight: 20, overflowWrap: "anywhere" }}>
                       {displayedText ? (
