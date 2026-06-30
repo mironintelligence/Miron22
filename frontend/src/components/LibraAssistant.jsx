@@ -178,12 +178,23 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
       const full = typewriterBufRef.current;
       const shown = displayedLenRef.current;
       if (shown >= full.length) return;
-      const behind = full.length - shown;
-      const step = behind > 100 ? 15 : behind > 30 ? 8 : behind > 10 ? 4 : 2;
-      const newLen = Math.min(shown + step, full.length);
-      displayedLenRef.current = newLen;
-      setDisplayedText(full.slice(0, newLen));
-    }, 30);
+
+      // Catch-up speed: more words per tick when far behind
+      const pending = full.slice(shown).trim();
+      const wordCount = pending ? pending.split(/\s+/).length : 0;
+      const wordsPerTick = wordCount > 30 ? 6 : wordCount > 15 ? 3 : wordCount > 6 ? 2 : 1;
+
+      // Advance word-by-word
+      let pos = shown;
+      let advanced = 0;
+      while (pos < full.length && advanced < wordsPerTick) {
+        while (pos < full.length && /\s/.test(full[pos])) pos++;  // skip whitespace
+        while (pos < full.length && !/\s/.test(full[pos])) pos++; // skip word chars
+        advanced++;
+      }
+      displayedLenRef.current = pos;
+      setDisplayedText(full.slice(0, pos));
+    }, 55);
     return () => { if (typewriterTimerRef.current) clearInterval(typewriterTimerRef.current); };
   }, [streaming]);
 
@@ -645,7 +656,17 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                       {displayedText ? (
                         <><ReactMarkdown components={markdownComponents}>{displayedText}</ReactMarkdown><span className="miron-cursor" /></>
                       ) : (
-                        <span className="miron-typing-dots" aria-label="Yazıyor"><span /><span /><span /></span>
+                        <div className="miron-thinking" aria-label="Analiz ediliyor">
+                          <div className="miron-think-header">
+                            <span className="miron-think-icon">◈</span>
+                            <span className="miron-think-label">analiz ediliyor</span>
+                          </div>
+                          <div className="miron-think-bars">
+                            <div className="miron-think-bar" />
+                            <div className="miron-think-bar" />
+                            <div className="miron-think-bar" />
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
