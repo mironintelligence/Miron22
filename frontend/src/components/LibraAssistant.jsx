@@ -654,7 +654,11 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
               </div>
             ) : (
               <div style={{ margin: "0 auto", width: "100%", maxWidth: sideCollapsed ? 860 : 720, padding: "16px 24px 32px", display: "flex", flexDirection: "column", gap: 32, transition: "max-width 0.25s ease" }}>
-                {messages.map((m, i) => (
+                {messages.map((m, i) => {
+                  // Hide the last assistant message while the typewriter is still showing it
+                  const isLastAssistant = i === messages.length - 1 && m.sender === "assistant";
+                  if (isLastAssistant && displayedText) return null;
+                  return (
                   <div key={i} style={{ display: "flex", width: "100%", justifyContent: m.sender === "user" ? "flex-end" : "flex-start" }}>
                     {m.sender === "user" ? (
                       <div style={{ maxWidth: 520, background: "#0d0d0d", border: "0.5px solid #1e1e1e", borderRadius: 12, padding: "14px 18px", color: "#cccccc", fontSize: sideCollapsed ? 17 : 16, lineHeight: 1.75, fontFamily: FONT_SANS, whiteSpace: "pre-wrap", overflowWrap: "anywhere", transition: "font-size 0.25s ease" }}>
@@ -674,7 +678,8 @@ export default function LibraAssistant({ caseText: caseTextProp = "" }) {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
                 {(streaming || displayedText) && (
                   <div style={{ display: "flex", justifyContent: "flex-start" }}>
                     <div className="miron-msg" style={{ maxWidth: sideCollapsed ? 820 : 720, color: "#888", fontSize: sideCollapsed ? 19 : 17, lineHeight: 2.0, fontFamily: FONT_SERIF, borderLeft: "1px solid #1e1e1e", paddingLeft: 24, marginRight: 20, overflowWrap: "anywhere" }}>
